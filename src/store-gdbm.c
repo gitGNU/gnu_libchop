@@ -78,9 +78,13 @@ chop_gdbm_read_block (chop_block_store_t *store,
 
   gdbm_content = gdbm_fetch (gdbm->db, gdbm_key);
   if (!gdbm_content.dptr)
-    return CHOP_STORE_BLOCK_UNAVAIL;
+    {
+      *size = 0;
+      return CHOP_STORE_BLOCK_UNAVAIL;
+    }
 
   err = chop_buffer_push (buffer, gdbm_content.dptr, gdbm_content.dsize);
+  *size = gdbm_content.dsize;
 
   free (gdbm_content.dptr);
 

@@ -172,6 +172,18 @@
 		  #:description "Read from @var{store} the block whose key
 is @var{key} and return a u8vector representing its content.")
 
+  (wrap-function! ws
+		  #:name 'store-sync
+		  #:returns '<errcode>
+		  #:c-name "chop_store_sync"
+		  #:arguments '((<store> store)))
+
+  (wrap-function! ws
+		  #:name 'store-close
+		  #:returns '<errcode>
+		  #:c-name "chop_store_close"
+		  #:arguments '((<store> store)))
+
 )
 
 ;; Local Variables:

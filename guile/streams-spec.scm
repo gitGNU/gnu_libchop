@@ -90,6 +90,12 @@
 				((int out) read))
 		  #:description "Read from @var{stream}.")
 
+  (wrap-function! ws
+		  #:name 'stream-close
+		  #:returns 'void
+		  #:c-name "chop_stream_close"
+		  #:arguments '((<stream> stream)))
+
 )
 
 ;; Local Variables:

@@ -49,3 +49,7 @@ block_rstore_svc.c:  $(top_srcdir)/rpc/block_rstore.x \
 
 $(top_srcdir)/include/chop/block_rstore.h: $(top_srcdir)/rpc/block_rstore.x
 	$(RPCGEN) -h $^ > $@
+
+# We need this one too cause the stub includes it.
+$(top_srcdir)/rpc/block_rstore.h: $(top_srcdir)/rpc/block_rstore.x
+	$(RPCGEN) -h $^ > $@

@@ -60,6 +60,9 @@ static int verbose = 0;
 /* Whether to use the zlib filters.  */
 static int use_zlib_filters = 0;
 
+/* The remote block store host name or NULL.  */
+static char *remote_hostname = NULL;
+
 
 static struct argp_option options[] =
   {
@@ -70,10 +73,16 @@ static struct argp_option options[] =
     { "zip",     'z', 0, 0,
       "Pass data through a zlib filter to compress (resp. decompress) data "
       "when writing (resp. reading) to (resp. from) the archive" },
+    { "remote",  'R', "HOST", 0,
+      "Use the remote block store located at HOST (using TCP) for both "
+      "data and meta-data blocks" },
+
+    /* The main functions.  */
     { "archive", 'a', "FILE",   0,
       "Archive FILE and return an archived revision handle" },
     { "restore", 'r', "HANDLE", 0,
       "Restore a file's revision from HANDLE, an archived revision handle" },
+
     { 0, 0, 0, 0, 0 }
   };
 
@@ -313,6 +322,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
     case 'z':
       use_zlib_filters = 1;
       break;
+    case 'R':
+      remote_hostname = arg;
+      break;
     default:
       return ARGP_ERR_UNKNOWN;
     }
@@ -355,18 +367,39 @@ main (int argc, char *argv[])
 
   if (!debugging)
     {
-      store = (chop_block_store_t *)
-	chop_class_alloca_instance (&chop_gdbm_block_store_class);
-      metastore = (chop_block_store_t *)
-	chop_class_alloca_instance (&chop_gdbm_block_store_class);
+      if (remote_hostname)
+	{
+	  /* Use a remote block store for both data and metadata blocks.  */
+	  store = (chop_block_store_t *)
+	    chop_class_alloca_instance (&chop_remote_block_store_class);
 
-      err = open_gdbm_store (GDBM_DATA_FILE_BASE, store);
-      if (err)
-	exit (3);
+	  err = chop_remote_block_store_open (remote_hostname, "tcp",
+					      store);
+	  if (err)
+	    {
+	      com_err (program_name, err,
+		       "failed to open remote block store");
+	      exit (3);
+	    }
 
-      err = open_gdbm_store (GDBM_META_DATA_FILE_BASE, metastore);
-      if (err)
-	exit (3);
+	  metastore = store;
+	}
+      else
+	{
+	  /* Use two GDBM stores.  */
+	  store = (chop_block_store_t *)
+	    chop_class_alloca_instance (&chop_gdbm_block_store_class);
+	  metastore = (chop_block_store_t *)
+	    chop_class_alloca_instance (&chop_gdbm_block_store_class);
+
+	  err = open_gdbm_store (GDBM_DATA_FILE_BASE, store);
+	  if (err)
+	    exit (3);
+
+	  err = open_gdbm_store (GDBM_META_DATA_FILE_BASE, metastore);
+	  if (err)
+	    exit (3);
+	}
     }
   else
     {

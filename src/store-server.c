@@ -7,9 +7,19 @@
 #include "../rpc/block_rstore.h"
 
 
-chop_rpc_handler_t chop_block_server_say_hello_handler = NULL;
-chop_rpc_handler_t chop_block_server_block_exists_handler = NULL;
-chop_rpc_handler_t chop_block_server_write_block_handler = NULL;
+CHOP_RPC_HANDLER (int, char *,
+		  chop_block_server_say_hello_handler) = NULL;
+CHOP_RPC_HANDLER (int, chop_rblock_key_t,
+		  chop_block_server_block_exists_handler) = NULL;
+CHOP_RPC_HANDLER (int, block_store_write_block_args,
+		  chop_block_server_write_block_handler) = NULL;
+CHOP_RPC_HANDLER (block_store_read_block_ret, chop_rblock_key_t,
+		  chop_block_server_read_block_handler) = NULL;
+CHOP_RPC_HANDLER (int, void,
+		  chop_block_server_sync_handler) = NULL;
+CHOP_RPC_HANDLER (int, void,
+		  chop_block_server_close_handler) = NULL;
+
 
 /* Rewrite the generated code so that we can pass pointers to the handler
    functions as we want, avoiding name clashes, etc.  */
@@ -17,6 +27,9 @@ chop_rpc_handler_t chop_block_server_write_block_handler = NULL;
 #define say_hello_0_svc       chop_block_server_say_hello_handler
 #define block_exists_0_svc    chop_block_server_block_exists_handler
 #define write_block_0_svc     chop_block_server_write_block_handler
+#define read_block_0_svc      chop_block_server_read_block_handler
+#define sync_0_svc            chop_block_server_sync_handler
+#define close_0_svc           chop_block_server_close_handler
 
 #include "block_rstore_svc.c"
 
