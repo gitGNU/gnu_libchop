@@ -4,7 +4,7 @@
 
 #include <alloca.h>
 
-static int debug = 0;
+static int debug = 1;
 
 int
 main (int argc, char *argv[])
@@ -28,7 +28,7 @@ main (int argc, char *argv[])
       return 1;
     }
 
-  err = chop_anchor_based_chopper_init (stream, 30, chopper);
+  err = chop_anchor_based_chopper_init (stream, 10, chopper);
   if (err)
     {
       com_err (argv[0], err, "anchor-based-chopper");

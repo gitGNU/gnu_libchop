@@ -27,9 +27,14 @@ chop_fixed_size_chopper_init (chop_stream_t *input,
 			      int pad_blocks,
 			      chop_fixed_size_chopper_t *chopper)
 {
+  chop_object_initialize ((chop_object_t *)chopper,
+			  &chop_fixed_size_chopper_class);
+
   chopper->chopper.stream = input;
   chopper->chopper.read_block = chop_fixed_chopper_read_block;
   chopper->chopper.typical_block_size = block_size;
+  chopper->chopper.close = NULL;
+
   chopper->block_size = block_size;
   chopper->pad_blocks = pad_blocks;
 

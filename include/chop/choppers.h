@@ -16,7 +16,9 @@ CHOP_DECLARE_RT_CLASS (chopper, object,
 
 		       size_t typical_block_size;
 		       errcode_t (* read_block) (struct chop_chopper *,
-						 chop_buffer_t *, size_t *););
+						 chop_buffer_t *, size_t *);
+		       /* The CLOSE method is optional.  */
+		       void (* close) (struct chop_chopper *););
 
 /* Declare `chop_fixed_size_chopper_t' which inherits from
    `chop_chopper_t'. */
@@ -70,9 +72,6 @@ static __inline__ void chop_chopper_set_stream (chop_chopper_t *__chopper,
   __chopper->stream = __input;
 }
 
-/* Note: Use `GMemChunk' (slab allocator),
-   http://developer.gnome.org/doc/API/glib/glib-memory-chunks.html */
-
 /* Read a block from CHOPPER and store its contents into BLOCK.  On success,
    BLOCK contains the exact contents of the block (i.e. the contents are
    "pushed"), SIZE contains the size of the block, and zero is returned.  On
@@ -92,6 +91,15 @@ static __inline__ size_t
 chop_chopper_typical_block_size (const chop_chopper_t *__chopper)
 {
   return (__chopper->typical_block_size);
+}
+
+/* Deallocate any resources associated with CHOPPER.  Once closed, CHOPPER
+   becomes unusable.  */
+static __inline__ void
+chop_chopper_close (chop_chopper_t *__chopper)
+{
+  if (__chopper->close)
+    __chopper->close (__chopper);
 }
 
 #endif
