@@ -74,6 +74,7 @@ AC_CONFIG_FILES([Makefile
 		 utils/Makefile
 		 tests/Makefile
 		 tests/interfaces/Makefile
+		 tests/features/Makefile
 		 guile/Makefile])
 
 AC_OUTPUT

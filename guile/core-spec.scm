@@ -45,15 +45,25 @@
 
 
 ;; Input buffers as SRFI-4 vectors
-(define-class <chop-char*-buffer-type> (<gw-guile-type>))
+(define-class <chop-input-buffer-type> (<gw-type>))
 
-(define-method (c-type-name (type <chop-char*-buffer-type>))
+(define-method (c-type-name (type <chop-input-buffer-type>))
   "char *")
 
-(define-method (wrap-value-cg (type <chop-char*-buffer-type>)
+(define-method (wrap-value-cg (type <chop-input-buffer-type>)
 			      (value <gw-value>)
 			      error-var)
   (list (scm-var value) " = scm_make_u8vector ();\n"))
+
+(define-method (unwrap-value-cg (type <chop-input-buffer-type>)
+				(value <gw-value>)
+				error-var)
+  (list (var value) " = XXX;\n"))
+
+(define-method (call-arg-cg (type <chop-input-buffer-type>)
+			    (value <gw-value>))
+  (list (var value) ", " (string-append (var value) "_size")))
+
 
 
 (define-method (initializations-cg (ws <chop-core-wrapset>) error-var)
@@ -83,4 +93,15 @@
 		  #:name 'error-message
 		  #:returns '(mchars callee-owned)
 		  #:c-name "error_message"
-		  #:arguments '((long code))))
+		  #:arguments '((long code)))
+
+  (add-type! ws (make <chop-input-buffer-type>
+		  #:name '<input-buffer>))
+
+  (wrap-function! ws
+		  #:name 'frob
+		  #:returns 'int
+		  #:c-name "frob"
+		  #:arguments '((<input-buffer> buffer)
+				(int weather))))
+

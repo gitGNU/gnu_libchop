@@ -85,7 +85,10 @@ chop_ ## _name ## _t;
    mush never be null since all classes must inherit from CHOP_OBJECT_CLASS
    (and `chop_object_t').  The constructor/destructor and
    serializer/deserializer may be NULL if they are not needed or not
-   implemented.  */
+   implemented.
+
+   FIXME:  We shouldn't declare them as `const': this would allow users to do
+   funny things like change the class constructors, etc.  */
 #define CHOP_DEFINE_RT_CLASS(_name, _parent, _cons, _dest,	\
 			     _serial, _deserial)		\
      const chop_class_t chop_ ## _name ## _class =		\
@@ -193,6 +196,36 @@ static __inline__ const chop_class_t *
 chop_class_parent_class (const chop_class_t *__class)
 {
   return (__class->parent);
+}
+
+/* Return the constructor of CLASS.  */
+static __inline__ chop_constructor_t
+chop_class_constructor (const chop_class_t *__class)
+{
+  return (__class->constructor);
+}
+
+/* Return the destructor of CLASS.  */
+static __inline__ chop_destructor_t
+chop_class_destructor (const chop_class_t *__class)
+{
+  return (__class->destructor);
+}
+
+/* Set the constructor of CLASS to CTOR.  */
+static __inline__ void
+chop_class_set_constructor (chop_class_t *__class,
+			    chop_constructor_t __ctor)
+{
+  __class->constructor = __ctor;
+}
+
+/* Set the destructor of CLASS to DTOR.  */
+static __inline__ void
+chop_class_set_destructor (chop_class_t *__class,
+			   chop_destructor_t __dtor)
+{
+  __class->destructor = __dtor;
 }
 
 /* Allocate an instance of CLASS on the stack.  The instance _must_ be

@@ -3,16 +3,17 @@ BUILT_SOURCES = chop-errors.c
 
 lib_LTLIBRARIES = libchop.la
 
-libchop_la_SOURCES = chop.c chop-errors.c logs.c	\
-		     chopper-fixed-size.c		\
-                     chopper-anchor-based.c		\
-		     store-dummy.c			\
-		     store-gdbm.c			\
-		     store-remote.c			\
-		     hash.c				\
-		     buffers.c				\
-		     indexer-hash-tree.c		\
-		     filter-zlib.c			\
+libchop_la_SOURCES = chop.c chop-errors.c logs.c		\
+		     chopper-fixed-size.c			\
+                     chopper-anchor-based.c			\
+		     store-dummy.c				\
+		     store-gdbm.c				\
+		     store-remote.c				\
+		     hash.c					\
+		     buffers.c					\
+		     indexer-hash-tree.c			\
+		     filters.c					\
+		     filter-zlib-zip.c filter-zlib-unzip.c	\
 		     stream-file.c # stream-ext2.c 
 
 # RPC client-side stubs (for the remote block store)

@@ -45,15 +45,19 @@ CHOP_DECLARE_RT_CLASS (filter, object,
 
 
 extern const chop_class_t chop_zlib_zip_filter_class;
+extern const chop_class_t chop_zlib_unzip_filter_class;
 
 extern errcode_t
 chop_zlib_zip_filter_init (int zlib_compression_level, size_t input_size,
 			   chop_filter_t *filter);
 
+extern errcode_t
+chop_zlib_unzip_filter_init (size_t input_size,
+			     chop_filter_t *filter);
 
 
 /* Return the log object of FILTER.  */
-extern chop_log_t *chop_filter_log (chop_filter_t *__filter)
+static __inline__ chop_log_t *chop_filter_log (chop_filter_t *__filter)
 {
   return (&__filter->log);
 }

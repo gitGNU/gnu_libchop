@@ -1,1 +1,2 @@
-SUBDIRS = interfaces
+SUBDIRS = interfaces features
+
