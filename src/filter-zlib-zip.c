@@ -18,7 +18,7 @@ CHOP_DECLARE_RT_CLASS (zlib_zip_filter, filter,
 
 static errcode_t
 chop_zlib_zip_push (chop_filter_t *filter,
-		    const char *buffer, size_t size);
+		    const char *buffer, size_t size, size_t *pushed);
 
 static errcode_t
 chop_zlib_zip_pull (chop_filter_t *filter, int flush,
@@ -82,10 +82,11 @@ chop_zlib_zip_filter_init (int zlib_compression_level, size_t input_size,
 #define ZIP_OK          Z_OK
 #define ZIP_NO_PROGRESS Z_BUF_ERROR
 
-#define ZIP_PROCESS(_zstream, _flush)  deflate ((_zstream), (_flush))
+#define ZIP_PROCESS(_zstream, _flush)          deflate ((_zstream), (_flush))
 #define ZIP_NEED_MORE_INPUT(_zstream, _zret)   (0)
 #define ZIP_CANT_PRODUCE_MORE(_zstream, _zret) ((_zret) == Z_BUF_ERROR)
 #define ZIP_INPUT_CORRUPTED(_zret)             (0)
+#define ZIP_RESET_PROCESSING(_zstream)         deflateReset ((_zstream))
 
 #include "filter-zip-push-pull.c"
 

@@ -62,7 +62,7 @@ hash_index_handle_serialize (const chop_object_t *object,
 	chop_buffer_to_hex_string (handle->hash, handle->hash_size,
 				   &hex[hash_method_len + 1]);
 
-	chop_buffer_push (buffer, hex, strlen (hex));
+	chop_buffer_push (buffer, hex, strlen (hex) + 1);
 	return 0;
       }
 

@@ -2,6 +2,8 @@
 #include <chop/streams.h>
 #include <chop/choppers.h>
 #include <chop/stores.h>
+#include <chop/filters.h>
+
 #include <chop/indexer-hash-tree.h>
 
 #include <stdio.h>
@@ -29,7 +31,12 @@ asked to archive a file (with `--archive') the program displays an \
 \"archive handle\" in the form of a hash.  This handle must be kept and \
 eventually passed to `--restore'.  Note that `chop-archiver' itself is \
 somewhat dumb since it does not keep track of what handle correspond to \
-what file or revision so you have to do this by yourself.";
+what file or revision so you have to do this by yourself.\n\
+\n\
+Also, if you passed `--zip' at archival time, you will have to pass it \
+at restoration time as well so that the archived stream gets decompressed \
+on the fly.  Failing to do so, you will get the raw, zlib-compressed, file \
+and won't be able to do anything with it (`gunzip' won't work).";
 
 
 const char *program_name = NULL;
@@ -50,18 +57,26 @@ static int debugging = 0;
 /* Whether to be verbose */
 static int verbose = 0;
 
+/* Whether to use the zlib filters.  */
+static int use_zlib_filters = 0;
+
+
 static struct argp_option options[] =
   {
     { "verbose", 'v', 0, 0,        "Produce verbose output" },
     { "debug",   'd', 0, 0,
       "Produce debugging output and use a dummy block store (i.e. a block "
       "store that does nothing but print messages)" },
+    { "zip",     'z', 0, 0,
+      "Pass data through a zlib filter to compress (resp. decompress) data "
+      "when writing (resp. reading) to (resp. from) the archive" },
     { "archive", 'a', "FILE",   0,
       "Archive FILE and return an archived revision handle" },
     { "restore", 'r', "HANDLE", 0,
       "Restore a file's revision from HANDLE, an archived revision handle" },
     { 0, 0, 0, 0, 0 }
   };
+
 
 
 /* Archive STREAM onto DATA_STORE and METADATA_STORE.  Use CHOPPER and
@@ -295,6 +310,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
       restore_queried = 1;
       option_argument = arg;
       break;
+    case 'z':
+      use_zlib_filters = 1;
+      break;
     default:
       return ARGP_ERR_UNKNOWN;
     }
@@ -312,6 +330,7 @@ main (int argc, char *argv[])
   errcode_t err;
   chop_block_store_t *store, *metastore;
   chop_hash_tree_indexer_t indexer;
+  chop_filter_t *input_filter = NULL, *output_filter = NULL;
 
   program_name = argv[0];
 
@@ -358,6 +377,45 @@ main (int argc, char *argv[])
 
       chop_dummy_block_store_open ("data", store);
       chop_dummy_block_store_open ("meta-data", metastore);
+    }
+
+  if (use_zlib_filters)
+    {
+      /* Create a filtered store that uses zlib filters and proxies the
+	 block store for data (not metadata).  */
+      chop_block_store_t *raw_store = store;
+
+      store = chop_class_alloca_instance (&chop_filtered_block_store_class);
+      input_filter = chop_class_alloca_instance (&chop_zlib_zip_filter_class);
+      output_filter = chop_class_alloca_instance (&chop_zlib_unzip_filter_class);
+
+      err = chop_zlib_zip_filter_init (-1, 0, input_filter);
+      if (!err)
+	err = chop_zlib_unzip_filter_init (0, output_filter);
+
+      if (err)
+	{
+	  com_err (program_name, err, "while initializing zlib filters");
+	  exit (4);
+	}
+
+      if (verbose)
+	{
+	  /* Dump the zlib filters' logs to `stderr'.  */
+	  chop_log_t *log;
+	  log = chop_filter_log (input_filter);
+	  chop_log_attach (log, 2, 0);
+	  log = chop_filter_log (output_filter);
+	  chop_log_attach (log, 2, 0);
+	}
+
+      err = chop_filtered_store_open (input_filter, output_filter,
+				      raw_store, store);
+      if (err)
+	{
+	  com_err (program_name, err, "while initializing filtered store");
+	  exit (5);
+	}
     }
 
   /* */

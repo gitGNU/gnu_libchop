@@ -37,23 +37,11 @@ CHOP_DECLARE_RT_CLASS (filter, object,
 		       int within_fault_handler;
 
 		       errcode_t (* push) (struct chop_filter *,
-					   const char *, size_t);
+					   const char *, size_t, size_t *);
 		       errcode_t (* pull) (struct chop_filter *, int,
 					   char *, size_t, size_t *););
 
 
-
-
-extern const chop_class_t chop_zlib_zip_filter_class;
-extern const chop_class_t chop_zlib_unzip_filter_class;
-
-extern errcode_t
-chop_zlib_zip_filter_init (int zlib_compression_level, size_t input_size,
-			   chop_filter_t *filter);
-
-extern errcode_t
-chop_zlib_unzip_filter_init (size_t input_size,
-			     chop_filter_t *filter);
 
 
 /* Return the log object of FILTER.  */
@@ -64,14 +52,15 @@ static __inline__ chop_log_t *chop_filter_log (chop_filter_t *__filter)
 
 /* Push SIZE bytes from BUFFER into FILTER's input.  This may trigger an
    output fault in FILTER.  CHOP_FILTER_FULL is returned if the output fault
-   could not be handled and FILTER's input is consequently still full.  Any
-   other error returned by the fault handler may be returned by this
-   function.  */
+   could not be handled and FILTER's input is consequently still full, and
+   not a single byte was pushed in.  PUSHED is set to the number of bytes
+   actually pushed.  Any other error returned by the fault handler may be
+   returned by this function.  */
 static __inline__ errcode_t
 chop_filter_push (chop_filter_t *__filter,
-		  const char *__buffer, size_t __size)
+		  const char *__buffer, size_t __size, size_t *__pushed)
 {
-  return (__filter->push (__filter, __buffer, __size));
+  return (__filter->push (__filter, __buffer, __size, __pushed));
 }
 
 /* Pull at most SIZE bytes from FILTER into BUFFER.  The number of bytes
@@ -167,5 +156,63 @@ chop_filter_handle_output_fault (chop_filter_t *__filter,
 
   return __err;
 }
+
+
+/* Example input fault handlers.  */
+
+/* Change FILTER's input fault handler so that if fetches its input data from
+   INPUT which contains INPUT_SIZE bytes.  */
+extern errcode_t
+chop_filter_set_input_from_buffer (chop_filter_t *filter,
+				   const char *input, size_t input_size);
+
+/* Free resources that were allocated with FILTER when
+   CHOP_FILTER_SET_INPUT_FROM_BUFFER was called.  */
+extern void
+chop_filter_finish_input_from_buffer (chop_filter_t *filter);
+
+/* Filter INPUT (of INPUT_SIZE bytes) through FILTER and store the result in
+   OUTPUT.  This function may temporarily modify FILTER's fault handlers.  */
+extern errcode_t chop_filter_through (chop_filter_t *filter,
+				      const char *input, size_t input_size,
+				      chop_buffer_t *output);
+
+
+/* The zlib-based compressing and uncompressing filter classes.  */
+
+extern const chop_class_t chop_zlib_zip_filter_class;
+extern const chop_class_t chop_zlib_unzip_filter_class;
+
+/* Initialize the zlib-based compression filter with compression level
+   ZLIB_COMPRESSION_LEVEL (an integer between 0 and 9) with an input buffer
+   of INPUT_SIZE bytes.  If ZLIB_COMPRESSION_LEVEL is -1, then zlib's default
+   compression level is used.  If INPUT_SIZE is zero, then a default size is
+   used.  */
+extern errcode_t
+chop_zlib_zip_filter_init (int zlib_compression_level, size_t input_size,
+			   chop_filter_t *filter);
+
+/* Initialize the zlib-based decompressiong filter with an input buffer of
+   INPUT_SIZE bytes.  If INPUT_SIZE is zero, then a default size is used.  */
+extern errcode_t
+chop_zlib_unzip_filter_init (size_t input_size,
+			     chop_filter_t *filter);
+
+
+
+/* The filtered block store class.  */
+
+#include <chop/stores.h>
+
+extern const chop_class_t chop_filtered_block_store_class;
+
+/* Initialize STORE as a filtered block store which uses INPUT_FILTER to
+   filter the contents of blocks that are written to it, OUTPUT_FILTER to
+   filter the contents of blocks as they are read from it, and uses BACKEND
+   as the underlying block store.  */
+extern errcode_t chop_filtered_store_open (chop_filter_t *input_filter,
+					   chop_filter_t *output_filter,
+					   chop_block_store_t *backend,
+					   chop_block_store_t *store);
 
 #endif

@@ -19,7 +19,7 @@
 
 static errcode_t
 ZIP_PUSH_METHOD (chop_filter_t *filter,
-		 const char *buffer, size_t size)
+		 const char *buffer, size_t size, size_t *pushed)
 {
   errcode_t err;
   ZIP_FILTER_TYPE *zfilter;
@@ -29,6 +29,7 @@ ZIP_PUSH_METHOD (chop_filter_t *filter,
   if (zfilter->zstream.avail_in == 0)
     zfilter->zstream.next_in = zfilter->input_buffer;
 
+  *pushed = 0;
   while (size > 0)
     {
       size_t available, amount;
@@ -46,7 +47,9 @@ ZIP_PUSH_METHOD (chop_filter_t *filter,
 	      if ((err != 0) && (err != CHOP_FILTER_UNHANDLED_FAULT))
 		return err;
 
-	      return CHOP_FILTER_FULL;
+	      /* Only return CHOP_FILTER_FULL is not a single byte was
+		 absorbed.  */
+	      return ((*pushed == 0) ? CHOP_FILTER_FULL : 0);
 	    }
 
 	  continue;
@@ -60,6 +63,7 @@ ZIP_PUSH_METHOD (chop_filter_t *filter,
       zfilter->zstream.avail_in += amount;
       buffer += amount;
       size -= amount;
+      *pushed += amount;
     }
 
   return 0;
@@ -78,15 +82,20 @@ ZIP_PULL_METHOD (chop_filter_t *filter, int flush,
   zfilter->zstream.avail_out = size;
   zfilter->zstream.next_out = buffer;
   *pulled = 0;
-  while (size > 0)
+  while (*pulled < size)
     {
       if (((zfilter->zstream.avail_in == 0)
 	   || ZIP_NEED_MORE_INPUT (&zfilter->zstream, zret))
 	  && (!flush))
 	{
-	  chop_log_printf (&filter->log, "filter is empty, input fault");
-	  err = chop_filter_handle_input_fault (filter,
-						zfilter->input_buffer_size);
+	  size_t howmuch;
+
+	  howmuch = zfilter->input_buffer_size - zfilter->zstream.avail_in;
+	  chop_log_printf (&filter->log,
+			   "filter is empty, input fault (%u bytes)",
+			   howmuch);
+
+	  err = chop_filter_handle_input_fault (filter, howmuch);
 	  if (err)
 	    {
 	      chop_log_printf (&filter->log,
@@ -121,8 +130,13 @@ ZIP_PULL_METHOD (chop_filter_t *filter, int flush,
       if (flush)
 	{
 	  if ((zret == ZIP_STREAM_END) && (*pulled == 0))
-	    /* We're done with this.  */
-	    return CHOP_FILTER_EMPTY;
+	    {
+	      /* We're done with this bunch of input processing.  So we can
+		 reset the zip stream so that we can start processing input
+		 anew eventually.  */
+	      ZIP_RESET_PROCESSING (&zfilter->zstream);
+	      return CHOP_FILTER_EMPTY;
+	    }
 
 	  /* There is data remaining to be flushed so the user must call us
 	     again (with FLUSH set again).  */

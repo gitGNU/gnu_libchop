@@ -18,11 +18,11 @@ CHOP_DECLARE_RT_CLASS (zlib_unzip_filter, filter,
 
 static errcode_t
 chop_zlib_unzip_push (chop_filter_t *filter,
-		    const char *buffer, size_t size);
+		    const char *buffer, size_t size, size_t *pushed);
 
 static errcode_t
 chop_zlib_unzip_pull (chop_filter_t *filter, int flush,
-		    char *buffer, size_t size, size_t *pulled);
+		      char *buffer, size_t size, size_t *pulled);
 
 static void
 zlib_unzip_filter_ctor (chop_object_t *object,
@@ -85,6 +85,7 @@ chop_zlib_unzip_filter_init (size_t input_size,
 #define ZIP_NEED_MORE_INPUT(_zstream, _zret)   ((_zret) == Z_BUF_ERROR)
 #define ZIP_CANT_PRODUCE_MORE(_zstream, _zret) (0)
 #define ZIP_INPUT_CORRUPTED(_zret)             ((_zret) == Z_DATA_ERROR)
+#define ZIP_RESET_PROCESSING(_zstream)         inflateReset ((_zstream))
 
 #include "filter-zip-push-pull.c"
 

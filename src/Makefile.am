@@ -9,6 +9,7 @@ libchop_la_SOURCES = chop.c chop-errors.c logs.c		\
 		     store-dummy.c				\
 		     store-gdbm.c				\
 		     store-remote.c				\
+		     store-filtered.c				\
 		     hash.c					\
 		     buffers.c					\
 		     indexer-hash-tree.c			\

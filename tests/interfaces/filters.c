@@ -16,7 +16,7 @@ static errcode_t
 handle_input_fault (chop_filter_t *filter, size_t amount, void *data)
 {
   errcode_t err;
-  size_t available;
+  size_t available, pushed = 0;
 
   if (input_offset >= SIZE_OF_INPUT)
     return CHOP_STREAM_END;
@@ -27,8 +27,8 @@ handle_input_fault (chop_filter_t *filter, size_t amount, void *data)
   available = SIZE_OF_INPUT - input_offset;
   amount = (amount > available) ? available : amount;
 
-  err = chop_filter_push (filter, input + input_offset, amount);
-  input_offset += amount;
+  err = chop_filter_push (filter, input + input_offset, amount, &pushed);
+  input_offset += pushed;
 
   return err;
 }

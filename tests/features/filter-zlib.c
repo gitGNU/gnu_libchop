@@ -43,7 +43,7 @@ handle_random_input_fault (chop_filter_t *filter,
 			   size_t amount, void *data)
 {
   errcode_t err;
-  size_t available;
+  size_t available, pushed = 0;
 
   if (input_offset >= SIZE_OF_INPUT)
     return CHOP_STREAM_END;
@@ -54,8 +54,8 @@ handle_random_input_fault (chop_filter_t *filter,
   available = SIZE_OF_INPUT - input_offset;
   amount = (amount > available) ? available : amount;
 
-  err = chop_filter_push (filter, input + input_offset, amount);
-  input_offset += amount;
+  err = chop_filter_push (filter, input + input_offset, amount, &pushed);
+  input_offset += pushed;
 
   return err;
 }
@@ -68,7 +68,7 @@ handle_zipped_input_fault (chop_filter_t *unzip_filter,
 {
   errcode_t err;
   char *buffer;
-  size_t pulled;
+  size_t pulled, pushed;
   static int flushing = 0;
   chop_filter_t *zip_filter = (chop_filter_t *)data;
 
@@ -96,7 +96,7 @@ handle_zipped_input_fault (chop_filter_t *unzip_filter,
     }
 
   if (pulled)
-    err = chop_filter_push (unzip_filter, buffer, pulled);
+    err = chop_filter_push (unzip_filter, buffer, pulled, &pushed);
 
   return err;
 }
@@ -108,7 +108,10 @@ main (int argc, char *argv[])
   errcode_t err;
   chop_filter_t *zip_filter, *unzip_filter;
   chop_log_t *zip_log, *unzip_log;
-  char output[SIZE_OF_INPUT];
+
+  /* The output buffer is made bigger as if we didn't know how many bytes
+     we'll be able to pull.  */
+  char output[SIZE_OF_INPUT + 100];
   size_t output_size = 0;
   size_t pulled = 0;
 
