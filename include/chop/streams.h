@@ -19,14 +19,9 @@ CHOP_DECLARE_RT_CLASS (stream, object,
 		       void (* close) (struct chop_stream *););
 
 
-
-/* Derived types */
-/* typedef struct chop_file_stream chop_file_stream_t; */
-/* typedef struct chop_ext2_stream chop_ext2_stream_t; */
-/* typedef struct chop_mem_stream chop_mem_stream_t; */
-/* typedef struct chop_filter_stream chop_filter_stream_t; */
-
-/* File stream implementation */
+/* File stream class that inherits from `chop_stream_t'.  This declares
+   CHOP_FILE_STREAM_CLASS, the object representing this class at
+   run-time.  */
 CHOP_DECLARE_RT_CLASS (file_stream, stream,
 		       int    fd;
 		       size_t size;
@@ -37,12 +32,16 @@ CHOP_DECLARE_RT_CLASS (file_stream, stream,
 
 /* Stream methods */
 
+/* Return the preferred block size for reading STREAM.  */
 static __inline__ size_t
 chop_stream_preferred_block_size (const chop_stream_t *__stream)
 {
   return (__stream->preferred_block_size);
 }
 
+/* Read at most SIZE bytes from STREAM into BUFFER.  On failure, return an
+   error code (non-zero).  Otherwise, return in READ the number of bytes
+   actually read.  */
 static __inline__ errcode_t
 chop_stream_read (chop_stream_t *__stream,
 		  char *__buffer,
@@ -52,17 +51,22 @@ chop_stream_read (chop_stream_t *__stream,
   return (__stream->read (__stream, __buffer, __size, __read));
 }
 
+/* Close STREAM, i.e. deallocate any resources associated to it.  */
 static __inline__ void
 chop_stream_close (chop_stream_t *__stream)
 {
   __stream->close (__stream);
 }
 
+
 
 /* Specific stream constructors.  */
 
+/* Open file located at PATH and initialize STREAM as a file stream
+   representing this file.  STREAM has to point to a large-enough memory area
+   to hold an object whose class is CHOP_FILE_STREAM_CLASS.  */
 extern errcode_t chop_file_stream_open (const char *path,
-					chop_file_stream_t *stream);
+					chop_stream_t *stream);
 
 #if 0   /* Not implemented yet */
 extern errcode_t chop_ext2_stream_open (const char *path,

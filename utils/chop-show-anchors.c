@@ -4,7 +4,7 @@
 
 #include <alloca.h>
 
-static int debug = 1;
+static int debug = 0;
 
 int
 main (int argc, char *argv[])
@@ -21,7 +21,7 @@ main (int argc, char *argv[])
   stream = chop_class_alloca_instance (&chop_file_stream_class);
   chopper = chop_class_alloca_instance (&chop_anchor_based_chopper_class);
 
-  err = chop_file_stream_open (argv[1], (chop_file_stream_t *)stream);
+  err = chop_file_stream_open (argv[1], stream);
   if (err)
     {
       com_err (argv[0], err, "%s", argv[1]);

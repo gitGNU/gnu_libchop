@@ -159,10 +159,11 @@ process_command (const char *argument,
   if (archive_queried)
     {
       size_t block_size;
-      chop_file_stream_t stream;
+      chop_stream_t *stream;
       chop_fixed_size_chopper_t chopper;
 
-      err = chop_file_stream_open (argument, &stream);
+      stream = chop_class_alloca_instance (&chop_file_stream_class);
+      err = chop_file_stream_open (argument, stream);
       if (err)
 	{
 	  com_err (program_name, err, "while opening %s", argument);

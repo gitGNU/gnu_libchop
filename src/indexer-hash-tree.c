@@ -53,7 +53,7 @@ hash_index_handle_serialize (const chop_object_t *object,
 	   "SHA1:eabe1ca1f3c7ca148ce2fe5954f52ef9a0f0082a".  */
 	char *hex;
 	size_t hash_method_len;
-	const char *hash_method = chop_hash_name (handle->hash_method);
+	const char *hash_method = chop_hash_method_name (handle->hash_method);
 
 	hash_method_len = strlen (hash_method);
 	hex = alloca (hash_method_len + 1 + (handle->hash_size * 2) + 1);
@@ -112,7 +112,7 @@ hash_index_handle_deserialize (const char *buffer, size_t size,
 
 	  memcpy (hash_name, buffer, hash_name_len);
 	  hash_name[hash_name_len] = '\0';
-	  err = chop_hash_lookup (hash_name, &handle->hash_method);
+	  err = chop_hash_method_lookup (hash_name, &handle->hash_method);
 	  if (err)
 	    return CHOP_DESERIAL_CORRUPT_INPUT;
 
@@ -462,7 +462,7 @@ chop_hash_tree_indexer_open (chop_hash_method_t content_hash_method,
   htree->indexer.index_handle_class = &chop_hash_index_handle_class;
 
   htree->hash_method = key_hash_method;
-  htree->gcrypt_hash_method = chop_hash_gcrypt_name (key_hash_method);
+  htree->gcrypt_hash_method = chop_hash_method_gcrypt_name (key_hash_method);
   htree->key_size = chop_hash_size (key_hash_method);
   htree->keys_per_block = keys_per_block;
 

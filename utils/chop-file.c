@@ -14,7 +14,7 @@ int
 main (int argc, char *argv[])
 {
   errcode_t err;
-  chop_file_stream_t stream;
+  chop_stream_t *stream;
   chop_block_store_t *store, *metastore;
   chop_fixed_size_chopper_t chopper;
   chop_hash_tree_indexer_t indexer;
@@ -27,7 +27,8 @@ main (int argc, char *argv[])
 
   chop_init ();
 
-  err = chop_file_stream_open (argv[1], &stream);
+  stream = chop_class_alloca_instance (&chop_file_stream_class);
+  err = chop_file_stream_open (argv[1], stream);
   if (err)
     {
       com_err (argv[0], err, "while opening %s", argv[1]);

@@ -31,10 +31,11 @@ static errcode_t chop_file_stream_read (chop_stream_t *,
 
 errcode_t
 chop_file_stream_open (const char *path,
-		       chop_file_stream_t *stream)
+		       chop_stream_t *raw_stream)
 {
   errcode_t err;
   struct stat file_stats;
+  chop_file_stream_t *stream = (chop_file_stream_t *)raw_stream;
 
   err = stat (path, &file_stats);
   if (err)

@@ -382,6 +382,13 @@ sliding_window_first_half_size (sliding_window_t *window)
   return (window->sizes[0]);
 }
 
+/* Clear WINDOW's contents, i.e. make it empty.  */
+static inline void
+sliding_window_clear (sliding_window_t *window)
+{
+  window->sizes[0] = window->sizes[1] = 0;
+  window->offsets[0] = window->offsets[1] = 0;
+}
 
 /* Initialize WINDOW to be a sliding window of size SIZE.  Memory is
    allocated on the stack.  Returns an error code.  */
@@ -466,7 +473,7 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
   sliding_window_t *window;
   int end_of_stream = 0, first = 1;
   char *window_dest;
-  size_t start_offset, discard_size, *window_dest_size;
+  size_t start_offset = 0, discard_size, *window_dest_size;
   fpr_t window_fpr;
   chop_anchor_based_chopper_t *anchor =
     (chop_anchor_based_chopper_t *)chopper;
@@ -489,19 +496,13 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
     }
   else
     {
-      /* We want to skip the previous WINDOW_SIZE bytes (or so) which yielded
-	 an anchor.  So we must:
-	 1.  push them into BUFFER;
-	 2.  load WINDOW_SIZE bytes into the second half of WINDOW.  */
-      size_t amount, end_offset;
-      start_offset = sliding_window_start_offset (window);
-      end_offset = sliding_window_end_offset (window);
-      amount = end_offset - start_offset;
-
-      err = sliding_window_append_to_buffer (window, start_offset,
-					     amount, buffer);
-      if (err)
-	return err;
+      /* We want to start _after_ the anchor, i.e. after the end offset of
+	 the previous sliding window.  */
+      size_t end_offset = sliding_window_end_offset (window);
+      if (end_offset <= anchor->window_size)
+	start_offset = 0;
+      else
+	start_offset = end_offset - anchor->window_size;
     }
 
   /* Get the second window */
@@ -514,9 +515,6 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
     return err;
 
   end_of_stream = (err == CHOP_STREAM_END);
-  if ((end_of_stream) && (!anchor->first))
-    /* This is the only place where we return CHOP_STREAM_END.  */
-    return CHOP_STREAM_END;
 
   /* Resume fingerprinting after the end of the last sliding window.  */
   sliding_window_increase_offset (window, start_offset);
@@ -553,18 +551,22 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
 	  size_t amount;
 
 	  /* Push all the bytes up to the anchor itself (located at WINDOW's
-	     start offset) into the user's buffer.  */
-	  amount = sliding_window_start_offset (window) - start_offset;
-	  err = sliding_window_append_to_buffer (window, start_offset,
-						 amount, buffer);
-	  if (err)
-	    return err;
+	     start offset) into the user's buffer (we consider the anchor to
+	     be the location of the end of the current sliding window).  */
+	  amount = sliding_window_end_offset (window) - start_offset;
+	  if (amount)
+	    {
+	      err = sliding_window_append_to_buffer (window, start_offset,
+						     amount, buffer);
+	      if (err)
+		return err;
 
-	  chop_log_printf (&anchor->log,
-			   "found an anchor (fpr: 0x%x, block size: %u)",
-			   window_fpr, chop_buffer_size (buffer));
+	      chop_log_printf (&anchor->log,
+			       "found an anchor (fpr: 0x%x, block size: %u)",
+			       window_fpr, chop_buffer_size (buffer));
 
-	  break;
+	      break;
+	    }
 	}
 
       /* Shift the sliding window by one byte.  */
@@ -584,6 +586,13 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
 	      amount = sliding_window_end_offset (window) - start_offset;
 	      err = sliding_window_append_to_buffer (window, start_offset,
 						     amount, buffer);
+
+	      /* Clear WINDOW's contents.  */
+	      sliding_window_clear (window);
+
+	      if (!err)
+		err = CHOP_STREAM_END;
+
 	      break;
 	    }
 

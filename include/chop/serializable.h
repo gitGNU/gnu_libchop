@@ -198,7 +198,7 @@ chop_class_parent_class (const chop_class_t *__class)
 /* Allocate an instance of CLASS on the stack.  The instance _must_ be
    initialized afterwards, e.g. with `chop_object_initialize ()'.  */
 #define chop_class_alloca_instance(_class)			\
-((chop_object_t *)alloca (chop_class_instance_size (_class)))
+  ((void *)alloca (chop_class_instance_size (_class)))
 
 /* Return the class of object OBJECT.  */
 static __inline__ const chop_class_t *

@@ -103,7 +103,7 @@ and return a list containing the positions of these anchors."
 		(if is-anchor? #f this-fpr)
 		(car chars)
 		(if is-anchor?
-		    (append anchors (list offset))
+		    (append anchors (list (+ offset bytes-to-skip)))
 		    anchors))))))
 
 (define (show-anchors str window-size)

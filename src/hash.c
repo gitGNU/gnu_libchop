@@ -21,7 +21,8 @@ typedef struct
 #define _HASH_METHOD_INFO(_name, _size) \
 { CHOP_HASH_ ## _name, GCRY_MD_ ## _name, STRINGIFY (_name), _size }
 
-/* List of available hash methods */
+/* List of available hash methods.  Note that we must respect the order of
+   the `chop_hash_method_t' enum here (for O(1) lookup)!  */
 static _chop_hash_method_info hash_methods[] =
   {
     _HASH_METHOD_INFO (NONE, 0),
@@ -38,44 +39,44 @@ static _chop_hash_method_info hash_methods[] =
     { 0, 0, 0, }
   };
 
+/* Number of available hash methods.  */
+#define HASH_METHOD_COUNT ((int)CHOP_HASH_SHA512 + 1)
+
+/* Return true (non-zero) if METHOD is a valid hash method.  */
+#define VALID_HASH_METHOD(_method) \
+  ((int)(_method) < HASH_METHOD_COUNT)
+
+
+
 size_t
 chop_hash_size (chop_hash_method_t method)
 {
-  const _chop_hash_method_info *p;
-  for (p = hash_methods; p->name != NULL; p++)
-    {
-      if (p->chop_name == method)
-	break;
-    }
-  return (p->size);
+  if (!VALID_HASH_METHOD (method))
+    return 0;
+
+  return (hash_methods[(int)method].size);
 }
 
 const char *
-chop_hash_name (chop_hash_method_t method)
+chop_hash_method_name (chop_hash_method_t method)
 {
-  const _chop_hash_method_info *p;
-  for (p = hash_methods; p->name != NULL; p++)
-    {
-      if (p->chop_name == method)
-	break;
-    }
-  return (p->name);
+  if (!VALID_HASH_METHOD (method))
+    return NULL;
+
+  return (hash_methods[(int)method].name);
 }
 
 int
-chop_hash_gcrypt_name (chop_hash_method_t method)
+chop_hash_method_gcrypt_name (chop_hash_method_t method)
 {
-  const _chop_hash_method_info *p;
-  for (p = hash_methods; p->name != NULL; p++)
-    {
-      if (p->chop_name == method)
-	break;
-    }
-  return (p->gcrypt_name);
+  if (!VALID_HASH_METHOD (method))
+    return 0;
+
+  return (hash_methods[(int)method].gcrypt_name);
 }
 
 errcode_t
-chop_hash_lookup (const char *name, chop_hash_method_t *method)
+chop_hash_method_lookup (const char *name, chop_hash_method_t *method)
 {
   const _chop_hash_method_info *p;
   for (p = hash_methods; p->name != NULL; p++)
@@ -91,4 +92,16 @@ chop_hash_lookup (const char *name, chop_hash_method_t *method)
     }
 
   return CHOP_ERR_NOT_FOUND;
+}
+
+void
+chop_hash_buffer (chop_hash_method_t method,
+		  const char *buffer, size_t size,
+		  char *digest)
+{
+  if (!VALID_HASH_METHOD (method))
+    return;
+
+  return (gcry_md_hash_buffer (hash_methods[(int)method].gcrypt_name,
+			       digest, buffer, size));
 }

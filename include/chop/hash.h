@@ -24,14 +24,21 @@ enum chop_hash_method
 extern size_t chop_hash_size (chop_hash_method_t method);
 
 /* Return a string representing the name of hash method METHOD.  */
-extern const char *chop_hash_name (chop_hash_method_t method);
+extern const char *chop_hash_method_name (chop_hash_method_t method);
 
 /* Return the libgcrypt name (an integer) for hash method METHOD.  */
-extern int chop_hash_gcrypt_name (chop_hash_method_t method);
+extern int chop_hash_method_gcrypt_name (chop_hash_method_t method);
 
 /* Return the hash method whose name is NAME (case-insensitive).  On error,
    CHOP_ERR_NOT_FOUND is returned and METHOD is kept unmodified.  */
-extern errcode_t chop_hash_lookup (const char *name,
-				   chop_hash_method_t *method);
+extern errcode_t chop_hash_method_lookup (const char *name,
+					  chop_hash_method_t *method);
+
+/* Compute the hash of BUFFER (of size SIZE) using the algorithm METHOD.
+   Store the result in DIGEST which must be large enough to hold a digest
+   computed with METHOD.  */
+extern void chop_hash_buffer (chop_hash_method_t method,
+			      const char *buffer, size_t size,
+			      char *digest);
 
 #endif
