@@ -25,6 +25,10 @@ AC_CHECK_LIB([c], [vasprintf], [],
   [AC_MSG_ERROR([`vasprintf' not found.  Are you using the GNU libc?])])
 AC_CHECK_LIB([gcrypt], [gcry_md_hash_buffer], [],
   [AC_MSG_ERROR([`libgcrypt' not found.  Please, install it first.])])
+AC_CHECK_LIB([com_err], [com_err], [],
+  [AC_MSG_ERROR([`libcom_err' not found.  Please, install it first, ok?!])])
+AC_CHECK_LIB([gdbm], [gdbm_open], [],
+  [AC_MSG_ERROR([`libgdbm' not found.  Come on, install it first.])])
 
 # Checks for header files.
 AC_HEADER_STDC
@@ -38,8 +42,34 @@ AC_TYPE_SIZE_T
 # Checks for library functions.
 AC_FUNC_MALLOC
 
+# Checkpoint the cache
+AC_CACHE_SAVE
+
+# Check for Guile and G-Wrap
+AC_PATH_PROG([guile], [guile],
+  AC_MSG_WARN([Guile not found.  Not building Guile bindings.]))
+
+if test "x$guile" != "x"; then
+   AC_PATH_PROG([g_wrap_config], [g-wrap-config],
+     AC_MSG_ERROR([Could not find `g-wrap-config'.  You mush has G-Wrap to produce Guile bindings.]))
+
+   AC_MSG_CHECKING([whether G-Wrap's version is 1.9.5])
+   if $g_wrap_config --version | grep 1.9.5 > /dev/null; then
+     AC_MSG_RESULT([yes])
+   else
+     AC_MSG_RESULT([no])
+     AC_MSG_ERROR([Please, use the right G-Wrap version.])
+   fi
+
+   AC_SUBST(GUILE, $guile)
+   AC_SUBST(G_WRAP_CONFIG, $g_wrap_config)
+fi
+
+AM_CONDITIONAL(HAVE_GUILE, test "x$guile" != "x")
+
 AC_CONFIG_FILES([Makefile
                  src/Makefile
-		 utils/Makefile])
+		 utils/Makefile
+		 guile/Makefile])
 
 AC_OUTPUT
