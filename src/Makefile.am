@@ -16,5 +16,5 @@ CPPFLAGS = -I../include -Wall -fno-strict-aliasing
 
 COMPILE_ET = compile_et
 
-chop-errors.c, chop-errors.h: chop-errors.et
+chop-errors.c chop-errors.h: chop-errors.et
 	$(COMPILE_ET) $^ && mv chop-errors.h $(top_srcdir)/include/chop

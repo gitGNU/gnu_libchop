@@ -10,17 +10,6 @@
 
 
 /* Serializable objects.  */
-typedef struct chop_class chop_class_t;
-typedef struct chop_object chop_object_t;
-typedef errcode_t (* chop_serializer_t) (const chop_object_t *,
-					 chop_hash_method_t,
-					 chop_buffer_t *);
-typedef errcode_t (* chop_deserializer_t) (const char *buffer,
-					   size_t size,
-					   chop_object_t *);
-typedef void (* chop_constructor_t) (chop_object_t *,
-				     const chop_class_t *);
-typedef void (* chop_destructor_t) (chop_object_t *);
 
 typedef enum chop_serial_method chop_serial_method_t;
 
@@ -29,6 +18,20 @@ enum chop_serial_method
     CHOP_SERIAL_ASCII,
     CHOP_SERIAL_BINARY
   };
+
+
+typedef struct chop_class chop_class_t;
+typedef struct chop_object chop_object_t;
+typedef errcode_t (* chop_serializer_t) (const chop_object_t *,
+					 chop_serial_method_t,
+					 chop_buffer_t *);
+typedef errcode_t (* chop_deserializer_t) (const char *buffer,
+					   size_t size,
+					   chop_serial_method_t,
+					   chop_object_t *);
+typedef void (* chop_constructor_t) (chop_object_t *,
+				     const chop_class_t *);
+typedef void (* chop_destructor_t) (chop_object_t *);
 
 struct chop_object
 {
@@ -75,44 +78,64 @@ chop_ ## _name ## _t;
      extern const chop_class_t chop_ ## _name ## _class;
 
 /* Define a run-time class that has been declared previously.  The _PARENT
-   argument must be consistent with the one used in the declaration.  */
+   argument must be consistent with the one used in the declaration.  _PARENT
+   mush never be null since all classes must inherit from CHOP_OBJECT_CLASS
+   (and `chop_object_t').  The constructor/destructor and
+   serializer/deserializer may be NULL if they are not needed or not
+   implemented.  */
 #define CHOP_DEFINE_RT_CLASS(_name, _parent, _cons, _dest,	\
 			     _serial, _deserial)		\
      const chop_class_t chop_ ## _name ## _class =		\
        {							\
-	 .object = { .class = &chop_class_class },		\
 	 .name = _STRINGIFY (_name),				\
+	 .object = { .class = &chop_class_class },		\
 	 .parent = &(chop_ ## _parent ## _class),		\
-	 .instance_size = sizeof (chop_ ## _name ## _t),	\
 	 .constructor = _cons,					\
 	 .destructor = _dest,					\
 	 .serializer = _serial,					\
-	 .deserializer = _deserial				\
+	 .deserializer = _deserial,				\
+	 .instance_size = sizeof (chop_ ## _name ## _t),	\
        };
 
 
 /* Example:
 
-   CHOP_DEFINE_RT_CLASS (cow, animal, cow_init, cow_destroy,
-			 cow_serialize, cow_deserialize,
-			 struct chop_cow *parent;
-			 chop_field_t *home;
-			 );
+   CHOP_DECLARE_RT_CLASS (cow, animal,
+			  struct chop_cow *parent;
+                          struct chop_cow *boyfriend;
+			  chop_field_t *home;)
 
+   ...  defines `struct chop_cow' and `chop_cow_t';  declares
+   `chop_cow_class', a global variable of type `chop_class_t'.
+   The type `chop_animal_t' must already exist and inherit from
+   `chop_object_t'.
+
+   CHOP_DEFINE_RT_CLASS (cow, animal, cow_init, cow_destroy,
+			 cow_serialize, cow_deserialize);
+
+   ...  defines and initializes `chop_cow_class'.  The variable
+   `chop_animal_class' must have been declared earlier.
 */
 
-extern void
-chop_class_set_serializer (chop_class_t *,
-			   chop_hash_method_t method,
-			   chop_serializer_t);
 
 /* Initialize OBJECT which is to be an instance of CLASS.  This allows for
-   "virtual constructors" in C++ terms.  */
+   "virtual constructors" in C++ terms.  This means that it can also be
+   relativey costly since it may yield several function calls.  */
 extern void chop_object_initialize (chop_object_t *object,
 				    const chop_class_t *class);
 
+/* Destroy OBJECT, i.e. deallocate any resources allocated by it.  */
+extern void chop_object_destroy (chop_object_t *object);
+
+/* Initialize CLASS with the parameters provided.  PARENT mush never be null
+   since all classes must inherit from CHOP_OBJECT_CLASS (and
+   `chop_object_t').  The constructor/destructor and serializer/deserializer
+   may be NULL if they are not needed or not implemented.  If is usually
+   sufficient to use the CHOP_DEFINE_RT_CLASS macro which initializes a class
+   object at compile-time.  */
 static __inline__ void
 chop_class_initialize (chop_class_t *__class,
+		       size_t __instance_size,
 		       const chop_class_t *__parent,
 		       chop_constructor_t __constructor,
 		       chop_destructor_t __destructor,
@@ -120,15 +143,13 @@ chop_class_initialize (chop_class_t *__class,
 		       chop_deserializer_t __deserializer)
 {
   chop_object_initialize ((chop_object_t *)&__class, &chop_class_class);
+  __class->instance_size = __instance_size;
   __class->parent = __parent;
   __class->constructor = __constructor;
   __class->destructor = __destructor;
   __class->serializer = __serializer;
   __class->deserializer = __deserializer;
 }
-
-/* Destroy OBJECT, i.e. deallocate any resources allocated by it.  */
-extern void chop_object_destroy (chop_object_t *object);
 
 /* Return the name of class CLASS.  */
 static __inline__ const char *
@@ -137,11 +158,62 @@ chop_class_name (const chop_class_t *__class)
   return (__class->name);
 }
 
+/* Return the size of an instance of CLASS.  */
+static __inline__ size_t
+chop_class_instance_size (const chop_class_t *__class)
+{
+  return (__class->instance_size);
+}
+
+/* Return the parent class of CLASS.  All classes should inherit from
+   `chop_object_t'.  However, `chop_object_t' inherits from nobody so this
+   function returns NULL when passed CHOP_OBJECT_CLASS.  */
+static __inline__ const chop_class_t *
+chop_class_parent_class (const chop_class_t *__class)
+{
+  return (__class->parent);
+}
+
+/* Allocate an instance of CLASS on the stack.  The instance _must_ be
+   initialized afterwards, e.g. with `chop_object_initialize ()'.  */
+#define chop_class_alloca_instance(_class)			\
+((chop_object_t *)alloca (chop_class_instance_size (_class)))
+
 /* Return the class of object OBJECT.  */
 static __inline__ const chop_class_t *
 chop_object_get_class (const chop_object_t *__object)
 {
   return (__object->class);
+}
+
+/* Return non-zero OBJECT's type is CLASS or a derivative.  */
+static __inline__ int
+chop_object_is_a (const chop_object_t *__object, const chop_class_t *__class)
+{
+  const chop_class_t *_c;
+  for (_c = chop_object_get_class (__object);
+       _c != NULL;
+       _c = chop_class_parent_class (_c))
+    {
+      if (_c == __class)
+	return 1;
+    }
+  return 0;
+}
+
+/* Serialize OBJECT according to serialization method METHOD into BUFFER.  If
+   not serializer exists for OBJECT's class, CHOP_ERR_NOT_IMPL is returned.
+   On success, zero is returned.  */
+static __inline__ errcode_t
+chop_object_serialize (const chop_object_t *__object,
+		       chop_serial_method_t __method,
+		       chop_buffer_t *__buffer)
+{
+  const chop_class_t *__class = chop_object_get_class (__object);
+  if (__class->serializer)
+    return (__class->serializer (__object, __method, __buffer));
+
+  return CHOP_ERR_NOT_IMPL;
 }
 
 #endif

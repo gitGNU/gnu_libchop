@@ -23,6 +23,9 @@ chop_hash_tree_indexer_open (chop_hash_method_t content_hash_method,
 
 /* Implementation details */
 
+/* Glibc's obstacks */
+#include <obstack.h>
+
 struct chop_hash_tree_indexer
 {
   chop_indexer_t indexer;
@@ -35,6 +38,9 @@ struct chop_hash_tree_indexer
   /* Number of data blocks */
   size_t             block_count;
   chop_buffer_t      block_keys;
+
+  /* Obstack from which keys are allocated */
+  struct obstack     key_obstack;
 };
 
 

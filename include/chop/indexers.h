@@ -13,12 +13,6 @@ typedef struct chop_indexer chop_indexer_t;
    `chop_object_t' and does not contain any additional field.  */
 CHOP_DECLARE_RT_CLASS (index_handle, object,);
 
-/* Declare `chop_chk_index_handle_t' that inherits from the
-   `chop_index_handle_t' class.  */
-CHOP_DECLARE_RT_CLASS (chk_index_handle, object,
-		       char hash_key[20];
-		       char block_id[20]);
-
 
 struct chop_indexer
 {
@@ -32,8 +26,8 @@ struct chop_indexer
 			      chop_block_store_t *,
 			      chop_stream_t *);
 
-  size_t sizeof_stream;
-  size_t sizeof_index_handle;
+  const chop_class_t *stream_class;
+  const chop_class_t *index_handle_class;
 };
 
 
@@ -71,25 +65,14 @@ chop_indexer_fetch_stream (chop_indexer_t *__indexer,
 
 /* Methods for caller-management of memory allocation.  */
 
-#define _make_sizeof_getter(_type)					\
-static __inline__ size_t						\
-chop_indexer_size_of_ ## _type (const chop_indexer_t *__indexer)	\
-{									\
-  return (__indexer->sizeof_ ## _type);					\
-}
+#define chop_indexer_alloca_stream(__indexer)				    \
+((chop_stream_t *)							    \
+ chop_class_alloca_instance (((chop_indexer_t *)(__indexer))->stream_class))
 
-_make_sizeof_getter (stream);
-_make_sizeof_getter (index_handle);
 
-#undef _make_sizeof_getter
-
-#define chop_indexer_alloca_stream(__indexer)				\
-((chop_stream_t *)							\
- alloca (chop_indexer_size_of_stream ((chop_indexer_t *)(__indexer))))
-
-#define chop_indexer_alloca_index_handle(__indexer)			      \
-((chop_index_handle_t *)						      \
-  alloca (chop_indexer_size_of_index_handle ((chop_indexer_t *)(__indexer))))
+#define chop_indexer_alloca_index_handle(__indexer)				   \
+((chop_index_handle_t *)							   \
+ chop_class_alloca_instance (((chop_indexer_t *)(__indexer))->index_handle_class))
 
 
 

@@ -68,7 +68,7 @@ chop_file_stream_read (chop_stream_t *stream,
   remaining = file->size - file->position;
   *read = (howmuch > remaining) ? remaining : howmuch;
 
-  memcpy (buffer, file->map, *read);
+  memcpy (buffer, &file->map[file->position], *read);
   file->position += *read;
 
   return 0;

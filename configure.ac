@@ -22,7 +22,7 @@ AC_CHECK_LIB([gcrypt], [gcry_md_hash_buffer], [],
 
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([stdlib.h gdbm.h gcrypt.h com_err.h])
+AC_CHECK_HEADERS([stdlib.h obstack.h gdbm.h gcrypt.h com_err.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST

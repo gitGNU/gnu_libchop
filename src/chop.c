@@ -7,8 +7,8 @@
 
 /* The constructor of class objects.  */
 static void
-_chop_class_primitive_init (chop_object_t *object,
-			    const chop_class_t *metaclass)
+_class_primitive_init (chop_object_t *object,
+		       const chop_class_t *metaclass)
 {
   chop_class_t *class = (chop_class_t *)object;
   class->name = NULL;
@@ -21,7 +21,7 @@ _chop_class_primitive_init (chop_object_t *object,
 
 /* The destructor of classes.  */
 static void
-chop_class_destroy (chop_object_t *object)
+_class_primitive_destroy (chop_object_t *object)
 {
   chop_class_t *class = (chop_class_t *)object;
   class->parent = NULL;
@@ -29,37 +29,31 @@ chop_class_destroy (chop_object_t *object)
 
 /* Primitive object constructor.  */
 static void
-_chop_object_primitive_init (chop_object_t *object, const chop_class_t *class)
+_object_primitive_init (chop_object_t *object, const chop_class_t *class)
 {
   object->class = class;
 }
 
 /* Destructor of `chop_object_t' objects.  */
 static void
-_chop_object_primitive_destroy (chop_object_t *object)
+_object_primitive_destroy (chop_object_t *object)
 {
   object->class = NULL;
 }
 
 
 /* The root classes.  */
-const chop_class_t chop_class_class =
-  {
-    .object = { .class = &chop_class_class },
-    .parent = NULL,
-    .constructor = _chop_class_primitive_init,
-    .destructor = chop_class_destroy,
-    .serializer = NULL,
-    .deserializer = NULL,
-    .instance_size = sizeof (chop_class_t)
-  };
+CHOP_DEFINE_RT_CLASS (class, class,
+		      _class_primitive_init, _class_primitive_destroy,
+		      NULL, NULL  /* No serializer/deserializer */);
 
 const chop_class_t chop_object_class =
   {
+    .name = "object",
     .object { .class = &chop_class_class },
     .parent = NULL,
-    .constructor = _chop_object_primitive_init,
-    .destructor = _chop_object_primitive_destroy,
+    .constructor = _object_primitive_init,
+    .destructor = _object_primitive_destroy,
     .serializer = NULL,
     .deserializer = NULL,
     .instance_size = sizeof (chop_object_t)
@@ -122,12 +116,14 @@ chop_object_destroy (chop_object_t *object)
 void
 chop_buffer_to_hex_string (const char *buffer, size_t size, char *hex)
 {
+#define tochar(_num) (((_num) < 10) ? ('0' + (_num)) : ('a' - 10 + (_num)))
   const char *p, *end = buffer + size;
   for (p = buffer; p < end; p++)
     {
-      sprintf (hex, "%02x", *p);
-      hex += 2;
+      *(hex++) = tochar (*p >> 4);
+      *(hex++) = tochar (*p & 0xf);
     }
+#undef tochar
 
   *hex = '\0';
 }

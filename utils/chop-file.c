@@ -56,17 +56,36 @@ main (int argc, char *argv[])
 				   (chop_block_store_t *)&store,
 				   handle);
 
-  fprintf (stdout, "chop: done with indexing\n");
-  fprintf (stdout, "chop: got a handle of class \"%s\"\n",
-	   chop_class_name (chop_object_get_class ((chop_object_t *)handle)));
-  chop_object_destroy ((chop_object_t *)handle);
-
   err = chop_store_close ((chop_block_store_t *)&store);
   if (err)
     {
       com_err (argv[0], err, "while closing output block store");
       exit (7);
     }
+
+  /* Take a look at the index handle we got */
+  fprintf (stdout, "chop: done with indexing\n");
+  fprintf (stdout, "chop: got a handle of class \"%s\"\n",
+	   chop_class_name (chop_object_get_class ((chop_object_t *)handle)));
+
+  err = chop_buffer_init (&buffer, 400);
+  if (err)
+    exit (12);
+
+  err = chop_object_serialize ((chop_object_t *)handle, CHOP_SERIAL_ASCII,
+			       &buffer);
+  if (err)
+    {
+      com_err (argv[0], err, "while serializing index handle");
+      exit (8);
+    }
+
+  /* Display the ASCII representation of HANDLE.  We assume that it is
+     zero-terminated.  */
+  fprintf (stdout, "chop: handle: %s\n", chop_buffer_content (&buffer));
+
+  chop_buffer_return (&buffer);
+  chop_object_destroy ((chop_object_t *)handle);
 
   return 0;
 }
