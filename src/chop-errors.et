@@ -1,0 +1,12 @@
+error_table chop
+
+error_code CHOP_ERR_UNKNOWN_STREAM
+	   "Unknown stream type"
+
+error_code CHOP_ERR_UNKNOWN_STORE
+	   "Unknown store type"
+
+error_code CHOP_ERR_NOT_IMPL
+	   "Operation not implemented"
+
+end
