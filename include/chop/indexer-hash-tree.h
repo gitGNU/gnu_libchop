@@ -8,6 +8,7 @@
 #include <chop/indexers.h>
 #include <chop/buffers.h>
 #include <chop/hash.h>
+#include <chop/logs.h>
 
 typedef struct chop_hash_tree_indexer chop_hash_tree_indexer_t;
 
@@ -35,8 +36,15 @@ struct chop_hash_tree_indexer
   int                gcrypt_hash_method;
   size_t             key_size;
   size_t             keys_per_block;
+
+  /* For debugging purposes */
+  chop_log_t         log;
 };
 
-
+static __inline__ chop_log_t *
+chop_hash_tree_indexer_log (chop_hash_tree_indexer_t *__indexer)
+{
+  return (&__indexer->log);
+}
 
 #endif

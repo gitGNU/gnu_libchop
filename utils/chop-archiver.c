@@ -131,7 +131,8 @@ static errcode_t
 process_command (const char *argument,
 		 chop_block_store_t *data_store,
 		 chop_block_store_t *metadata_store,
-		 chop_indexer_t *indexer)
+		 chop_indexer_t *indexer,
+		 chop_log_t *indexer_log)
 {
   errcode_t err;
   chop_block_store_t *data_proxy, *metadata_proxy;
@@ -146,6 +147,9 @@ process_command (const char *argument,
       chop_dummy_proxy_block_store_open ("data", data_store, data_proxy);
       chop_dummy_proxy_block_store_open ("meta-data", metadata_store,
 					 metadata_proxy);
+
+      /* Attach the indexer log to stderr.  */
+      chop_log_attach (indexer_log, 2, 0);
     }
   else
     data_proxy = metadata_proxy = NULL;
@@ -203,7 +207,12 @@ process_command (const char *argument,
     }
 #undef THE_STORE
   else
-    abort ();
+    {
+      fprintf (stderr,
+	       "%s: You must pass either `--archive' or `--restore'\n",
+	       program_name);
+      abort ();
+    }
 
   if (verbose)
     {
@@ -307,7 +316,8 @@ main (int argc, char *argv[])
   /* */
   err = process_command (option_argument, (chop_block_store_t *)store,
 			 (chop_block_store_t *)metastore,
-			 (chop_indexer_t *)&indexer);
+			 (chop_indexer_t *)&indexer,
+			 chop_hash_tree_indexer_log (&indexer));
 
   err = chop_store_close ((chop_block_store_t *)store);
   if (err)

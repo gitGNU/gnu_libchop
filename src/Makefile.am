@@ -3,16 +3,16 @@ BUILT_SOURCES = chop-errors.c
 
 lib_LTLIBRARIES = libchop.la
 
-libchop_la_SOURCES = chop.c chop-errors.c \
-		     chopper-fixed-size.c \
-		     store-dummy.c        \
-		     store-gdbm.c         \
-		     hash.c		  \
-		     buffers.c            \
-		     indexer-hash-tree.c  \
+libchop_la_SOURCES = chop.c chop-errors.c logs.c	\
+		     chopper-fixed-size.c		\
+		     store-dummy.c			\
+		     store-gdbm.c			\
+		     hash.c				\
+		     buffers.c				\
+		     indexer-hash-tree.c		\
 		     stream-file.c # stream-ext2.c 
 
-CPPFLAGS = -I../include -Wall -fno-strict-aliasing
+CPPFLAGS = -I../include -Wall -fno-strict-aliasing -D_GNU_SOURCE=1
 CFLAGS = -O0 -g
 
 COMPILE_ET = compile_et

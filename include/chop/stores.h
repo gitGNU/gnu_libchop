@@ -7,6 +7,7 @@
 #include <chop/chop.h>
 #include <chop/buffers.h>
 #include <chop/serializable.h>
+#include <chop/logs.h>
 
 /* Declare `chop_block_store_t' (represented at run-time by
    CHOP_BLOCK_STORE_CLASS) as inheriting from `chop_object_t'.  */
@@ -101,6 +102,11 @@ extern void
 chop_dummy_proxy_block_store_open (const char *name,
 				   chop_block_store_t *backend,
 				   chop_block_store_t *store);
+
+/* Return the log of STORE.  This may be used to change the way the dummy
+   block store logs its data (by default, its log is attached to the standard
+   error output).  */
+extern chop_log_t *chop_dummy_block_store_log (chop_block_store_t *store);
 
 /* Open GDBM database file NAME, with mode MODE (same as for open(2) and
    chmod(2)).  If BLOCK_SIZE is lower than 512, the use the filesystem block

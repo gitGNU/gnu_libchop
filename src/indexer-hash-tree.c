@@ -171,6 +171,9 @@ typedef struct key_block
 
   /* Hash method for key block keys */
   int gcry_hash_method;
+
+  /* Pointer to the indexer's log (for debugging purposes) */
+  chop_log_t *log;
 } key_block_t;
 
 /* A tree of key blocks.  */
@@ -188,6 +191,9 @@ typedef struct key_block_tree
 
   /* Meta-data block store: the block store where key blocks are flushed */
   chop_block_store_t *metadata_store;
+
+  /* Pointer to the indexer's log (for debugging purposes) */
+  chop_log_t *log;
 } key_block_tree_t;
 
 
@@ -195,13 +201,14 @@ typedef struct key_block_tree
 static inline void
 chop_block_tree_init (key_block_tree_t *tree, size_t keys_per_block,
 		      int key_method, size_t key_size,
-		      chop_block_store_t *store)
+		      chop_block_store_t *store, chop_log_t *log)
 {
   tree->current = NULL;
   tree->keys_per_block = keys_per_block;
   tree->key_size = key_size;
   tree->gcry_hash_method = key_method;
   tree->metadata_store = store;
+  tree->log = log;
 }
 
 /* Fill in the KEYS field of BLOCK with a header.  This should be called by
@@ -233,9 +240,10 @@ chop_key_block_flush (key_block_t *block, chop_block_store_t *metadata,
   size_t block_size;
   char *hash = (char *)chop_block_key_buffer (key);
 
-  fprintf (stderr, "key_block_flush: block %p with %u keys being flushed "
-	   "to store %p\n",
-	   block, block->key_count, metadata);
+  chop_log_printf (block->log,
+		   "key_block_flush: block %p with %u keys being flushed "
+		   "to store %p\n",
+		   block, block->key_count, metadata);
 
   chop_key_block_fill_header (block);
 
@@ -254,7 +262,7 @@ chop_key_block_flush (key_block_t *block, chop_block_store_t *metadata,
 /* Allocate and initialize a new key block and return it in BLOCK.  */
 static inline errcode_t
 chop_key_block_new (size_t keys_per_block,
-		    int hash_method, size_t key_size,
+		    int hash_method, size_t key_size, chop_log_t *log,
 		    key_block_t **block)
 {
   *block = (key_block_t *)malloc (sizeof (key_block_t));
@@ -264,13 +272,17 @@ chop_key_block_new (size_t keys_per_block,
   (*block)->keys = malloc (KEY_BLOCK_HEADER_SIZE +
 			   (keys_per_block * key_size));
   if (!(*block)->keys)
-    return ENOMEM;
+    {
+      free (*block);
+      return ENOMEM;
+    }
 
   (*block)->parent = NULL;
   (*block)->depth = 0;
   (*block)->key_count = 0;
   (*block)->key_size = key_size;
   (*block)->gcry_hash_method = hash_method;
+  (*block)->log = log;
 
   return 0;
 }
@@ -305,7 +317,7 @@ chop_key_block_add_key (key_block_t *block, size_t keys_per_block,
 	  /* BLOCK is orphan: create him a parent key block.  */
 	  err = chop_key_block_new (keys_per_block,
 				    block->gcry_hash_method, block->key_size,
-				    &parent);
+				    block->log, &parent);
 	  if (err)
 	    return err;
 
@@ -345,7 +357,7 @@ chop_block_tree_add_key (key_block_tree_t *tree,
       /* Allocate a new block tree */
       err = chop_key_block_new (tree->keys_per_block,
 				tree->gcry_hash_method, tree->key_size,
-				&tree->current);
+				tree->log, &tree->current);
       if (err)
 	return err;
 
@@ -379,9 +391,15 @@ chop_block_tree_flush (key_block_tree_t *tree, chop_block_key_t *root_key)
       err = chop_key_block_flush (block, tree->metadata_store, root_key);
       if (err)
 	break;
+
+      if (block->parent)
+	/* Add the key of the newly flushed block to its parent */
+	err = chop_key_block_add_key (block->parent, tree->keys_per_block,
+				      tree->metadata_store, root_key);
     }
 
-  fprintf (stderr, "block_tree_flush: hash tree depth: %u\n", depth);
+  chop_log_printf (tree->log,
+		   "block_tree_flush: hash tree depth: %u\n", depth);
   assert (last_depth == depth - 1);
 
   return err;
@@ -432,6 +450,12 @@ chop_hash_tree_indexer_open (chop_hash_method_t content_hash_method,
 			     size_t keys_per_block,
 			     chop_hash_tree_indexer_t *htree)
 {
+  errcode_t err;
+
+  err = chop_log_init ("hash-tree", &htree->log);
+  if (err)
+    return err;
+
   htree->indexer.index_blocks = chop_hash_tree_index_blocks;
   htree->indexer.fetch_stream = chop_hash_tree_fetch_stream;
   htree->indexer.stream_class = &chop_hash_tree_stream_class;
@@ -492,7 +516,7 @@ chop_hash_tree_index_blocks (chop_indexer_t *indexer,
 
   chop_block_tree_init (&tree, htree->keys_per_block,
 			htree->gcrypt_hash_method, htree->key_size,
-			metadata);
+			metadata, &htree->log);
   chop_block_key_init (&key, key_buf, htree->key_size, NULL, NULL);
 
   err = chop_buffer_init (&buffer,
@@ -581,6 +605,9 @@ typedef struct decoded_block
   /* If this is a data block, this represents its offset within the stream
      being decoded.  */
   size_t stream_offset;
+
+  /* Pointer to the stream's log */
+  chop_log_t *log;
 } decoded_block_t;
 
 typedef struct decoded_block_tree
@@ -591,6 +618,7 @@ typedef struct decoded_block_tree
   decoded_block_t *top_level;
   size_t current_offset;
   size_t key_size;
+  chop_log_t *log;
 } decoded_block_tree_t;
 
 
@@ -598,14 +626,16 @@ typedef struct decoded_block_tree
 /* Hash tree stream objects are returned by CHOP_INDEXER_FETCH_STREAM when
    reading from a hash-tree-indexed stream.  */
 CHOP_DECLARE_RT_CLASS (hash_tree_stream, stream,
-		       decoded_block_tree_t tree;);
+		       decoded_block_tree_t tree;
+		       chop_log_t log;);
 
 static inline void
 chop_decoded_block_tree_init (decoded_block_tree_t *tree,
 			      chop_block_store_t *data_store,
 			      chop_block_store_t *metadata_store,
 			      const chop_index_handle_t *handle,
-			      size_t key_size)
+			      size_t key_size,
+			      chop_log_t *log)
 {
   const chop_class_t *handle_class =
     chop_object_get_class ((chop_object_t *)handle);
@@ -618,6 +648,8 @@ chop_decoded_block_tree_init (decoded_block_tree_t *tree,
   tree->top_level = NULL;
   tree->current_offset = 0;
   tree->key_size = key_size;
+
+  tree->log = log;
 }
 
 /* Constructor.  */
@@ -630,6 +662,8 @@ hash_tree_stream_init (chop_object_t *object, const chop_class_t *class)
   stream->stream.close = hash_tree_stream_close;
 
   stream->tree.handle = NULL;
+
+  chop_log_init ("hash-tree-stream", &stream->log);
 }
 
 
@@ -667,7 +701,16 @@ chop_hash_tree_fetch_stream (struct chop_indexer *indexer,
   memcpy (handle_copy, handle, chop_class_instance_size (handle_class));
 
   chop_decoded_block_tree_init (&tstream->tree, input, metadata,
-				handle, htree->key_size);
+				handle, htree->key_size, &htree->log);
+
+  /* Initialize the log (for debugging purposes) */
+  err = chop_log_init ("hash-tree-stream", &tstream->log);
+  if (err)
+    return err;
+
+  chop_log_mimic (&tstream->log, &htree->log, 0);
+
+  chop_log_printf (&htree->log, "fetching stream");
 
   return err;
 }
@@ -692,10 +735,13 @@ chop_decoded_block_decode_header (decoded_block_t *block)
   block->depth |= ((size_t)*(buffer++)) << 8;
 
   block->offset = KEY_BLOCK_HEADER_SIZE;
+
+  chop_log_printf (block->log, "decoded block: keys=%u, depth=%u",
+		   block->key_count, block->depth);
 }
 
 static inline errcode_t
-chop_decoded_block_new (decoded_block_t **block)
+chop_decoded_block_new (decoded_block_t **block, chop_log_t *log)
 {
   errcode_t err;
 
@@ -707,6 +753,8 @@ chop_decoded_block_new (decoded_block_t **block)
   err = chop_buffer_init (&(*block)->buffer, 0);
   if (err)
     return err;
+
+  (*block)->log = log;
 
   return 0;
 }
@@ -741,7 +789,11 @@ chop_decoded_block_fetch (chop_block_store_t *store,
     chop_decoded_block_decode_header (block);
 
   block->parent = parent;
-  block->current_child = NULL;
+
+  /* Keep the CURRENT_CHILD pointer as is in order to be able to reuse
+     `decoded_block_t' objects accross calls to
+     CHOP_DECODED_BLOCK_NEXT_CHILD.  */
+/*   block->current_child = NULL; */
 
   return 0;
 }
@@ -756,21 +808,45 @@ chop_decoded_block_next_child (decoded_block_t *block, size_t key_size,
 			       chop_block_store_t *metadata_store,
 			       chop_block_store_t *data_store)
 {
+  errcode_t err;
+  chop_log_t *log = block->log;
+
+ start:
   if (block->offset >= chop_buffer_size (&block->buffer))
     {
       /* We're done with this block so let's reuse it with the next block */
       if (!block->parent)
-	/* BLOCK is the top-level key block and there's nothing left in it */
-	return CHOP_STREAM_END;
+	{
+	  /* BLOCK is the top-level key block and there's nothing left in
+	     it.  */
+	  chop_log_printf (log, "root block: end of stream (offset: %u/%u)",
+			   block->offset, chop_buffer_size (&block->buffer));
+	  return CHOP_STREAM_END;
+	}
       else
-	/* Propagate this request to BLOCK's parent */
-	return (chop_decoded_block_next_child (block->parent, key_size,
-					       metadata_store, data_store));
+	{
+	  /* Propagate this request to BLOCK's parent */
+	  decoded_block_t *parent = block->parent;
+	  err = chop_decoded_block_next_child (block->parent, key_size,
+					       metadata_store, data_store);
+	  if (err)
+	    return err;
+
+	  /* At this point, the contents of BLOCK have changed, i.e. BLOCK
+	     has been re-used to represent the new child of its parent.  The
+	     CURRENT_CHILD pointer of PARENT should still point to BLOCK and
+	     vice-versa.  */
+	  assert (parent->current_child == block);
+	  assert (block->parent == parent);
+	  block = parent->current_child;
+
+	  /* Restart the procedure with the new content of BLOCK.  */
+	  goto start;
+	}
     }
   else
     {
       /* Update BLOCK's CURRENT_CHILD pointer */
-      errcode_t err;
       chop_block_key_t key;
       chop_block_store_t *the_store;
       char *pos, *key_buf = alloca (key_size);
@@ -784,7 +860,7 @@ chop_decoded_block_next_child (decoded_block_t *block, size_t key_size,
 
       if (!block->current_child)
 	{
-	  err = chop_decoded_block_new (&block->current_child);
+	  err = chop_decoded_block_new (&block->current_child, block->log);
 	  if (err)
 	    return err;
 	}
@@ -795,6 +871,8 @@ chop_decoded_block_next_child (decoded_block_t *block, size_t key_size,
       else
 	the_store = data_store;
 
+      chop_log_printf (log, "fetching new child block (current depth: %u)",
+		       block->is_key_block ? block->depth : 0);
       err = chop_decoded_block_fetch (the_store, &key,
 				      block, block->current_child);
       if (err)
@@ -872,7 +950,7 @@ chop_decoded_block_read (decoded_block_t *block,
 	  available = chop_buffer_size (&block->buffer) - block->offset;
 	  amount = (available > to_read) ? to_read : available;
 
-	  memcpy (buffer, block_buf, amount);
+	  memcpy (buffer + *read, block_buf, amount);
 	  block->offset += amount;
 	  *read += amount;
 
@@ -898,6 +976,7 @@ chop_decoded_block_tree_read (decoded_block_tree_t *tree,
 {
   errcode_t err;
 
+  chop_log_printf (tree->log, "reading %u bytes", size);
   if (!tree->top_level)
     {
       /* Fetch the top-level key block (or "inode").  */
@@ -905,7 +984,7 @@ chop_decoded_block_tree_read (decoded_block_tree_t *tree,
       chop_block_key_t key;
       char *key_buf = alloca (tree->key_size);
 
-      err = chop_decoded_block_new (&tree->top_level);
+      err = chop_decoded_block_new (&tree->top_level, tree->log);
       if (err)
 	return err;
 

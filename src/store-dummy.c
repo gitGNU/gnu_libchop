@@ -15,6 +15,7 @@ CHOP_DEFINE_RT_CLASS (block_store, object,
 		      NULL, NULL  /* No serializer/deserializer */);
 
 CHOP_DECLARE_RT_CLASS (dummy_block_store, block_store,
+		       chop_log_t log;
 		       chop_block_store_t *backend;);
 
 CHOP_DEFINE_RT_CLASS (dummy_block_store, block_store,
@@ -35,10 +36,10 @@ chop_dummy_block_store_read_block (chop_block_store_t *store,
   char hex_key[1024];
 
   chop_block_key_to_hex_string (key, hex_key);
-  fprintf (stdout,
-	   "dummy: read_block (%s@%p, 0x%s,\n"
-	   "                   %p, %p)\n",
-	   store->name, store, hex_key, buffer, size);
+  chop_log_printf (&dummy->log,
+		   "dummy: read_block (%s@%p, 0x%s,\n"
+		   "                   %p, %p)\n",
+		   store->name, store, hex_key, buffer, size);
   *size = 0;
 
   if (!dummy->backend)
@@ -47,9 +48,9 @@ chop_dummy_block_store_read_block (chop_block_store_t *store,
   err = chop_store_read_block (dummy->backend, key, buffer, size);
 
   if (err)
-    fprintf (stdout,
-	     "dummy: read_block: underlying store returned \"%s\"\n",
-	     error_message (err));
+    chop_log_printf (&dummy->log,
+		     "dummy: read_block: underlying store returned \"%s\"\n",
+		     error_message (err));
 
   return err;
 }
@@ -65,19 +66,19 @@ chop_dummy_block_store_write_block (chop_block_store_t *store,
     (chop_dummy_block_store_t *)store;
 
   chop_block_key_to_hex_string (key, hex_key);
-  fprintf (stdout,
-	   "dummy: write_block (%s@%p, 0x%s,\n"
-	   "                    %p, %u)\n",
-	   store->name, store, hex_key, block, size);
+  chop_log_printf (&dummy->log,
+		   "dummy: write_block (%s@%p, 0x%s,\n"
+		   "                    %p, %u)\n",
+		   store->name, store, hex_key, block, size);
 
   if (!dummy->backend)
     return 0;
 
   err = chop_store_write_block (dummy->backend, key, block, size);
   if (err)
-    fprintf (stdout,
-	     "dummy: read_block: underlying store returned \"%s\"\n",
-	     error_message (err));
+    chop_log_printf (&dummy->log,
+		     "dummy: read_block: underlying store returned \"%s\"\n",
+		     error_message (err));
 
   return err;
 }
@@ -89,15 +90,16 @@ chop_dummy_block_store_sync (chop_block_store_t *store)
   chop_dummy_block_store_t *dummy =
     (chop_dummy_block_store_t *)store;
 
-  fprintf (stdout, "dummy: sync (%s@%p)\n", store->name, store);
+  chop_log_printf (&dummy->log,
+		   "dummy: sync (%s@%p)\n", store->name, store);
   if (!dummy->backend)
     return 0;
 
   err = chop_store_sync (dummy->backend);
   if (err)
-    fprintf (stdout,
-	     "dummy: sync: underlying store returned \"%s\"\n",
-	     error_message (err));
+    chop_log_printf (&dummy->log,
+		     "dummy: sync: underlying store returned \"%s\"\n",
+		     error_message (err));
 
   return err;
 }
@@ -105,7 +107,12 @@ chop_dummy_block_store_sync (chop_block_store_t *store)
 static errcode_t
 chop_dummy_block_store_close (chop_block_store_t *store)
 {
-  fprintf (stdout, "dummy: close (%s@%p)\n", store->name, store);
+  chop_dummy_block_store_t *dummy =
+    (chop_dummy_block_store_t *)store;
+
+  chop_log_printf (&dummy->log,
+		   "dummy: close (%s@%p)\n", store->name, store);
+
   free (store->name);
   store->name = NULL;
   return 0;
@@ -115,8 +122,20 @@ void
 chop_dummy_block_store_open (const char *name,
 			     chop_block_store_t *store)
 {
+  errcode_t err;
+  char *log_name;
   chop_dummy_block_store_t *dummy =
     (chop_dummy_block_store_t *)store;
+
+  log_name = alloca (strlen (name) + 6 + 1);
+  strcpy (log_name, "dummy/");
+  strcpy (log_name + 6, name);
+  err = chop_log_init (log_name, &dummy->log);
+  if (err)
+    return; /* XXX */
+
+  /* By default, dump to stderr */
+  chop_log_attach (&dummy->log, 2, 0);
 
   store->name = strdup (name);
   store->read_block = chop_dummy_block_store_read_block;
@@ -138,4 +157,13 @@ chop_dummy_proxy_block_store_open (const char *name,
   chop_dummy_block_store_open (name, store);
 
   dummy->backend = backend;
+}
+
+chop_log_t *
+chop_dummy_block_store_log (chop_block_store_t *store)
+{
+  chop_dummy_block_store_t *dummy =
+    (chop_dummy_block_store_t *)store;
+
+  return (&dummy->log);
 }
