@@ -29,10 +29,12 @@ AC_CHECK_LIB([com_err], [com_err], [],
   [AC_MSG_ERROR([`libcom_err' not found.  Please, install it first, ok?!])])
 AC_CHECK_LIB([gdbm], [gdbm_open], [],
   [AC_MSG_ERROR([`libgdbm' not found.  Come on, install it first.])])
+AC_CHECK_LIB([z], [deflate], [],
+  [AC_MSG_ERROR([`libz' not found.  Too bad.])])
 
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([stdlib.h obstack.h gdbm.h gcrypt.h com_err.h])
+AC_CHECK_HEADERS([stdlib.h obstack.h gdbm.h gcrypt.h com_err.h zlib.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -70,6 +72,8 @@ AM_CONDITIONAL(HAVE_GUILE, test "x$guile" != "x")
 AC_CONFIG_FILES([Makefile
                  src/Makefile
 		 utils/Makefile
+		 tests/Makefile
+		 tests/interfaces/Makefile
 		 guile/Makefile])
 
 AC_OUTPUT

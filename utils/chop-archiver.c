@@ -260,7 +260,13 @@ main (int argc, char *argv[])
   char *option_argument = NULL;
 
   program_name = argv[0];
-  chop_init ();
+
+  err = chop_init ();
+  if (err)
+    {
+      com_err (argv[0], err, "while initializing libchop");
+      return 1;
+    }
 
   while (1)
     {

@@ -171,6 +171,13 @@ main (int argc, char *argv[])
   if (argc < 3)
     return 1;
 
+  err = chop_init ();
+  if (err)
+    {
+      com_err (argv[0], err, "while initializing libchop");
+      return 1;
+    }
+
   stream1  = chop_class_alloca_instance (&chop_file_stream_class);
   stream2  = chop_class_alloca_instance (&chop_file_stream_class);
   chopper1 = chop_class_alloca_instance (&chop_anchor_based_chopper_class);

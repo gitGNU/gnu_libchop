@@ -17,7 +17,8 @@
 ;;;;
 
 (define-module (streams-spec)
-;  #:use-module (chop core)
+  #:use-module (core-spec)
+
   #:use-module (oop goops)
   #:use-module (g-wrap)
   #:use-module (g-wrap rti)
@@ -34,17 +35,14 @@
 ;; the wrapset itself.
 
 (define-class <chop-stream-wrapset> (<gw-wrapset>)
-  #:dependencies '(standard)
-  error-returning-functions)
+  error-returning-functions
+  #:dependencies '(standard))
 
 
 ;; types
 
 ;; A wrapped C pointer.
 (define-class <chop-stream-type> (<gw-wct>))
-
-;; An integer type.
-(define-class <chop-errcode-type> (<gw-ranged-integer-type>))
 
 
 
@@ -75,9 +73,6 @@
 	"#include <chop/chop.h>\n#include <chop/streams.h>\n\n"
 	"#include \"stream-ctors-dtors.c\"\n\n"))
 
-(define-method (initializations-cg (ws <chop-stream-wrapset>) error-var)
-  (list (next-method)
-	"\nchop_init ();\n\n"))
 
 
 
@@ -111,6 +106,7 @@
 ; 		      #:c-type-name "chop_stream_t *"
 ; 		      #:c-const-type-name "const chop_stream_t *"))
 
+
   (wrap-constant! ws
 		  #:name 'stream/end
 		  #:type 'long
@@ -123,11 +119,6 @@
 		#:c-const-type-name "const chop_stream_t *"
 		#:destroy-value-function-name "chop_stream_close_dealloc")
 
-  (wrap-function! ws
-		  #:name 'error-message
-		  #:returns '(mchars callee-owned)
-		  #:c-name "error_message"
-		  #:arguments '((long code)))
 
   (wrap-function! ws
 		  #:name 'file-stream-open
@@ -135,13 +126,13 @@
 		  #:c-name "chop_file_stream_open_alloc"
 		  #:arguments '(((mchars caller-owned) path)))
 
-  (wrap-function! ws
-                  #:name 'stream-read
-                  #:returns 'int
-                  #:c-name "chop_stream_read"
-                  #:arguments '(((<stream> caller-owned) stream)
-				(int size))
-                  #:description "Read from @var{stream}.")
+;   (wrap-function! ws
+;                   #:name 'stream-read
+;                   #:returns '<errcode>
+;                   #:c-name "chop_stream_read"
+;                   #:arguments '(((<stream> caller-owned) stream)
+; 				(int size))
+;                   #:description "Read from @var{stream}.")
 
 )
 
