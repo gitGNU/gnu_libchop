@@ -129,7 +129,10 @@ extern errcode_t
 chop_remote_block_store_open (const char *host, const char *protocol,
 			      chop_block_store_t *store);
 
-/* extern errcode_t chop_dht_store_open (pid_t dht); */
+/* XXX:  We might want to have a look at Berkeley DB and the Trivial DB
+   (`libdb3' and `libtdb1'), or even the TDB Replication System
+   (http://tdbrepl.inodes.org/) or a DHT.  */
+
 
 
 /* The block store interface.  */
@@ -151,16 +154,6 @@ chop_store_read_block (chop_block_store_t *__store,
   return (__store->read_block (__store, __key, __buffer, __size));
 }
 
-
-/* extern errcode_t chop_store_write_blocks (chop_block_store_t *store, */
-/* 					  const chop_block_t *blocks, */
-/* 					  enum chop_hash_method method, */
-/* 					  size_t block_count, */
-/* 					  const chop_block_t * */
-/* 					  (* resolve_collision) */
-/* 					  (const chop_block_t *old, */
-/* 					   const chop_block_t *new), */
-/* 					  size_t *written); */
 
 extern errcode_t chop_store_delete_block (chop_block_store_t *store,
 					  const chop_block_key_t key);

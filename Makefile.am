@@ -1,4 +1,4 @@
-SUBDIRS = src utils
+SUBDIRS = src utils include
 
 if HAVE_GUILE
 SUBDIRS += guile

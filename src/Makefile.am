@@ -1,7 +1,7 @@
 BUILT_SOURCES = chop-errors.c
-#extra_HEADERS = chop-errors.h
+EXTRA_DIST = filter-zip-push-pull.c
 
-lib_LTLIBRARIES = libchop.la
+lib_LTLIBRARIES = libchop.la libchop-block-server.la
 
 libchop_la_SOURCES = chop.c chop-errors.c logs.c		\
 		     chopper-fixed-size.c			\
@@ -18,7 +18,13 @@ libchop_la_SOURCES = chop.c chop-errors.c logs.c		\
 		     stream-file.c # stream-ext2.c 
 
 # RPC client-side stubs (for the remote block store)
-libchop_la_SOURCES += block_rstore_clnt.c block_rstore_xdr.c
+rpc_client_stubs = block_rstore_clnt.c block_rstore_xdr.c
+libchop_la_SOURCES += $(rpc_client_stubs)
+BUILT_SOURCES += $(rpc_client_stubs)
+
+# The convenience library for block store RPC servers.
+libchop_block_server_la_SOURCES = store-server.c
+libchop_block_server_la_LIBS = -lchop
 
 CPPFLAGS = -I../include -Wall -fno-strict-aliasing -D_GNU_SOURCE=1
 CFLAGS = -O0 -g
@@ -37,5 +43,9 @@ block_rstore_xdr.c:  $(top_srcdir)/rpc/block_rstore.x \
 		     $(top_srcdir)/rpc/block_rstore.h
 	$(RPCGEN) -c $< > $@
 
-$(top_srcdir)/rpc/block_rstore.h: $(top_srcdir)/rpc/block_rstore.x
+block_rstore_svc.c:  $(top_srcdir)/rpc/block_rstore.x \
+		     $(top_srcdir)/rpc/block_rstore.h
+	$(RPCGEN) -m $< > $@
+
+$(top_srcdir)/include/chop/block_rstore.h: $(top_srcdir)/rpc/block_rstore.x
 	$(RPCGEN) -h $^ > $@

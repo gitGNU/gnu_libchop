@@ -73,6 +73,7 @@ fi
 AM_CONDITIONAL(HAVE_GUILE, test "x$guile" != "x")
 
 AC_CONFIG_FILES([Makefile
+                 include/Makefile
                  src/Makefile
 		 utils/Makefile
 		 tests/Makefile

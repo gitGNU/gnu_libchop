@@ -2,7 +2,7 @@
 #include <chop/stores.h>
 #include <chop/serializable.h>
 
-#include "../rpc/block_rstore.h"
+#include <chop/block_rstore.h>
 
 CHOP_DECLARE_RT_CLASS (remote_block_store, block_store,
 		       CLIENT *rpc_client;);
@@ -32,8 +32,9 @@ errcode_t
 chop_remote_block_store_open (const char *host, const char *protocol,
 			      chop_block_store_t *store)
 {
+  static const char generic_hello_arg[] = "libchop's remote block store client";
   int *granted;
-  block_store_say_hello_args hello_args;
+  char *hello_arg;
   chop_remote_block_store_t *remote = (chop_remote_block_store_t *)store;
 
   remote->rpc_client = clnt_create (host, BLOCK_STORE_PROGRAM,
@@ -45,8 +46,8 @@ chop_remote_block_store_open (const char *host, const char *protocol,
       return -1;
     }
 
-  hello_args.message = "libchop's remote block store client";
-  granted = say_hello_0 (&hello_args, remote->rpc_client);
+  hello_arg = (char *)generic_hello_arg;
+  granted = say_hello_0 (&hello_arg, remote->rpc_client);
   if ((!granted) || (!*granted))
     {
       if (!granted)

@@ -1,6 +1,5 @@
 #include <chop/chop.h>
 #include <chop/streams.h>
-#include <chop/blocks.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
