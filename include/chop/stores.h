@@ -24,6 +24,10 @@ CHOP_DECLARE_RT_CLASS (block_store, object,
 		       errcode_t (* sync) (struct chop_block_store *););
 
 
+
+
+/* Block keys.  */
+
 struct chop_block_key
 {
   char  *key;
@@ -32,10 +36,6 @@ struct chop_block_key
   void *owner;
 };
 
-
-
-
-/* Block keys.  */
 
 static __inline__ void chop_block_key_init (chop_block_key_t *__key,
 					    char *__key_contents,
@@ -87,6 +87,8 @@ chop_block_key_to_hex_string (const chop_block_key_t *__key,
 
 extern const chop_class_t chop_dummy_block_store_class;
 extern const chop_class_t chop_gdbm_block_store_class;
+extern const chop_class_t chop_remote_block_store_class;
+
 
 /* Initialize STORE as a "dummy" block store that does nothing but display
    what goes on.  Only useful for debugging purposes.  STORE must point to
@@ -121,7 +123,16 @@ extern errcode_t chop_gdbm_store_open (const char *name, size_t block_size,
 				       void (* fatal_func) (const char *),
 				       chop_block_store_t *store);
 
+/* Open a remote block store located at HOST with protocol PROTOCOL.
+   PROTOCOL may be either "udp" or "tcp".  On success return 0.  */
+extern errcode_t
+chop_remote_block_store_open (const char *host, const char *protocol,
+			      chop_block_store_t *store);
+
 /* extern errcode_t chop_dht_store_open (pid_t dht); */
+
+
+/* The block store interface.  */
 
 static __inline__ errcode_t
 chop_store_write_block (chop_block_store_t *__store,
