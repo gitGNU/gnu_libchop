@@ -92,6 +92,7 @@ chop_buffer_push (chop_buffer_t *buffer,
     }
 
   memcpy (buffer->buffer, buf, size);
+  buffer->size = size;
 
   return 0;
 }

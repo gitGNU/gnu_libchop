@@ -17,6 +17,8 @@ if test "x$compile_et" = "xno"; then
 fi
 
 # Checks for libraries.
+AC_CHECK_LIB([gcrypt], [gcry_md_hash_buffer], [],
+  [AC_MSG_ERROR([`libgcrypt' not found.  Please, install it first.])])
 
 # Checks for header files.
 AC_HEADER_STDC

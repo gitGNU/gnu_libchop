@@ -1,3 +1,7 @@
+
+#ifndef __CHOP_STORES_H__
+#define __CHOP_STORES_H__
+
 /* Block stores.  */
 
 #include <chop/chop.h>
@@ -27,6 +31,7 @@ struct chop_block_key
 };
 
 typedef struct chop_gdbm_block_store chop_gdbm_block_store_t;
+typedef chop_block_store_t chop_dummy_block_store_t;
 
 
 
@@ -66,7 +71,22 @@ chop_block_key_buffer (const chop_block_key_t *__key)
   return (__key->key);
 }
 
+/* Convert key KEY into an hexadecimal representation stored in HEX.  HEX has
+   to be at least twice as long as KEY's buffer plus one byte.  */
+static __inline__ void
+chop_block_key_to_hex_string (const chop_block_key_t *__key,
+			      char *hex)
+{
+  chop_buffer_to_hex_string (chop_block_key_buffer (__key),
+			     chop_block_key_size (__key),
+			     hex);
+}
+
 
+/* Initialize STORE as a "dummy" block store that does nothing but display
+   what goes on.  Only useful for debugging purposes.  */
+extern void chop_dummy_block_store_open (chop_dummy_block_store_t *store);
+
 /* Open GDBM database file NAME, with mode MODE (same as for open(2) and
    chmod(2)).  If BLOCK_SIZE is lower than 512, the use the filesystem block
    size as the GDBM size for block transferts, otherwise use the value of
@@ -98,15 +118,15 @@ chop_store_read_block (chop_block_store_t *__store,
 }
 
 
-extern errcode_t chop_store_write_blocks (chop_block_store_t *store,
-					  const chop_block_t *blocks,
-					  enum chop_hash_method method,
-					  size_t block_count,
-					  const chop_block_t *
-					  (* resolve_collision)
-					  (const chop_block_t *old,
-					   const chop_block_t *new),
-					  size_t *written);
+/* extern errcode_t chop_store_write_blocks (chop_block_store_t *store, */
+/* 					  const chop_block_t *blocks, */
+/* 					  enum chop_hash_method method, */
+/* 					  size_t block_count, */
+/* 					  const chop_block_t * */
+/* 					  (* resolve_collision) */
+/* 					  (const chop_block_t *old, */
+/* 					   const chop_block_t *new), */
+/* 					  size_t *written); */
 
 extern errcode_t chop_store_delete_block (chop_block_store_t *store,
 					  const chop_block_key_t key);
@@ -121,3 +141,4 @@ static __inline__ errcode_t chop_store_close (chop_block_store_t *__store)
   return (__store->close (__store));
 }
 
+#endif

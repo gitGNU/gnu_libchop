@@ -1,4 +1,9 @@
 
+#ifndef __CHOP_STREAMS_H__
+#define __CHOP_STREAMS_H__
+
+/* Input data streams.  */
+
 struct chop_stream
 {
   char *name;
@@ -71,3 +76,5 @@ extern errcode_t chop_ext2_stream_open (const char *path,
 extern errcode_t chop_mem_stream_open (const char *buffer,
 				       size_t size,
 				       chop_mem_stream_t *stream);
+
+#endif

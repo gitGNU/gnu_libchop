@@ -5,12 +5,14 @@ lib_LTLIBRARIES = libchop.la
 
 libchop_la_SOURCES = chop.c chop-errors.c \
 		     chopper-fixed-size.c \
+		     store-dummy.c        \
 		     store-gdbm.c         \
-		     store-hash-tree.c    \
+		     hash.c		  \
 		     buffers.c            \
+		     indexer-hash-tree.c  \
 		     stream-file.c # stream-ext2.c 
 
-CPPFLAGS = -I../include -Wall
+CPPFLAGS = -I../include -Wall -fno-strict-aliasing
 
 COMPILE_ET = compile_et
 

@@ -11,6 +11,7 @@ struct chop_chopper
 {
   chop_stream_t *stream;
 
+  size_t typical_block_size;
   errcode_t (* read_block) (struct chop_chopper *,
 			    chop_buffer_t *, size_t *);
 };
@@ -56,8 +57,18 @@ chop_chopper_read_block (chop_chopper_t *__chopper,
   return (__chopper->read_block (__chopper, __block, __size));
 }
 
+/* Return the "typical" size of the blocks produced by CHOPPER.  The meaning
+   of "typical" actually depends on the chopper implementation.  The value
+   returned can be used as a hint for the initial size of block buffers.  */
+static __inline__ size_t
+chop_chopper_typical_block_size (const chop_chopper_t *__chopper)
+{
+  return (__chopper->typical_block_size);
+}
 
 
+/* Implementation.  */
+
 struct chop_fixed_size_chopper
 {
   chop_chopper_t chopper;
