@@ -1,5 +1,6 @@
 
-bin_PROGRAMS = chop-file chop-archiver gdbm-list-entries
+bin_PROGRAMS = chop-file chop-archiver gdbm-list-entries \
+               chop-show-anchors
 
 CPPFLAGS += -I$(srcdir)/src
 LDADD = -L../src -lchop -lcom_err -lgdbm

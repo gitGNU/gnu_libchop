@@ -5,6 +5,18 @@
 #include <alloca.h>
 #include <errno.h>
 
+
+/* Class definitions.  */
+
+CHOP_DEFINE_RT_CLASS (chopper, object,
+		      NULL, NULL, /* No constructor/destructor */
+		      NULL, NULL  /* No serializer/deserializer */);
+
+CHOP_DEFINE_RT_CLASS (fixed_size_chopper, chopper,
+		      NULL, NULL, /* No constructor/destructor */
+		      NULL, NULL  /* No serializer/deserializer */);
+
+
 static errcode_t chop_fixed_chopper_read_block (chop_chopper_t *,
 						chop_buffer_t *block,
 						size_t *);

@@ -5,6 +5,7 @@ lib_LTLIBRARIES = libchop.la
 
 libchop_la_SOURCES = chop.c chop-errors.c logs.c	\
 		     chopper-fixed-size.c		\
+                     chopper-anchor-based.c             \
 		     store-dummy.c			\
 		     store-gdbm.c			\
 		     hash.c				\

@@ -12,6 +12,12 @@ error_code CHOP_ERR_NOT_FOUND,
 error_code CHOP_ERR_NOT_IMPL,
 	   "Operation not implemented"
 
+error_code CHOP_INVALID_ARG,
+           "Invalid argument"
+
+error_code CHOP_OUT_OF_RANGE_ARG,
+           "Argument out of range"
+
 error_code CHOP_STREAM_END,
 	   "End of stream"
 
