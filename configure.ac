@@ -52,6 +52,9 @@ AC_PATH_PROG([guile], [guile],
   AC_MSG_WARN([Guile not found.  Not building Guile bindings.]))
 
 if test "x$guile" != "x"; then
+#   AC_CHECK_LIB([guile], [scm_u8vector_elements], [],
+#     AC_MSG_ERROR([You version of Guile doesn't support SRFI-4 vectors.  Upgrade to 1.7.2 or later.]))
+
    AC_PATH_PROG([g_wrap_config], [g-wrap-config],
      AC_MSG_ERROR([Could not find `g-wrap-config'.  You mush has G-Wrap to produce Guile bindings.]))
 

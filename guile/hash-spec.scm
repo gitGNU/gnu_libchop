@@ -66,10 +66,9 @@
 				((hash-method out) m)))
 
   (wrap-function! ws
-		  #:name 'hash-string
+		  #:name 'hash-buffer
 		  #:c-name "chop_hash_buffer"
 		  #:returns 'void
 		  #:arguments '((hash-method method)
-				((mchars caller-owned) str)
-				(int size)
+				(<input-buffer> str)
 				((mchars out caller-owned) str))))
