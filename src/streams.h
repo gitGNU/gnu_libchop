@@ -1,15 +1,11 @@
+
 struct chop_stream
 {
   char *name;
-
-  /* block size once broken */
-  size_t block_size;
+  size_t preferred_block_size;
 
   /* common methods */
-  errcode_t (* sbreak) (const struct chop_stream *, size_t, size_t *);
-  errcode_t (* get_block) (const struct chop_stream *, size_t,
-			   struct chop_block *);
-  size_t (* preferred_block_size) (const struct chop_stream *);
+  errcode_t (* read)  (struct chop_stream *, char *, size_t, size_t *);
   void (* close) (struct chop_stream *);
 
   /* placeholders */
@@ -20,13 +16,34 @@ struct chop_stream
   void *_u5;
 };
 
+/* Derived types */
+typedef struct chop_file_stream chop_file_stream_t;
+typedef struct chop_ext2_stream chop_ext2_stream_t;
+typedef struct chop_mem_stream chop_mem_stream_t;
+typedef struct chop_filter_stream chop_filter_stream_t;
+
 
+/* File stream implementation */
 struct chop_file_stream
 {
   chop_stream_t stream;
 
   int    fd;
-  size_t fsys_block_size;
   size_t size;
-  void  *map;
+  char  *map;
+  size_t position;
 };
+
+
+/* Specific stream constructors.  */
+
+extern errcode_t chop_file_stream_open (const char *path,
+					chop_file_stream_t *stream);
+
+extern errcode_t chop_ext2_stream_open (const char *path,
+					const char *fs,
+					chop_ext2_stream_t *stream);
+
+extern errcode_t chop_mem_stream_open (const char *buffer,
+				       size_t size,
+				       chop_mem_stream_t *stream);

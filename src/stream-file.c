@@ -13,12 +13,8 @@
 
 
 static void chop_file_stream_close (chop_stream_t *);
-static size_t chop_file_block_size (const chop_stream_t *);
-static errcode_t chop_file_stream_break (chop_file_stream_t *,
-					 size_t, size_t *);
-static errcode_t chop_file_stream_block (chop_file_stream_t *,
-					 size_t blocknum,
-					 chop_block_t *);
+static errcode_t chop_file_stream_read (chop_stream_t *,
+					char *, size_t, size_t *);
 
 errcode_t
 chop_file_stream_open (const char *path,
@@ -43,37 +39,32 @@ chop_file_stream_open (const char *path,
       return errno;
     }
 
-  stream->stream.close = chop_file_stream_close;
-  stream->stream.preferred_block_size = chop_file_block_size;
-  stream->stream.sbreak = chop_file_stream_break;
-  stream->stream.get_block = chop_file_stream_block;
+  madvise (stream->map, stream->size, MADV_SEQUENTIAL);
 
+  stream->position = 0;
+  stream->stream.close = chop_file_stream_close;
+  stream->stream.read = chop_file_stream_read;
   stream->stream.name = strdup (path);
-  stream->stream.block_size = 0;
-  stream->fsys_block_size = file_stats.st_blksize;
+  stream->stream.preferred_block_size = file_stats.st_blksize;
   stream->size = file_stats.st_size;
 
   return 0;
 }
 
 static errcode_t
-chop_file_stream_break (chop_file_stream_t *file,
-			size_t block_size,
-			size_t *nblocks)
+chop_file_stream_read (chop_stream_t *stream,
+		       char *buffer, size_t howmuch, size_t *read)
 {
-  *nblocks = file->size / block_size + (file->size % block_size ? 1 : 0);
-  return 0;
-}
+  chop_file_stream_t *file = (chop_file_stream_t *)stream;
+  size_t remaining;
 
-static errcode_t
-chop_file_stream_block (chop_file_stream_t *file,
-			size_t blocknum,
-			chop_block_t *block)
-{
-  size_t offset;
-  block->size = file->stream.block_size;
-  offset = block->size * blocknum;
-  block->content = (char *)file->map + offset;
+  if (file->position >= file->size)
+    return CHOP_STREAM_END;
+
+  remaining = file->size - file->position;
+  *read = (howmuch > remaining) ? remaining : howmuch;
+
+  memcpy (buffer, file->map, *read);
 
   return 0;
 }
@@ -90,11 +81,4 @@ chop_file_stream_close (struct chop_stream *s)
 
   file->map = NULL;
   file->fd = -1;
-}
-
-static size_t
-chop_file_block_size (const chop_stream_t *s)
-{
-  chop_file_stream_t *f = (chop_file_stream_t *)s;
-  return (f->fsys_block_size);
 }

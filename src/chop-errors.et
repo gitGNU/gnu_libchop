@@ -1,12 +1,21 @@
 error_table chop
 
-error_code CHOP_ERR_UNKNOWN_STREAM
+error_code CHOP_ERR_UNKNOWN_STREAM,
 	   "Unknown stream type"
 
-error_code CHOP_ERR_UNKNOWN_STORE
+error_code CHOP_ERR_UNKNOWN_STORE,
 	   "Unknown store type"
 
-error_code CHOP_ERR_NOT_IMPL
+error_code CHOP_ERR_NOT_IMPL,
 	   "Operation not implemented"
+
+error_code CHOP_STREAM_END,
+	   "End of stream"
+
+error_code CHOP_FILTER_FULL,
+	   "Filter is full"
+
+error_code CHOP_FILTER_EMPTY,
+	   "Filter is empty"
 
 end

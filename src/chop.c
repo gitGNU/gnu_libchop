@@ -10,5 +10,5 @@ chop_init (void)
 size_t
 chop_stream_preferred_block_size (const chop_stream_t *stream)
 {
-  return (stream->block_size (stream));
+  return (stream->preferred_block_size);
 }

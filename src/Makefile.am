@@ -8,5 +8,5 @@ libchop_la_SOURCES = chop.c chop-errors.c \
 
 COMPILE_ET = compile_et
 
-chop-errors.c: chop-errors.et
+chop-errors.c, chop-errors.h: chop-errors.et
 	$(COMPILE_ET) $^
