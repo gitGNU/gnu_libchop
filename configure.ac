@@ -34,7 +34,7 @@ AC_CHECK_LIB([z], [deflate], [],
 
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([stdlib.h obstack.h gdbm.h gcrypt.h com_err.h zlib.h])
+AC_CHECK_HEADERS([stdlib.h obstack.h argp.h gdbm.h gcrypt.h com_err.h zlib.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST

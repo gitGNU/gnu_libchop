@@ -14,6 +14,24 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include <argp.h>
+
+const char *argp_program_version = "chop-archiver 0.0";
+const char *argp_program_bug_address = "<ludovic.courtes@laas.fr>";
+
+static char doc[] =
+"chop-archiver -- archives and restores different versions of a file\
+\v\
+This program can archive a given file's revision into a GDBM block store \
+and eventually restore it from them.  Subsequent revisions of a file will \
+hopefully require less room than the sum of each revision's size.  When \
+asked to archive a file (with `--archive') the program displays an \
+\"archive handle\" in the form of a hash.  This handle must be kept and \
+eventually passed to `--restore'.  Note that `chop-archiver' itself is \
+somewhat dumb since it does not keep track of what handle correspond to \
+what file or revision so you have to do this by yourself.";
+
+
 const char *program_name = NULL;
 
 #define GDBM_DATA_FILE_BASE       ".chop-archiver/archive-data.gdbm"
@@ -23,19 +41,26 @@ const char *program_name = NULL;
 /* Whether archival or retrieval is to be performed.  */
 static int archive_queried = 0, restore_queried = 0;
 
+/* The option passed to either `--archive' or `--restore'.  */
+static char *option_argument = NULL;
+
 /* Use the dummy store for debugging purposes.  */
 static int debugging = 0;
 
 /* Whether to be verbose */
 static int verbose = 0;
 
-static struct option long_options[] =
+static struct argp_option options[] =
   {
-    { "archive", required_argument, &archive_queried, 0 },
-    { "restore", required_argument, &restore_queried, 0 },
-    { "debug",   no_argument,       &debugging,       0 },
-    { "verbose", no_argument,       &verbose,         0 },
-    { 0, 0, 0, 0 }
+    { "verbose", 'v', 0, 0,        "Produce verbose output" },
+    { "debug",   'd', 0, 0,
+      "Produce debugging output and use a dummy block store (i.e. a block "
+      "store that does nothing but print messages)" },
+    { "archive", 'a', "FILE",   0,
+      "Archive FILE and return an archived revision handle" },
+    { "restore", 'r', "HANDLE", 0,
+      "Restore a file's revision from HANDLE, an archived revision handle" },
+    { 0, 0, 0, 0, 0 }
   };
 
 
@@ -170,8 +195,8 @@ process_command (const char *argument,
 	  exit (1);
 	}
 
-      block_size = chop_stream_preferred_block_size ((chop_stream_t *)&stream);
-      err = chop_fixed_size_chopper_init ((chop_stream_t *)&stream,
+      block_size = chop_stream_preferred_block_size ((chop_stream_t *)stream);
+      err = chop_fixed_size_chopper_init ((chop_stream_t *)stream,
 					  block_size,
 					  0 /* Don't pad blocks */,
 					  &chopper);
@@ -181,11 +206,11 @@ process_command (const char *argument,
 	  exit (2);
 	}
 
-      err = do_archive ((chop_stream_t *)&stream,
+      err = do_archive ((chop_stream_t *)stream,
 			THE_STORE (data), THE_STORE (metadata),
 			(chop_chopper_t *)&chopper, indexer);
 
-      chop_stream_close ((chop_stream_t *)&stream);
+      chop_stream_close ((chop_stream_t *)stream);
     }
   else if (restore_queried)
     {
@@ -212,7 +237,7 @@ process_command (const char *argument,
       fprintf (stderr,
 	       "%s: You must pass either `--archive' or `--restore'\n",
 	       program_name);
-      abort ();
+      exit (1);
     }
 
   if (verbose)
@@ -250,39 +275,54 @@ open_gdbm_store (const char *base, chop_block_store_t *store)
 }
 
 
+/* Parse a single option. */
+static error_t
+parse_opt (int key, char *arg, struct argp_state *state)
+{
+  switch (key)
+    {
+    case 'v':
+      verbose = 1;
+      break;
+    case 'd':
+      debugging = 1;
+      break;
+    case 'a':
+      archive_queried = 1;
+      option_argument = arg;
+      break;
+    case 'r':
+      restore_queried = 1;
+      option_argument = arg;
+      break;
+    default:
+      return ARGP_ERR_UNKNOWN;
+    }
+
+  return 0;
+}
+
+/* Argp argument parsing.  */
+static struct argp argp = { options, parse_opt, 0, doc };
+
+
 int
 main (int argc, char *argv[])
 {
-  int cmd;
   errcode_t err;
   chop_block_store_t *store, *metastore;
   chop_hash_tree_indexer_t indexer;
-  char *option_argument = NULL;
 
   program_name = argv[0];
+
+  /* Parse arguments.  */
+  argp_parse (&argp, argc, argv, 0, 0, 0);
 
   err = chop_init ();
   if (err)
     {
       com_err (argv[0], err, "while initializing libchop");
       return 1;
-    }
-
-  while (1)
-    {
-      int option_index;
-      cmd = getopt_long (argc, argv, "", long_options, &option_index);
-      if (cmd == -1)
-	break;
-
-      if (long_options[option_index].flag)
-	*long_options[option_index].flag = 1;
-
-      if (optarg)
-	{
-	  option_argument = alloca (strlen (optarg) + 1);
-	  strcpy (option_argument, optarg);
-	}
     }
 
   err = chop_hash_tree_indexer_open (CHOP_HASH_NONE, CHOP_HASH_SHA1, 12,
