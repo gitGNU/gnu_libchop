@@ -18,13 +18,11 @@ typedef struct chop_hash_tree_indexer chop_hash_tree_indexer_t;
 extern errcode_t
 chop_hash_tree_indexer_open (chop_hash_method_t content_hash_method,
 			     chop_hash_method_t key_hash_method,
+			     size_t keys_per_block,
 			     chop_hash_tree_indexer_t *htree);
 
 
 /* Implementation details */
-
-/* Glibc's obstacks */
-#include <obstack.h>
 
 struct chop_hash_tree_indexer
 {
@@ -34,13 +32,7 @@ struct chop_hash_tree_indexer
   chop_hash_method_t hash_method;
   int                gcrypt_hash_method;
   size_t             key_size;
-
-  /* Number of data blocks */
-  size_t             block_count;
-  chop_buffer_t      block_keys;
-
-  /* Obstack from which keys are allocated */
-  struct obstack     key_obstack;
+  size_t             keys_per_block;
 };
 
 

@@ -85,7 +85,8 @@ chop_block_key_to_hex_string (const chop_block_key_t *__key,
 
 /* Initialize STORE as a "dummy" block store that does nothing but display
    what goes on.  Only useful for debugging purposes.  */
-extern void chop_dummy_block_store_open (chop_dummy_block_store_t *store);
+extern void chop_dummy_block_store_open (const char *name,
+					 chop_dummy_block_store_t *store);
 
 /* Open GDBM database file NAME, with mode MODE (same as for open(2) and
    chmod(2)).  If BLOCK_SIZE is lower than 512, the use the filesystem block

@@ -11,7 +11,7 @@ typedef struct chop_indexer chop_indexer_t;
 
 /* Declare the (serializable) `chop_index_handle_t' class that inherits from
    `chop_object_t' and does not contain any additional field.  */
-CHOP_DECLARE_RT_CLASS (index_handle, object,);
+CHOP_DECLARE_RT_CLASS (index_handle, object, /**/);
 
 
 struct chop_indexer
@@ -19,10 +19,12 @@ struct chop_indexer
   errcode_t (* index_blocks) (struct chop_indexer *,
 			      chop_chopper_t *,
 			      chop_block_store_t *,
+			      chop_block_store_t *,
 			      chop_index_handle_t *);
 
   errcode_t (* fetch_stream) (struct chop_indexer *,
 			      const chop_index_handle_t *,
+			      chop_block_store_t *,
 			      chop_block_store_t *,
 			      chop_stream_t *);
 
@@ -33,37 +35,59 @@ struct chop_indexer
 
 
 /* Use INDEXER to index and store the blocks from INPUT in block store
-   OUTPUT.  On success, return 0 and set HANDLE to an index handle necessary
-   and sufficient to retrieve all the indexed blocks from OUTPUT.  HANDLE
-   must point to an (uninitialized) memory area whose size should be equal to
-   that returned by the CHOP_INDEXER_SIZE_OF_HANDLE method for INDEXER.  */
+   DATASTORE.  Block meta-information (e.g. a block list, a block tree) will
+   be stored to METADATASTORE.  On success, return 0 and set HANDLE to an
+   index handle necessary and sufficient to retrieve all the indexed blocks
+   from DATASTORE.  HANDLE must point to an (uninitialized) memory area whose
+   size should that of instances of the class returned by the
+   CHOP_INDEXER_INDEX_HANDLE_CLASS for INDEXER.  */
 static __inline__ errcode_t
 chop_indexer_index_blocks (chop_indexer_t *__indexer,
 			   chop_chopper_t *__input,
-			   chop_block_store_t *__output,
+			   chop_block_store_t *__datastore,
+			   chop_block_store_t *__metadatastore,
 			   chop_index_handle_t *__handle)
 {
   return (__indexer->index_blocks (__indexer, __input,
-				   __output, __handle));
+				   __datastore, __metadatastore,
+				   __handle));
 }
 
 /* Use INDEXER to retrieve the stream pointed to by HANDLE from block store
-   INPUT.  On success, return zero and set OUTPUT to the corresponding stream
-   object.  OUTPUT must point to an (uninitialized) memory area whose size
-   should be equal to that returned by the CHOP_INDEXER_SIZE_OF_STREAM method
-   for INDEXER.  */
+   DATASTORE and meta-data store METADATASTORE.  On success, return zero and
+   set OUTPUT to the corresponding stream object.  OUTPUT must point to an
+   (uninitialized) memory area whose size should that of instances of the
+   class returned by the CHOP_INDEXER_STREAM_CLASS for INDEXER.  */
 static __inline__ errcode_t
 chop_indexer_fetch_stream (chop_indexer_t *__indexer,
 			   const chop_index_handle_t *__handle,
-			   chop_block_store_t *__input,
+			   chop_block_store_t *__datastore,
+			   chop_block_store_t *__metadatastore,
 			   chop_stream_t *__output)
 {
   return (__indexer->fetch_stream (__indexer, __handle,
-				   __input, __output));
+				   __datastore, __metadatastore,
+				   __output));
 }
 
 
 /* Methods for caller-management of memory allocation.  */
+
+/* Return the class of index handles produced by INDEXER (by its INDEX_BLOCKS
+   method).  */
+static __inline__ const chop_class_t *
+chop_indexer_index_handle_class (const chop_indexer_t *__indexer)
+{
+  return (__indexer->index_handle_class);
+}
+
+/* Return the class of streams produced by INDEXER (by its FETCH_STREAM
+   method).  */
+static __inline__ const chop_class_t *
+chop_indexer_stream_class (const chop_indexer_t *__indexer)
+{
+  return (__indexer->stream_class);
+}
 
 #define chop_indexer_alloca_stream(__indexer)				    \
 ((chop_stream_t *)							    \
@@ -74,24 +98,4 @@ chop_indexer_fetch_stream (chop_indexer_t *__indexer,
 ((chop_index_handle_t *)							   \
  chop_class_alloca_instance (((chop_indexer_t *)(__indexer))->index_handle_class))
 
-
-
-
-extern errcode_t chop_index_handle_serialize (const chop_index_handle_t *,
-					      chop_serial_method_t method,
-					      chop_buffer_t *buffer);
-
-extern errcode_t chop_index_handle_deserialize (const char *buffer,
-						size_t size,
-						chop_serial_method_t method,
-						chop_index_handle_t *);
-
-
-/* extern errcode_t */
-/* chop_register_index_handle_class (chop_index_handle_class_t *); */
-
-/* extern void */
-/* chop_index_handle_class_init (chop_index_handle_class_t *, */
-/* 			      const char *name, */
-/* 			      size_t size_of); */
 

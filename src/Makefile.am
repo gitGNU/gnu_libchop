@@ -13,6 +13,7 @@ libchop_la_SOURCES = chop.c chop-errors.c \
 		     stream-file.c # stream-ext2.c 
 
 CPPFLAGS = -I../include -Wall -fno-strict-aliasing
+CFLAGS = -O0 -g
 
 COMPILE_ET = compile_et
 

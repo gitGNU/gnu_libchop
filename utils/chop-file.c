@@ -13,6 +13,7 @@ main (int argc, char *argv[])
   errcode_t err;
   chop_file_stream_t stream;
   chop_dummy_block_store_t store;
+  chop_dummy_block_store_t metastore;
   chop_fixed_size_chopper_t chopper;
   chop_hash_tree_indexer_t indexer;
   chop_buffer_t buffer;
@@ -40,7 +41,7 @@ main (int argc, char *argv[])
       exit (2);
     }
 
-  err = chop_hash_tree_indexer_open (CHOP_HASH_NONE, CHOP_HASH_SHA1,
+  err = chop_hash_tree_indexer_open (CHOP_HASH_NONE, CHOP_HASH_SHA1, 12,
 				     &indexer);
   if (err)
     {
@@ -48,18 +49,32 @@ main (int argc, char *argv[])
       exit (2);
     }
 
-  chop_dummy_block_store_open (&store);
+  chop_dummy_block_store_open ("data", &store);
+  chop_dummy_block_store_open ("meta", &metastore);
 
   handle = chop_indexer_alloca_index_handle (&indexer);
   err = chop_indexer_index_blocks ((chop_indexer_t *)&indexer,
 				   (chop_chopper_t *)&chopper,
 				   (chop_block_store_t *)&store,
+				   (chop_block_store_t *)&metastore,
 				   handle);
+  if ((err) && (err != CHOP_STREAM_END))
+    {
+      com_err (argv[0], err, "while indexing blocks");
+      exit (7);
+    }
 
   err = chop_store_close ((chop_block_store_t *)&store);
   if (err)
     {
       com_err (argv[0], err, "while closing output block store");
+      exit (7);
+    }
+
+  err = chop_store_close ((chop_block_store_t *)&metastore);
+  if (err)
+    {
+      com_err (argv[0], err, "while closing output meta-data block store");
       exit (7);
     }
 
