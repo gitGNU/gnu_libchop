@@ -151,7 +151,7 @@ chop_hash_tree_write_block (chop_block_store_t *store,
   /* Copy KEY and store it in our block key vector STORE->BLOCK_KEYS */
   chop_block_key_t *key_copy;
   char *hash = calloc (1, chop_block_key_size (key));
-  key_copy = calloc (1, sizeof (chop_block_key_t));
+  key_copy = calloc (1, sizeof (chop_block_key_t)); /* FIXME: use an obstack */
   if ((!hash) || (!key_copy))
     return ENOMEM;
 

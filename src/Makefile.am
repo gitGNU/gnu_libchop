@@ -15,4 +15,4 @@ CPPFLAGS = -I../include -Wall
 COMPILE_ET = compile_et
 
 chop-errors.c, chop-errors.h: chop-errors.et
-	$(COMPILE_ET) $^
+	$(COMPILE_ET) $^ && mv chop-errors.h $(top_srcdir)/include/chop

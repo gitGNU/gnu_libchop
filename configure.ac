@@ -5,8 +5,8 @@ AC_PREREQ(2.59)
 AC_INIT(libchop, 0.0, ludovic.courtes@laas.fr)
 AM_INIT_AUTOMAKE(libchop, 0.0)
 
-AC_CONFIG_SRCDIR([src/chop.h])
-AC_CONFIG_HEADER([src/chop-config.h])
+AC_CONFIG_SRCDIR([src/chop.c])
+AC_CONFIG_HEADER([include/chop/chop-config.h])
 
 # Checks for programs.
 AC_PROG_CC
@@ -20,7 +20,7 @@ fi
 
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([stdlib.h])
+AC_CHECK_HEADERS([stdlib.h gdbm.h gcrypt.h com_err.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
