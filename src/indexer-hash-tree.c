@@ -1,5 +1,5 @@
 #include <chop/chop.h>
-#include <chop/indexer-hash-tree.h>
+#include <chop/indexers.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -7,10 +7,35 @@
 #include <assert.h>
 
 /* Glibc's obstacks */
-#include <obstack.h>
+/* #include <obstack.h> */
 
 /* libgcrypt */
 #include <gcrypt.h>
+
+
+/* Define CHOP_INDEXER_CLASS.  */
+CHOP_DEFINE_RT_CLASS (indexer, object,
+		      NULL, NULL, /* No constructor/destructor */
+		      NULL, NULL  /* No serializer/deserializer */);
+
+
+
+/* Declare and define the `chop_hash_tree_indexer_t' class and its run-time
+   representation CHOP_HASH_TREE_INDEXER_CLASS.  */
+CHOP_DECLARE_RT_CLASS (hash_tree_indexer, indexer,
+
+		       /* Hash method and message digest size (in bytes) */
+		       chop_hash_method_t hash_method;
+		       int                gcrypt_hash_method;
+		       size_t             key_size;
+		       size_t             keys_per_block;
+
+		       /* For debugging purposes */
+		       chop_log_t         log;);
+
+CHOP_DEFINE_RT_CLASS (hash_tree_indexer, indexer,
+		      NULL, NULL, /* No constructor/destructor */
+		      NULL, NULL  /* No serializer/deserializer */);
 
 
 
@@ -448,10 +473,16 @@ errcode_t
 chop_hash_tree_indexer_open (chop_hash_method_t content_hash_method,
 			     chop_hash_method_t key_hash_method,
 			     size_t keys_per_block,
-			     chop_hash_tree_indexer_t *htree)
+			     chop_indexer_t *indexer)
 {
   errcode_t err;
+  chop_hash_tree_indexer_t *htree;
 
+  if (content_hash_method != CHOP_HASH_NONE)
+    /* FIXME:  Implement content-hash keys.  */
+    return CHOP_ERR_NOT_IMPL;
+
+  htree = (chop_hash_tree_indexer_t *)indexer;
   err = chop_log_init ("hash-tree", &htree->log);
   if (err)
     return err;
@@ -474,6 +505,21 @@ chop_hash_tree_indexer_open (chop_hash_method_t content_hash_method,
 #endif
 
   return 0;
+}
+
+chop_log_t *
+chop_hash_tree_indexer_log (chop_indexer_t *indexer)
+{
+  chop_hash_tree_indexer_t *htree;
+
+  /* Gratuitous overhead.  */
+  if (!chop_object_is_a ((chop_object_t *)indexer,
+			 &chop_hash_tree_indexer_class))
+    return NULL;
+
+  htree = (chop_hash_tree_indexer_t *)indexer;
+
+  return (&htree->log);
 }
 
 static errcode_t
@@ -511,8 +557,6 @@ chop_hash_tree_index_blocks (chop_indexer_t *indexer,
   chop_block_key_t key;
   char *key_buf = (char *)alloca (htree->key_size);
 
-  if (!key_buf)
-    return ENOMEM;
 
   chop_block_tree_init (&tree, htree->keys_per_block,
 			htree->gcrypt_hash_method, htree->key_size,

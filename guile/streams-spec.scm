@@ -78,6 +78,9 @@
 		  #:arguments '(((mchars caller-owned) path)
 				((<stream> out) stream)))
 
+  ;; FIXME: We could (should?) also provide a port interface for streams just
+  ;; like what `(gnome gnome-vfs)' does.
+
   (wrap-function! ws
 		  #:name 'stream-read!
 		  #:returns '<errcode>

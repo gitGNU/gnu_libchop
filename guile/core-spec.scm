@@ -36,7 +36,7 @@
   #t)
 
 
-;; The error code type `errcode_t'.
+;; The error code type `errcode_t' mapped to Guile exceptions.
 
 (define-class <chop-errcode-type> (<gw-type>))
 
@@ -50,8 +50,11 @@
      "{"
      "  " (c-type-name type) " " result-var " = " func-call-code ";"
      "  if (" result-var " != 0)"
-     "    scm_throw (scm_str2symbol (\"chop-error\"), "
-     "               scm_int2num (" result-var "));"
+     "    {"
+     "      SCM_ALLOW_INTS;  /* FIXME:  This is too specific! */"
+     "      scm_throw (scm_str2symbol (\"chop-error\"), "
+     "                 scm_int2num (" result-var "));"
+     "    }"
      "}")))
 
 (define-method (post-call-result-cg (type <chop-errcode-type>)
@@ -64,6 +67,10 @@
 
 (define-class <chop-input-buffer-type> (<gw-type>))
 (define-class <chop-writable-input-buffer-type> (<chop-input-buffer-type>))
+
+(define-method (check-typespec-options (type <chop-input-buffer-type>)
+				       (options <list>))
+  #t)
 
 (define-method (c-type-name (type <chop-input-buffer-type>))
   "const char *")
@@ -136,19 +143,48 @@
   ;; XXX: This is somewhat hackish: stealthily pass an addionaly argument to
   ;; the wrapped C function.
   (let ((size-var (string-append (var value) "_size")))
-    (list (var value) ", " size-var)))
+    (list (next-method) ", " size-var)))
 
+
+
+;; A simple type that allows us to return a raw u8vector (an `SCM' object on
+;; the C side) in `hash-buffer' and the likes.
+
+(define-class <chop-raw-u8vector> (<gw-type>))
+
+(define-method (check-typespec-options (type <chop-raw-u8vector>)
+				       (options <list>))
+  #t)
+
+(define-method (c-type-name (type <chop-raw-u8vector>))
+  "SCM")
+
+(define-method (c-type-name (type <chop-raw-u8vector>)
+			    (typespec <gw-typespec>))
+  (if (memq 'out (options typespec)) "SCM *" "SCM"))
+
+(define-method (wrap-value-cg (type <chop-raw-u8vector>)
+			      (param <gw-value>) error-var)
+  (list "\n/* Returning a raw, ready-to-use, u8vector.  */\n"
+	(scm-var param) " = " (var param) ";\n"))
 
 
 ;; Growing `chop_buffer_t' buffers used as output buffers and mapped to
 ;; SRFI-4 u8vectors.
-;; FIXME:  This doesn't work yet.
+;;
+;; FIXME:  This is unused 'cause I couldn't make it work.  Instead, I found
+;; it much easier to use <raw-u8vector> and do part of the work by myself...
 
 (define-class <chop-output-buffer> (<gw-type>))
 
 ;; Sometimes, as in `chop_store_read_block ()', an output SIZE parameter is
 ;; passed along with the `chop_buffer_t' object.
 (define-class <chop-output-buffer-with-out-size> (<chop-output-buffer>))
+
+(define-method (make-typespec (type <chop-output-buffer>) (options <list>))
+  ;; Automatically make it an `out' argument.
+  (next-method type
+	       (if (memq 'out options) options (cons 'out options))))
 
 (define-method (check-typespec-options (type <chop-output-buffer>)
 				       (options <list>))
@@ -157,15 +193,16 @@
 (define-method (c-type-name (type <chop-output-buffer>)
 			    (typespec <gw-typespec>))
   (let ((out? (memq 'out (typespec-options typespec))))
-    (if out? "chop_buffer_t" "chop_buffer_t")))
+    (if out? "char **" "char **")))
 
 (define-method (c-type-name (type <chop-output-buffer>))
-  "chop_buffer_t")
+  "char **")
 
 (define-method (unwrap-value-cg (type <chop-output-buffer>)
 				(value <gw-value>) error-var)
-  (list "\n/* Not implemented yet since not needed! */\n"
-	"#error \"`chop_buffer_t objects' unwrapping not implemented\"\n"))
+  ;; XXX:  The ultimate hack: always initialize the buffer.
+  (list "chop_buffer_init (&" (var value) ", 0);\n"))
+
 
 (define-method (wrap-value-cg (type <chop-output-buffer>)
 			      (value <gw-value>) error-var)
@@ -183,7 +220,25 @@
 	  size-var ");\n"
 	  "chop_buffer_return (&" (var value) ");\n"
 	  (scm-var value) " = scm_take_u8vector (" content-var ", "
-	  size-var ");\n}\n")))
+	  size-var ");\n}\n}\n")))
+
+(define-method (global-definitions-cg (ws <gw-guile-wrapset>)
+				      (type <gw-type>))
+  (format #t "gdc: ~a~%" type)
+  (next-method))
+
+; (define-method (global-definitions-cg (ws <gw-guile-wrapset>)
+; 				      (function <gw-item>))
+;   (if (is-a? function <gw-function>)
+;       (begin
+; 	(format #t "global-definitions-cg~%")
+; 	(append (next-method)
+; 		(if (string=? (c-name function) "chop_store_read_block")
+; 		    (list "\n/* blurps */\n")
+; 		    '())))
+;       (begin
+; 	(format #t "gdc: ~a~%" (class-name (class-of function)))
+; 	(next-method))))
 
 (define-method (pre-call-arg-cg (type <chop-output-buffer-with-out-size>)
 				(value <gw-value>) error-var)
@@ -244,11 +299,8 @@
   (add-type! ws (make <chop-writable-input-buffer-type>
 		  #:name '<writable-input-buffer>))
 
-  (add-type! ws (make <chop-output-buffer>
-		  #:name '<output-buffer>))
-
-  (add-type! ws (make <chop-output-buffer-with-out-size>
-		  #:name '<output-buffer-with-out-size>))
+  (add-type! ws (make <chop-raw-u8vector>
+		  #:name '<raw-u8vector>))
 
   (wrap-function! ws
 		  #:name 'frob

@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <errno.h>
+#include <assert.h>
 
 static __inline__ chop_block_store_t *
 chop_dummy_block_store_open_alloc (const char *name)
@@ -84,3 +85,45 @@ chop_store_close_dealloc (chop_block_store_t *store)
     }
 }
 
+static __inline__ errcode_t
+chop_store_read_block_alloc_u8vector (chop_block_store_t *store,
+				      const chop_block_key_t *key,
+				      SCM *result)
+{
+  errcode_t err;
+  size_t size;
+  chop_buffer_t buffer;
+
+  chop_buffer_init (&buffer, 0);
+
+  err = chop_store_read_block (store, key, &buffer, &size);
+  if (err)
+    {
+      chop_buffer_return (&buffer);
+      *result = SCM_BOOL_F;
+
+      /* When a block wasn't found in the underlying store, simply return
+	 #f.  */
+      return ((err == CHOP_STORE_BLOCK_UNAVAIL) ? 0 : err);
+    }
+
+  assert (size == chop_buffer_size (&buffer));
+  if (!size)
+    *result = SCM_BOOL_F;
+  else
+    {
+      char *block = malloc (size);
+      if (block)
+	{
+	  memcpy (block, chop_buffer_content (&buffer), size);
+	  *result = scm_take_u8vector (block, size);
+	}
+      else
+	{
+	  err = ENOMEM;
+	  *result = SCM_BOOL_F;
+	}
+    }
+
+  return err;
+}

@@ -1,3 +1,5 @@
+#ifndef __CHOP_INDEXERS_H__
+#define __CHOP_INDEXERS_H__
 
 /* Indexers */
 
@@ -7,30 +9,28 @@
 #include <chop/streams.h>
 #include <chop/serializable.h>
 
-typedef struct chop_indexer chop_indexer_t;
-
 /* Declare the (serializable) `chop_index_handle_t' class that inherits from
    `chop_object_t' and does not contain any additional field.  */
 CHOP_DECLARE_RT_CLASS (index_handle, object, /**/);
 
 
-struct chop_indexer
-{
-  errcode_t (* index_blocks) (struct chop_indexer *,
-			      chop_chopper_t *,
-			      chop_block_store_t *,
-			      chop_block_store_t *,
-			      chop_index_handle_t *);
+/* Declare the `chop_indexer_t' class that inherits from `chop_object_t'.  */
+CHOP_DECLARE_RT_CLASS (indexer, object,
+		       errcode_t (* index_blocks) (struct chop_indexer *,
+						   chop_chopper_t *,
+						   chop_block_store_t *,
+						   chop_block_store_t *,
+						   chop_index_handle_t *);
 
-  errcode_t (* fetch_stream) (struct chop_indexer *,
-			      const chop_index_handle_t *,
-			      chop_block_store_t *,
-			      chop_block_store_t *,
-			      chop_stream_t *);
+		       errcode_t (* fetch_stream) (struct chop_indexer *,
+						   const chop_index_handle_t *,
+						   chop_block_store_t *,
+						   chop_block_store_t *,
+						   chop_stream_t *);
 
-  const chop_class_t *stream_class;
-  const chop_class_t *index_handle_class;
-};
+		       const chop_class_t *stream_class;
+		       const chop_class_t *index_handle_class;);
+
 
 
 
@@ -99,3 +99,28 @@ chop_indexer_stream_class (const chop_indexer_t *__indexer)
  chop_class_alloca_instance (((chop_indexer_t *)(__indexer))->index_handle_class))
 
 
+
+/* The class of the hash tree indexer, an actual indexer implementation.  */
+extern const chop_class_t chop_hash_tree_indexer_class;
+
+#include <chop/hash.h>
+#include <chop/logs.h>
+
+/* Initialize the hash tree indexer HTREE.  Blocks will be symmetrically
+   ciphered using a hash produced by the CONTENT_HASH_METHOD algorithm.
+   Block keys are then computed using KEY_HASH_METHOD.  KEYS_PER_BLOCK is the
+   maximum number of block keys that should be stored in each key block (or
+   "inode") when indexing streams.  HTREE must point to a memory region as
+   large as needed by instances of CHOP_HASH_TREE_INDEXER_CLASS.  */
+extern errcode_t
+chop_hash_tree_indexer_open (chop_hash_method_t content_hash_method,
+			     chop_hash_method_t key_hash_method,
+			     size_t keys_per_block,
+			     chop_indexer_t *htree);
+
+/* Return the log attached to INDEXER, assuming INDEXER's class is
+   CHOP_HASH_TREE_INDEXER_CLASS.  */
+extern chop_log_t *chop_hash_tree_indexer_log (chop_indexer_t *indexer);
+
+
+#endif

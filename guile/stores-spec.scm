@@ -154,7 +154,7 @@
 				((<store> out) new-store)))
 
   (wrap-function! ws
-		  #:name 'store-write-block!
+		  #:name 'store-write-block
 		  #:returns '<errcode>
 		  #:c-name "chop_store_write_block"
 		  #:arguments '(((<store> caller-owned) store)
@@ -162,37 +162,15 @@
 				(<input-buffer> buffer))
 		  #:description "Read from @var{stream}.")
 
-;   (wrap-function! ws
-; 		  #:name 'store-read-block
-; 		  #:returns '<errcode>
-; 		  #:c-name "chop_store_read_block"
-; 		  #:arguments '(((<store> caller-owned) store)
-; 				(<block-key> key)
-; 				((<output-buffer-with-out-size> out)
-; 				 buffer)))
-
-;   (let* ((functions (slot-ref ws 'functions))
-; 	 (the-function (filter (lambda (func)
-; 				 (eq? (name func) 'store-read-block))
-; 			       functions))
-; 	 (the-args (arguments (car the-function)))
-; 	 (the-out-arg (filter output-argument? the-args)))
-;     (format #t "args: ~a~%"
-; 	    (map (lambda (a)
-; 		   (list (name a) (output-argument? a)))
-; 		 the-args))
-
-;     (let* ((arg-typespec (typespec (car the-out-arg)))
-; 	   (options (options arg-typespec)))
-;       (slot-set! arg-typespec 'options
-; 		 (let loop ((opts options)
-; 			    (result '()))
-; 		   (if (null? opts)
-; 		       result
-; 		       (loop (cdr opts)
-; 			     (if (eq? (car opts) 'out)
-; 				 result
-; 				 (cons (car opts) result))))))))
+  (wrap-function! ws
+		  #:name 'store-read-block
+		  #:returns '<errcode>
+		  #:c-name "chop_store_read_block_alloc_u8vector"
+		  #:arguments '((<store> store)
+				(<block-key> key)
+				((<raw-u8vector> out) buffer))
+		  #:description "Read from @var{store} the block whose key
+is @var{key} and return a u8vector representing its content.")
 
 )
 

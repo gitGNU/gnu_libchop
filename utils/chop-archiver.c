@@ -4,7 +4,7 @@
 #include <chop/stores.h>
 #include <chop/filters.h>
 
-#include <chop/indexer-hash-tree.h>
+#include <chop/indexers.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -329,7 +329,7 @@ main (int argc, char *argv[])
 {
   errcode_t err;
   chop_block_store_t *store, *metastore;
-  chop_hash_tree_indexer_t indexer;
+  chop_indexer_t *indexer;
   chop_filter_t *input_filter = NULL, *output_filter = NULL;
 
   program_name = argv[0];
@@ -344,8 +344,9 @@ main (int argc, char *argv[])
       return 1;
     }
 
+  indexer = chop_class_alloca_instance (&chop_hash_tree_indexer_class);
   err = chop_hash_tree_indexer_open (CHOP_HASH_NONE, CHOP_HASH_SHA1, 12,
-				     &indexer);
+				     indexer);
   if (err)
     {
       com_err (program_name, err, "failed to open tree-hash indexer");
@@ -419,10 +420,8 @@ main (int argc, char *argv[])
     }
 
   /* */
-  err = process_command (option_argument, (chop_block_store_t *)store,
-			 (chop_block_store_t *)metastore,
-			 (chop_indexer_t *)&indexer,
-			 chop_hash_tree_indexer_log (&indexer));
+  err = process_command (option_argument, store, metastore,
+			 indexer, chop_hash_tree_indexer_log (indexer));
 
   err = chop_store_close ((chop_block_store_t *)store);
   if (err)

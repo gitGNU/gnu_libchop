@@ -2,7 +2,7 @@
 #include <chop/streams.h>
 #include <chop/choppers.h>
 #include <chop/stores.h>
-#include <chop/indexer-hash-tree.h>
+#include <chop/indexers.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,7 +17,7 @@ main (int argc, char *argv[])
   chop_stream_t *stream;
   chop_block_store_t *store, *metastore;
   chop_fixed_size_chopper_t chopper;
-  chop_hash_tree_indexer_t indexer;
+  chop_indexer_t *indexer;
   chop_buffer_t buffer;
   chop_index_handle_t *handle = NULL;
   size_t block_size;
@@ -45,8 +45,9 @@ main (int argc, char *argv[])
       exit (2);
     }
 
+  indexer = chop_class_alloca_instance (&chop_hash_tree_indexer_class);
   err = chop_hash_tree_indexer_open (CHOP_HASH_NONE, CHOP_HASH_SHA1, 12,
-				     &indexer);
+				     indexer);
   if (err)
     {
       com_err (argv[0], err, "failed to open tree-hash indexer");
@@ -61,26 +62,24 @@ main (int argc, char *argv[])
   chop_dummy_block_store_open ("data", store);
   chop_dummy_block_store_open ("meta", metastore);
 
-  handle = chop_indexer_alloca_index_handle (&indexer);
-  err = chop_indexer_index_blocks ((chop_indexer_t *)&indexer,
+  handle = chop_indexer_alloca_index_handle (indexer);
+  err = chop_indexer_index_blocks (indexer,
 				   (chop_chopper_t *)&chopper,
-				   (chop_block_store_t *)store,
-				   (chop_block_store_t *)metastore,
-				   handle);
+				   store, metastore, handle);
   if ((err) && (err != CHOP_STREAM_END))
     {
       com_err (argv[0], err, "while indexing blocks");
       exit (7);
     }
 
-  err = chop_store_close ((chop_block_store_t *)store);
+  err = chop_store_close (store);
   if (err)
     {
       com_err (argv[0], err, "while closing output block store");
       exit (7);
     }
 
-  err = chop_store_close ((chop_block_store_t *)metastore);
+  err = chop_store_close (metastore);
   if (err)
     {
       com_err (argv[0], err, "while closing output meta-data block store");

@@ -2,7 +2,13 @@
 #define __CHOP_SERIALIZABLE_H__
 
 /* Definition of a mini run-time object system that is used as the basis of a
-   serializable object framework.  */
+   serializable object framework.  The point of this system was originally to
+   provide a generic object serialization framework.  Besides, it can be used
+   to provide binary compatibility with almost no gratuitous overhead: the
+   size of a given class' instances can be known at run-time, which allows
+   for caller allocation.  Callers can allocate objects of a given class as
+   they prefer (e.g. on the stack) while still having binary compatilibity
+   accross changes of a class' fields layout.  */
 
 #include <chop/chop.h>
 #include <chop/hash.h>

@@ -14,18 +14,6 @@
 
   #:export (<chop-hash-wrapset>))
 
-
-;; A simple type that allows us to return a u8vector in `hash-buffer'.
-
-(define-class <chop-raw-u8vector> (<gw-type>))
-
-(define-method (c-type-name (type <chop-raw-u8vector>) . whatever)
-  "SCM")
-
-(define-method (wrap-value-cg (type <chop-raw-u8vector>)
-			      (param <gw-value>) error-var)
-  (list "\n/* Returning a raw, ready-to-use, u8vector.  */\n"
-	(scm-var param) " = " (var param) ";\n"))
 
 
 (define-class <chop-hash-wrapset> (<gw-guile-wrapset>)
@@ -44,9 +32,6 @@
   (slot-set! ws 'shlib-path "libguile-chop")
 
   (next-method ws (append '(#:module (chop hash)) initargs))
-
-  (add-type! ws (make <chop-raw-u8vector>
-		  #:name '<raw-u8vector>))
 
   (wrap-enum! ws
 	      #:name 'hash-method
