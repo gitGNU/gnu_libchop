@@ -30,6 +30,9 @@ error_code CHOP_FILTER_EMPTY,
 error_code CHOP_FILTER_UNHANDLED_FAULT,
            "Filter fault not handled"
 
+error_code CHOP_FILTER_ERROR,
+           "Generic filter error"
+
 error_code CHOP_STORE_ERROR,
            "Block store generic error"
 

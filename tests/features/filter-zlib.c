@@ -1,13 +1,43 @@
+/* This test is aimed at testing the zip/unzip filters.  It creates an zip
+   filter whose input faults are "resolved" by pushing it some random data,
+   and an unzip filter whose input faults are resolved by pushing it data
+   from the zip filter.  Data is pulled from the unzip filter and we
+   eventually make sure this produces the same data as the one that was given
+   to the zip filter.
+
+
+   Further details
+   ---------------
+
+   Pulling data from the unzip filter (which sits at the end of the filter
+   chain) results in cascading input faults: since the unzip filter is empty
+   when the program starts, it raises an "input fault" which is handled by
+   pulling data from the zip filter; since the zip filter is empty too, it
+   raises an input fault which is handled by pushing random data into it.  */
+
 #include <chop/chop.h>
 #include <chop/filters.h>
 
 #include <stdio.h>
 #include <assert.h>
 
-#define SIZE_OF_INPUT  2777
+#define SIZE_OF_INPUT  27773
 static char input[SIZE_OF_INPUT];
 static size_t input_offset = 0;
 
+
+/* Write SIZE poorly random bytes into buffer.  */
+static void
+randomize_input (char *buffer, size_t size)
+{
+  char *p;
+
+  for (p = buffer; p < buffer + size; p++)
+    *p = random ();
+}
+
+/* Handle input faults for FILTER (actually the zip filter) and provide it
+   with random data taken from INPUT.  */
 static errcode_t
 handle_random_input_fault (chop_filter_t *filter,
 			   size_t amount, void *data)
@@ -18,7 +48,9 @@ handle_random_input_fault (chop_filter_t *filter,
   if (input_offset >= SIZE_OF_INPUT)
     return CHOP_STREAM_END;
 
-  fprintf (stderr, "serving input fault for %u bytes\n", amount);
+  fprintf (stderr, "serving input fault for the `%s' (%u bytes)\n",
+	   chop_class_name (chop_object_get_class ((chop_object_t *)filter)),
+	   amount);
   available = SIZE_OF_INPUT - input_offset;
   amount = (amount > available) ? available : amount;
 
@@ -44,7 +76,8 @@ handle_zipped_input_fault (chop_filter_t *unzip_filter,
   assert (chop_object_is_a ((chop_object_t *)zip_filter,
 			    &chop_zlib_zip_filter_class));
 
-  fprintf (stderr, "handling input fault for the unzip filter (%u bytes)\n",
+  fprintf (stderr, "handling input fault for the `%s' (%u bytes)\n",
+	   chop_class_name (chop_object_get_class ((chop_object_t *)unzip_filter)),
 	   amount);
 
   buffer = alloca (amount);
@@ -79,6 +112,7 @@ main (int argc, char *argv[])
   size_t output_size = 0;
   size_t pulled = 0;
 
+  /* Initialize libchop, create one zip filter and one unzip filter.  */
   err = chop_init ();
   if (err)
     {
@@ -96,11 +130,13 @@ main (int argc, char *argv[])
   if (err)
     return 2;
 
-  /* Attach filters' logs to stderr.  */
+#if 0
+  /* Attach filters' logs to stderr (for debugging).  */
   zip_log = chop_filter_log (zip_filter);
   unzip_log = chop_filter_log (unzip_filter);
   chop_log_attach (zip_log, 2, 0);
   chop_log_attach (unzip_log, 2, 0);
+#endif
 
   /* Feed the zip filter with random input.  */
   chop_filter_set_input_fault_handler (zip_filter,
@@ -111,16 +147,23 @@ main (int argc, char *argv[])
 				       handle_zipped_input_fault,
 				       zip_filter);
 
+  /* Randomize the input (which hasn't been read yet).  */
+  randomize_input (input, sizeof (input));
+
+  /* Pull data from UNZIP_FILTER until an end-of-stream error is caught.  */
   while (!err)
     {
-      err = chop_filter_pull (unzip_filter, 0,
+      err = chop_filter_pull (unzip_filter, 0 /* don't flush */,
 			      output + output_size,
 			      sizeof (output) - output_size,
 			      &pulled);
       output_size += pulled;
       if (err)
 	{
-	  if (err == CHOP_STREAM_END)
+	  if (err == CHOP_FILTER_EMPTY)
+	    /* This CHOP_FILTER_EMPTY error actually comes from the zip
+	       filter which has been called by HANDLE_ZIPPED_INPUT_FAULT with
+	       FLUSH set to 1, and actually finished compressing its input. */
 	    break;
 
 	  com_err (argv[0], err, "while pulling data");
@@ -128,25 +171,32 @@ main (int argc, char *argv[])
 	}
     }
 
+  /* Flush the remaining data from UNZIP_FILTER, i.e. without pulling new
+     data.  */
   do
     {
       pulled = 0;
-      err = chop_filter_pull (unzip_filter, 1,
+      err = chop_filter_pull (unzip_filter, 1 /* start flushing! */,
 			      output + output_size,
 			      sizeof (output) - output_size,
 			      &pulled);
       output_size += pulled;
     }
-  while (!err);
+  while ((output_size < sizeof (output)) && (!err));
 
-  if (err != CHOP_FILTER_EMPTY)
+  if ((err) && (err != CHOP_FILTER_EMPTY))
     {
       com_err (argv[0], err, "while flushing filter's input");
       exit (3);
     }
 
+
+  /* We're done.  */
   fprintf (stdout, "input size was: %u; output size was: %u\n",
 	   SIZE_OF_INPUT, output_size);
+
+  assert (output_size == SIZE_OF_INPUT);
+  assert (!memcmp (input, output, SIZE_OF_INPUT));
 
   return 0;
 }

@@ -26,6 +26,9 @@ ZIP_PUSH_METHOD (chop_filter_t *filter,
 
   zfilter = (ZIP_FILTER_TYPE *)filter;
 
+  if (zfilter->zstream.avail_in == 0)
+    zfilter->zstream.next_in = zfilter->input_buffer;
+
   while (size > 0)
     {
       size_t available, amount;
@@ -51,9 +54,9 @@ ZIP_PUSH_METHOD (chop_filter_t *filter,
 
       available = zfilter->input_buffer_size - zfilter->zstream.avail_in;
       amount = (available > size) ? size : available;
-      memcpy (zfilter->zstream.next_in, buffer, amount);
+      memcpy (zfilter->input_buffer + zfilter->zstream.avail_in,
+	      buffer, amount);
 
-      zfilter->zstream.next_in += amount;
       zfilter->zstream.avail_in += amount;
       buffer += amount;
       size -= amount;
@@ -106,10 +109,18 @@ ZIP_PULL_METHOD (chop_filter_t *filter, int flush,
 		       flush ? "yes" : "no");
       zret = ZIP_PROCESS (&zfilter->zstream,
 			  flush ? ZIP_FLUSH : ZIP_NO_FLUSH);
+
+      if (ZIP_INPUT_CORRUPTED (zret))
+	{
+	  /* This only makes sense when decompressing a stream.  */
+	  chop_log_printf (&filter->log, "pull: input stream corrupted");
+	  return CHOP_FILTER_ERROR;
+	}
+
+      *pulled = size - zfilter->zstream.avail_out;
       if (flush)
 	{
-	  *pulled += size - zfilter->zstream.avail_out;
-	  if (zret == ZIP_STREAM_END)
+	  if ((zret == ZIP_STREAM_END) && (*pulled == 0))
 	    /* We're done with this.  */
 	    return CHOP_FILTER_EMPTY;
 
@@ -120,8 +131,11 @@ ZIP_PULL_METHOD (chop_filter_t *filter, int flush,
 			   "again");
 	  return 0;
 	}
-      else
-	*pulled += size - zfilter->zstream.avail_out;
+
+      if (ZIP_CANT_PRODUCE_MORE (&zfilter->zstream, zret))
+	/* BUFFER is not filled yet but producing more output would require a
+	   larger buffer.  This can happen when compressing a file.  */
+	return 0;
     }
 
   return 0;

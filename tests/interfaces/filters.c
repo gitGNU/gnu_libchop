@@ -1,7 +1,12 @@
+/* This test basically ensures that filters honor the input fault mechanism.
+   It does not attempt to check whether the filter's output corresponds to
+   its input.  */
+
 #include <chop/chop.h>
 #include <chop/filters.h>
 
 #include <stdio.h>
+#include <assert.h>
 
 #define SIZE_OF_INPUT  2777
 static char input[SIZE_OF_INPUT];
@@ -16,7 +21,9 @@ handle_input_fault (chop_filter_t *filter, size_t amount, void *data)
   if (input_offset >= SIZE_OF_INPUT)
     return CHOP_STREAM_END;
 
-  fprintf (stderr, "serving input fault for %u bytes\n", amount);
+  fprintf (stderr, "serving input fault for the `%s' (%u bytes)\n",
+	   chop_class_name (chop_object_get_class ((chop_object_t *)filter)),
+	   amount);
   available = SIZE_OF_INPUT - input_offset;
   amount = (amount > available) ? available : amount;
 
@@ -86,6 +93,9 @@ main (int argc, char *argv[])
 
   fprintf (stdout, "input size was: %u; output size was: %u\n",
 	   SIZE_OF_INPUT, output_size);
+
+  /* Make sure everything was read.  */
+  assert (input_offset == SIZE_OF_INPUT);
 
   return 0;
 }
