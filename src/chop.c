@@ -117,8 +117,8 @@ void
 chop_buffer_to_hex_string (const char *buffer, size_t size, char *hex)
 {
 #define tochar(_num) (((_num) < 10) ? ('0' + (_num)) : ('a' - 10 + (_num)))
-  const char *p, *end = buffer + size;
-  for (p = buffer; p < end; p++)
+  const unsigned char *p, *end = (unsigned char *)buffer + size;
+  for (p = (unsigned char *)buffer; p < end; p++)
     {
       *(hex++) = tochar (*p >> 4);
       *(hex++) = tochar (*p & 0xf);
