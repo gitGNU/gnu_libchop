@@ -1,14 +1,10 @@
-#include <chop.h>
-#include <streams.h>
+#include <chop/chop.h>
+#include <chop/streams.h>
 
 errcode_t
 chop_init (void)
 {
   initialize_chop_error_table ();
+  return 0;
 }
 
-size_t
-chop_stream_preferred_block_size (const chop_stream_t *stream)
-{
-  return (stream->preferred_block_size);
-}

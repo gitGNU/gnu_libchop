@@ -18,4 +18,10 @@ error_code CHOP_FILTER_FULL,
 error_code CHOP_FILTER_EMPTY,
 	   "Filter is empty"
 
+error_code CHOP_STORE_ERROR,
+           "Block store generic error"
+
+error_code CHOP_STORE_BLOCK_UNAVAIL
+	   "Block is unavailable in the underlying block store"
+
 end

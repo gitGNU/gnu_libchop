@@ -35,6 +35,30 @@ struct chop_file_stream
 };
 
 
+/* Stream methods */
+
+static __inline__ size_t
+chop_stream_preferred_block_size (const chop_stream_t *__stream)
+{
+  return (__stream->preferred_block_size);
+}
+
+static __inline__ errcode_t
+chop_stream_read (chop_stream_t *__stream,
+		  char *__buffer,
+		  size_t __size,
+		  size_t *__read)
+{
+  return (__stream->read (__stream, __buffer, __size, __read));
+}
+
+static __inline__ void
+chop_stream_close (chop_stream_t *__stream)
+{
+  __stream->close (__stream);
+}
+
+
 /* Specific stream constructors.  */
 
 extern errcode_t chop_file_stream_open (const char *path,

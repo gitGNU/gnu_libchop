@@ -1,6 +1,6 @@
-#include "chop.h"
-#include "streams.h"
-#include "blocks.h"
+#include <chop/chop.h>
+#include <chop/streams.h>
+#include <chop/blocks.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <stdlib.h>
 
 
 
@@ -59,12 +60,16 @@ chop_file_stream_read (chop_stream_t *stream,
   size_t remaining;
 
   if (file->position >= file->size)
-    return CHOP_STREAM_END;
+    {
+      *read = 0;
+      return CHOP_STREAM_END;
+    }
 
   remaining = file->size - file->position;
   *read = (howmuch > remaining) ? remaining : howmuch;
 
   memcpy (buffer, file->map, *read);
+  file->position += *read;
 
   return 0;
 }
