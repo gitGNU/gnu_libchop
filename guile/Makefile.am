@@ -9,6 +9,9 @@ libguile_chop_la_SOURCES = core.c hash.c streams.c stores.c
 CPPFLAGS += -I../include $(shell $(G_WRAP_CONFIG) --c-compile-args guile)
 LIBS += $(shell $(G_WRAP_CONFIG) --c-link-args guile) -L../src -lchop
 
+## FIXME:  This fixes a g-wrap-config deficiency here.
+CPPFLAGS += -I/usr/local/include
+
 %.c %.scm: %-spec.scm
 	$(GUILE) $(GUILE_FLAGS) -c  \
 	  ${SETGWPATH}" \

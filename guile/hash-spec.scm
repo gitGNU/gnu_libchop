@@ -11,8 +11,21 @@
   ;; Guile-specific things
   #:use-module (g-wrap guile)
   #:use-module (g-wrap guile ws standard)
-  
+
   #:export (<chop-hash-wrapset>))
+
+
+;; A simple type that allows us to return a u8vector in `hash-buffer'.
+
+(define-class <chop-raw-u8vector> (<gw-type>))
+
+(define-method (c-type-name (type <chop-raw-u8vector>) . whatever)
+  "SCM")
+
+(define-method (wrap-value-cg (type <chop-raw-u8vector>)
+			      (param <gw-value>) error-var)
+  (list "\n/* Returning a raw, ready-to-use, u8vector.  */\n"
+	(scm-var param) " = " (var param) ";\n"))
 
 
 (define-class <chop-hash-wrapset> (<gw-guile-wrapset>)
@@ -21,7 +34,8 @@
 
 (define-method (global-declarations-cg (ws <chop-hash-wrapset>))
   (list (next-method)
-	"#include <chop/chop.h>\n#include <chop/hash.h>\n\n"))
+	"#include <chop/chop.h>\n#include <chop/hash.h>\n\n"
+	"#include \"hash-support.c\"\n\n"))
 
 
 (define-method (initialize (ws <chop-hash-wrapset>) initargs)
@@ -30,6 +44,9 @@
   (slot-set! ws 'shlib-path "libguile-chop")
 
   (next-method ws (append '(#:module (chop hash)) initargs))
+
+  (add-type! ws (make <chop-raw-u8vector>
+		  #:name '<raw-u8vector>))
 
   (wrap-enum! ws
 	      #:name 'hash-method
@@ -67,8 +84,13 @@
 
   (wrap-function! ws
 		  #:name 'hash-buffer
-		  #:c-name "chop_hash_buffer"
-		  #:returns 'void
+		  #:c-name "chop_hash_buffer_alloc"
+		  #:returns '<raw-u8vector>
 		  #:arguments '((hash-method method)
-				(<input-buffer> str)
-				((mchars out caller-owned) str))))
+				(<input-buffer> buffer))
+		  #:description "Return a newly allocated u8vector containing
+the digest of @var{buffer} according to hash method @var{method}.  The length
+of the returned vector is equal to the result of @code{hash-size} for
+@var{method}.  If @var{method} is not a valid hash method, @code{#f} is
+returned."))
+

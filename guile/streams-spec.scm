@@ -51,13 +51,6 @@
 	"#include <chop/chop.h>\n#include <chop/streams.h>\n\n"
 	"#include \"stream-ctors-dtors.c\"\n\n"))
 
-(define-method (check-typespec-options (type <chop-stream-type>)
-				       (options <list>))
-  (format #t "check-typespec-options: ~a~%" type)
-  (next-method)
-  #t)
-
-
 
 (define-method (initialize (ws <chop-stream-wrapset>) initargs)
   (format #t "initializing ~a~%" ws)
@@ -78,12 +71,12 @@
 		#:c-const-type-name "const chop_stream_t *"
 		#:destroy-value-function-name "chop_stream_close_dealloc")
 
-;   (wrap-function! ws
-; 		  #:name 'file-stream-open
-; 		  #:returns '<errcode>
-; 		  #:c-name "chop_file_stream_open_alloc"
-; 		  #:arguments '(((mchars caller-owned) path)
-; 				((<stream> out) stream)))
+  (wrap-function! ws
+		  #:name 'file-stream-open
+		  #:returns '<errcode>
+		  #:c-name "chop_file_stream_open_alloc"
+		  #:arguments '(((mchars caller-owned) path)
+				((<stream> out) stream)))
 
   (wrap-function! ws
 		  #:name 'stream-read!
