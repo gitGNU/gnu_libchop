@@ -5,6 +5,7 @@
 
 #include <chop/chop.h>
 #include <chop/buffers.h>
+#include <chop/streams.h>
 
 
 struct chop_chopper
@@ -21,12 +22,18 @@ struct chop_chopper
 
 typedef struct chop_chopper chop_chopper_t;
 typedef struct chop_fixed_size_chopper chop_fixed_size_chopper_t;
+typedef struct chop_rabin_fingerprint_chopper chop_rabin_fingerprint_chopper_t;
 
 
-extern errcode_t chop_fixed_size_chopper_init (chop_stream_t *input,
-					       size_t block_size,
-					       chop_fixed_size_chopper_t *
-					       chopper);
+/* Initialize CHOPPER as a fixed-size stream CHOPPER.  It will read data from
+   input stream INPUT and cut it into blocks of BLOCK_SIZE bytes.  If
+   PAD_BLOCKS is non-zero, the last block before CHOP_STREAM_END will be
+   padded with zeros in order to be BLOCK_SIZE long.  */
+extern errcode_t
+chop_fixed_size_chopper_init (chop_stream_t *input,
+			      size_t block_size,
+			      int pad_blocks,
+			      chop_fixed_size_chopper_t *chopper);
 
 /* Return the input stream attached to CHOPPER.  */
 static __inline__ chop_stream_t *
@@ -74,6 +81,7 @@ struct chop_fixed_size_chopper
   chop_chopper_t chopper;
 
   size_t block_size;
+  int pad_blocks;
 };
 
 #endif

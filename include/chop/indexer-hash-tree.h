@@ -14,7 +14,9 @@ typedef struct chop_hash_tree_indexer chop_hash_tree_indexer_t;
 
 /* Initialize the hash tree indexer HTREE.  Blocks will be symmetrically
    ciphered using a hash produced by the CONTENT_HASH_METHOD algorithm.
-   Block keys are then computed using KEY_HASH_METHOD.  */
+   Block keys are then computed using KEY_HASH_METHOD.  KEYS_PER_BLOCK is the
+   maximum number of block keys that should be stored in each key block (or
+   "inode") when indexing streams.  */
 extern errcode_t
 chop_hash_tree_indexer_open (chop_hash_method_t content_hash_method,
 			     chop_hash_method_t key_hash_method,

@@ -13,6 +13,18 @@
 
 
 
+/* Class definitions.  */
+
+CHOP_DEFINE_RT_CLASS (stream, object,
+		      NULL, NULL, /* No constructor/destructor */
+		      NULL, NULL  /* No serializer/deserializer */);
+
+CHOP_DEFINE_RT_CLASS (file_stream, stream,
+		      NULL, NULL, /* No constructor/destructor */
+		      NULL, NULL  /* No serializer/deserializer */);
+
+
+
 static void chop_file_stream_close (chop_stream_t *);
 static errcode_t chop_file_stream_read (chop_stream_t *,
 					char *, size_t, size_t *);

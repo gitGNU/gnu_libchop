@@ -73,3 +73,22 @@ chop_hash_gcrypt_name (chop_hash_method_t method)
     }
   return (p->gcrypt_name);
 }
+
+errcode_t
+chop_hash_lookup (const char *name, chop_hash_method_t *method)
+{
+  const _chop_hash_method_info *p;
+  for (p = hash_methods; p->name != NULL; p++)
+    {
+      if (!strcasecmp (p->name, name))
+	break;
+    }
+
+  if (p->name)
+    {
+      *method = p->chop_name;
+      return 0;
+    }
+
+  return CHOP_ERR_NOT_FOUND;
+}

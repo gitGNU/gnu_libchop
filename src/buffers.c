@@ -65,6 +65,7 @@ chop_buffer_grow (chop_buffer_t *buffer, size_t size)
   if (find_buffer_in_pool (size, buffer))
     return 0;
 
+  new_size = (new_size == 0) ? 1 : new_size;
   while (new_size < size)
     new_size <<= 1;
 

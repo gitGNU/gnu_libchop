@@ -27,6 +27,7 @@ CHOP_DECLARE_RT_CLASS (chk_index_handle, index_handle,
 /* Declare `chop_hash_index_handle' that inherits from the
    `chop_index_handle_t' class.  */
 CHOP_DECLARE_RT_CLASS (hash_index_handle, index_handle,
+		       chop_hash_method_t hash_method;
 		       size_t hash_size;
 		       char hash[30];);
 
@@ -48,16 +49,30 @@ hash_index_handle_serialize (const chop_object_t *object,
     {
     case CHOP_SERIAL_ASCII:
       {
-	char *hex = alloca (handle->hash_size * 2 + 1);
+	/* Return something like
+	   "SHA1:eabe1ca1f3c7ca148ce2fe5954f52ef9a0f0082a".  */
+	char *hex;
+	size_t hash_method_len;
+	const char *hash_method = chop_hash_name (handle->hash_method);
+
+	hash_method_len = strlen (hash_method);
+	hex = alloca (hash_method_len + 1 + (handle->hash_size * 2) + 1);
+	memcpy (hex, hash_method, hash_method_len);
+	hex[hash_method_len] = ':';
 	chop_buffer_to_hex_string (handle->hash, handle->hash_size,
-				   hex);
+				   &hex[hash_method_len + 1]);
+
 	chop_buffer_push (buffer, hex, strlen (hex));
 	return 0;
       }
 
     case CHOP_SERIAL_BINARY:
-      chop_buffer_push (buffer, handle->hash, handle->hash_size);
-      return 0;
+      {
+	char hash_method = (char)handle->hash_method;
+	chop_buffer_push (buffer, &hash_method, 1);
+	chop_buffer_append (buffer, handle->hash, handle->hash_size);
+	return 0;
+      }
 
     default:
       return CHOP_ERR_NOT_IMPL;
@@ -66,6 +81,59 @@ hash_index_handle_serialize (const chop_object_t *object,
   return CHOP_ERR_NOT_IMPL;
 }
 
+static errcode_t
+hash_index_handle_deserialize (const char *buffer, size_t size,
+			       chop_serial_method_t method,
+			       chop_object_t *object)
+{
+  errcode_t err;
+  chop_hash_index_handle_t *handle =
+    (chop_hash_index_handle_t *)object;
+
+  switch (method)
+    {
+      case CHOP_SERIAL_ASCII:
+	{
+	  char *colon;
+	  char *hash_name;
+	  size_t hash_name_len;
+
+	  if (size < 5)
+	    return CHOP_DESERIAL_TOO_SHORT;
+
+	  colon = strchr (buffer, ':');
+	  if (!colon)
+	    return CHOP_DESERIAL_CORRUPT_INPUT;
+
+	  hash_name_len = colon - buffer;
+	  hash_name = alloca (hash_name_len + 1);
+	  if (!hash_name)
+	    return ENOMEM;
+
+	  memcpy (hash_name, buffer, hash_name_len);
+	  hash_name[hash_name_len] = '\0';
+	  err = chop_hash_lookup (hash_name, &handle->hash_method);
+	  if (err)
+	    return CHOP_DESERIAL_CORRUPT_INPUT;
+
+	  handle->hash_size = chop_hash_size (handle->hash_method);
+
+	  if (size < hash_name_len)
+	    return CHOP_DESERIAL_TOO_SHORT;
+
+	  chop_hex_string_to_buffer (buffer + hash_name_len + 1,
+				     size - hash_name_len -1,
+				     handle->hash);
+
+	  return 0;
+	}
+
+    default:
+      return CHOP_ERR_NOT_IMPL;
+    }
+
+  return 0;
+}
 
 CHOP_DEFINE_RT_CLASS (index_handle, object,
 		      NULL, NULL, /* No constructor/destructor */
@@ -78,7 +146,7 @@ CHOP_DEFINE_RT_CLASS (chk_index_handle, index_handle,
 CHOP_DEFINE_RT_CLASS (hash_index_handle, index_handle,
 		      NULL, NULL, /* No constructor/destructor */
 		      hash_index_handle_serialize,
-		      NULL /* No deserializer (FIXME) */);
+		      hash_index_handle_deserialize);
 
 
 /* Internal data structures.  */
@@ -350,12 +418,13 @@ chop_hash_tree_fetch_stream (struct chop_indexer *,
 			     chop_block_store_t *,
 			     chop_stream_t *);
 
+static errcode_t hash_tree_stream_read (chop_stream_t *, char *,
+					size_t, size_t *);
 
-static void
-chop_obstack_alloc_failed_handler (void)
-{
-  exit (77);
-}
+static void hash_tree_stream_close (chop_stream_t *);
+
+extern const chop_class_t chop_hash_tree_stream_class;
+
 
 errcode_t
 chop_hash_tree_indexer_open (chop_hash_method_t content_hash_method,
@@ -365,7 +434,7 @@ chop_hash_tree_indexer_open (chop_hash_method_t content_hash_method,
 {
   htree->indexer.index_blocks = chop_hash_tree_index_blocks;
   htree->indexer.fetch_stream = chop_hash_tree_fetch_stream;
-  htree->indexer.stream_class = NULL;  /* FIXME */
+  htree->indexer.stream_class = &chop_hash_tree_stream_class;
   htree->indexer.index_handle_class = &chop_hash_index_handle_class;
 
   htree->hash_method = key_hash_method;
@@ -401,16 +470,6 @@ chop_hash_tree_index_block (chop_hash_tree_indexer_t *htree,
   err = chop_store_write_block (store, key, buffer, size);
 
   return err;
-}
-
-static errcode_t
-chop_hash_tree_fetch_stream (struct chop_indexer *indexer,
-			     const chop_index_handle_t *handle,
-			     chop_block_store_t *input,
-			     chop_block_store_t *metadata,
-			     chop_stream_t *output)
-{
-  return CHOP_ERR_NOT_IMPL;
 }
 
 static errcode_t
@@ -469,11 +528,12 @@ chop_hash_tree_index_blocks (chop_indexer_t *indexer,
   if (err == CHOP_STREAM_END)
     {
       /* Initialize the (serializable) handle object.  */
-      size_t key_size = ((chop_hash_tree_indexer_t *)indexer)->key_size;
+      size_t key_size = htree->key_size;
       chop_hash_index_handle_t *hhandle = (chop_hash_index_handle_t *)handle;
       chop_object_initialize ((chop_object_t *)handle,
 			      &chop_hash_index_handle_class);
       hhandle->hash_size = key_size;
+      hhandle->hash_method = htree->hash_method;
 
       /* Flush the key block tree and get its key */
       chop_block_tree_flush (&tree, &key);
@@ -488,39 +548,427 @@ chop_hash_tree_index_blocks (chop_indexer_t *indexer,
   return err;
 }
 
-#if 0
-static __inline__ void
-show_hash_tree (chop_hash_tree_indexer_t *htree)
+
+
+/* Hash tree stream implementation (for retrieval).  */
+
+
+typedef struct decoded_block
 {
-  chop_block_key_t **block_keys;
-  char hex[1024];
-  unsigned block_num;
+  /* The raw buffer and its size */
+  chop_buffer_t buffer;
 
-  block_keys = (chop_block_key_t **)chop_buffer_content (&htree->block_keys);
-  printf ("store-hash-tree:  stored %u blocks\n",
-	  htree->block_count);
-  for (block_num = 0; block_num < htree->block_count; block_num++)
-    {
-      chop_block_key_t *key = block_keys[block_num];
-      chop_block_key_to_hex_string (key, hex);
-      printf ("block 0x%04x: %s\n", block_num, hex);
-    }
-}
+  /* Offset within this raw buffer */
+  size_t offset;
 
+  /* Non-zero if this represents a key block (aka. "inode") */
+  int is_key_block;
+
+  /* If this is a key block, this represents its height within the tree,
+     starting from the lowest key blocks (data blocks being bottommost).  */
+  size_t depth;
+
+  /* If this is a key block, this is the number of children it has.  */
+  size_t key_count;
+
+  /* If this is a key block, this points to its current child.  We don't keep
+     all blocks in memory.  */
+  struct decoded_block *current_child;
+
+  /* The parent block */
+  struct decoded_block *parent;
+
+  /* If this is a data block, this represents its offset within the stream
+     being decoded.  */
+  size_t stream_offset;
+} decoded_block_t;
+
+typedef struct decoded_block_tree
+{
+  chop_block_store_t *data_store;
+  chop_block_store_t *metadata_store;
+  chop_index_handle_t *handle;
+  decoded_block_t *top_level;
+  size_t current_offset;
+  size_t key_size;
+} decoded_block_tree_t;
+
+
+
+/* Hash tree stream objects are returned by CHOP_INDEXER_FETCH_STREAM when
+   reading from a hash-tree-indexed stream.  */
+CHOP_DECLARE_RT_CLASS (hash_tree_stream, stream,
+		       decoded_block_tree_t tree;);
 
 static inline void
-hash_tree_free (chop_hash_tree_indexer_t *htree)
+chop_decoded_block_tree_init (decoded_block_tree_t *tree,
+			      chop_block_store_t *data_store,
+			      chop_block_store_t *metadata_store,
+			      const chop_index_handle_t *handle,
+			      size_t key_size)
 {
-  unsigned block_num;
-  chop_block_key_t **block_keys =
-    (chop_block_key_t **)chop_buffer_content (&htree->block_keys);
+  const chop_class_t *handle_class =
+    chop_object_get_class ((chop_object_t *)handle);
 
-  for (block_num = 0; block_num < htree->block_count; block_num++)
+  tree->data_store = data_store;
+  tree->metadata_store = metadata_store;
+  tree->handle = malloc (chop_class_instance_size (handle_class));
+  assert (tree->handle);  /* XXX: This is bad */
+  memcpy (tree->handle, handle, chop_class_instance_size (handle_class));
+  tree->top_level = NULL;
+  tree->current_offset = 0;
+  tree->key_size = key_size;
+}
+
+/* Constructor.  */
+static void
+hash_tree_stream_init (chop_object_t *object, const chop_class_t *class)
+{
+  chop_hash_tree_stream_t *stream = (chop_hash_tree_stream_t *)object;
+
+  stream->stream.read = hash_tree_stream_read;
+  stream->stream.close = hash_tree_stream_close;
+
+  stream->tree.handle = NULL;
+}
+
+
+CHOP_DEFINE_RT_CLASS (hash_tree_stream, object,
+		      hash_tree_stream_init, NULL, /* No constructor/destructor */
+		      NULL, NULL  /* No serializer/deserializer */);
+
+
+/* The entry point.  On success, return zero and set OUTPUT to a stream
+   representing the contents of the hash-tree-encoded stream pointed to by
+   HANDLE.  */
+static errcode_t
+chop_hash_tree_fetch_stream (struct chop_indexer *indexer,
+			     const chop_index_handle_t *handle,
+			     chop_block_store_t *input,
+			     chop_block_store_t *metadata,
+			     chop_stream_t *output)
+{
+  errcode_t err;
+  chop_hash_tree_stream_t *tstream;
+  const chop_class_t *handle_class;
+  chop_index_handle_t *handle_copy;
+  chop_hash_tree_indexer_t *htree = (chop_hash_tree_indexer_t *)indexer;
+
+  /* OUTPUT is assumed to be as large as `chop_hash_tree_stream_t' */
+  chop_object_initialize ((chop_object_t *)output,
+			  &chop_hash_tree_stream_class);
+  tstream = (chop_hash_tree_stream_t *)output;
+
+  /* Copy HANDLE */
+  handle_class = chop_object_get_class ((chop_object_t *)handle);
+  handle_copy = malloc (chop_class_instance_size (handle_class));
+  if (!handle_copy)
+    return ENOMEM;
+  memcpy (handle_copy, handle, chop_class_instance_size (handle_class));
+
+  chop_decoded_block_tree_init (&tstream->tree, input, metadata,
+				handle, htree->key_size);
+
+  return err;
+}
+
+
+
+/* Decode BLOCK's header (which was created by CHOP_KEY_BLOCK_FILL_HEADER).
+   BLOCK is assumed to be a key block.  This functions sets BLOCK's KEY_COUNT
+   and DEPTH fields.  */
+static inline void
+chop_decoded_block_decode_header (decoded_block_t *block)
+{
+  const char *buffer = chop_buffer_content (&block->buffer);
+  assert (block->is_key_block);
+
+  block->key_count  = ((size_t)*(buffer++));
+  block->key_count |= ((size_t)*(buffer++)) <<  8;
+  block->key_count |= ((size_t)*(buffer++)) << 16;
+  block->key_count |= ((size_t)*(buffer++)) << 24;
+
+  block->depth  = ((size_t)*(buffer++));
+  block->depth |= ((size_t)*(buffer++)) << 8;
+
+  block->offset = KEY_BLOCK_HEADER_SIZE;
+}
+
+static inline errcode_t
+chop_decoded_block_new (decoded_block_t **block)
+{
+  errcode_t err;
+
+  *block = malloc (sizeof (decoded_block_t));
+  if (!*block)
+    return ENOMEM;
+
+  (*block)->current_child = (*block)->parent = NULL;
+  err = chop_buffer_init (&(*block)->buffer, 0);
+  if (err)
+    return err;
+
+  return 0;
+}
+
+/* Return non-zero if children of BLOCK are key blocks.  */
+#define CHILDREN_ARE_KEY_BLOCKS(_block) \
+  (((_block)->is_key_block && ((_block)->depth > 0)) ? 1 : 0)
+
+/* Fetch block with key KEY from STORE and update BLOCK accordingly.  PARENT,
+   if not NULL, is assumed to be the parent of the block being fetched.  */
+static inline errcode_t
+chop_decoded_block_fetch (chop_block_store_t *store,
+			  const chop_block_key_t *key,
+			  decoded_block_t *parent, decoded_block_t *block)
+{
+  errcode_t err;
+  size_t read;
+  int is_key_block;
+
+  if (parent)
+    is_key_block = CHILDREN_ARE_KEY_BLOCKS (parent);
+  else
+    is_key_block = 1;
+
+  err = chop_store_read_block (store, key, &block->buffer, &read);
+  if ((err) && (err != ENOMEM))
+    return err;  /* FIXME:  Free things */
+
+  block->is_key_block = is_key_block;
+  block->offset = 0;
+  if (is_key_block)
+    chop_decoded_block_decode_header (block);
+
+  block->parent = parent;
+  block->current_child = NULL;
+
+  return 0;
+}
+
+/* Update BLOCK's CURRENT_CHILD pointer to its next block if any.
+   CHOP_STREAM_END is returned if BLOCK and his parents don't have any
+   further block.  This propagates the request recursively to BLOCK's
+   parents.  However, no new block object is allocated: they are simply
+   reused.  */
+static errcode_t
+chop_decoded_block_next_child (decoded_block_t *block, size_t key_size,
+			       chop_block_store_t *metadata_store,
+			       chop_block_store_t *data_store)
+{
+  if (block->offset >= chop_buffer_size (&block->buffer))
     {
-      chop_block_key_free (block_keys[block_num]);
-      free (block_keys[block_num]);
+      /* We're done with this block so let's reuse it with the next block */
+      if (!block->parent)
+	/* BLOCK is the top-level key block and there's nothing left in it */
+	return CHOP_STREAM_END;
+      else
+	/* Propagate this request to BLOCK's parent */
+	return (chop_decoded_block_next_child (block->parent, key_size,
+					       metadata_store, data_store));
+    }
+  else
+    {
+      /* Update BLOCK's CURRENT_CHILD pointer */
+      errcode_t err;
+      chop_block_key_t key;
+      chop_block_store_t *the_store;
+      char *pos, *key_buf = alloca (key_size);
+
+      pos = (char *)chop_buffer_content (&block->buffer) + block->offset;
+
+      assert (block->offset + key_size <= chop_buffer_size (&block->buffer));
+      memcpy (key_buf, pos, key_size);
+      block->offset += key_size;
+      chop_block_key_init (&key, key_buf, key_size, NULL, NULL);
+
+      if (!block->current_child)
+	{
+	  err = chop_decoded_block_new (&block->current_child);
+	  if (err)
+	    return err;
+	}
+
+      /* Pick up the right block store */
+      if (CHILDREN_ARE_KEY_BLOCKS (block))
+	the_store = metadata_store;
+      else
+	the_store = data_store;
+
+      err = chop_decoded_block_fetch (the_store, &key,
+				      block, block->current_child);
+      if (err)
+	return err;
     }
 
-  chop_buffer_return (&htree->block_keys);
+  return 0;
 }
-#endif
+
+
+/* Read at most SIZE bytes from BLOCK.  If BLOCK is a key block, pass this
+   request to its current child block.  If BLOCK is a data block, read as
+   much as possible from it and ask its parents to jump to the next data
+   block (without allocating new block objects) if BLOCK has been read
+   entirely.  */
+static errcode_t
+chop_decoded_block_read (decoded_block_t *block,
+			 chop_block_store_t *metadata_store,
+			 chop_block_store_t *data_store,
+			 size_t key_size,
+			 char *buffer, size_t size, size_t *read)
+{
+  errcode_t err = 0;
+
+  if (block->is_key_block)
+    {
+      decoded_block_t *child;
+      if (!block->current_child)
+	{
+	  /* Fetch this block's first child */
+	  err = chop_decoded_block_next_child (block, key_size,
+					       metadata_store, data_store);
+	  if (err)
+	    return err;
+
+	  block->current_child->current_child = NULL;
+	}
+
+      /* Pass this request to BLOCK's current child */
+      child = block->current_child;
+      err = chop_decoded_block_read (child, metadata_store, data_store,
+				     key_size, buffer, size, read);
+    }
+  else
+    {
+      /* BLOCK is a data block */
+      assert (block->parent);
+
+      *read = 0;
+      while (*read < size)
+	{
+	  const char *block_buf;
+	  size_t amount, available, to_read = size - *read;
+
+	  if (block->offset >= chop_buffer_size (&block->buffer))
+	    {
+	      /* We're donc with this block.  Re-use it for the next block.  */
+	      err = chop_decoded_block_next_child (block->parent, key_size,
+						   metadata_store, data_store);
+	      if (err)
+		{
+		  if (err == CHOP_STREAM_END)
+		    {
+		      if (*read == 0)
+			/* Only return CHOP_STREAM_END if really nothing was
+			   read; otherwise, wait till the next request.  */
+			return err;
+		    }
+		  else
+		    return err;
+		}
+	    }
+
+	  block_buf = chop_buffer_content (&block->buffer) + block->offset;
+	  available = chop_buffer_size (&block->buffer) - block->offset;
+	  amount = (available > to_read) ? to_read : available;
+
+	  memcpy (buffer, block_buf, amount);
+	  block->offset += amount;
+	  *read += amount;
+
+	  if (err == CHOP_STREAM_END)
+	    {
+	      /* We'll return CHOP_STREAM_END next time */
+	      err = 0;
+	      break;
+	    }
+	}
+    }
+
+  return err;
+}
+
+/* Read at most SIZE bytes from TREE's underlying metadata block store.  On
+   success, zero is returned and READ is set to the number of bytes actually
+   read.  CHOP_STREAM_END is returned on end-of-stream.  */
+static errcode_t
+chop_decoded_block_tree_read (decoded_block_tree_t *tree,
+			      char *buffer, size_t size,
+			      size_t *read)
+{
+  errcode_t err;
+
+  if (!tree->top_level)
+    {
+      /* Fetch the top-level key block (or "inode").  */
+      chop_hash_index_handle_t *hhandle;
+      chop_block_key_t key;
+      char *key_buf = alloca (tree->key_size);
+
+      err = chop_decoded_block_new (&tree->top_level);
+      if (err)
+	return err;
+
+      assert (chop_object_get_class ((chop_object_t *)tree->handle) ==
+	      &chop_hash_index_handle_class);  /* FIXME */
+
+      hhandle = (chop_hash_index_handle_t *)tree->handle;
+      memcpy (key_buf, hhandle->hash, tree->key_size);
+      chop_block_key_init (&key, key_buf, tree->key_size, NULL, NULL);
+
+      err = chop_decoded_block_fetch (tree->metadata_store, &key,
+				      NULL /* No parent block */,
+				      tree->top_level);
+      if (err)
+	return err;
+    }
+
+  *read = 0;
+  err = chop_decoded_block_read (tree->top_level,
+				 tree->metadata_store, tree->data_store,
+				 tree->key_size,
+				 buffer, size, read);
+  tree->current_offset += *read;
+
+  return err;
+}
+
+/* Free resources associated with TREE.  */
+static void
+chop_decoded_block_tree_free (decoded_block_tree_t *tree)
+{
+  decoded_block_t *block, *next;
+
+  for (block = tree->top_level;
+       block != NULL;
+       block = next)
+    {
+      next = block->current_child;
+      free (block);
+    }
+
+  tree->top_level = NULL;
+}
+
+
+/* The stream `read' method for hash tree streams.  */
+static errcode_t
+hash_tree_stream_read (chop_stream_t *stream, char *buffer, size_t size,
+		       size_t *read)
+{
+  chop_hash_tree_stream_t *tstream = (chop_hash_tree_stream_t *)stream;
+
+  assert (tstream->tree.handle);
+
+  return (chop_decoded_block_tree_read (&tstream->tree, buffer, size, read));
+}
+
+/* The stream `close' method for hash tree streams.  */
+static void
+hash_tree_stream_close (chop_stream_t *stream)
+{
+  chop_hash_tree_stream_t *tstream = (chop_hash_tree_stream_t *)stream;
+
+  chop_decoded_block_tree_free (&tstream->tree);
+}
+

@@ -25,6 +25,9 @@ typedef struct chop_object chop_object_t;
 typedef errcode_t (* chop_serializer_t) (const chop_object_t *,
 					 chop_serial_method_t,
 					 chop_buffer_t *);
+/* FIXME:  There should be a `size_t *offset' stating where deserialization
+   ended within BUFFER and a CHOP_SERIAL_TOO_SHORT error when BUFFER is not
+   long enough.  */
 typedef errcode_t (* chop_deserializer_t) (const char *buffer,
 					   size_t size,
 					   chop_serial_method_t,
@@ -123,6 +126,24 @@ chop_ ## _name ## _t;
    relativey costly since it may yield several function calls.  */
 extern void chop_object_initialize (chop_object_t *object,
 				    const chop_class_t *class);
+
+/* Initialize OBJECT, which is expected to be of type CLASS, by deserializing
+   BUFFER (of SIZE bytes), according to METHOD.  On success, zero is returned
+   and OBJECT is initialized.  Otherwise, OBJECT is left in an undefined
+   state.  */
+static __inline__ errcode_t
+chop_object_deserialize (chop_object_t *__object,
+			 const chop_class_t *__class,
+			 chop_serial_method_t __method,
+			 const char *__buffer,
+			 size_t __size)
+{
+  if (!__class->deserializer)
+    return CHOP_ERR_NOT_IMPL;
+
+  __object->class = __class;
+  return (__class->deserializer (__buffer, __size, __method, __object));
+}
 
 /* Destroy OBJECT, i.e. deallocate any resources allocated by it.  */
 extern void chop_object_destroy (chop_object_t *object);

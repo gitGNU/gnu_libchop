@@ -29,4 +29,9 @@ extern const char *chop_hash_name (chop_hash_method_t method);
 /* Return the libgcrypt name (an integer) for hash method METHOD.  */
 extern int chop_hash_gcrypt_name (chop_hash_method_t method);
 
+/* Return the hash method whose name is NAME (case-insensitive).  On error,
+   CHOP_ERR_NOT_FOUND is returned and METHOD is kept unmodified.  */
+extern errcode_t chop_hash_lookup (const char *name,
+				   chop_hash_method_t *method);
+
 #endif

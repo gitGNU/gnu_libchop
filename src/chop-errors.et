@@ -6,6 +6,9 @@ error_code CHOP_ERR_UNKNOWN_STREAM,
 error_code CHOP_ERR_UNKNOWN_STORE,
 	   "Unknown store type"
 
+error_code CHOP_ERR_NOT_FOUND,
+	   "Item not found"
+
 error_code CHOP_ERR_NOT_IMPL,
 	   "Operation not implemented"
 
@@ -21,7 +24,13 @@ error_code CHOP_FILTER_EMPTY,
 error_code CHOP_STORE_ERROR,
            "Block store generic error"
 
-error_code CHOP_STORE_BLOCK_UNAVAIL
+error_code CHOP_STORE_BLOCK_UNAVAIL,
 	   "Block is unavailable in the underlying block store"
+
+error_code CHOP_DESERIAL_TOO_SHORT,
+           "Deserialization buffer it too short"
+
+error_code CHOP_DESERIAL_CORRUPT_INPUT,
+           "Deserialization input buffer corrupted"
 
 end

@@ -12,12 +12,14 @@ static errcode_t chop_fixed_chopper_read_block (chop_chopper_t *,
 errcode_t
 chop_fixed_size_chopper_init (chop_stream_t *input,
 			      size_t block_size,
+			      int pad_blocks,
 			      chop_fixed_size_chopper_t *chopper)
 {
   chopper->chopper.stream = input;
   chopper->chopper.read_block = chop_fixed_chopper_read_block;
-  chopper->block_size = block_size;
   chopper->chopper.typical_block_size = block_size;
+  chopper->block_size = block_size;
+  chopper->pad_blocks = pad_blocks;
 
   return 0;
 }
@@ -58,14 +60,14 @@ chop_fixed_chopper_read_block (chop_chopper_t *chopper,
     /* Tried to read past the end of stream */
     return err;
 
-  if (*size < fixed->block_size)
+  if ((fixed->pad_blocks) && (*size < fixed->block_size))
     {
       /* Reached the end of stream: pad block with zeros */
       memset (&block[*size], '0', fixed->block_size - *size);
       *size = fixed->block_size;
     }
 
-  err = chop_buffer_push (buffer, block, fixed->block_size);
+  err = chop_buffer_push (buffer, block, *size);
 
   return err;
 }
