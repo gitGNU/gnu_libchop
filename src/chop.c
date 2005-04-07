@@ -130,9 +130,9 @@ typedef struct chop_class_entry chop_class_entry_t;
 const chop_class_t *
 chop_class_lookup (const char *name)
 {
-  chop_class_entry_t *entry;
+  const chop_class_entry_t *entry;
 
-  entry = chop_lookup_class_entry (name, strlen (name) + 1);
+  entry = chop_lookup_class_entry (name, strlen (name));
   if (!entry)
     /* FIXME:  There should be a class registry available at run-time for
        classes that are not built-in.  */

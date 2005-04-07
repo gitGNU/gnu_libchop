@@ -284,7 +284,9 @@ chop_object_serialize (const chop_object_t *__object,
    built-in classes.  */
 
 /* Lookup the built-in class named NAME.  If NAME was not found, return
-   NULL.  */
+   NULL.  Note that classes' canonical name doesn't include the `chop_'
+   prefix.  For instance, the name of the `chop_stream_t' class is simply
+   "stream".  */
 extern const chop_class_t *chop_class_lookup (const char *name);
 
 #endif

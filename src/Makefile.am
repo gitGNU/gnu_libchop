@@ -59,6 +59,6 @@ if HAVE_GPERF
 BUILT_SOURCES += class-lookup.c
 
 class-lookup.c: $(libchop_la_SOURCES)
-	./extract-classes.sh $^ | gperf -t -N chop_lookup_class_entry > $@
+	./extract-classes.sh $^ | gperf -t -C -N chop_lookup_class_entry > $@
 
 endif
