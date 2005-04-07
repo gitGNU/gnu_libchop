@@ -276,5 +276,18 @@ chop_object_serialize (const chop_object_t *__object,
   return CHOP_ERR_NOT_IMPL;
 }
 
+
+#include <chop/chop-config.h>
+
+#ifdef HAVE_GPERF
+/* Note: we currently use GPerf for provide an O(1) lookup of all the
+   built-in classes.  */
+
+/* Lookup the built-in class named NAME.  If NAME was not found, return
+   NULL.  */
+extern const chop_class_t *chop_class_lookup (const char *name);
+
+#endif
+
 #endif
 

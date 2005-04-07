@@ -1,5 +1,5 @@
 BUILT_SOURCES = chop-errors.c
-EXTRA_DIST = filter-zip-push-pull.c
+EXTRA_DIST = filter-zip-push-pull.c extract-classes.sh
 
 lib_LTLIBRARIES = libchop.la libchop-block-server.la
 
@@ -53,3 +53,12 @@ $(top_srcdir)/include/chop/block_rstore.h: $(top_srcdir)/rpc/block_rstore.x
 # We need this one too cause the stub includes it.
 $(top_srcdir)/rpc/block_rstore.h: $(top_srcdir)/rpc/block_rstore.x
 	$(RPCGEN) -h $^ > $@
+
+if HAVE_GPERF
+
+BUILT_SOURCES += class-lookup.c
+
+class-lookup.c: $(libchop_la_SOURCES)
+	./extract-classes.sh $^ | gperf -t -N chop_lookup_class_entry > $@
+
+endif

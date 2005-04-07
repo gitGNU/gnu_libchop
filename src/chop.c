@@ -2,6 +2,8 @@
 #include <chop/streams.h>
 #include <chop/serializable.h>  /* Serializable objects */
 
+#include <chop/chop-config.h>
+
 #include <stdio.h>
 #include <assert.h>
 
@@ -110,6 +112,38 @@ chop_object_destroy (chop_object_t *object)
 	class->destructor (object);
     }
 }
+
+
+/* Class lookup by name (when GPerf is available).  */
+
+#ifdef HAVE_GPERF
+
+/* Class definitions that are internal to `indexer-hash-tree.c' (FIXME).  */
+extern const chop_class_t chop_chk_index_handle_class,
+  chop_hash_tree_stream_class, chop_hash_index_handle_class;
+
+/* Include the gperf-generated perfect hash table.  */
+#include "class-lookup.c"
+
+typedef struct chop_class_entry chop_class_entry_t;
+
+const chop_class_t *
+chop_class_lookup (const char *name)
+{
+  chop_class_entry_t *entry;
+
+  entry = chop_lookup_class_entry (name, strlen (name) + 1);
+  if (!entry)
+    /* FIXME:  There should be a class registry available at run-time for
+       classes that are not built-in.  */
+    return NULL;
+
+  return (entry->class);
+}
+
+#else
+# warning "`chop_class_lookup ()' not compiled in."
+#endif
 
 
 /* Block keys helper functions.  */
