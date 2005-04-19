@@ -12,6 +12,11 @@ AC_CONFIG_HEADER(include/chop/chop-config.h)
 AC_PROG_CC
 AC_PROG_LIBTOOL
 
+# `rpcgen' is actually not a strict requirement.
+AC_PATH_PROG([rpcgen], [rpcgen],
+  [AC_MSG_ERROR([`rpcgen' not found.  This is normally part of the GNU libc.])])
+AC_SUBST([RPCGEN], [$rpcgen])
+
 # Checkpoint the cache
 AC_CACHE_SAVE
 
@@ -31,6 +36,19 @@ AC_CHECK_LIB([gdbm], [gdbm_open], [],
   [AC_MSG_ERROR([`libgdbm' not found.  Come on, install it first.])])
 AC_CHECK_LIB([z], [deflate], [],
   [AC_MSG_ERROR([`libz' not found.  Too bad.])])
+
+# Optional libraries
+AC_CHECK_LIB([tdb], [tdb_open], [have_libtdb=yes], [have_libtdb=no])
+if test "x$have_libtdb" = "xyes"; then
+   AC_CHECK_HEADER([tdb.h], [], [have_libtdb=no])
+fi
+AM_CONDITIONAL([HAVE_TDB], test "x$have_libtdb" = "xyes")
+if test "x$have_libtdb" = "xyes"; then
+   AC_DEFINE([HAVE_TDB], 1, [Tells whether libtdb is available.])
+   LIBS="$LIBS -ltdb"
+else
+   AC_MSG_WARN([`libtdb' not found won't be used])
+fi
 
 # Checks for header files.
 AC_HEADER_STDC
@@ -62,6 +80,9 @@ AC_PATH_PROG([guile], [guile],
   AC_MSG_WARN([Guile not found.  Not building Guile bindings.]))
 
 if test "x$guile" != "x"; then
+   GUILE_PROGS
+   GUILE_FLAGS
+
 #   AC_CHECK_LIB([guile], [scm_u8vector_elements], [],
 #     AC_MSG_ERROR([You version of Guile doesn't support SRFI-4 vectors.  Upgrade to 1.7.2 or later.]))
 

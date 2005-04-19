@@ -142,8 +142,19 @@
 		  #:returns '<errcode>
 		  #:arguments '(((mchars caller-owned) name)
 				(int block-size (default 0))
+				(int open-flags (default "O_RDWR | O_CREAT"))
 				(int mode (default "S_IRUSR | S_IWUSR"))
 				((<store> out) new-gdbm-store)))
+
+  (wrap-function! ws
+		  #:name 'tdb-block-store-open
+		  #:c-name "chop_tdb_block_store_open_alloc"
+		  #:returns '<errcode>
+		  #:arguments '(((mchars caller-owned) name)
+				(int hash-size (default 0))
+				(int open-flags (default "O_RDWR | O_CREAT"))
+				(int mode (default "S_IRUSR | S_IWUSR"))
+				((<store> out) new-tdb-store)))
 
   (wrap-function! ws
 		  #:name 'remote-block-store-open

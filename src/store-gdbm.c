@@ -8,13 +8,32 @@
 #include <gdbm.h>
 #include <errno.h>
 
-/* `chop_gdbm_block_store_t' inherits from `chop_block_store_t'.  */
-CHOP_DECLARE_RT_CLASS (gdbm_block_store, block_store,
-		       GDBM_FILE db;);
+/* `chop_gdbm_block_store_t' inherits from `chop_block_store_t' and its
+   metaclass is `chop_file_based_store_class_t'.  */
+CHOP_DECLARE_RT_CLASS_WITH_METACLASS (gdbm_block_store, block_store,
+				      file_based_store_class,
+				      GDBM_FILE db;);
 
-CHOP_DEFINE_RT_CLASS (gdbm_block_store, block_store,
-		      NULL, NULL, /* No constructor/destructor */
-		      NULL, NULL  /* No serializer/deserializer */);
+/* A generic open method, common to all file-based block stores.  */
+static errcode_t
+chop_gdbm_generic_open (const chop_class_t *class,
+			const char *file, int open_flags, mode_t mode,
+			chop_block_store_t *store)
+{
+  if ((chop_file_based_store_class_t *)class != &chop_gdbm_block_store_class)
+    return CHOP_INVALID_ARG;
+
+  return (chop_gdbm_store_open (file, 0, open_flags, mode, NULL, store));
+}
+
+CHOP_DEFINE_RT_CLASS_WITH_METACLASS (gdbm_block_store, block_store,
+				     file_based_store_class,
+
+				     /* metaclass inits */
+				     .generic_open = chop_gdbm_generic_open,
+
+				     NULL, NULL, /* No ctor/dtor */
+				     NULL, NULL  /* No serial/deserial */);
 
 
 
@@ -36,11 +55,21 @@ static errcode_t chop_gdbm_close (chop_block_store_t *);
 
 errcode_t
 chop_gdbm_store_open (const char *name, size_t block_size,
-		      int mode, void (* fatal_func) (const char *),
+		      int open_flags, mode_t mode,
+		      void (* fatal_func) (const char *),
 		      chop_block_store_t *s)
 {
   chop_gdbm_block_store_t *store = (chop_gdbm_block_store_t *)s;
-  store->db = gdbm_open ((char *)name, block_size, GDBM_WRCREAT,
+  int gdbm_flags = 0;
+
+  if (open_flags & O_CREAT)
+    gdbm_flags |= GDBM_WRCREAT;
+  if (open_flags & O_RDONLY)
+    gdbm_flags |= GDBM_READER;
+  if (open_flags & O_WRONLY)
+    gdbm_flags |= GDBM_WRITER;
+
+  store->db = gdbm_open ((char *)name, block_size, gdbm_flags,
 			 mode, fatal_func);
   if (!store->db)
     {
@@ -58,78 +87,24 @@ chop_gdbm_store_open (const char *name, size_t block_size,
   return 0;
 }
 
+
+/* Define all the macros expected by the generic database-based block store
+   implementation.  */
+
+#define DB_TYPE       gdbm
+#define DB_DATA_TYPE  datum
+#define DB_READ(_db, _key, _datap)  (*(_datap)) = gdbm_fetch ((_db), (_key))
+#define DB_WRITE(_db, _key, _data, _flags)  \
+  gdbm_store ((_db), (_key), (_data), (_flags))
+#define DB_WRITE_REPLACE_FLAG  GDBM_REPLACE
+#define DB_SYNC(_db)    gdbm_sync ((_db))
+#define DB_CLOSE(_db)   gdbm_close ((_db))
+
 /* Convert `chop_block_key_t' object CK into GDBM key GDBMK.  */
-#define CHOP_KEY_TO_GDBM(_gdbmk, _ck)			\
+#define CHOP_KEY_TO_DB(_gdbmk, _ck)			\
 {							\
   (_gdbmk)->dptr = (char *)chop_block_key_buffer (_ck);	\
   (_gdbmk)->dsize = chop_block_key_size (_ck);		\
 }
 
-static errcode_t
-chop_gdbm_read_block (chop_block_store_t *store,
-		      const chop_block_key_t *key, chop_buffer_t *buffer,
-		      size_t *size)
-{
-  errcode_t err;
-  datum gdbm_key, gdbm_content;
-  chop_gdbm_block_store_t *gdbm = (chop_gdbm_block_store_t *)store;
-
-  CHOP_KEY_TO_GDBM (&gdbm_key, key);
-
-  gdbm_content = gdbm_fetch (gdbm->db, gdbm_key);
-  if (!gdbm_content.dptr)
-    {
-      *size = 0;
-      return CHOP_STORE_BLOCK_UNAVAIL;
-    }
-
-  err = chop_buffer_push (buffer, gdbm_content.dptr, gdbm_content.dsize);
-  *size = gdbm_content.dsize;
-
-  free (gdbm_content.dptr);
-
-  return err;
-}
-
-static errcode_t
-chop_gdbm_write_block (chop_block_store_t *store,
-		       const chop_block_key_t *key,
-		       const char *buffer, size_t size)
-{
-  int err;
-  chop_gdbm_block_store_t *gdbm = (chop_gdbm_block_store_t *)store;
-  datum gdbm_key, gdbm_content;
-
-  CHOP_KEY_TO_GDBM (&gdbm_key, key);
-  gdbm_content.dptr = (char *)buffer;
-  gdbm_content.dsize = size;
-
-  err = gdbm_store (gdbm->db,
-		    gdbm_key, gdbm_content,
-		    GDBM_REPLACE /* FIXME: Really? */);
-  if (err)
-    return CHOP_STORE_ERROR;
-
-  return 0;
-}
-
-static errcode_t
-chop_gdbm_sync (chop_block_store_t *store)
-{
-  chop_gdbm_block_store_t *gdbm = (chop_gdbm_block_store_t *)store;
-
-  gdbm_sync (gdbm->db);
-
-  return 0;
-}
-
-static errcode_t
-chop_gdbm_close (chop_block_store_t *store)
-{
-  chop_gdbm_block_store_t *gdbm = (chop_gdbm_block_store_t *)store;
-
-  /* `gdbm_close ()' calls `gdbm_sync ()' */
-  gdbm_close (gdbm->db);
-
-  return 0;
-}
+#include "store-generic-db.c"

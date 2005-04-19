@@ -15,4 +15,4 @@ echo '%%'
 
 cat $@ | \
 grep '^CHOP_DEFINE_RT_CLASS' | \
-sed -es'/^CHOP_DEFINE_RT_CLASS *(\([a-zA-Z_]\+\),.*$/\1, \&chop_\1_class/g'
+sed -es'/^CHOP_DEFINE_RT_CLASS\(_WITH_METACLASS\)\? *(\([a-zA-Z_]\+\),.*$/\2, \&chop_\2_class/g'

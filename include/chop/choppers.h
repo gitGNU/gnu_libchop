@@ -9,6 +9,9 @@
 #include <chop/serializable.h>
 #include <chop/logs.h>
 
+/* Note:  I should have a look at EDelta at some point,
+   http://www.diku.dk/~jacobg/edelta/ .  */
+
 
 /* Declare `chop_chopper_t' which inherits from `chop_object_t'.  */
 CHOP_DECLARE_RT_CLASS (chopper, object,

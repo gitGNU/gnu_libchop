@@ -36,16 +36,41 @@ chop_dummy_proxy_block_store_open_alloc (const char *name,
 
 static __inline__ errcode_t
 chop_gdbm_block_store_open_alloc (const char *name, size_t block_size,
-				  int mode, chop_block_store_t **store)
+				  int open_flags, mode_t mode,
+				  chop_block_store_t **store)
 {
   errcode_t err;
 
-  *store = malloc (chop_class_instance_size (&chop_gdbm_block_store_class));
+  *store = malloc
+    (chop_class_instance_size ((chop_class_t *)&chop_gdbm_block_store_class));
   if (!*store)
     return ENOMEM;
 
-  err = chop_gdbm_store_open (name, block_size, mode, NULL,
+  err = chop_gdbm_store_open (name, block_size, open_flags, mode, NULL,
 			      *store);
+  if (err)
+    {
+      free (*store);
+      *store = NULL;
+    }
+
+  return err;
+}
+
+static __inline__ errcode_t
+chop_tdb_block_store_open_alloc (const char *name, int hash_size,
+				 int open_flags, mode_t mode,
+				 chop_block_store_t **store)
+{
+  errcode_t err;
+
+  *store = malloc
+    (chop_class_instance_size ((chop_class_t *)&chop_tdb_block_store_class));
+  if (!*store)
+    return ENOMEM;
+
+  err = chop_tdb_store_open (name, hash_size, 0, open_flags, mode,
+			     *store);
   if (err)
     {
       free (*store);

@@ -1,11 +1,12 @@
 BUILT_SOURCES = chop-errors.c
-EXTRA_DIST = filter-zip-push-pull.c extract-classes.sh
+EXTRA_DIST = filter-zip-push-pull.c store-generic-db.c extract-classes.sh
 
 lib_LTLIBRARIES = libchop.la libchop-block-server.la
 
 libchop_la_SOURCES = chop.c chop-errors.c logs.c		\
 		     chopper-fixed-size.c			\
                      chopper-anchor-based.c			\
+		     stores.c					\
 		     store-dummy.c				\
 		     store-gdbm.c				\
 		     store-remote.c				\
@@ -16,6 +17,10 @@ libchop_la_SOURCES = chop.c chop-errors.c logs.c		\
 		     filters.c					\
 		     filter-zlib-zip.c filter-zlib-unzip.c	\
 		     stream-file.c # stream-ext2.c 
+
+if HAVE_TDB
+libchop_la_SOURCES += store-tdb.c
+endif
 
 # RPC client-side stubs (for the remote block store)
 rpc_client_stubs = block_rstore_clnt.c block_rstore_xdr.c

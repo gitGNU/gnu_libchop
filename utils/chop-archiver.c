@@ -6,6 +6,8 @@
 
 #include <chop/indexers.h>
 
+#include <chop/chop-config.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <alloca.h>
@@ -41,8 +43,8 @@ and won't be able to do anything with it (`gunzip' won't work).";
 
 const char *program_name = NULL;
 
-#define GDBM_DATA_FILE_BASE       ".chop-archiver/archive-data.gdbm"
-#define GDBM_META_DATA_FILE_BASE  ".chop-archiver/archive-meta-data.gdbm"
+#define DB_DATA_FILE_BASE       ".chop-archiver/archive-data"
+#define DB_META_DATA_FILE_BASE  ".chop-archiver/archive-meta-data"
 
 
 /* Whether archival or retrieval is to be performed.  */
@@ -63,6 +65,9 @@ static int use_zlib_filters = 0;
 /* The remote block store host name or NULL.  */
 static char *remote_hostname = NULL;
 
+#ifdef HAVE_GPERF
+static char *file_based_store_class = "gdbm_block_store";
+#endif
 
 static struct argp_option options[] =
   {
@@ -76,6 +81,10 @@ static struct argp_option options[] =
     { "remote",  'R', "HOST", 0,
       "Use the remote block store located at HOST (using TCP) for both "
       "data and meta-data blocks" },
+#ifdef HAVE_GPERF
+    { "store",   'S', "CLASS", 0,
+      "Use CLASS as the underlying file-based block store" },
+#endif
 
     /* The main functions.  */
     { "archive", 'a', "FILE",   0,
@@ -274,14 +283,20 @@ process_command (const char *argument,
 }
 
 static errcode_t
-open_gdbm_store (const char *base, chop_block_store_t *store)
+open_db_store (const chop_file_based_store_class_t *class,
+	       const char *base, chop_block_store_t *store)
 {
   errcode_t err;
   char *file;
-  size_t file_len, home_len;
+  const char *suffix, *suffix_end;
+  size_t file_len, home_len, base_len, suffix_len;
 
+  base_len = strlen (base);
+  suffix = chop_class_name ((chop_class_t *)class);
+  suffix_end = strchr (suffix, '_');
+  suffix_len = suffix_end - suffix;
   home_len = strlen (getenv ("HOME"));
-  file_len = home_len + 1 + strlen (base);
+  file_len = home_len + 1 + base_len + 1 + suffix_len;
   file = alloca (file_len + 1);
   if (!file)
     return ENOMEM;
@@ -289,11 +304,16 @@ open_gdbm_store (const char *base, chop_block_store_t *store)
   strcpy (file, getenv ("HOME"));
   file[home_len] = '/';
   strcpy (&file[home_len + 1], base);
+  strcpy (&file[home_len + 1 + base_len], ".");
+  strncpy (&file[home_len + 1 + base_len + 1], suffix, suffix_len);
+  file[file_len] = '\0';
 
-  err = chop_gdbm_store_open (file, 0, S_IRUSR | S_IWUSR, NULL, store);
+  err = chop_file_based_store_open (class, file,
+				    O_RDWR | O_CREAT, S_IRUSR | S_IWUSR,
+				    store);
   if (err)
-    com_err (program_name, err, "while opening GDBM data file \"%s\"",
-	     file);
+    com_err (program_name, err, "while opening `%s' data file \"%s\"",
+	     chop_class_name ((chop_class_t *)class), file);
 
   return err;
 }
@@ -324,6 +344,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
       break;
     case 'R':
       remote_hostname = arg;
+      break;
+    case 'S':
+      file_based_store_class = arg;
       break;
     default:
       return ARGP_ERR_UNKNOWN;
@@ -387,16 +410,39 @@ main (int argc, char *argv[])
       else
 	{
 	  /* Use two GDBM stores.  */
-	  store = (chop_block_store_t *)
-	    chop_class_alloca_instance (&chop_gdbm_block_store_class);
-	  metastore = (chop_block_store_t *)
-	    chop_class_alloca_instance (&chop_gdbm_block_store_class);
+	  const chop_file_based_store_class_t *db_store_class;
+#ifdef HAVE_GPERF
+	  db_store_class = (chop_file_based_store_class_t *)
+	    chop_class_lookup (file_based_store_class);
+	  if (!db_store_class)
+	    {
+	      fprintf (stderr, "%s: class `%s' not found\n",
+		       argv[0], file_based_store_class);
+	      exit (1);
+	    }
+	  if (chop_object_get_class ((chop_object_t *)db_store_class)
+	      != &chop_file_based_store_class_class)
+	    {
+	      fprintf (stderr,
+		       "%s: class `%s' is not a file-based store class\n",
+		       argv[0], file_based_store_class);
+	      exit (1);
+	    }
+#else
+	  db_store_class = &chop_gdbm_block_store_class;
+#endif
 
-	  err = open_gdbm_store (GDBM_DATA_FILE_BASE, store);
+	  store = (chop_block_store_t *)
+	    chop_class_alloca_instance ((chop_class_t *)db_store_class);
+	  metastore = (chop_block_store_t *)
+	    chop_class_alloca_instance ((chop_class_t *)db_store_class);
+
+	  err = open_db_store (db_store_class, DB_DATA_FILE_BASE, store);
 	  if (err)
 	    exit (3);
 
-	  err = open_gdbm_store (GDBM_META_DATA_FILE_BASE, metastore);
+	  err = open_db_store (db_store_class, DB_META_DATA_FILE_BASE,
+			       metastore);
 	  if (err)
 	    exit (3);
 	}

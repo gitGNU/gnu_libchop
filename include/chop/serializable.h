@@ -86,6 +86,11 @@ chop_ ## _name ## _t;
      _DEF_STRUCT (_name, _parent, _fields);			\
      extern const chop_class_t chop_ ## _name ## _class;
 
+#define CHOP_DECLARE_RT_CLASS_WITH_METACLASS(_name, _parent, _metaclass,	\
+					     _fields)				\
+     _DEF_STRUCT (_name, _parent, _fields);					\
+     extern const chop_ ## _metaclass ## _t chop_ ## _name ## _class;
+
 /* Define a run-time class that has been declared previously.  The _PARENT
    argument must be consistent with the one used in the declaration.  _PARENT
    mush never be null since all classes must inherit from CHOP_OBJECT_CLASS
@@ -108,6 +113,32 @@ chop_ ## _name ## _t;
 	 .deserializer = _deserial,				\
 	 .instance_size = sizeof (chop_ ## _name ## _t),	\
        };
+
+
+/* Same as above except that METACLASS gives the name of the class to be used
+   as the class of the class being defined.  METACLASS_INITS are C static
+   structure initializers.  */
+#define CHOP_DEFINE_RT_CLASS_WITH_METACLASS(_name, _parent,			\
+					    _metaclass, _metaclass_inits,	\
+					    _cons, _dest,			\
+					    _serial, _deserial)			\
+     const chop_ ## _metaclass ## _t						\
+     chop_ ## _name ## _class =							\
+       {									\
+	 .class =								\
+	 {									\
+	   .name = _STRINGIFY (_name),						\
+	   .object = { .class = &chop_ ## _metaclass ## _class },		\
+	   .parent = &(chop_ ## _parent ## _class),				\
+	   .constructor = _cons,						\
+	   .destructor = _dest,							\
+	   .serializer = _serial,						\
+	   .deserializer = _deserial,						\
+	   .instance_size = sizeof (chop_ ## _name ## _t),			\
+	 },									\
+	 _metaclass_inits							\
+       };
+
 
 
 /* Example:

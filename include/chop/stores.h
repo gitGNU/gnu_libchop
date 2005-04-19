@@ -85,8 +85,25 @@ chop_block_key_to_hex_string (const chop_block_key_t *__key,
 
 /* Implementations of the block store interface.  */
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+/* The class of all the file-based block store classes (i.e. GDBM, TDB,
+   etc.).  Provides a generic method for opening such a store that is called
+   by `chop_file_based_store_open ()'.  This declares
+   CHOP_FILE_BASED_STORE_CLASS_CLASS and `chop_file_based_store_class_t'.  */
+CHOP_DECLARE_RT_CLASS (file_based_store_class, class,
+		       errcode_t (* generic_open) (const chop_class_t *class,
+						   const char *file,
+						   int open_flags,
+						   mode_t mode,
+						   chop_block_store_t *store););
+
+
 extern const chop_class_t chop_dummy_block_store_class;
-extern const chop_class_t chop_gdbm_block_store_class;
+extern const chop_file_based_store_class_t chop_gdbm_block_store_class;
+extern const chop_file_based_store_class_t chop_tdb_block_store_class;
 extern const chop_class_t chop_remote_block_store_class;
 
 
@@ -111,17 +128,33 @@ chop_dummy_proxy_block_store_open (const char *name,
 extern chop_log_t *chop_dummy_block_store_log (chop_block_store_t *store);
 
 /* Open GDBM database file NAME, with mode MODE (same as for open(2) and
-   chmod(2)).  If BLOCK_SIZE is lower than 512, the use the filesystem block
-   size as the GDBM size for block transferts, otherwise use the value of
-   BLOCK_SIZE.  FATAL_FUNC will be called by GDBM whenever a fatal error
-   occurs; if NULL, a built-in GDBM function will be called.  On success,
-   return zero and initialize the object pointed to by STORE.  STORE must
-   point to enough memory to store an instance of type
-   CHOP_GDBM_BLOCK_STORE_CLASS.  */
+   chmod(2)). OPEN_FLAGS are flags as those passed to open(2).  If BLOCK_SIZE
+   is lower than 512, the use the filesystem block size as the GDBM size for
+   block transferts, otherwise use the value of BLOCK_SIZE.  FATAL_FUNC will
+   be called by GDBM whenever a fatal error occurs; if NULL, a built-in GDBM
+   function will be called.  On success, return zero and initialize the
+   object pointed to by STORE.  STORE must point to enough memory to store an
+   instance of type CHOP_GDBM_BLOCK_STORE_CLASS.  */
 extern errcode_t chop_gdbm_store_open (const char *name, size_t block_size,
-				       int mode,
+				       int open_flags, mode_t mode,
 				       void (* fatal_func) (const char *),
 				       chop_block_store_t *store);
+
+/* Open TDB (the Trivial Database) file NAME, etc, etc.  Availability of this
+   function depends on whether you had TDB installed at compilation time.
+   TDB databases are usually slightly smaller than GDBM ones.  */
+extern errcode_t chop_tdb_store_open (const char *name,
+				      int hash_size, int tdb_flags,
+				      int open_flags, mode_t mode,
+				      chop_block_store_t *store);
+
+/* This function is a simple version of the GDBM/TDB block store open
+   functions which it just calls.  The first argument gives the pointer to
+   one of the database-based block store classes.  */
+extern errcode_t
+chop_file_based_store_open (const chop_file_based_store_class_t *class,
+			    const char *file, int open_flags, mode_t mode,
+			    chop_block_store_t *store);
 
 /* Open a remote block store located at HOST with protocol PROTOCOL.
    PROTOCOL may be either "udp" or "tcp".  On success return 0.  */
