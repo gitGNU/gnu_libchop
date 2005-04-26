@@ -19,7 +19,7 @@ main (int argc, char *argv[])
     return 1;
 
   stream = chop_class_alloca_instance (&chop_file_stream_class);
-  chopper = chop_class_alloca_instance (&chop_anchor_based_chopper_class);
+  chopper = chop_class_alloca_instance ((chop_class_t *)&chop_anchor_based_chopper_class);
 
   err = chop_file_stream_open (argv[1], stream);
   if (err)
@@ -53,8 +53,11 @@ main (int argc, char *argv[])
 	  return 2;
 	}
 
-      write (1, chop_buffer_content (&buffer), size);
-      write (1, "\n---\n", 5);
+      if (size)
+	{
+	  write (1, chop_buffer_content (&buffer), size);
+	  write (1, "\n---\n", 5);
+	}
 
       if (err == CHOP_STREAM_END)
 	break;

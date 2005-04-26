@@ -16,7 +16,7 @@ libchop_la_SOURCES = chop.c chop-errors.c logs.c		\
 		     indexer-hash-tree.c			\
 		     filters.c					\
 		     filter-zlib-zip.c filter-zlib-unzip.c	\
-		     stream-file.c # stream-ext2.c 
+		     stream-file.c stream-mem.c # stream-ext2.c 
 
 if HAVE_TDB
 libchop_la_SOURCES += store-tdb.c

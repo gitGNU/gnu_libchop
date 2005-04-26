@@ -10,7 +10,7 @@ echo '#include <chop/indexers.h>'
 echo '#include <chop/filters.h>'
 echo '%}'
 echo
-echo 'struct chop_class_entry { const char *name; const chop_class_t *class; };'
+echo 'struct chop_class_entry { const char *name; const void *class; };'
 echo '%%'
 
 cat $@ | \

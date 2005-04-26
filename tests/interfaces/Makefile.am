@@ -1,4 +1,4 @@
-check_PROGRAMS = filters stores
+check_PROGRAMS = filters stores choppers
 
 if HAVE_GPERF
 check_PROGRAMS += class-lookup

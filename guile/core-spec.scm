@@ -31,7 +31,7 @@
 
 (define-method (check-typespec-options (type <gw-wct>)
 				       (options <list>))
-  (format #t "check-typespec-options: ~a~%" type)
+;  (format #t "check-typespec-options: ~a~%" type)
 ;  (next-method)
   #t)
 
@@ -168,6 +168,11 @@
   (list "\n/* Returning a raw, ready-to-use, u8vector.  */\n"
 	(scm-var param) " = " (var param) ";\n"))
 
+(define-method (unwrap-value-cg (type <chop-raw-u8vector>)
+				(param <gw-value>) error-var)
+  (list "\n/* Returning a raw, ready-to-use, u8vector.  */\n"
+	(var param) " = " (scm-var param) ";\n"))
+
 
 ;; Growing `chop_buffer_t' buffers used as output buffers and mapped to
 ;; SRFI-4 u8vectors.
@@ -224,7 +229,7 @@
 
 (define-method (global-definitions-cg (ws <gw-guile-wrapset>)
 				      (type <gw-type>))
-  (format #t "gdc: ~a~%" type)
+;  (format #t "gdc: ~a~%" type)
   (next-method))
 
 ; (define-method (global-definitions-cg (ws <gw-guile-wrapset>)
@@ -243,7 +248,7 @@
 (define-method (pre-call-arg-cg (type <chop-output-buffer-with-out-size>)
 				(value <gw-value>) error-var)
   (let ((size-var (string-append (var value) "_unused_size")))
-    (format #t "pre-call-arg-cg: ~a~%" type)
+;    (format #t "pre-call-arg-cg: ~a~%" type)
     (list "size_t " size-var "; /* the unused out size */\n"
 	  (next-method))))
 

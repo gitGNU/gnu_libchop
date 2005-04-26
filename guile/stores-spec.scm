@@ -100,7 +100,7 @@
 	"#include <sys/types.h>\n"
 	"#include <sys/stat.h>\n"
 	"#include <fcntl.h>\n\n"
-	"#include \"store-ctors-dtors.c\"\n\n"))
+	"#include \"stores-support.c\"\n\n"))
 
 
 

@@ -66,7 +66,8 @@ static int use_zlib_filters = 0;
 static char *remote_hostname = NULL;
 
 #ifdef HAVE_GPERF
-static char *file_based_store_class = "gdbm_block_store";
+static char *file_based_store_class_name = "gdbm_block_store";
+static char *chopper_class_name = "fixed_size_chopper";
 #endif
 
 static struct argp_option options[] =
@@ -84,6 +85,8 @@ static struct argp_option options[] =
 #ifdef HAVE_GPERF
     { "store",   'S', "CLASS", 0,
       "Use CLASS as the underlying file-based block store" },
+    { "chopper", 'C', "CHOPPER", 0,
+      "Use CHOPPER as the input stream chopper" },
 #endif
 
     /* The main functions.  */
@@ -106,7 +109,7 @@ do_archive (chop_stream_t *stream, chop_block_store_t *data_store,
 {
   errcode_t err;
   chop_buffer_t buffer;
-  chop_index_handle_t *handle = NULL;
+  chop_index_handle_t *handle;
 
   handle = chop_indexer_alloca_index_handle (indexer);
   err = chop_indexer_index_blocks (indexer, chopper,
@@ -216,9 +219,9 @@ process_command (const char *argument,
 
   if (archive_queried)
     {
-      size_t block_size;
       chop_stream_t *stream;
-      chop_fixed_size_chopper_t chopper;
+      chop_chopper_class_t *chopper_class;
+      chop_chopper_t *chopper;
 
       stream = chop_class_alloca_instance (&chop_file_stream_class);
       err = chop_file_stream_open (argument, stream);
@@ -228,20 +231,40 @@ process_command (const char *argument,
 	  exit (1);
 	}
 
-      block_size = chop_stream_preferred_block_size ((chop_stream_t *)stream);
-      err = chop_fixed_size_chopper_init ((chop_stream_t *)stream,
-					  block_size,
-					  0 /* Don't pad blocks */,
-					  &chopper);
+#ifdef HAVE_GPERF
+      chopper_class =
+	(chop_chopper_class_t *)chop_class_lookup (chopper_class_name);
+      if (!chopper_class)
+	{
+	  fprintf (stderr, "%s: class `%s' not found\n",
+		   program_name, chopper_class_name);
+	  exit (1);
+	}
+      if (!chop_object_is_a ((chop_object_t *)chopper_class,
+			     (chop_class_t *)&chop_chopper_class_class))
+	{
+	  fprintf (stderr, "%s: class `%s' is not a chopper class\n",
+		   program_name, chopper_class_name);
+	  exit (1);
+	}
+#else
+      chopper_class = &chop_fixed_size_chopper_class;
+#endif
+
+      chopper = chop_class_alloca_instance ((chop_class_t *)chopper_class);
+      err = chop_chopper_generic_open (chopper_class, stream,
+				       chopper);
       if (err)
 	{
-	  com_err (program_name, err, "while initializing chopper");
+	  com_err (program_name, err,
+		   "while initializing chopper of class `%s'",
+		   chopper_class_name);
 	  exit (2);
 	}
 
-      err = do_archive ((chop_stream_t *)stream,
+      err = do_archive (stream,
 			THE_STORE (data), THE_STORE (metadata),
-			(chop_chopper_t *)&chopper, indexer);
+			chopper, indexer);
 
       chop_stream_close ((chop_stream_t *)stream);
     }
@@ -345,9 +368,14 @@ parse_opt (int key, char *arg, struct argp_state *state)
     case 'R':
       remote_hostname = arg;
       break;
+#ifdef HAVE_GPERF
     case 'S':
-      file_based_store_class = arg;
+      file_based_store_class_name = arg;
       break;
+    case 'C':
+      chopper_class_name = arg;
+      break;
+#endif
     default:
       return ARGP_ERR_UNKNOWN;
     }
@@ -413,11 +441,11 @@ main (int argc, char *argv[])
 	  const chop_file_based_store_class_t *db_store_class;
 #ifdef HAVE_GPERF
 	  db_store_class = (chop_file_based_store_class_t *)
-	    chop_class_lookup (file_based_store_class);
+	    chop_class_lookup (file_based_store_class_name);
 	  if (!db_store_class)
 	    {
 	      fprintf (stderr, "%s: class `%s' not found\n",
-		       argv[0], file_based_store_class);
+		       argv[0], file_based_store_class_name);
 	      exit (1);
 	    }
 	  if (chop_object_get_class ((chop_object_t *)db_store_class)
@@ -425,7 +453,7 @@ main (int argc, char *argv[])
 	    {
 	      fprintf (stderr,
 		       "%s: class `%s' is not a file-based store class\n",
-		       argv[0], file_based_store_class);
+		       argv[0], file_based_store_class_name);
 	      exit (1);
 	    }
 #else

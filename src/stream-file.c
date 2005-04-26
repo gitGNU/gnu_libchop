@@ -18,6 +18,16 @@ CHOP_DEFINE_RT_CLASS (stream, object,
 		      NULL, NULL, /* No constructor/destructor */
 		      NULL, NULL  /* No serializer/deserializer */);
 
+
+/* File stream class that inherits from `chop_stream_t'.  This declares
+   CHOP_FILE_STREAM_CLASS, the object representing this class at
+   run-time.  */
+CHOP_DECLARE_RT_CLASS (file_stream, stream,
+		       int    fd;
+		       size_t size;
+		       char  *map;
+		       size_t position;);
+
 CHOP_DEFINE_RT_CLASS (file_stream, stream,
 		      NULL, NULL, /* No constructor/destructor */
 		      NULL, NULL  /* No serializer/deserializer */);

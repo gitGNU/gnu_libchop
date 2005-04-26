@@ -152,3 +152,61 @@ chop_store_read_block_alloc_u8vector (chop_block_store_t *store,
 
   return err;
 }
+
+
+/* Support for writing block stores in Guile Scheme.
+   XXX:  I'm trying to avoid resorting to this sort of hack.  So this is
+   abandoned for now.  */
+
+#include <libguile.h>
+
+CHOP_DECLARE_RT_CLASS (scheme_block_store, block_store,
+		       SCM read_block;
+		       SCM write_block;
+		       SCM block_exists;
+		       SCM remove_block;
+		       SCM close;
+		       SCM sync;);
+
+
+static __inline__ chop_block_store_t *
+chop_make_scheme_block_store (SCM read_block, SCM write_block,
+			      SCM block_exists, SCM remove_block,
+			      SCM close, SCM sync)
+{
+  chop_scheme_block_store_t *store;
+
+  store = malloc (sizeof (chop_scheme_block_store_t));
+  if (!store)
+    return NULL;
+
+  chop_object_initialize ((chop_object_t *)store,
+			  &chop_scheme_block_store_class);
+
+  store->read_block = read_block;
+  store->write_block = write_block;
+  store->block_exists = block_exists;
+  store->remove_block = remove_block;
+  store->close = close;
+  store->sync = sync;
+
+  return ((chop_block_store_t *)store);
+}
+
+static void
+scheme_block_store_ctor (chop_object_t *object,
+			 const chop_class_t *class)
+{
+  chop_scheme_block_store_t *store;
+
+  store = (chop_scheme_block_store_t *)object;
+  store->block_store.read_block = NULL;
+  store->block_store.write_block = NULL;
+  store->block_store.close = NULL;
+  store->block_store.sync = NULL;
+}
+
+CHOP_DEFINE_RT_CLASS (scheme_block_store, block_store,
+		      scheme_block_store_ctor, NULL,
+		      NULL, NULL);
+

@@ -6,37 +6,87 @@
 #include <errno.h>
 
 
+/* The base `chop_chopper_t' definition.  */
+CHOP_DEFINE_RT_CLASS (chopper, object,
+		      NULL, NULL, /* No ctor/dtor */
+		      NULL, NULL  /* No serial/deserial */);
+
+
+/* The `chop_chopper_class_t' definition.  */
+CHOP_DEFINE_RT_CLASS (chopper_class, class,
+		      NULL, NULL, /* No ctor/dtor */
+		      NULL, NULL  /* No serial/deserial */);
+
+
+
 /* Class definitions.  */
 
-CHOP_DEFINE_RT_CLASS (chopper, object,
-		      NULL, NULL, /* No constructor/destructor */
-		      NULL, NULL  /* No serializer/deserializer */);
+static void fixed_size_chopper_ctor (chop_object_t *object,
+				     const chop_class_t *class);
 
-CHOP_DEFINE_RT_CLASS (fixed_size_chopper, chopper,
-		      NULL, NULL, /* No constructor/destructor */
-		      NULL, NULL  /* No serializer/deserializer */);
+
+/* Declare `chop_fixed_size_chopper_t' which inherits from
+   `chop_chopper_t'. */
+CHOP_DECLARE_RT_CLASS_WITH_METACLASS (fixed_size_chopper, chopper,
+				      chopper_class,  /* Metaclass */
+				      size_t block_size;
+				      int pad_blocks;);
+
+/* A generic `open' method that chooses default parameters.  */
+static errcode_t
+chop_fs_generic_open (chop_stream_t *input, chop_chopper_t *chopper)
+{
+  return chop_fixed_size_chopper_init (input,
+				       chop_stream_preferred_block_size (input),
+				       0,
+				       chopper);
+}
+
+CHOP_DEFINE_RT_CLASS_WITH_METACLASS (fixed_size_chopper, chopper,
+				     chopper_class,  /* Metaclass */
+
+				     /* metaclass inits */
+				     .generic_open = chop_fs_generic_open,
+
+				     fixed_size_chopper_ctor, NULL,
+				     NULL, NULL  /* No serial/deserial */);
+
 
 
 static errcode_t chop_fixed_chopper_read_block (chop_chopper_t *,
 						chop_buffer_t *block,
 						size_t *);
 
+/* The constructor.  */
+static void
+fixed_size_chopper_ctor (chop_object_t *object,
+			 const chop_class_t *class)
+{
+  chop_fixed_size_chopper_t *fixed;
+
+  fixed = (chop_fixed_size_chopper_t *)object;
+  fixed->chopper.stream = NULL;
+  fixed->chopper.read_block = chop_fixed_chopper_read_block;
+  fixed->chopper.typical_block_size = 0;
+  fixed->chopper.close = NULL;
+}
+
 errcode_t
 chop_fixed_size_chopper_init (chop_stream_t *input,
 			      size_t block_size,
 			      int pad_blocks,
-			      chop_fixed_size_chopper_t *chopper)
+			      chop_chopper_t *chopper)
 {
+  chop_fixed_size_chopper_t *fixed;
+
+  fixed = (chop_fixed_size_chopper_t *)chopper;
   chop_object_initialize ((chop_object_t *)chopper,
-			  &chop_fixed_size_chopper_class);
+			  (chop_class_t *)&chop_fixed_size_chopper_class);
 
-  chopper->chopper.stream = input;
-  chopper->chopper.read_block = chop_fixed_chopper_read_block;
-  chopper->chopper.typical_block_size = block_size;
-  chopper->chopper.close = NULL;
-
-  chopper->block_size = block_size;
-  chopper->pad_blocks = pad_blocks;
+  fixed->chopper.stream = input;
+  fixed->chopper.typical_block_size = block_size;
+  fixed->block_size = block_size;
+  fixed->pad_blocks = pad_blocks;
 
   return 0;
 }

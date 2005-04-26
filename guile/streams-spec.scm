@@ -49,7 +49,7 @@
 (define-method (global-declarations-cg (ws <chop-stream-wrapset>))
   (list (next-method)
 	"#include <chop/chop.h>\n#include <chop/streams.h>\n\n"
-	"#include \"stream-ctors-dtors.c\"\n\n"))
+	"#include \"streams-support.c\"\n\n"))
 
 
 (define-method (initialize (ws <chop-stream-wrapset>) initargs)
@@ -77,6 +77,12 @@
 		  #:c-name "chop_file_stream_open_alloc"
 		  #:arguments '(((mchars caller-owned) path)
 				((<stream> out) stream)))
+
+  (wrap-function! ws
+		  #:name 'mem-stream-open
+		  #:returns '<stream>
+		  #:c-name "chop_mem_stream_open_alloc"
+		  #:arguments '((<raw-u8vector> vector)))
 
   ;; FIXME: We could (should?) also provide a port interface for streams just
   ;; like what `(gnome gnome-vfs)' does.

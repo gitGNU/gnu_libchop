@@ -180,8 +180,8 @@ main (int argc, char *argv[])
 
   stream1  = chop_class_alloca_instance (&chop_file_stream_class);
   stream2  = chop_class_alloca_instance (&chop_file_stream_class);
-  chopper1 = chop_class_alloca_instance (&chop_anchor_based_chopper_class);
-  chopper2 = chop_class_alloca_instance (&chop_anchor_based_chopper_class);
+  chopper1 = chop_class_alloca_instance ((chop_class_t *)&chop_anchor_based_chopper_class);
+  chopper2 = chop_class_alloca_instance ((chop_class_t *)&chop_anchor_based_chopper_class);
 
   err = chop_file_stream_open (argv[1], stream1);
   if (err)

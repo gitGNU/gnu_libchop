@@ -16,7 +16,7 @@ main (int argc, char *argv[])
   errcode_t err;
   chop_stream_t *stream;
   chop_block_store_t *store, *metastore;
-  chop_fixed_size_chopper_t chopper;
+  chop_chopper_t *chopper;
   chop_indexer_t *indexer;
   chop_buffer_t buffer;
   chop_index_handle_t *handle = NULL;
@@ -36,9 +36,11 @@ main (int argc, char *argv[])
     }
 
   block_size = chop_stream_preferred_block_size ((chop_stream_t *)&stream);
+  chopper = chop_class_alloca_instance ((chop_class_t *)
+					&chop_fixed_size_chopper_class);
   err = chop_fixed_size_chopper_init ((chop_stream_t *)&stream,
 				      block_size, 0 /* Don't pad blocks */,
-				      &chopper);
+				      chopper);
   if (err)
     {
       com_err (argv[0], err, "while initializing chopper");
@@ -63,8 +65,7 @@ main (int argc, char *argv[])
   chop_dummy_block_store_open ("meta", metastore);
 
   handle = chop_indexer_alloca_index_handle (indexer);
-  err = chop_indexer_index_blocks (indexer,
-				   (chop_chopper_t *)&chopper,
+  err = chop_indexer_index_blocks (indexer, chopper,
 				   store, metastore, handle);
   if ((err) && (err != CHOP_STREAM_END))
     {

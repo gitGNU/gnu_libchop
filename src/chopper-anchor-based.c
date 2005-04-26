@@ -38,7 +38,9 @@ typedef struct
 
 /* Declare `chop_anchor_based_chopper_t' which inherits from
    `chop_chopper_t'.  */
-CHOP_DECLARE_RT_CLASS (anchor_based_chopper, chopper,
+CHOP_DECLARE_RT_CLASS_WITH_METACLASS (anchor_based_chopper, chopper,
+				      chopper_class,
+
 		       /* Sliding widow size */
 		       size_t window_size;
 
@@ -68,9 +70,24 @@ CHOP_DECLARE_RT_CLASS (anchor_based_chopper, chopper,
 		       /* Message logging */
 		       chop_log_t log;);
 
-CHOP_DEFINE_RT_CLASS (anchor_based_chopper, chopper,
-		      NULL, NULL, /* No constructor/destructor */
-		      NULL, NULL  /* No serializer/deserializer */);
+/* A generic `open' method that chooses default values.  */
+static errcode_t
+ab_generic_open (chop_stream_t *input, chop_chopper_t *chopper)
+{
+  return (chop_anchor_based_chopper_init (input, 10 /* window size */,
+					  chopper));
+}
+
+static void anchor_based_ctor (chop_object_t *, const chop_class_t *);
+
+CHOP_DEFINE_RT_CLASS_WITH_METACLASS (anchor_based_chopper, chopper,
+				     chopper_class,  /* Metaclass */
+
+				     /* Metaclass inits */
+				     .generic_open = ab_generic_open,
+
+				     anchor_based_ctor, NULL,
+				     NULL, NULL  /* No serial/deserial */);
 
 
 /* These are the main parameters of the algorithm.  Here the `M' parameter
@@ -102,18 +119,20 @@ multiply_with_prime_to_the_ws (chop_anchor_based_chopper_t *anchor,
 			       char what)
 {
   fpr_t cached;
+  unsigned idx;
 
   if (what == '\0')
     return 0;
 
-  cached = anchor->product_cache[what];
+  idx = what;
+  cached = anchor->product_cache[idx];
   if (cached == 0)
     {
       /* Not computed yet: compute the result and cache it.  */
       fpr_t result = (fpr_t)what;
 
       result *= anchor->prime_to_the_ws;
-      anchor->product_cache[what] = result;
+      anchor->product_cache[idx] = result;
 
       return result;
     }
@@ -418,6 +437,23 @@ sliding_window_destroy (sliding_window_t *window)
 
 
 /* Initialization code.  */
+static void
+anchor_based_ctor (chop_object_t *object,
+		   const chop_class_t *class)
+{
+  chop_anchor_based_chopper_t *chopper =
+    (chop_anchor_based_chopper_t *)object;
+
+  chopper->chopper.stream = NULL;
+  chopper->chopper.read_block = chop_anchor_chopper_read_block;
+  chopper->chopper.typical_block_size = 0;
+  chopper->chopper.close = chop_anchor_chopper_close;
+
+  chopper->window_size = 0;
+  chopper->first = 1;
+  memset (&chopper->product_cache, 0, sizeof (chopper->product_cache));
+}
+
 errcode_t
 chop_anchor_based_chopper_init (chop_stream_t *input,
 				size_t window_size,
@@ -429,16 +465,11 @@ chop_anchor_based_chopper_init (chop_stream_t *input,
     (chop_anchor_based_chopper_t *)uchopper;
 
   chop_object_initialize ((chop_object_t *)chopper,
-			  &chop_anchor_based_chopper_class);
+			  (chop_class_t *)&chop_anchor_based_chopper_class);
 
   chopper->chopper.stream = input;
-  chopper->chopper.read_block = chop_anchor_chopper_read_block;
   chopper->chopper.typical_block_size = window_size; /* FIXME: ??? */
-  chopper->chopper.close = chop_anchor_chopper_close;
-
   chopper->window_size = window_size;
-  chopper->first = 1;
-  memset (&chopper->product_cache, 0, sizeof (chopper->product_cache));
 
   err = sliding_window_init (&chopper->sliding_window, window_size);
   if (err)
@@ -590,7 +621,7 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
 	      /* Clear WINDOW's contents.  */
 	      sliding_window_clear (window);
 
-	      if (!err)
+	      if ((!err) && (chop_buffer_size (buffer) == 0))
 		err = CHOP_STREAM_END;
 
 	      break;
@@ -642,7 +673,7 @@ chop_anchor_based_chopper_log (chop_chopper_t *chopper)
 
   /* Run-time overhead */
   if (chop_object_is_a ((chop_object_t *)chopper,
-			&chop_anchor_based_chopper_class))
+			(chop_class_t *)&chop_anchor_based_chopper_class))
     return (&anchor->log);
 
   return NULL;

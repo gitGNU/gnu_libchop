@@ -9,12 +9,10 @@
 #include <chop/serializable.h>
 #include <chop/logs.h>
 
-/* Note:  I should have a look at EDelta at some point,
-   http://www.diku.dk/~jacobg/edelta/ .  */
-
 
 /* Declare `chop_chopper_t' which inherits from `chop_object_t'.  */
 CHOP_DECLARE_RT_CLASS (chopper, object,
+
 		       chop_stream_t *stream;
 
 		       size_t typical_block_size;
@@ -23,17 +21,39 @@ CHOP_DECLARE_RT_CLASS (chopper, object,
 		       /* The CLOSE method is optional.  */
 		       void (* close) (struct chop_chopper *););
 
-/* Declare `chop_fixed_size_chopper_t' which inherits from
-   `chop_chopper_t'. */
-CHOP_DECLARE_RT_CLASS (fixed_size_chopper, chopper,
-		       size_t block_size;
-		       int pad_blocks;);
+/* The `chop_chopper_class_t' metaclass which provides a generic chopper
+   creation method (a "factory").  */
+CHOP_DECLARE_RT_CLASS (chopper_class, class,
+		       errcode_t (* generic_open) (chop_stream_t *,
+						   chop_chopper_t *););
 
-/* This class inherits from `chop_chopper_t'.  */
-extern const chop_class_t chop_anchor_based_chopper_class;
+/* These classes inherit from `chop_chopper_t'.  Both have
+   `chop_chopper_class_t' as their class.  */
+extern const chop_chopper_class_t chop_fixed_size_chopper_class;
+extern const chop_chopper_class_t chop_anchor_based_chopper_class;
 
 
 
+/* Note:  I should have a look at EDelta at some point,
+   http://www.diku.dk/~jacobg/edelta/ .  XXX */
+
+/* Initialize CHOPPER as an instance of the CLASS chopper class with input
+   stream INPUT.  The implementation of CLASS will choose default parameters
+   for the specific chopper implementation (class-specific initialization
+   methods are available below for fine-tuning of parameters).  Return zero
+   on success.  */
+static __inline__ errcode_t
+chop_chopper_generic_open (const chop_chopper_class_t *class,
+			   chop_stream_t *input,
+			   chop_chopper_t *chopper)
+{
+  if (class->generic_open)
+    return (class->generic_open (input, chopper));
+
+  return CHOP_ERR_NOT_IMPL;
+}
+
+
 /* Initialize CHOPPER as a fixed-size stream chopper.  It will read data from
    input stream INPUT and cut it into blocks of BLOCK_SIZE bytes.  If
    PAD_BLOCKS is non-zero, the last block before CHOP_STREAM_END will be
@@ -42,7 +62,7 @@ extern errcode_t
 chop_fixed_size_chopper_init (chop_stream_t *input,
 			      size_t block_size,
 			      int pad_blocks,
-			      chop_fixed_size_chopper_t *chopper);
+			      chop_chopper_t *chopper);
 
 /* Initialize CHOPPER as an anchor-based stream chopper.  It will read data
    from INPUT and produce variably sized blocks.  Anchor-based choppers

@@ -19,14 +19,8 @@ CHOP_DECLARE_RT_CLASS (stream, object,
 		       void (* close) (struct chop_stream *););
 
 
-/* File stream class that inherits from `chop_stream_t'.  This declares
-   CHOP_FILE_STREAM_CLASS, the object representing this class at
-   run-time.  */
-CHOP_DECLARE_RT_CLASS (file_stream, stream,
-		       int    fd;
-		       size_t size;
-		       char  *map;
-		       size_t position;);
+extern const chop_class_t chop_file_stream_class;
+extern const chop_class_t chop_mem_stream_class;
 
 
 
@@ -67,6 +61,13 @@ chop_stream_close (chop_stream_t *__stream)
    to hold an object whose class is CHOP_FILE_STREAM_CLASS.  */
 extern errcode_t chop_file_stream_open (const char *path,
 					chop_stream_t *stream);
+
+/* Open a memory-backed stream, i.e. a stream whose input is read from BASE
+   which is SIZE byte-long.  If FREE_FUNC is NULL, it is called upon closing
+   STREAM.  */
+extern void chop_mem_stream_open (const char *base, size_t size,
+				  void (* free_func) (void *),
+				  chop_stream_t *stream);
 
 #if 0   /* Not implemented yet */
 extern errcode_t chop_ext2_stream_open (const char *path,

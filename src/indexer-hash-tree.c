@@ -482,6 +482,9 @@ chop_hash_tree_indexer_open (chop_hash_method_t content_hash_method,
     /* FIXME:  Implement content-hash keys.  */
     return CHOP_ERR_NOT_IMPL;
 
+  chop_object_initialize ((chop_object_t *)indexer,
+			  &chop_hash_tree_indexer_class);
+
   htree = (chop_hash_tree_indexer_t *)indexer;
   err = chop_log_init ("hash-tree", &htree->log);
   if (err)

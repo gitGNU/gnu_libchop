@@ -138,7 +138,7 @@ chop_class_lookup (const char *name)
        classes that are not built-in.  */
     return NULL;
 
-  return (entry->class);
+  return ((chop_class_t *)entry->class);
 }
 
 #else
