@@ -130,3 +130,27 @@ chop_index_handle_ascii_serialize (const chop_index_handle_t *handle,
   return err;
 }
 
+static __inline__ errcode_t
+chop_index_handle_ascii_deserialize (chop_indexer_t *indexer,
+				     const char *ascii_handle,
+				     chop_index_handle_t **handle)
+{
+  errcode_t err;
+  const chop_class_t *handle_class;
+
+  handle_class = chop_indexer_index_handle_class (indexer);
+  *handle = malloc (chop_class_instance_size (handle_class));
+  if (!*handle)
+    return ENOMEM;
+
+  err = chop_object_deserialize (*handle, handle_class,
+				 CHOP_SERIAL_ASCII,
+				 ascii_handle, strlen (ascii_handle));
+  if (err)
+    {
+      free (*handle);
+      *handle = NULL;
+    }
+
+  return err;
+}

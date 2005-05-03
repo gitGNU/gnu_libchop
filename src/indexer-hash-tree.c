@@ -425,7 +425,8 @@ chop_block_tree_flush (key_block_tree_t *tree, chop_block_key_t *root_key)
 
   chop_log_printf (tree->log,
 		   "block_tree_flush: hash tree depth: %u\n", depth);
-  assert (last_depth == depth - 1);
+  if (depth)
+    assert (last_depth == depth - 1);
 
   return err;
 }

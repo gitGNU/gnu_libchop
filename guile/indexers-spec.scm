@@ -112,6 +112,14 @@
 		  #:arguments '((<index-handle> handle)
 				((mchars out caller-owned) serialized)))
 
+  (wrap-function! ws
+		  #:name 'index-handle-ascii-deserialize
+		  #:returns '<errcode>
+		  #:c-name "chop_index_handle_ascii_deserialize"
+		  #:arguments '((<indexer> indexer)
+				((mchars caller-owned) ascii-handle)
+				((<index-handle> out) handle)))
+
 
 )
 
