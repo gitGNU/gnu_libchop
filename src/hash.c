@@ -46,7 +46,6 @@ static _chop_hash_method_info hash_methods[] =
 #define VALID_HASH_METHOD(_method) \
   ((int)(_method) < HASH_METHOD_COUNT)
 
-
 
 size_t
 chop_hash_size (chop_hash_method_t method)
@@ -57,42 +56,11 @@ chop_hash_size (chop_hash_method_t method)
   return (hash_methods[(int)method].size);
 }
 
-const char *
-chop_hash_method_name (chop_hash_method_t method)
-{
-  if (!VALID_HASH_METHOD (method))
-    return NULL;
+#include "gcrypt-enum-mapping.h"
 
-  return (hash_methods[(int)method].name);
-}
+MAKE_ENUM_MAPPING_FUNCTIONS (hash_method, CHOP_HASH_SHA512,
+			     hash_methods, _chop_hash_method_info);
 
-int
-chop_hash_method_gcrypt_name (chop_hash_method_t method)
-{
-  if (!VALID_HASH_METHOD (method))
-    return 0;
-
-  return (hash_methods[(int)method].gcrypt_name);
-}
-
-errcode_t
-chop_hash_method_lookup (const char *name, chop_hash_method_t *method)
-{
-  const _chop_hash_method_info *p;
-  for (p = hash_methods; p->name != NULL; p++)
-    {
-      if (!strcasecmp (p->name, name))
-	break;
-    }
-
-  if (p->name)
-    {
-      *method = p->chop_name;
-      return 0;
-    }
-
-  return CHOP_ERR_NOT_FOUND;
-}
 
 void
 chop_hash_buffer (chop_hash_method_t method,

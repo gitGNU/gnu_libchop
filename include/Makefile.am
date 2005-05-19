@@ -7,6 +7,7 @@ include_HEADERS = chop/block-server.h		\
 		  chop/choppers.h		\
 		  chop/filters.h		\
 		  chop/hash.h			\
+		  chop/cipher.h			\
 		  chop/indexers.h		\
 		  chop/logs.h			\
 		  chop/serializable.h		\

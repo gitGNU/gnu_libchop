@@ -1,5 +1,6 @@
 BUILT_SOURCES = chop-errors.c
-EXTRA_DIST = filter-zip-push-pull.c store-generic-db.c extract-classes.sh
+EXTRA_DIST = filter-zip-push-pull.c store-generic-db.c \
+             extract-classes.sh gcrypt-enum-mapping.h
 
 lib_LTLIBRARIES = libchop.la libchop-block-server.la
 
@@ -11,6 +12,7 @@ libchop_la_SOURCES = chop.c chop-errors.c logs.c		\
 		     store-gdbm.c				\
 		     store-remote.c				\
 		     store-filtered.c				\
+		     cipher.c                                   \
 		     hash.c					\
 		     buffers.c					\
 		     indexer-hash-tree.c			\
