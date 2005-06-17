@@ -60,12 +60,15 @@ extern int chop_cipher_mode_gcrypt_name (chop_cipher_mode_t mode);
 extern errcode_t chop_cipher_mode_lookup (const char *name,
 					  chop_cipher_mode_t *mode);
 
+#define CHOP_CIPHER_HANDLE_NIL  ((void *)0)
 
 /* Return a handle to the ciphering algorithm represented by ALGO, in mode
    MODE, using the KEY_SIZE bytes pointed to by KEY as the ciphering key.  */ 
 extern chop_cipher_handle_t
-chop_cipher_open (chop_cipher_algo_t algo, chop_cipher_mode_t mode,
-		  void *key, size_t key_size);
+chop_cipher_open (chop_cipher_algo_t algo, chop_cipher_mode_t mode);
+
+extern void chop_cipher_set_key (chop_cipher_handle_t handle,
+				 void *key, size_t key_size);
 
 extern errcode_t (* chop_cipher_encrypt) (chop_cipher_handle_t handle,
 					  char *out, size_t out_size,

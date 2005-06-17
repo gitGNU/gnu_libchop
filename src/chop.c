@@ -120,7 +120,7 @@ chop_object_destroy (chop_object_t *object)
 
 /* Class definitions that are internal to `indexer-hash-tree.c' (FIXME).  */
 extern const chop_class_t chop_chk_index_handle_class,
-  chop_hash_tree_stream_class, chop_hash_index_handle_class;
+  chop_hash_tree_stream_class;
 
 /* Include the gperf-generated perfect hash table.  */
 #include "class-lookup.c"

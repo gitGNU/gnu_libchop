@@ -8,6 +8,7 @@
 #include <chop/stores.h>
 #include <chop/streams.h>
 #include <chop/serializable.h>
+#include <chop/cipher.h>
 
 /* Declare the (serializable) `chop_index_handle_t' class that inherits from
    `chop_object_t' and does not contain any additional field.  */
@@ -111,10 +112,14 @@ extern const chop_class_t chop_hash_tree_indexer_class;
    Block keys are then computed using KEY_HASH_METHOD.  KEYS_PER_BLOCK is the
    maximum number of block keys that should be stored in each key block (or
    "inode") when indexing streams.  HTREE must point to a memory region as
-   large as needed by instances of CHOP_HASH_TREE_INDEXER_CLASS.  */
+   large as needed by instances of CHOP_HASH_TREE_INDEXER_CLASS.
+   CIPHER_HANDLE may be either CHOP_CIPHER_HANDLE_NIL, in which case blocks
+   will not be ciphered, or an open cipher handle in which case it will be
+   used to cipher blocks individually.  */
 extern errcode_t
 chop_hash_tree_indexer_open (chop_hash_method_t content_hash_method,
 			     chop_hash_method_t key_hash_method,
+			     chop_cipher_handle_t cipher_handle,
 			     size_t keys_per_block,
 			     chop_indexer_t *htree);
 

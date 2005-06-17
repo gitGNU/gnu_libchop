@@ -1,3 +1,10 @@
+/* This file implements a "hash tree" data structures for encoding the
+   contents of a file.  This structure is also known as "Merkle's Hash
+   Trees", named after its original author [1].
+
+   [1]  Ralph C. Merkel, Protocols for Public Key Cryptosystems,
+        IEEE Symp. on Security and Privacy, pp. 122--134, 1980.  */
+
 #include <chop/chop.h>
 #include <chop/indexers.h>
 
@@ -25,10 +32,15 @@ CHOP_DEFINE_RT_CLASS (indexer, object,
 CHOP_DECLARE_RT_CLASS (hash_tree_indexer, indexer,
 
 		       /* Hash method and message digest size (in bytes) */
-		       chop_hash_method_t hash_method;
-		       int                gcrypt_hash_method;
+		       chop_hash_method_t block_id_hash_method;
+		       chop_hash_method_t hash_key_hash_method;
+		       int                g_block_id_hash_method;
+		       int                g_hash_key_hash_method;
 		       size_t             key_size;
 		       size_t             keys_per_block;
+
+		       /* Cipher handle */
+		       chop_cipher_handle_t cipher_handle;
 
 		       /* For debugging purposes */
 		       chop_log_t         log;);
@@ -44,17 +56,25 @@ CHOP_DEFINE_RT_CLASS (hash_tree_indexer, indexer,
 /* Declare `chop_chk_index_handle_t' that inherits from the
    `chop_index_handle_t' class.  */
 CHOP_DECLARE_RT_CLASS (chk_index_handle, index_handle,
-		       char hash_key[30];
-		       size_t hash_size;
+		       chop_hash_method_t block_id_hash_method;
 		       char block_id[30];
-		       size_t block_id_size;);
+		       size_t block_id_size;
 
+		       unsigned ciphered:1;
+
+		       /* relevant only if CIPHERED is 1 */
+		       chop_hash_method_t hash_key_hash_method;
+		       char hash_key[50];
+		       size_t hash_key_size;);
+
+#if 0
 /* Declare `chop_hash_index_handle' that inherits from the
    `chop_index_handle_t' class.  */
 CHOP_DECLARE_RT_CLASS (hash_index_handle, index_handle,
 		       chop_hash_method_t hash_method;
 		       size_t hash_size;
 		       char hash[30];);
+#endif
 
 
 
@@ -63,12 +83,12 @@ CHOP_DECLARE_RT_CLASS (hash_index_handle, index_handle,
 /* Serialize OBJECT (which is assumed to be a `chop_index_handle_t' object)
    into BUFFER according to METHOD.  */
 static errcode_t
-hash_index_handle_serialize (const chop_object_t *object,
-			     chop_serial_method_t method,
-			     chop_buffer_t *buffer)
+chk_index_handle_serialize (const chop_object_t *object,
+			    chop_serial_method_t method,
+			    chop_buffer_t *buffer)
 {
-  chop_hash_index_handle_t *handle =
-    (chop_hash_index_handle_t *)object;
+  chop_chk_index_handle_t *handle =
+    (chop_chk_index_handle_t *)object;
 
   switch (method)
     {
@@ -78,24 +98,52 @@ hash_index_handle_serialize (const chop_object_t *object,
 	   "SHA1:eabe1ca1f3c7ca148ce2fe5954f52ef9a0f0082a".  */
 	char *hex;
 	size_t hash_method_len;
-	const char *hash_method = chop_hash_method_name (handle->hash_method);
+	const char *hash_method;
+
+	hash_method = chop_hash_method_name (handle->block_id_hash_method);
 
 	hash_method_len = strlen (hash_method);
-	hex = alloca (hash_method_len + 1 + (handle->hash_size * 2) + 1);
+	hex = alloca (hash_method_len + 1 + (handle->block_id_size * 2) + 1);
 	memcpy (hex, hash_method, hash_method_len);
 	hex[hash_method_len] = ':';
-	chop_buffer_to_hex_string (handle->hash, handle->hash_size,
+	chop_buffer_to_hex_string (handle->block_id, handle->block_id_size,
 				   &hex[hash_method_len + 1]);
 
 	chop_buffer_push (buffer, hex, strlen (hex) + 1);
+
+	if (handle->ciphered)
+	  {
+	    hash_method = chop_hash_method_name (handle->hash_key_hash_method);
+	    hash_method_len = strlen (hash_method);
+	    hex = alloca (hash_method_len + 1 + (handle->block_id_size * 2) + 1);
+	    memcpy (hex, hash_method, hash_method_len);
+	    hex[hash_method_len] = ':';
+	    chop_buffer_to_hex_string (handle->hash_key, handle->hash_key_size,
+				       &hex[hash_method_len + 1]);
+
+	    chop_buffer_push (buffer, hex, strlen (hex) + 1);
+	  }
+
 	return 0;
       }
 
     case CHOP_SERIAL_BINARY:
       {
-	char hash_method = (char)handle->hash_method;
-	chop_buffer_push (buffer, &hash_method, 1);
-	chop_buffer_append (buffer, handle->hash, handle->hash_size);
+	unsigned char ciphered;
+	unsigned char hash_method = (unsigned char)handle->block_id_hash_method;
+
+	ciphered = (unsigned char)handle->ciphered;
+	chop_buffer_push (buffer, &ciphered, 1);
+	chop_buffer_append (buffer, &hash_method, 1);
+	chop_buffer_append (buffer, handle->block_id, handle->block_id_size);
+	if (handle->ciphered)
+	  {
+	    hash_method = (char)handle->hash_key_hash_method;
+	    chop_buffer_append (buffer, &hash_method, 1);
+	    chop_buffer_append (buffer,
+				handle->hash_key, handle->hash_key_size);
+	  }
+
 	return 0;
       }
 
@@ -106,58 +154,103 @@ hash_index_handle_serialize (const chop_object_t *object,
   return CHOP_ERR_NOT_IMPL;
 }
 
-static errcode_t
-hash_index_handle_deserialize (const char *buffer, size_t size,
-			       chop_serial_method_t method,
-			       chop_object_t *object)
+
+/* Return the size of a binary serialization of INDEX.  */
+static inline size_t
+chop_chk_index_handle_size (const chop_chk_index_handle_t *index)
+{
+  size_t size;
+
+  size = index->block_id_size;
+  if (index->ciphered)
+    size += index->hash_key_size;
+
+  return (size);
+}
+
+/* Read from BUFFER (SIZE-byte long) an ASCII serialization of a hash and
+   return its hash method in METHOD and its content in HASH.  Return in COUNT
+   the number of bytes read from BUFFER.  */
+static inline errcode_t
+read_ascii_hash (const char *buffer, size_t size,
+		 chop_hash_method_t *method, size_t *hash_size,
+		 char *hash, size_t *count)
 {
   errcode_t err;
-  chop_hash_index_handle_t *handle =
-    (chop_hash_index_handle_t *)object;
+  char *colon;
+  char *hash_name;
+  size_t hash_name_len;
+
+  if (size < 5)
+    return CHOP_DESERIAL_TOO_SHORT;
+
+  colon = strchr (buffer, ':');
+  if (!colon)
+    return CHOP_DESERIAL_CORRUPT_INPUT;
+
+  hash_name_len = colon - buffer;
+  hash_name = alloca (hash_name_len + 1);
+
+  memcpy (hash_name, buffer, hash_name_len);
+  hash_name[hash_name_len] = '\0';
+  err = chop_hash_method_lookup (hash_name, method);
+  if (err)
+    return CHOP_DESERIAL_CORRUPT_INPUT;
+
+  *hash_size = chop_hash_size (*method);
+
+  if (size < hash_name_len)
+    return CHOP_DESERIAL_TOO_SHORT;
+
+  chop_hex_string_to_buffer (buffer + hash_name_len + 1,
+			     *hash_size * 2,
+			     hash);
+
+  *count = hash_name_len + 1 + (*hash_size * 2);
+
+  return 0;
+}
+
+static errcode_t
+chk_index_handle_deserialize (const char *buffer, size_t size,
+			      chop_serial_method_t method,
+			      chop_object_t *object)
+{
+  errcode_t err;
+  chop_chk_index_handle_t *handle =
+    (chop_chk_index_handle_t *)object;
 
   switch (method)
     {
       case CHOP_SERIAL_ASCII:
 	{
-	  char *colon;
-	  char *hash_name;
-	  size_t hash_name_len;
+	  size_t offset = 0;
 
-	  if (size < 5)
-	    return CHOP_DESERIAL_TOO_SHORT;
+	  /* Read the block ID.  */
+	  err = read_ascii_hash (buffer, size,
+				 &handle->block_id_hash_method,
+				 &handle->block_id_size,
+				 handle->block_id,
+				 &offset);
+	  if ((!err) && (buffer[offset] == ','))
+	    {
+	      /* Read the hash key.  */
+	      err = read_ascii_hash (buffer + offset + 1,
+				     size - (offset + 1),
+				     &handle->hash_key_hash_method,
+				     &handle->hash_key_size,
+				     handle->hash_key,
+				     &offset);
+	    }
 
-	  colon = strchr (buffer, ':');
-	  if (!colon)
-	    return CHOP_DESERIAL_CORRUPT_INPUT;
-
-	  hash_name_len = colon - buffer;
-	  hash_name = alloca (hash_name_len + 1);
-	  if (!hash_name)
-	    return ENOMEM;
-
-	  memcpy (hash_name, buffer, hash_name_len);
-	  hash_name[hash_name_len] = '\0';
-	  err = chop_hash_method_lookup (hash_name, &handle->hash_method);
-	  if (err)
-	    return CHOP_DESERIAL_CORRUPT_INPUT;
-
-	  handle->hash_size = chop_hash_size (handle->hash_method);
-
-	  if (size < hash_name_len)
-	    return CHOP_DESERIAL_TOO_SHORT;
-
-	  chop_hex_string_to_buffer (buffer + hash_name_len + 1,
-				     size - hash_name_len -1,
-				     handle->hash);
-
-	  return 0;
+	  break;
 	}
 
     default:
       return CHOP_ERR_NOT_IMPL;
     }
 
-  return 0;
+  return err;
 }
 
 CHOP_DEFINE_RT_CLASS (index_handle, object,
@@ -166,12 +259,9 @@ CHOP_DEFINE_RT_CLASS (index_handle, object,
 
 CHOP_DEFINE_RT_CLASS (chk_index_handle, index_handle,
 		      NULL, NULL, /* No constructor/destructor */
-		      NULL, NULL  /* No serializer/deserializer */);
+		      chk_index_handle_serialize,
+		      chk_index_handle_deserialize);
 
-CHOP_DEFINE_RT_CLASS (hash_index_handle, index_handle,
-		      NULL, NULL, /* No constructor/destructor */
-		      hash_index_handle_serialize,
-		      hash_index_handle_deserialize);
 
 
 /* Internal data structures.  */
@@ -194,8 +284,16 @@ typedef struct key_block
   /* Depth of this block's subtree */
   size_t depth;
 
-  /* Hash method for key block keys */
-  int gcry_hash_method;
+  /* Hash method for key block keys (copied from its indexer) */
+  chop_hash_method_t block_id_hash_method;
+  chop_hash_method_t hash_key_hash_method;
+#if 0
+  int g_block_id_hash_method;
+  int g_hash_key_hash_method;
+#endif
+
+  /* If not NULL, the cipher handle to use when encrypting this block */
+  chop_cipher_handle_t cipher_handle;
 
   /* Pointer to the indexer's log (for debugging purposes) */
   chop_log_t *log;
@@ -212,7 +310,18 @@ typedef struct key_block_tree
 
   /* Key size and algorithm */
   size_t key_size;
-  int gcry_hash_method;
+  chop_hash_method_t block_id_hash_method;
+#if 0
+  int g_block_id_hash_method;
+  int g_hash_key_hash_method;
+#endif
+
+  /* The block ciphering algorithm, or NULL */
+  chop_cipher_handle_t cipher_handle;
+
+  /* Only relevant if CIPHER_HANDLE is not NULL:  method used to compute the
+     key when ciphering blocks.  */
+  chop_hash_method_t   hash_key_hash_method;
 
   /* Meta-data block store: the block store where key blocks are flushed */
   chop_block_store_t *metadata_store;
@@ -225,14 +334,19 @@ typedef struct key_block_tree
 /* Initialize key block tree TREE.  */
 static inline void
 chop_block_tree_init (key_block_tree_t *tree, size_t keys_per_block,
-		      int key_method, size_t key_size,
-		      chop_block_store_t *store, chop_log_t *log)
+		      chop_cipher_handle_t cipher_handle,
+		      chop_hash_method_t hash_key_hash_method,
+		      chop_hash_method_t block_id_hash_method,
+		      size_t key_size,
+		      chop_block_store_t *metadata_store, chop_log_t *log)
 {
   tree->current = NULL;
   tree->keys_per_block = keys_per_block;
   tree->key_size = key_size;
-  tree->gcry_hash_method = key_method;
-  tree->metadata_store = store;
+  tree->block_id_hash_method = block_id_hash_method;
+  tree->hash_key_hash_method = hash_key_hash_method;
+  tree->cipher_handle = cipher_handle;
+  tree->metadata_store = metadata_store;
   tree->log = log;
 }
 
@@ -255,15 +369,86 @@ chop_key_block_fill_header (key_block_t *block)
   assert (!depth);
 }
 
-/* Flush BLOCK to METADATA and return its key in KEY.  The memory used by
+/* Index and cipher (if needed) SIZE bytes starting at BUFFER, and store them
+   into STORE according to the block ID hash method described by the other
+   parameters: if CIPHER_HANDLE is not NULL, BUFFER will be encrypted using a
+   key given by applying HASH_KEY_HASH_METHOD to the cleartext;
+   BLOCK_ID_HASH_METHOD is the hash method used to compute the block ID.
+   Update INDEX with the index of the newly indexed block.  */
+static errcode_t
+chop_hash_tree_index_block (chop_cipher_handle_t cipher_handle,
+			    chop_hash_method_t hash_key_hash_method,
+			    chop_hash_method_t block_id_hash_method,
+			    chop_block_store_t *store,
+			    const char *buffer,
+			    size_t size,
+			    chop_chk_index_handle_t *index)
+{
+  errcode_t err = 0;
+  size_t hash_size;
+  char hash[60];
+  chop_block_key_t key;
+  char *block_content;
+  int g_hash_key_hash_method, g_block_id_hash_method;
+
+  if (cipher_handle)
+    {
+      /* Encrypt the block using its hash as a key.  */
+      int g_err;
+
+      g_hash_key_hash_method =
+	chop_hash_method_gcrypt_name (hash_key_hash_method);
+      hash_size = chop_hash_size (hash_key_hash_method);
+      gcry_md_hash_buffer (g_hash_key_hash_method,
+			   index->hash_key,
+			   buffer, size);
+
+      block_content = alloca (size);
+      gcry_cipher_setkey (cipher_handle, hash, hash_size);
+      g_err = gcry_cipher_encrypt (cipher_handle,
+				   block_content, size,
+				   buffer, size);
+
+      if (g_err)
+	err = CHOP_INVALID_ARG;  /* FIXME */
+
+      /* Set up the index for this block.  */
+      index->ciphered = 1;
+      index->hash_key_size = hash_size;
+    }
+  else
+    {
+      /* Leave the block unencrypted.  */
+      block_content = (char *)buffer;
+      index->ciphered = 0;
+    }
+
+  if (!err)
+    {
+      /* Compute the block key.  */
+      g_block_id_hash_method =
+	chop_hash_method_gcrypt_name (block_id_hash_method);
+      hash_size = chop_hash_size (block_id_hash_method);
+      gcry_md_hash_buffer (g_block_id_hash_method, index->block_id,
+			   block_content, size);
+      index->block_id_size = hash_size;
+
+      /* Write this key block to backing store.  */
+      chop_block_key_init (&key, index->block_id, hash_size, NULL, NULL);
+      err = chop_store_write_block (store, &key, block_content, size);
+    }
+
+  return err;
+}
+
+/* Flush BLOCK to METADATA and return its index in INDEX.  The memory used by
    BLOCK can now be reused.  */
 static errcode_t
 chop_key_block_flush (key_block_t *block, chop_block_store_t *metadata,
-		      chop_block_key_t *key)
+		      chop_chk_index_handle_t *index)
 {
   errcode_t err;
   size_t block_size;
-  char *hash = (char *)chop_block_key_buffer (key);
 
   chop_log_printf (block->log,
 		   "key_block_flush: block %p with %u keys being flushed "
@@ -275,19 +460,24 @@ chop_key_block_flush (key_block_t *block, chop_block_store_t *metadata,
   /* FIXME:  Maybe we should pad BLOCK->KEYS with zero and create fixed-size
      blocks.  */
   block_size = KEY_BLOCK_HEADER_SIZE + (block->key_count * block->key_size);
-  gcry_md_hash_buffer (block->gcry_hash_method, hash,
-		       block->keys, block_size);
 
-  /* Write this key block to backing store */
-  err = chop_store_write_block (metadata, key, block->keys, block_size);
-
-  return 0;
+  err = chop_hash_tree_index_block (block->cipher_handle,
+				    block->hash_key_hash_method,
+				    block->block_id_hash_method,
+				    metadata,
+				    block->keys, block_size,
+				    index);
+  return err;
 }
 
 /* Allocate and initialize a new key block and return it in BLOCK.  */
 static inline errcode_t
 chop_key_block_new (size_t keys_per_block,
-		    int hash_method, size_t key_size, chop_log_t *log,
+		    chop_cipher_handle_t cipher_handle,
+		    chop_hash_method_t hash_key_hash_method,
+		    chop_hash_method_t block_id_hash_method,
+		    size_t key_size,
+		    chop_log_t *log,
 		    key_block_t **block)
 {
   *block = (key_block_t *)malloc (sizeof (key_block_t));
@@ -306,18 +496,20 @@ chop_key_block_new (size_t keys_per_block,
   (*block)->depth = 0;
   (*block)->key_count = 0;
   (*block)->key_size = key_size;
-  (*block)->gcry_hash_method = hash_method;
+  (*block)->block_id_hash_method = block_id_hash_method;
+  (*block)->hash_key_hash_method = hash_key_hash_method;
+  (*block)->cipher_handle = cipher_handle;
   (*block)->log = log;
 
   return 0;
 }
 
-/* Append KEY to BLOCK which can contain at most KEYS_PER_BLOCK block keys.
+/* Append INDEX to BLOCK which can contain at most KEYS_PER_BLOCK block keys.
    When full, BLOCK is written to METADATA and its contents are reset.  */
 static errcode_t
-chop_key_block_add_key (key_block_t *block, size_t keys_per_block,
-			chop_block_store_t *metadata,
-			const chop_block_key_t *key)
+chop_key_block_add_index (key_block_t *block, size_t keys_per_block,
+			  chop_block_store_t *metadata,
+			  const chop_chk_index_handle_t *index)
 {
   errcode_t err;
   size_t offset;
@@ -329,19 +521,18 @@ chop_key_block_add_key (key_block_t *block, size_t keys_per_block,
 	 2.  add its key to its parent key block;
 	 3.  reset it and append KEY to it.  */
       key_block_t *parent = block->parent;
-      chop_block_key_t block_key;
-      char *key_buf = alloca (block->key_size);
-      if (!key_buf)
-	return ENOMEM;
+      chop_chk_index_handle_t block_index;
 
-      chop_block_key_init (&block_key, key_buf, block->key_size, NULL, NULL);
-      chop_key_block_flush (block, metadata, &block_key);
+      chop_key_block_flush (block, metadata, &block_index);
 
       if (!parent)
 	{
 	  /* BLOCK is orphan: create him a parent key block.  */
 	  err = chop_key_block_new (keys_per_block,
-				    block->gcry_hash_method, block->key_size,
+				    block->cipher_handle,
+				    block->hash_key_hash_method,
+				    block->block_id_hash_method,
+				    block->key_size,
 				    block->log, &parent);
 	  if (err)
 	    return err;
@@ -350,29 +541,39 @@ chop_key_block_add_key (key_block_t *block, size_t keys_per_block,
 	  block->parent = parent;
 	}
 
-      err = chop_key_block_add_key (parent, keys_per_block, metadata,
-				    &block_key);
+      err = chop_key_block_add_index (parent, keys_per_block, metadata,
+				      &block_index);
       if (err)
 	return err;
 
       block->key_count = 0;
     }
 
-  /* Append the content of KEY.  */
+  /* Append the content of INDEX (this is similar to its binary
+     serialization): the block ID first, and then its hash key (if any).  */
+  /* FIXME:  Should use the serialization method.  */
   offset = (block->key_size * block->key_count) + KEY_BLOCK_HEADER_SIZE;
-  assert (chop_block_key_size (key) == block->key_size);
+  assert (chop_chk_index_handle_size (index) == block->key_size);
   memcpy (&block->keys[offset],
-	  chop_block_key_buffer (key),
-	  block->key_size);
+	  index->block_id,
+	  index->block_id_size);
+  if (index->ciphered)
+    {
+      offset += index->block_id_size;
+      memcpy (&block->keys[offset],
+	      index->hash_key,
+	      index->hash_key_size);
+    }
+
   block->key_count++;
 
   return 0;
 }
 
-/* Append KEY to TREE.  */
+/* Append INDEX to TREE.  */
 static errcode_t
-chop_block_tree_add_key (key_block_tree_t *tree,
-			 const chop_block_key_t *key)
+chop_block_tree_add_index (key_block_tree_t *tree,
+			   const chop_chk_index_handle_t *index)
 {
   errcode_t err = 0;
   key_block_t *current;
@@ -381,7 +582,10 @@ chop_block_tree_add_key (key_block_tree_t *tree,
     {
       /* Allocate a new block tree */
       err = chop_key_block_new (tree->keys_per_block,
-				tree->gcry_hash_method, tree->key_size,
+				tree->cipher_handle,
+				tree->hash_key_hash_method,
+				tree->block_id_hash_method,
+				tree->key_size,
 				tree->log, &tree->current);
       if (err)
 	return err;
@@ -391,17 +595,18 @@ chop_block_tree_add_key (key_block_tree_t *tree,
 
   current = tree->current;
 
-  err = chop_key_block_add_key (current, tree->keys_per_block,
-				tree->metadata_store, key);
+  err = chop_key_block_add_index (current, tree->keys_per_block,
+				  tree->metadata_store, index);
 
   return err;
 }
 
 
 /* Flush all the pending key blocks of TREE and return the key of the
-   top-level key block in ROOT_KEY.  */
+   top-level key block in ROOT_INDEX.  */
 static errcode_t
-chop_block_tree_flush (key_block_tree_t *tree, chop_block_key_t *root_key)
+chop_block_tree_flush (key_block_tree_t *tree,
+		       chop_chk_index_handle_t *root_index)
 {
   errcode_t err = 0;
   key_block_t *block;
@@ -413,14 +618,14 @@ chop_block_tree_flush (key_block_tree_t *tree, chop_block_key_t *root_key)
     {
       depth++;
       last_depth = block->depth;
-      err = chop_key_block_flush (block, tree->metadata_store, root_key);
+      err = chop_key_block_flush (block, tree->metadata_store, root_index);
       if (err)
 	break;
 
       if (block->parent)
 	/* Add the key of the newly flushed block to its parent */
-	err = chop_key_block_add_key (block->parent, tree->keys_per_block,
-				      tree->metadata_store, root_key);
+	err = chop_key_block_add_index (block->parent, tree->keys_per_block,
+					tree->metadata_store, root_index);
     }
 
   chop_log_printf (tree->log,
@@ -473,15 +678,19 @@ extern const chop_class_t chop_hash_tree_stream_class;
 errcode_t
 chop_hash_tree_indexer_open (chop_hash_method_t content_hash_method,
 			     chop_hash_method_t key_hash_method,
+			     chop_cipher_handle_t cipher_handle,
 			     size_t keys_per_block,
 			     chop_indexer_t *indexer)
 {
   errcode_t err;
   chop_hash_tree_indexer_t *htree;
 
-  if (content_hash_method != CHOP_HASH_NONE)
-    /* FIXME:  Implement content-hash keys.  */
-    return CHOP_ERR_NOT_IMPL;
+  if (key_hash_method == CHOP_HASH_NONE)
+    return CHOP_INVALID_ARG;
+
+  if ((cipher_handle != NULL) && (content_hash_method == CHOP_HASH_NONE))
+    return CHOP_INVALID_ARG;
+
 
   chop_object_initialize ((chop_object_t *)indexer,
 			  &chop_hash_tree_indexer_class);
@@ -494,12 +703,18 @@ chop_hash_tree_indexer_open (chop_hash_method_t content_hash_method,
   htree->indexer.index_blocks = chop_hash_tree_index_blocks;
   htree->indexer.fetch_stream = chop_hash_tree_fetch_stream;
   htree->indexer.stream_class = &chop_hash_tree_stream_class;
-  htree->indexer.index_handle_class = &chop_hash_index_handle_class;
+  htree->indexer.index_handle_class = &chop_chk_index_handle_class;
 
-  htree->hash_method = key_hash_method;
-  htree->gcrypt_hash_method = chop_hash_method_gcrypt_name (key_hash_method);
+  htree->block_id_hash_method = key_hash_method;
+  htree->hash_key_hash_method = content_hash_method;
+  htree->g_block_id_hash_method = chop_hash_method_gcrypt_name (key_hash_method);
+  htree->g_hash_key_hash_method = chop_hash_method_gcrypt_name (content_hash_method);
   htree->key_size = chop_hash_size (key_hash_method);
+  if (cipher_handle != NULL)
+    htree->key_size += chop_hash_size (content_hash_method);
+
   htree->keys_per_block = keys_per_block;
+  htree->cipher_handle = cipher_handle;
 
 #if 0
 #define obstack_chunk_alloc malloc
@@ -526,25 +741,6 @@ chop_hash_tree_indexer_log (chop_indexer_t *indexer)
   return (&htree->log);
 }
 
-static errcode_t
-chop_hash_tree_index_block (chop_hash_tree_indexer_t *htree,
-			    chop_block_store_t *store,
-			    const char *buffer,
-			    size_t size,
-			    chop_block_key_t *key)
-{
-  errcode_t err;
-  char *hash = (char *)chop_block_key_buffer (key);
-
-  /* Compute this buffer's key */
-  gcry_md_hash_buffer (htree->gcrypt_hash_method, hash,
-		       buffer, size);
-
-  /* Store this block in the output block store */
-  err = chop_store_write_block (store, key, buffer, size);
-
-  return err;
-}
 
 static errcode_t
 chop_hash_tree_index_blocks (chop_indexer_t *indexer,
@@ -555,15 +751,18 @@ chop_hash_tree_index_blocks (chop_indexer_t *indexer,
 {
   errcode_t err = 0;
   chop_hash_tree_indexer_t *htree = (chop_hash_tree_indexer_t *)indexer;
+  chop_chk_index_handle_t *index = (chop_chk_index_handle_t *)handle;
   size_t amount;
   chop_buffer_t buffer;
   key_block_tree_t tree;
   chop_block_key_t key;
   char *key_buf = (char *)alloca (htree->key_size);
 
-
   chop_block_tree_init (&tree, htree->keys_per_block,
-			htree->gcrypt_hash_method, htree->key_size,
+			htree->cipher_handle,
+			htree->hash_key_hash_method,
+			htree->block_id_hash_method,
+			htree->key_size,
 			metadata, &htree->log);
   chop_block_key_init (&key, key_buf, htree->key_size, NULL, NULL);
 
@@ -571,6 +770,13 @@ chop_hash_tree_index_blocks (chop_indexer_t *indexer,
 			  chop_chopper_typical_block_size (input));
   if (err)
     return err;
+
+  /* Initialize INDEX.  */
+  chop_object_initialize ((chop_object_t *)index,
+			  &chop_chk_index_handle_class);
+  index->ciphered = (htree->cipher_handle == NULL) ? 0 : 1;
+  index->block_id_hash_method = htree->block_id_hash_method;
+  index->hash_key_hash_method = htree->hash_key_hash_method;
 
   /* Read blocks from INPUT until the underlying stream returns
      CHOP_STREAM_END.  Keep a copy of each block key.  */
@@ -584,34 +790,26 @@ chop_hash_tree_index_blocks (chop_indexer_t *indexer,
       if (!amount)
 	continue;
 
-      /* Store this block and get its key */
-      err = chop_hash_tree_index_block ((chop_hash_tree_indexer_t *)indexer,
+      /* Store this block and get its index */
+      err = chop_hash_tree_index_block (htree->cipher_handle,
+					htree->hash_key_hash_method,
+					htree->block_id_hash_method,
 					output,
 					chop_buffer_content (&buffer),
 					chop_buffer_size (&buffer),
-					&key);
+					index);
       if (err)
 	break;
 
       /* Add this block key to our block key tree */
-      chop_block_tree_add_key (&tree, &key);
+      chop_block_tree_add_index (&tree, index);
     }
 
   if (err == CHOP_STREAM_END)
     {
-      /* Initialize the (serializable) handle object.  */
-      size_t key_size = htree->key_size;
-      chop_hash_index_handle_t *hhandle = (chop_hash_index_handle_t *)handle;
-      chop_object_initialize ((chop_object_t *)handle,
-			      &chop_hash_index_handle_class);
-      hhandle->hash_size = key_size;
-      hhandle->hash_method = htree->hash_method;
-
-      /* Flush the key block tree and get its key */
-      chop_block_tree_flush (&tree, &key);
-
-      /* Copy the top-level key into the handle */
-      memcpy (hhandle->hash, chop_block_key_buffer (&key), key_size);
+      /* Flush the key block tree and get its key.  Here, we get the
+	 top-level index handle.  */
+      chop_block_tree_flush (&tree, index);
     }
 
   /* Free memory associated with TREE */
@@ -1028,7 +1226,7 @@ chop_decoded_block_tree_read (decoded_block_tree_t *tree,
   if (!tree->top_level)
     {
       /* Fetch the top-level key block (or "inode").  */
-      chop_hash_index_handle_t *hhandle;
+      chop_chk_index_handle_t *hhandle;
       chop_block_key_t key;
       char *key_buf = alloca (tree->key_size);
 
@@ -1037,10 +1235,10 @@ chop_decoded_block_tree_read (decoded_block_tree_t *tree,
 	return err;
 
       assert (chop_object_get_class ((chop_object_t *)tree->handle) ==
-	      &chop_hash_index_handle_class);  /* FIXME */
+	      &chop_chk_index_handle_class);  /* FIXME */
 
-      hhandle = (chop_hash_index_handle_t *)tree->handle;
-      memcpy (key_buf, hhandle->hash, tree->key_size);
+      hhandle = (chop_chk_index_handle_t *)tree->handle;
+      memcpy (key_buf, hhandle->block_id, tree->key_size);
       chop_block_key_init (&key, key_buf, tree->key_size, NULL, NULL);
 
       err = chop_decoded_block_fetch (tree->metadata_store, &key,

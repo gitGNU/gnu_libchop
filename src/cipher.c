@@ -76,9 +76,8 @@ MAKE_ENUM_MAPPING_FUNCTIONS (cipher_mode, CHOP_CIPHER_MODE_OFB,
 
 
 chop_cipher_handle_t
-chop_cipher_open (chop_cipher_algo_t algo, chop_cipher_mode_t mode,
+chop_cipher_open (chop_cipher_algo_t algo, chop_cipher_mode_t mode)
 		  /* We don't care about libgcrypt's FLAGS arg.  */
-		  void *key, size_t key_size)
 {
   GcryCipherHd handle;
 
@@ -88,11 +87,17 @@ chop_cipher_open (chop_cipher_algo_t algo, chop_cipher_mode_t mode,
   handle = gcry_cipher_open (cipher_algos[(int)algo].gcrypt_name,
 			     cipher_modes[(int)mode].gcrypt_name,
 			     0);
-  if (handle)
-    gcry_cipher_setkey (handle, key, key_size);
 
   return ((chop_cipher_handle_t)handle);
 }
+
+void
+chop_cipher_set_key (chop_cipher_handle_t handle,
+		     void *key, size_t key_size)
+{
+  gcry_cipher_setkey (handle, key, key_size);
+}
+
 
 /* Try to limit the overhead for the other functions...  */
 typedef errcode_t (* _crypt_func_t) (chop_cipher_handle_t,
@@ -105,3 +110,35 @@ _crypt_func_t chop_cipher_decrypt = (_crypt_func_t)gcry_cipher_decrypt;
 void (* chop_cipher_close) (chop_cipher_handle_t handle) =
   (void (*) (chop_cipher_handle_t)) gcry_cipher_close;
 
+
+
+#if 0
+errcode_t
+chop_cipher_hash_encrypt (chop_cipher_handle_t cipher_handle,
+			  chop_hash_method_t hash_method,
+			  char *hash_key,
+			  char *out, size_t out_size,
+			  const char *in, size_t in_size)
+{
+  int err;
+  size_t hash_size, key_size;
+
+  gcry_md_hash_buffer (chop_hash_method_gcrypt_name (hash_method),
+		       hash_key, in, in_size);
+
+  if (cipher_handle == CHOP_CIPHER_HANDLE_NIL)
+    return 0;
+
+  hash_size = chop_hash_size (hash_method);
+  gcry_cipher_setkey (cipher_handle, hash_key, hash_size);
+
+  err = gcry_cipher_encrypt (cipher_handle, out, out_size, in, in_size);
+  if (!err)
+    {
+      gcry_md_hash_buffer (chop_hash_method_gcrypt_name (hash_method),
+			   hash_key, out, in_size /* not a mistake */);
+    }
+
+  return (err ? CHOP_INVALID_ARG : 0);  /* FIXME */
+}
+#endif

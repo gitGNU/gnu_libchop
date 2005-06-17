@@ -65,6 +65,10 @@ static int use_zlib_filters = 0;
 /* The remote block store host name or NULL.  */
 static char *remote_hostname = NULL;
 
+/* The ciphering algorithm.  */
+static char *cipher_algo = NULL;
+
+
 #ifdef HAVE_GPERF
 static char *file_based_store_class_name = "gdbm_block_store";
 static char *chopper_class_name = "fixed_size_chopper";
@@ -79,6 +83,8 @@ static struct argp_option options[] =
     { "zip",     'z', 0, 0,
       "Pass data through a zlib filter to compress (resp. decompress) data "
       "when writing (resp. reading) to (resp. from) the archive" },
+    { "cipher",  'c', "ALGO", 0,
+      "Content-hash encrypt blocks using ALGO as the ciphering algorithm" },
     { "remote",  'R', "HOST", 0,
       "Use the remote block store located at HOST (using TCP) for both "
       "data and meta-data blocks" },
@@ -341,6 +347,29 @@ open_db_store (const chop_file_based_store_class_t *class,
   return err;
 }
 
+static chop_cipher_handle_t
+get_cipher_handle (const char *algoname)
+{
+  errcode_t err;
+  chop_cipher_algo_t algo;
+  chop_cipher_handle_t handle = CHOP_CIPHER_HANDLE_NIL;
+
+  err = chop_cipher_algo_lookup (algoname, &algo);
+  if (err)
+    com_err (program_name, err, "%s: unknown ciphering algorithm",
+	     algoname);
+  else
+    {
+      /* The MODE argument below was chosen arbitrarily.  */
+      handle = chop_cipher_open (algo, CHOP_CIPHER_MODE_ECB);
+      if (handle == CHOP_CIPHER_HANDLE_NIL)
+	com_err (program_name, CHOP_INVALID_ARG,
+		 "while opening cipher algorithm `%s'", algoname);
+    }
+
+  return handle;
+}
+
 
 /* Parse a single option. */
 static error_t
@@ -364,6 +393,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
       break;
     case 'z':
       use_zlib_filters = 1;
+      break;
+    case 'c':
+      cipher_algo = arg;
       break;
     case 'R':
       remote_hostname = arg;
@@ -394,6 +426,7 @@ main (int argc, char *argv[])
   chop_block_store_t *store, *metastore;
   chop_indexer_t *indexer;
   chop_filter_t *input_filter = NULL, *output_filter = NULL;
+  chop_cipher_handle_t cipher_handle = CHOP_CIPHER_HANDLE_NIL;
 
   program_name = argv[0];
 
@@ -407,8 +440,17 @@ main (int argc, char *argv[])
       return 1;
     }
 
+  if (cipher_algo)
+    {
+      cipher_handle = get_cipher_handle (cipher_algo);
+      if (cipher_handle == CHOP_CIPHER_HANDLE_NIL)
+	return 1;
+    }
+
   indexer = chop_class_alloca_instance (&chop_hash_tree_indexer_class);
-  err = chop_hash_tree_indexer_open (CHOP_HASH_NONE, CHOP_HASH_SHA1, 12,
+  err = chop_hash_tree_indexer_open (CHOP_HASH_SHA1, CHOP_HASH_SHA1,
+				     cipher_handle,
+				     12,
 				     indexer);
   if (err)
     {

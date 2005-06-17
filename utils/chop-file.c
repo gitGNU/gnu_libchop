@@ -48,7 +48,9 @@ main (int argc, char *argv[])
     }
 
   indexer = chop_class_alloca_instance (&chop_hash_tree_indexer_class);
-  err = chop_hash_tree_indexer_open (CHOP_HASH_NONE, CHOP_HASH_SHA1, 12,
+  err = chop_hash_tree_indexer_open (CHOP_HASH_NONE, CHOP_HASH_SHA1,
+				     CHOP_CIPHER_HANDLE_NIL,
+				     12,
 				     indexer);
   if (err)
     {
