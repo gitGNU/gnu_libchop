@@ -53,6 +53,8 @@ chop_filtered_block_store_read_block (chop_block_store_t *store,
 
   chop_buffer_return (&unfiltered);
 
+  *size = chop_buffer_size (buffer);
+
   return err;
 }
 

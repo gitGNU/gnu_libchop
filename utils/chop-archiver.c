@@ -360,7 +360,7 @@ get_cipher_handle (const char *algoname)
 	     algoname);
   else
     {
-      /* The MODE argument below was chosen arbitrarily.  */
+      /* The MODE argument below was chosen almost arbitrarily.  */
       handle = chop_cipher_open (algo, CHOP_CIPHER_MODE_ECB);
       if (handle == CHOP_CIPHER_HANDLE_NIL)
 	com_err (program_name, CHOP_INVALID_ARG,

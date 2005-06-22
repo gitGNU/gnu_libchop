@@ -34,8 +34,6 @@ CHOP_DECLARE_RT_CLASS (hash_tree_indexer, indexer,
 		       /* Hash method and message digest size (in bytes) */
 		       chop_hash_method_t block_id_hash_method;
 		       chop_hash_method_t hash_key_hash_method;
-		       int                g_block_id_hash_method;
-		       int                g_hash_key_hash_method;
 		       size_t             key_size;
 		       size_t             keys_per_block;
 
@@ -97,7 +95,7 @@ chk_index_handle_serialize (const chop_object_t *object,
 	/* Return something like
 	   "SHA1:eabe1ca1f3c7ca148ce2fe5954f52ef9a0f0082a".  */
 	char *hex;
-	size_t hash_method_len;
+	size_t hex_len, hash_method_len;
 	const char *hash_method;
 
 	hash_method = chop_hash_method_name (handle->block_id_hash_method);
@@ -108,8 +106,12 @@ chk_index_handle_serialize (const chop_object_t *object,
 	hex[hash_method_len] = ':';
 	chop_buffer_to_hex_string (handle->block_id, handle->block_id_size,
 				   &hex[hash_method_len + 1]);
+	hex_len = strlen (hex);
+	if (handle->ciphered)
+	  /* Replace the terminating zero with a comma.  */
+	  hex[hex_len] = ',';
 
-	chop_buffer_push (buffer, hex, strlen (hex) + 1);
+	chop_buffer_push (buffer, hex, hex_len + 1);
 
 	if (handle->ciphered)
 	  {
@@ -121,7 +123,7 @@ chk_index_handle_serialize (const chop_object_t *object,
 	    chop_buffer_to_hex_string (handle->hash_key, handle->hash_key_size,
 				       &hex[hash_method_len + 1]);
 
-	    chop_buffer_push (buffer, hex, strlen (hex) + 1);
+	    chop_buffer_append (buffer, hex, strlen (hex) + 1);
 	  }
 
 	return 0;
@@ -241,7 +243,10 @@ chk_index_handle_deserialize (const char *buffer, size_t size,
 				     &handle->hash_key_size,
 				     handle->hash_key,
 				     &offset);
+	      handle->ciphered = 1;
 	    }
+	  else
+	    handle->ciphered = 0;
 
 	  break;
 	}
@@ -276,7 +281,9 @@ typedef struct key_block
   /* KEY_COUNT concatenated block keys, each of which should be KEY_SIZE
      long.  This contains a header which is KEY_BLOCK_HEADER_SIZE bytes
      long.  */
-#define KEY_BLOCK_HEADER_SIZE  (8)
+#define KEY_BLOCK_HEADER_SIZE  (10)
+#define KEY_BLOCK_MAGIC_1      'H'
+#define KEY_BLOCK_MAGIC_2      'T'
   char *keys;
   size_t key_count;
   size_t key_size;
@@ -287,10 +294,6 @@ typedef struct key_block
   /* Hash method for key block keys (copied from its indexer) */
   chop_hash_method_t block_id_hash_method;
   chop_hash_method_t hash_key_hash_method;
-#if 0
-  int g_block_id_hash_method;
-  int g_hash_key_hash_method;
-#endif
 
   /* If not NULL, the cipher handle to use when encrypting this block */
   chop_cipher_handle_t cipher_handle;
@@ -331,6 +334,10 @@ typedef struct key_block_tree
 } key_block_tree_t;
 
 
+/* A vector of zeros.  */
+static char zero_vector[4000] = { 0, };
+
+
 /* Initialize key block tree TREE.  */
 static inline void
 chop_block_tree_init (key_block_tree_t *tree, size_t keys_per_block,
@@ -355,17 +362,21 @@ chop_block_tree_init (key_block_tree_t *tree, size_t keys_per_block,
 static inline void
 chop_key_block_fill_header (key_block_t *block)
 {
+  unsigned char *header = (unsigned char *)block->keys;
   size_t count = block->key_count;
   size_t depth = block->depth;
 
-  block->keys[0] = (count & 0xff);  count >>= 8;
-  block->keys[1] = (count & 0xff);  count >>= 8;
-  block->keys[2] = (count & 0xff);  count >>= 8;
-  block->keys[3] = (count & 0xff);  count >>= 8;
+  *(header++) = KEY_BLOCK_MAGIC_1;
+  *(header++) = KEY_BLOCK_MAGIC_2;
+
+  *(header++) = (count & 0xff);  count >>= 8;
+  *(header++) = (count & 0xff);  count >>= 8;
+  *(header++) = (count & 0xff);  count >>= 8;
+  *(header++) = (count & 0xff);  count >>= 8;
   assert (!count);
 
-  block->keys[4] = (depth & 0xff);  depth >>= 8;
-  block->keys[5] = (depth & 0xff);  depth >>= 8;
+  *(header++) = (depth & 0xff);  depth >>= 8;
+  *(header++) = (depth & 0xff);  depth >>= 8;
   assert (!depth);
 }
 
@@ -386,7 +397,6 @@ chop_hash_tree_index_block (chop_cipher_handle_t cipher_handle,
 {
   errcode_t err = 0;
   size_t hash_size;
-  char hash[60];
   chop_block_key_t key;
   char *block_content;
   int g_hash_key_hash_method, g_block_id_hash_method;
@@ -394,7 +404,14 @@ chop_hash_tree_index_block (chop_cipher_handle_t cipher_handle,
   if (cipher_handle)
     {
       /* Encrypt the block using its hash as a key.  */
-      int g_err;
+      gcry_error_t gerr;
+      size_t block_size, padding_size;
+      chop_cipher_algo_t algo;
+
+      algo = chop_cipher_algorithm (cipher_handle);
+      block_size = chop_cipher_algo_block_size (algo);
+      assert (block_size > 0);
+      printf ("block_size: %u\n", block_size);
 
       g_hash_key_hash_method =
 	chop_hash_method_gcrypt_name (hash_key_hash_method);
@@ -403,13 +420,46 @@ chop_hash_tree_index_block (chop_cipher_handle_t cipher_handle,
 			   index->hash_key,
 			   buffer, size);
 
-      block_content = alloca (size);
-      gcry_cipher_setkey (cipher_handle, hash, hash_size);
-      g_err = gcry_cipher_encrypt (cipher_handle,
-				   block_content, size,
-				   buffer, size);
+      {
+	char *hash_key_hex = alloca (hash_size * 2 + 1);
 
-      if (g_err)
+	chop_buffer_to_hex_string (index->hash_key, hash_size,
+				   hash_key_hex);
+	printf ("block: using hash key %s\n",
+		hash_key_hex);
+      }
+
+      padding_size = (size % block_size)
+	? (block_size - (size % block_size)) : 0;
+      block_content = alloca (size + padding_size);
+      if (padding_size)
+	{
+	  /* Pad with zeros -- FIXME: Store the actual size somewhere */
+	  memset (block_content + size, 0, padding_size);
+	  size += padding_size;
+	}
+
+      /* FIXME: An SHA1 hash is 20-byte long while a gcrypt's Blowfish
+	 implementation requires 16-byte keys, which makes the following
+	 assertion relevant.  It may not be the case with other
+	 algorithms...  */
+      assert (chop_cipher_algo_key_size (algo) <= hash_size);
+
+      /* Provide exactly the right key size.  */
+      gerr = chop_cipher_set_key (cipher_handle, index->hash_key,
+				  chop_cipher_algo_key_size (algo));
+#if 0
+      if (!gerr)
+	gerr = chop_cipher_set_iv (cipher_handle, zero_vector,
+				   block_size);
+#endif
+
+      if (!gerr)
+	gerr = chop_cipher_encrypt (cipher_handle,
+				    block_content, size,
+				    buffer, size);
+
+      if (gerr)
 	err = CHOP_INVALID_ARG;  /* FIXME */
 
       /* Set up the index for this block.  */
@@ -421,6 +471,7 @@ chop_hash_tree_index_block (chop_cipher_handle_t cipher_handle,
       /* Leave the block unencrypted.  */
       block_content = (char *)buffer;
       index->ciphered = 0;
+      index->hash_key_size = 0;
     }
 
   if (!err)
@@ -523,7 +574,9 @@ chop_key_block_add_index (key_block_t *block, size_t keys_per_block,
       key_block_t *parent = block->parent;
       chop_chk_index_handle_t block_index;
 
-      chop_key_block_flush (block, metadata, &block_index);
+      err = chop_key_block_flush (block, metadata, &block_index);
+      if (err)
+	return err;
 
       if (!parent)
 	{
@@ -628,8 +681,14 @@ chop_block_tree_flush (key_block_tree_t *tree,
 					tree->metadata_store, root_index);
     }
 
-  chop_log_printf (tree->log,
-		   "block_tree_flush: hash tree depth: %u\n", depth);
+  if (!err)
+    chop_log_printf (tree->log,
+		     "block_tree_flush: hash tree depth: %u\n", depth);
+  else
+    chop_log_printf (tree->log,
+		     "block_tree_flush: failed: %s\n",
+		     error_message (err));
+
   if (depth)
     assert (last_depth == depth - 1);
 
@@ -652,6 +711,7 @@ chop_block_tree_free (key_block_tree_t *tree)
 
 
 /* Implementation of the indexer interface.  */
+
 
 static errcode_t
 chop_hash_tree_index_blocks (chop_indexer_t *indexer,
@@ -707,8 +767,7 @@ chop_hash_tree_indexer_open (chop_hash_method_t content_hash_method,
 
   htree->block_id_hash_method = key_hash_method;
   htree->hash_key_hash_method = content_hash_method;
-  htree->g_block_id_hash_method = chop_hash_method_gcrypt_name (key_hash_method);
-  htree->g_hash_key_hash_method = chop_hash_method_gcrypt_name (content_hash_method);
+
   htree->key_size = chop_hash_size (key_hash_method);
   if (cipher_handle != NULL)
     htree->key_size += chop_hash_size (content_hash_method);
@@ -806,11 +865,9 @@ chop_hash_tree_index_blocks (chop_indexer_t *indexer,
     }
 
   if (err == CHOP_STREAM_END)
-    {
-      /* Flush the key block tree and get its key.  Here, we get the
-	 top-level index handle.  */
-      chop_block_tree_flush (&tree, index);
-    }
+    /* Flush the key block tree and get its key.  Here, we get the
+       top-level index handle.  */
+    err = chop_block_tree_flush (&tree, index);
 
   /* Free memory associated with TREE */
   chop_block_tree_free (&tree);
@@ -838,12 +895,16 @@ typedef struct decoded_block
      starting from the lowest key blocks (data blocks being bottommost).  */
   size_t depth;
 
-  /* If this is a key block, this is the number of children it has.  */
+  /* If this is a key block, this is the total number of children it has.  */
   size_t key_count;
 
   /* If this is a key block, this points to its current child.  We don't keep
      all blocks in memory.  */
   struct decoded_block *current_child;
+
+  /* If this is a key block, this is the number of CURRENT_CHILD, i.e. an
+     integer between zero and KEY_COUNT.  */
+  size_t current_child_number;
 
   /* The parent block */
   struct decoded_block *parent;
@@ -856,16 +917,33 @@ typedef struct decoded_block
   chop_log_t *log;
 } decoded_block_t;
 
+typedef struct ciphering_context
+{
+  /* May be CHOP_CIPHER_HANDLE_NIL, in which case no decryption will take
+     place and the `hash_key*' fields will simply be ignored.  */
+  chop_cipher_handle_t cipher_handle;
+
+  chop_hash_method_t block_id_hash_method;
+  chop_hash_method_t hash_key_hash_method;
+  size_t block_id_size;
+  size_t hash_key_size;
+
+  size_t index_size;  /* The total index size */
+} ciphering_context_t;
+
 typedef struct decoded_block_tree
 {
   chop_block_store_t *data_store;
   chop_block_store_t *metadata_store;
-  chop_index_handle_t *handle;
+  chop_chk_index_handle_t *index;
+
+  ciphering_context_t ciphering_context;
+
   decoded_block_t *top_level;
   size_t current_offset;
-  size_t key_size;
   chop_log_t *log;
 } decoded_block_tree_t;
+
 
 
 
@@ -875,12 +953,31 @@ CHOP_DECLARE_RT_CLASS (hash_tree_stream, stream,
 		       decoded_block_tree_t tree;
 		       chop_log_t log;);
 
+
+/* Initialize INDEX as an instance of CHOP_CHK_INDEX_HANDLE_CLASS, based on
+   the information in CONTEXT.  */
+static inline void
+chk_index_initialize_from_context (chop_chk_index_handle_t *index,
+				   const ciphering_context_t *context)
+{
+  chop_object_initialize ((chop_object_t *)index,
+			  &chop_chk_index_handle_class);
+
+  index->ciphered = (context->cipher_handle) ? 1 : 0;
+  index->block_id_hash_method = context->block_id_hash_method;
+  index->hash_key_hash_method = context->hash_key_hash_method;
+  index->block_id_size = context->block_id_size;
+  index->hash_key_size = context->hash_key_size;
+}
+
 static inline void
 chop_decoded_block_tree_init (decoded_block_tree_t *tree,
 			      chop_block_store_t *data_store,
 			      chop_block_store_t *metadata_store,
 			      const chop_index_handle_t *handle,
-			      size_t key_size,
+			      chop_cipher_handle_t cipher_handle,
+			      chop_hash_method_t block_id_hash_method,
+			      chop_hash_method_t hash_key_hash_method,
 			      chop_log_t *log)
 {
   const chop_class_t *handle_class =
@@ -888,12 +985,25 @@ chop_decoded_block_tree_init (decoded_block_tree_t *tree,
 
   tree->data_store = data_store;
   tree->metadata_store = metadata_store;
-  tree->handle = malloc (chop_class_instance_size (handle_class));
-  assert (tree->handle);  /* XXX: This is bad */
-  memcpy (tree->handle, handle, chop_class_instance_size (handle_class));
+  tree->index = malloc (chop_class_instance_size (handle_class));
+  assert (tree->index);  /* XXX: This is bad */
+  memcpy (tree->index, handle, chop_class_instance_size (handle_class));
   tree->top_level = NULL;
   tree->current_offset = 0;
-  tree->key_size = key_size;
+
+  tree->ciphering_context.cipher_handle = cipher_handle;
+  tree->ciphering_context.block_id_hash_method = block_id_hash_method;
+  tree->ciphering_context.hash_key_hash_method = hash_key_hash_method;
+  tree->ciphering_context.block_id_size =
+    chop_hash_size (block_id_hash_method);
+  tree->ciphering_context.hash_key_size =
+    chop_hash_size (hash_key_hash_method);
+
+  tree->ciphering_context.index_size =
+    chop_hash_size (block_id_hash_method);
+  if (cipher_handle)
+    tree->ciphering_context.index_size +=
+      chop_hash_size (hash_key_hash_method);
 
   tree->log = log;
 }
@@ -907,7 +1017,7 @@ hash_tree_stream_init (chop_object_t *object, const chop_class_t *class)
   stream->stream.read = hash_tree_stream_read;
   stream->stream.close = hash_tree_stream_close;
 
-  stream->tree.handle = NULL;
+  stream->tree.index = NULL;
 
   chop_log_init ("hash-tree-stream", &stream->log);
 }
@@ -934,6 +1044,11 @@ chop_hash_tree_fetch_stream (struct chop_indexer *indexer,
   chop_index_handle_t *handle_copy;
   chop_hash_tree_indexer_t *htree = (chop_hash_tree_indexer_t *)indexer;
 
+  /* Make sure HANDLE is something familiar.  */
+  if (!chop_object_is_a ((chop_object_t *)handle,
+			 &chop_chk_index_handle_class))
+    return CHOP_INVALID_ARG;
+
   /* OUTPUT is assumed to be as large as `chop_hash_tree_stream_t' */
   chop_object_initialize ((chop_object_t *)output,
 			  &chop_hash_tree_stream_class);
@@ -947,7 +1062,11 @@ chop_hash_tree_fetch_stream (struct chop_indexer *indexer,
   memcpy (handle_copy, handle, chop_class_instance_size (handle_class));
 
   chop_decoded_block_tree_init (&tstream->tree, input, metadata,
-				handle, htree->key_size, &htree->log);
+				handle,
+				htree->cipher_handle,
+				htree->block_id_hash_method,
+				htree->hash_key_hash_method,
+				&htree->log);
 
   /* Initialize the log (for debugging purposes) */
   err = chop_log_init ("hash-tree-stream", &tstream->log);
@@ -969,18 +1088,34 @@ chop_hash_tree_fetch_stream (struct chop_indexer *indexer,
 static inline void
 chop_decoded_block_decode_header (decoded_block_t *block)
 {
-  const char *buffer = chop_buffer_content (&block->buffer);
+  char magic[2];
+  const unsigned char *buffer = chop_buffer_content (&block->buffer);
   assert (block->is_key_block);
 
-  block->key_count  = ((size_t)*(buffer++));
-  block->key_count |= ((size_t)*(buffer++)) <<  8;
-  block->key_count |= ((size_t)*(buffer++)) << 16;
-  block->key_count |= ((size_t)*(buffer++)) << 24;
+  magic[0] = *(buffer++);
+  magic[1] = *(buffer++);
 
-  block->depth  = ((size_t)*(buffer++));
-  block->depth |= ((size_t)*(buffer++)) << 8;
+  if ((magic[0] != KEY_BLOCK_MAGIC_1) || (magic[1] != KEY_BLOCK_MAGIC_2))
+    {
+      chop_log_printf (block->log,
+		       "invalid key block magic numbers: 0x%02x%02x",
+		       magic[0], magic[1]);
+      /* FIXME:  Should return an error */
+      block->current_child_number = block->key_count = block->depth = 0;
+    }
+  else
+    {
+      block->key_count  = ((size_t)*(buffer++));
+      block->key_count |= ((size_t)*(buffer++)) <<  8;
+      block->key_count |= ((size_t)*(buffer++)) << 16;
+      block->key_count |= ((size_t)*(buffer++)) << 24;
+
+      block->depth  = ((size_t)*(buffer++));
+      block->depth |= ((size_t)*(buffer++)) << 8;
+    }
 
   block->offset = KEY_BLOCK_HEADER_SIZE;
+  block->current_child_number = 0;
 
   chop_log_printf (block->log, "decoded block: keys=%u, depth=%u",
 		   block->key_count, block->depth);
@@ -1009,25 +1144,89 @@ chop_decoded_block_new (decoded_block_t **block, chop_log_t *log)
 #define CHILDREN_ARE_KEY_BLOCKS(_block) \
   (((_block)->is_key_block && ((_block)->depth > 0)) ? 1 : 0)
 
-/* Fetch block with key KEY from STORE and update BLOCK accordingly.  PARENT,
-   if not NULL, is assumed to be the parent of the block being fetched.  */
+/* Fetch block with index INDEX from STORE and update BLOCK accordingly.
+   PARENT, if not NULL, is assumed to be the parent of the block being
+   fetched.  */
 static inline errcode_t
 chop_decoded_block_fetch (chop_block_store_t *store,
-			  const chop_block_key_t *key,
+			  const chop_chk_index_handle_t *index,
+			  const ciphering_context_t *ciphering_context,
 			  decoded_block_t *parent, decoded_block_t *block)
 {
   errcode_t err;
-  size_t read;
+  size_t block_size;
   int is_key_block;
+  chop_block_key_t key;
 
   if (parent)
     is_key_block = CHILDREN_ARE_KEY_BLOCKS (parent);
   else
     is_key_block = 1;
 
-  err = chop_store_read_block (store, key, &block->buffer, &read);
+  chop_block_key_init (&key, index->block_id, index->block_id_size,
+		       NULL, NULL);
+
+  err = chop_store_read_block (store, &key, &block->buffer, &block_size);
   if ((err) && (err != ENOMEM))
-    return err;  /* FIXME:  Free things */
+    {
+      chop_buffer_return (&block->buffer);
+      return err;
+    }
+
+  if (index->ciphered)
+    {
+      /* Decrypt BLOCK's content using its hash key and the specified
+	 ciphering algorithm.  */
+      gcry_error_t gerr;
+      chop_cipher_handle_t cipher_handle;
+      chop_cipher_algo_t cipher_algo;
+
+      {
+	char *hash_key_hex = alloca (index->hash_key_size * 2 + 1);
+
+	chop_buffer_to_hex_string (index->hash_key, index->hash_key_size,
+				   hash_key_hex);
+	chop_log_printf (block->log, "block: using hash key %s",
+			 hash_key_hex);
+      }
+
+      cipher_handle = ciphering_context->cipher_handle;
+      assert (cipher_handle != CHOP_CIPHER_HANDLE_NIL);
+      cipher_algo = chop_cipher_algorithm (cipher_handle);
+      /* FIXME: An SHA1 hash is 20-byte long while a gcrypt's Blowfish
+	 implementation requires 16-byte keys, which makes the following
+	 assertion relevant.  It may not be the case with other
+	 algorithms...  */
+      assert (chop_cipher_algo_key_size (cipher_algo) <= index->hash_key_size);
+
+      /* Provide exactly the right key size.  */
+      gerr = chop_cipher_set_key (cipher_handle,
+				  index->hash_key,
+				  chop_cipher_algo_key_size (cipher_algo));
+#if 0
+      if (!gerr)
+	gerr = chop_cipher_set_iv (cipher_handle, zero_vector,
+				   chop_cipher_algo_block_size
+				   (chop_cipher_algorithm (cipher_handle)));
+#endif
+
+      if (!gerr)
+	gerr = chop_cipher_decrypt (cipher_handle,
+				    (char *)chop_buffer_content (&block->buffer),
+				    block_size,
+				    NULL, 0 /* in-place decryption */);
+
+      if (gerr)
+	{
+	  char *block_id;
+	  block_id = alloca (index->block_id_size * 2 + 1);
+	  chop_buffer_to_hex_string (index->block_id, index->block_id_size,
+				     block_id);
+	  chop_log_printf (block->log, "block `%s': decryption error: %s",
+			   block_id, gcry_strerror (gerr));
+	  return CHOP_INVALID_ARG;  /* XXX:  Not the most suitable error */
+	}
+    }
 
   block->is_key_block = is_key_block;
   block->offset = 0;
@@ -1050,7 +1249,8 @@ chop_decoded_block_fetch (chop_block_store_t *store,
    parents.  However, no new block object is allocated: they are simply
    reused.  */
 static errcode_t
-chop_decoded_block_next_child (decoded_block_t *block, size_t key_size,
+chop_decoded_block_next_child (decoded_block_t *block,
+			       const ciphering_context_t *ciphering_context,
 			       chop_block_store_t *metadata_store,
 			       chop_block_store_t *data_store)
 {
@@ -1058,7 +1258,8 @@ chop_decoded_block_next_child (decoded_block_t *block, size_t key_size,
   chop_log_t *log = block->log;
 
  start:
-  if (block->offset >= chop_buffer_size (&block->buffer))
+  if ((block->current_child_number >= block->key_count)
+      || (block->offset >= chop_buffer_size (&block->buffer)))
     {
       /* We're done with this block so let's reuse it with the next block */
       if (!block->parent)
@@ -1073,7 +1274,8 @@ chop_decoded_block_next_child (decoded_block_t *block, size_t key_size,
 	{
 	  /* Propagate this request to BLOCK's parent */
 	  decoded_block_t *parent = block->parent;
-	  err = chop_decoded_block_next_child (block->parent, key_size,
+	  err = chop_decoded_block_next_child (block->parent,
+					       ciphering_context,
 					       metadata_store, data_store);
 	  if (err)
 	    return err;
@@ -1092,17 +1294,32 @@ chop_decoded_block_next_child (decoded_block_t *block, size_t key_size,
     }
   else
     {
-      /* Update BLOCK's CURRENT_CHILD pointer */
-      chop_block_key_t key;
+      /* Read a block index and update BLOCK's CURRENT_CHILD pointer.  */
+      size_t index_size;
       chop_block_store_t *the_store;
-      char *pos, *key_buf = alloca (key_size);
+      chop_chk_index_handle_t index;
+      char *pos;
 
       pos = (char *)chop_buffer_content (&block->buffer) + block->offset;
 
-      assert (block->offset + key_size <= chop_buffer_size (&block->buffer));
-      memcpy (key_buf, pos, key_size);
-      block->offset += key_size;
-      chop_block_key_init (&key, key_buf, key_size, NULL, NULL);
+      /* Sanity check:  do we have a complete index available?  */
+      index_size = ciphering_context->index_size;
+      assert (block->offset + index_size <= chop_buffer_size (&block->buffer));
+
+      chk_index_initialize_from_context (&index, ciphering_context);
+
+      /* FIXME:  We should use the serialization method.  */
+      memcpy (index.block_id, pos,
+	      ciphering_context->block_id_size);
+      block->offset += ciphering_context->block_id_size;
+      pos += ciphering_context->block_id_size;
+      if (index.ciphered)
+	{
+	  /* INDEX points to an encrypted block.  */
+	  memcpy (index.hash_key, pos,
+		  ciphering_context->hash_key_size);
+	  block->offset += ciphering_context->hash_key_size;
+	}
 
       if (!block->current_child)
 	{
@@ -1119,10 +1336,13 @@ chop_decoded_block_next_child (decoded_block_t *block, size_t key_size,
 
       chop_log_printf (log, "fetching new child block (current depth: %u)",
 		       block->is_key_block ? block->depth : 0);
-      err = chop_decoded_block_fetch (the_store, &key,
+      err = chop_decoded_block_fetch (the_store, &index,
+				      ciphering_context,
 				      block, block->current_child);
       if (err)
 	return err;
+
+      block->current_child_number++;
     }
 
   return 0;
@@ -1138,7 +1358,7 @@ static errcode_t
 chop_decoded_block_read (decoded_block_t *block,
 			 chop_block_store_t *metadata_store,
 			 chop_block_store_t *data_store,
-			 size_t key_size,
+			 const ciphering_context_t *ciphering_context,
 			 char *buffer, size_t size, size_t *read)
 {
   errcode_t err = 0;
@@ -1149,7 +1369,7 @@ chop_decoded_block_read (decoded_block_t *block,
       if (!block->current_child)
 	{
 	  /* Fetch this block's first child */
-	  err = chop_decoded_block_next_child (block, key_size,
+	  err = chop_decoded_block_next_child (block, ciphering_context,
 					       metadata_store, data_store);
 	  if (err)
 	    return err;
@@ -1160,7 +1380,7 @@ chop_decoded_block_read (decoded_block_t *block,
       /* Pass this request to BLOCK's current child */
       child = block->current_child;
       err = chop_decoded_block_read (child, metadata_store, data_store,
-				     key_size, buffer, size, read);
+				     ciphering_context, buffer, size, read);
     }
   else
     {
@@ -1176,7 +1396,8 @@ chop_decoded_block_read (decoded_block_t *block,
 	  if (block->offset >= chop_buffer_size (&block->buffer))
 	    {
 	      /* We're donc with this block.  Re-use it for the next block.  */
-	      err = chop_decoded_block_next_child (block->parent, key_size,
+	      err = chop_decoded_block_next_child (block->parent,
+						   ciphering_context,
 						   metadata_store, data_store);
 	      if (err)
 		{
@@ -1227,21 +1448,19 @@ chop_decoded_block_tree_read (decoded_block_tree_t *tree,
     {
       /* Fetch the top-level key block (or "inode").  */
       chop_chk_index_handle_t *hhandle;
-      chop_block_key_t key;
-      char *key_buf = alloca (tree->key_size);
 
       err = chop_decoded_block_new (&tree->top_level, tree->log);
       if (err)
 	return err;
 
-      assert (chop_object_get_class ((chop_object_t *)tree->handle) ==
-	      &chop_chk_index_handle_class);  /* FIXME */
+      if (!chop_object_is_a ((chop_object_t *)tree->index,
+			     &chop_chk_index_handle_class))
+	return CHOP_INVALID_ARG;
 
-      hhandle = (chop_chk_index_handle_t *)tree->handle;
-      memcpy (key_buf, hhandle->block_id, tree->key_size);
-      chop_block_key_init (&key, key_buf, tree->key_size, NULL, NULL);
+      hhandle = (chop_chk_index_handle_t *)tree->index;
 
-      err = chop_decoded_block_fetch (tree->metadata_store, &key,
+      err = chop_decoded_block_fetch (tree->metadata_store, hhandle,
+				      &tree->ciphering_context,
 				      NULL /* No parent block */,
 				      tree->top_level);
       if (err)
@@ -1251,7 +1470,7 @@ chop_decoded_block_tree_read (decoded_block_tree_t *tree,
   *read = 0;
   err = chop_decoded_block_read (tree->top_level,
 				 tree->metadata_store, tree->data_store,
-				 tree->key_size,
+				 &tree->ciphering_context,
 				 buffer, size, read);
   tree->current_offset += *read;
 
@@ -1283,7 +1502,7 @@ hash_tree_stream_read (chop_stream_t *stream, char *buffer, size_t size,
 {
   chop_hash_tree_stream_t *tstream = (chop_hash_tree_stream_t *)stream;
 
-  assert (tstream->tree.handle);
+  assert (tstream->tree.index);
 
   return (chop_decoded_block_tree_read (&tstream->tree, buffer, size, read));
 }

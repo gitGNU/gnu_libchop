@@ -6,6 +6,9 @@
 /* libgcrypt */
 #include <gcrypt.h>
 
+#include <stdlib.h>
+
+
 
 typedef struct
 {
@@ -35,6 +38,7 @@ static const _chop_enum_mapping cipher_algos[] =
     _CIPHER_ALGO_INFO (AES192),
     _CIPHER_ALGO_INFO (AES256),
     _CIPHER_ALGO_INFO (TWOFISH),
+    _CIPHER_ALGO_INFO (TWOFISH128),
 
     _CIPHER_ALGO_INFO (ARCFOUR),
     _CIPHER_ALGO_INFO (DES),
@@ -68,37 +72,102 @@ MAKE_ENUM_MAPPING_FUNCTIONS (cipher_mode, CHOP_CIPHER_MODE_OFB,
 			     cipher_modes, _chop_enum_mapping);
 
 #define VALID_CIPHER_ALGO(_algo) \
-  ((int)(_algo) < CHOP_CIPHER_DES)
+  ((int)(_algo) <= CHOP_CIPHER_DES)
 
 #define VALID_CIPHER_MODE(_mode) \
-  ((int)(_mode) < CHOP_CIPHER_MODE_OFB)
+  ((int)(_mode) <= CHOP_CIPHER_MODE_OFB)
 
 
 
+struct chop_cipher_handle
+{
+  /* The actual handle */
+  gcry_cipher_hd_t gcry_handle;
+
+  /* Bits of information not provided by libgcrypt */
+  chop_cipher_algo_t algo;
+  chop_cipher_mode_t mode;
+};
+
+
 chop_cipher_handle_t
 chop_cipher_open (chop_cipher_algo_t algo, chop_cipher_mode_t mode)
 		  /* We don't care about libgcrypt's FLAGS arg.  */
 {
-  GcryCipherHd handle;
+  gcry_error_t gerr;
+  gcry_cipher_hd_t ghandle;
+  chop_cipher_handle_t handle;
 
   if ((!VALID_CIPHER_ALGO (algo)) || (!VALID_CIPHER_MODE (mode)))
     return NULL;
 
-  handle = gcry_cipher_open (cipher_algos[(int)algo].gcrypt_name,
-			     cipher_modes[(int)mode].gcrypt_name,
-			     0);
+  gerr = gcry_cipher_open (&ghandle,
+			   cipher_algos[(int)algo].gcrypt_name,
+			   cipher_modes[(int)mode].gcrypt_name,
+			   0);
+  if (gerr)
+    return NULL;
 
-  return ((chop_cipher_handle_t)handle);
+  /* XXX:  All this overhead is libgcrypt's fault!  */
+  handle = malloc (sizeof (struct chop_cipher_handle));
+  if (!handle)
+    return NULL;
+
+  handle->gcry_handle = ghandle;
+  handle->algo = algo;
+  handle->mode = mode;
+
+  return (handle);
 }
 
-void
-chop_cipher_set_key (chop_cipher_handle_t handle,
-		     void *key, size_t key_size)
+chop_cipher_algo_t
+chop_cipher_algorithm (chop_cipher_handle_t handle)
 {
-  gcry_cipher_setkey (handle, key, key_size);
+  return (handle->algo);
+}
+
+size_t
+chop_cipher_algo_key_size (chop_cipher_algo_t algo)
+{
+  if (!VALID_CIPHER_ALGO (algo))
+    return 0;
+
+  return (gcry_cipher_get_algo_keylen (cipher_algos[(int)algo].gcrypt_name));
+}
+
+size_t
+chop_cipher_algo_block_size (chop_cipher_algo_t algo)
+{
+  if (!VALID_CIPHER_ALGO (algo))
+    return 0;
+
+  return (gcry_cipher_get_algo_blklen (cipher_algos[(int)algo].gcrypt_name));
+}
+
+errcode_t
+chop_cipher_set_key (chop_cipher_handle_t handle,
+		     const void *key, size_t key_size)
+{
+  gcry_error_t gerr;
+
+  gerr = gcry_cipher_setkey (handle->gcry_handle, key, key_size);
+
+  return (gerr ? CHOP_OUT_OF_RANGE_ARG : 0);
+}
+
+errcode_t
+chop_cipher_set_iv (chop_cipher_handle_t handle,
+		    const void *iv, size_t iv_size)
+{
+  gcry_error_t gerr;
+
+  gerr = gcry_cipher_setiv (handle->gcry_handle, iv, iv_size);
+
+  return (gerr ? CHOP_OUT_OF_RANGE_ARG : 0);
 }
 
 
+#if 0
 /* Try to limit the overhead for the other functions...  */
 typedef errcode_t (* _crypt_func_t) (chop_cipher_handle_t,
 				     char *, size_t,
@@ -109,6 +178,41 @@ _crypt_func_t chop_cipher_decrypt = (_crypt_func_t)gcry_cipher_decrypt;
 
 void (* chop_cipher_close) (chop_cipher_handle_t handle) =
   (void (*) (chop_cipher_handle_t)) gcry_cipher_close;
+#endif
+
+errcode_t
+chop_cipher_encrypt (chop_cipher_handle_t cipher,
+		     char *out, size_t out_size,
+		     const char *in, size_t in_size)
+{
+  gcry_error_t gerr;
+
+  gerr = gcry_cipher_encrypt (cipher->gcry_handle, out, out_size,
+			      in, in_size);
+
+  return (gerr ? CHOP_INVALID_ARG : 0);
+}
+
+errcode_t
+chop_cipher_decrypt (chop_cipher_handle_t cipher,
+		     char *out, size_t out_size,
+		     const char *in, size_t in_size)
+{
+  gcry_error_t gerr;
+
+  gerr = gcry_cipher_decrypt (cipher->gcry_handle, out, out_size,
+			      in, in_size);
+
+  return (gerr ? CHOP_INVALID_ARG : 0);
+}
+
+void
+chop_cipher_close (chop_cipher_handle_t cipher)
+{
+  gcry_cipher_close (cipher->gcry_handle);
+
+  free (cipher);
+}
 
 
 

@@ -3,8 +3,6 @@
 
 #include <chop/chop.h>
 
-typedef void *chop_cipher_handle_t;
-
 enum chop_cipher_algo
   {
     CHOP_CIPHER_NONE = 0,
@@ -18,7 +16,7 @@ enum chop_cipher_algo
     CHOP_CIPHER_AES192,
     CHOP_CIPHER_AES256,
     CHOP_CIPHER_TWOFISH,
-
+    CHOP_CIPHER_TWOFISH128,
     CHOP_CIPHER_ARCFOUR,
     CHOP_CIPHER_DES
   };
@@ -35,6 +33,10 @@ enum chop_cipher_mode
 
 typedef enum chop_cipher_algo chop_cipher_algo_t;
 typedef enum chop_cipher_mode chop_cipher_mode_t;
+
+struct chop_cipher_handle;
+typedef struct chop_cipher_handle *chop_cipher_handle_t;
+
 
 
 /* Return a string representing the name of hash method ALGO.  */
@@ -60,6 +62,14 @@ extern int chop_cipher_mode_gcrypt_name (chop_cipher_mode_t mode);
 extern errcode_t chop_cipher_mode_lookup (const char *name,
 					  chop_cipher_mode_t *mode);
 
+/* Return the required key size for ALGO.  */
+extern size_t chop_cipher_algo_key_size (chop_cipher_algo_t algo);
+
+/* Return the size of blocks used by ALGO.  */
+extern size_t chop_cipher_algo_block_size (chop_cipher_algo_t algo);
+
+
+
 #define CHOP_CIPHER_HANDLE_NIL  ((void *)0)
 
 /* Return a handle to the ciphering algorithm represented by ALGO, in mode
@@ -67,18 +77,29 @@ extern errcode_t chop_cipher_mode_lookup (const char *name,
 extern chop_cipher_handle_t
 chop_cipher_open (chop_cipher_algo_t algo, chop_cipher_mode_t mode);
 
-extern void chop_cipher_set_key (chop_cipher_handle_t handle,
-				 void *key, size_t key_size);
+/* Return the algorithm used by HANDLE.  */
+extern chop_cipher_algo_t chop_cipher_algorithm (chop_cipher_handle_t handle);
 
-extern errcode_t (* chop_cipher_encrypt) (chop_cipher_handle_t handle,
-					  char *out, size_t out_size,
-					  const char *in, size_t in_size);
+/* Set the ciphering key to be used with HANDLE.  If KEY_SIZE is invalid for
+   HANDLE's algorithm, a CHOP_OUT_OF_RANGE_ARG error is returned.  */
+extern errcode_t chop_cipher_set_key (chop_cipher_handle_t handle,
+				      const void *key, size_t key_size);
 
-extern errcode_t (* chop_cipher_decrypt) (chop_cipher_handle_t handle,
-					  char *out, size_t out_size,
-					  const char *in, size_t in_size);
+/* Set HANDLE's initialization vector to the IV_SIZE bytes pointed to by IV.
+   An error is returned if IV is not suitable for HANDLE's algorithm.
+   IV_SIZE should be equal to HANDLE's algorithm block size.  */
+extern errcode_t chop_cipher_set_iv (chop_cipher_handle_t handle,
+				     const void *iv, size_t iv_size);
 
-extern void (* chop_cipher_close) (chop_cipher_handle_t handle);
+extern errcode_t chop_cipher_encrypt (chop_cipher_handle_t cipher,
+				      char *out, size_t out_size,
+				      const char *in, size_t in_size);
+
+extern errcode_t chop_cipher_decrypt (chop_cipher_handle_t cipher,
+				      char *out, size_t out_size,
+				      const char *in, size_t in_size);
+
+extern void chop_cipher_close (chop_cipher_handle_t handle);
 
 
 #endif
