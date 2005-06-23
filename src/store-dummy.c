@@ -52,9 +52,9 @@ chop_dummy_block_store_read_block (chop_block_store_t *store,
 		     "dummy: read_block: underlying store returned \"%s\"\n",
 		     error_message (err));
 
-  if (chop_buffer_size (buffer) != *size)
+  if ((!err) && (chop_buffer_size (buffer) != *size))
     chop_log_printf (&dummy->log,
-		     "dummy: read_block: warning: buffer's size is %u while "
+		     "dummy: read_block: warning: buffer size is %u while "
 		     "reported size is %u\n",
 		     chop_buffer_size (buffer), *size);
 

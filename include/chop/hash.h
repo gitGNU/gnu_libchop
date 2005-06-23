@@ -4,6 +4,8 @@
 
 #include <chop/chop.h>
 
+_CHOP_BEGIN_DECLS
+
 enum chop_hash_method
   {
     CHOP_HASH_NONE = 0,
@@ -21,13 +23,16 @@ enum chop_hash_method
 
 /* Return the size (in bytes) of the digest yielded by hash method
    METHOD.  */
-extern size_t chop_hash_size (chop_hash_method_t method);
+extern size_t chop_hash_size (chop_hash_method_t method)
+     _CHOP_PURE_FUNC;
 
 /* Return a string representing the name of hash method METHOD.  */
-extern const char *chop_hash_method_name (chop_hash_method_t method);
+extern const char *chop_hash_method_name (chop_hash_method_t method)
+     _CHOP_PURE_FUNC;
 
 /* Return the libgcrypt name (an integer) for hash method METHOD.  */
-extern int chop_hash_method_gcrypt_name (chop_hash_method_t method);
+extern int chop_hash_method_gcrypt_name (chop_hash_method_t method)
+     _CHOP_PURE_FUNC;
 
 /* Return the hash method whose name is NAME (case-insensitive).  On error,
    CHOP_ERR_NOT_FOUND is returned and METHOD is kept unmodified.  */
@@ -40,5 +45,7 @@ extern errcode_t chop_hash_method_lookup (const char *name,
 extern void chop_hash_buffer (chop_hash_method_t method,
 			      const char *buffer, size_t size,
 			      char *digest);
+
+_CHOP_END_DECLS
 
 #endif

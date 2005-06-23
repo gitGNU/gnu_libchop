@@ -3,6 +3,8 @@
 
 #include <chop/chop.h>
 
+_CHOP_BEGIN_DECLS
+
 enum chop_cipher_algo
   {
     CHOP_CIPHER_NONE = 0,
@@ -40,10 +42,12 @@ typedef struct chop_cipher_handle *chop_cipher_handle_t;
 
 
 /* Return a string representing the name of hash method ALGO.  */
-extern const char *chop_cipher_algo_name (chop_cipher_algo_t algo);
+extern const char *chop_cipher_algo_name (chop_cipher_algo_t algo)
+     _CHOP_PURE_FUNC;
 
 /* Return the libgcrypt name (an integer) for hash method ALGO.  */
-extern int chop_cipher_algo_gcrypt_name (chop_cipher_algo_t algo);
+extern int chop_cipher_algo_gcrypt_name (chop_cipher_algo_t algo)
+     _CHOP_PURE_FUNC;
 
 /* Return the hash method whose name is NAME (case-insensitive).  On error,
    CHOP_ERR_NOT_FOUND is returned and ALGO is kept unmodified.  */
@@ -52,10 +56,12 @@ extern errcode_t chop_cipher_algo_lookup (const char *name,
 
 
 /* Return a string representing the name of hash method MODE.  */
-extern const char *chop_cipher_mode_name (chop_cipher_mode_t mode);
+extern const char *chop_cipher_mode_name (chop_cipher_mode_t mode)
+     _CHOP_PURE_FUNC;
 
 /* Return the libgcrypt name (an integer) for hash method MODE.  */
-extern int chop_cipher_mode_gcrypt_name (chop_cipher_mode_t mode);
+extern int chop_cipher_mode_gcrypt_name (chop_cipher_mode_t mode)
+     _CHOP_PURE_FUNC;
 
 /* Return the hash method whose name is NAME (case-insensitive).  On error,
    CHOP_ERR_NOT_FOUND is returned and MODE is kept unmodified.  */
@@ -63,10 +69,12 @@ extern errcode_t chop_cipher_mode_lookup (const char *name,
 					  chop_cipher_mode_t *mode);
 
 /* Return the required key size for ALGO.  */
-extern size_t chop_cipher_algo_key_size (chop_cipher_algo_t algo);
+extern size_t chop_cipher_algo_key_size (chop_cipher_algo_t algo)
+     _CHOP_PURE_FUNC;
 
 /* Return the size of blocks used by ALGO.  */
-extern size_t chop_cipher_algo_block_size (chop_cipher_algo_t algo);
+extern size_t chop_cipher_algo_block_size (chop_cipher_algo_t algo)
+     _CHOP_PURE_FUNC;
 
 
 
@@ -78,7 +86,8 @@ extern chop_cipher_handle_t
 chop_cipher_open (chop_cipher_algo_t algo, chop_cipher_mode_t mode);
 
 /* Return the algorithm used by HANDLE.  */
-extern chop_cipher_algo_t chop_cipher_algorithm (chop_cipher_handle_t handle);
+extern chop_cipher_algo_t chop_cipher_algorithm (chop_cipher_handle_t handle)
+     _CHOP_PURE_FUNC;
 
 /* Set the ciphering key to be used with HANDLE.  If KEY_SIZE is invalid for
    HANDLE's algorithm, a CHOP_OUT_OF_RANGE_ARG error is returned.  */
@@ -101,5 +110,7 @@ extern errcode_t chop_cipher_decrypt (chop_cipher_handle_t cipher,
 
 extern void chop_cipher_close (chop_cipher_handle_t handle);
 
+
+_CHOP_END_DECLS
 
 #endif

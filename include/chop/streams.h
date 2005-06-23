@@ -2,10 +2,13 @@
 #ifndef __CHOP_STREAMS_H__
 #define __CHOP_STREAMS_H__
 
+/* Input data streams.  */
+
 #include <chop/chop.h>
 #include <chop/serializable.h>
 
-/* Input data streams.  */
+
+_CHOP_BEGIN_DECLS
 
 /* Declare the input stream class `chop_stream_t' (represented at run-time by
    CHOP_STREAM_CLASS) inheriting from `chop_object_t'.  */
@@ -73,10 +76,8 @@ extern void chop_mem_stream_open (const char *base, size_t size,
 extern errcode_t chop_ext2_stream_open (const char *path,
 					const char *fs,
 					chop_ext2_stream_t *stream);
-
-extern errcode_t chop_mem_stream_open (const char *buffer,
-				       size_t size,
-				       chop_mem_stream_t *stream);
 #endif
+
+_CHOP_END_DECLS;
 
 #endif

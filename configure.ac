@@ -52,7 +52,7 @@ fi
 
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([stdlib.h obstack.h argp.h gdbm.h gcrypt.h com_err.h zlib.h])
+AC_CHECK_HEADERS([stdlib.h obstack.h argp.h gdbm.h gcrypt.h com_err.h zlib.h netinet/in.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -89,8 +89,8 @@ if test "x$guile" != "x"; then
    AC_PATH_PROG([g_wrap_config], [g-wrap-config],
      AC_MSG_ERROR([Could not find `g-wrap-config'.  You mush has G-Wrap to produce Guile bindings.]))
 
-   AC_MSG_CHECKING([whether G-Wrap's version is 1.9.5])
-   if $g_wrap_config --version | grep 1.9.5 > /dev/null; then
+   AC_MSG_CHECKING([whether G-Wrap's version is 1.9.5+])
+   if $g_wrap_config --version | grep ['1.9.[5-9]'] > /dev/null; then
      AC_MSG_RESULT([yes])
    else
      AC_MSG_RESULT([no])

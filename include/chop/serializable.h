@@ -15,6 +15,8 @@
 #include <chop/buffers.h>
 
 
+_CHOP_BEGIN_DECLS
+
 /* Serializable objects.  */
 
 typedef enum chop_serial_method chop_serial_method_t;
@@ -318,9 +320,13 @@ chop_object_serialize (const chop_object_t *__object,
    NULL.  Note that classes' canonical name doesn't include the `chop_'
    prefix.  For instance, the name of the `chop_stream_t' class is simply
    "stream".  */
-extern const chop_class_t *chop_class_lookup (const char *name);
+extern const chop_class_t *chop_class_lookup (const char *name)
+     _CHOP_PURE_FUNC;
 
 #endif
+
+
+_CHOP_END_DECLS
 
 #endif
 

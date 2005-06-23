@@ -5,6 +5,7 @@
 #include <chop/chop-config.h>
 
 #include <stdio.h>
+#include <ctype.h>
 #include <assert.h>
 
 
@@ -164,25 +165,48 @@ chop_buffer_to_hex_string (const char *buffer, size_t size, char *hex)
 }
 
 void
-chop_hex_string_to_buffer (const char *hex, size_t size, char *buffer)
+chop_hex_string_to_buffer (const char *hex, size_t size, char *buffer,
+			   const char **end)
 {
 #define tonum(_chr) (((_chr) >= 'a') ? ((_chr) - 'a' + 10) : ((_chr) - '0'))
-  const unsigned char *p, *end = hex + size;
+  const unsigned char *p, *end_of_buf = hex + size;
 
   if (size & 1)
     /* If SIZE is odd, discard the last character from HEX */
     size--;
 
-  for (p = (unsigned char *)hex; p < end; p += 2)
+  for (p = (unsigned char *)hex; p < end_of_buf; p += 2)
     {
-      char digit[2];
-      memcpy (digit, p, 2);
-      *buffer = tonum (digit[0]) << 4;
-      *buffer |= tonum (digit[1]);
+      if ((!isxdigit (p[0])) || (!isxdigit (p[1])))
+	break;
+
+      *buffer = tonum (p[0]) << 4;
+      *buffer |= tonum (p[1]);
       buffer++;
     }
 #undef tonum
+
+  *end = p;
 }
+
+void /* untested */
+chop_integer_to_hex_string (unsigned num, char *hex)
+{
+#define tochar(_num) (((_num) < 10) ? ('0' + (_num)) : ('a' - 10 + (_num)))
+  size_t size;
+
+  for (size = sizeof (unsigned) / 4;
+       size;
+       size--)
+    {
+      *(hex++) = tochar (num & 0xf);
+      num >>= 4;
+    }
+#undef tochar
+
+  *hex = '\0';
+}
+
 
 
 /* Initialization.  */

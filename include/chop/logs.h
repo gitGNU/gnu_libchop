@@ -12,6 +12,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+_CHOP_BEGIN_DECLS
+
 typedef struct chop_log chop_log_t;
 
 struct chop_log
@@ -90,7 +92,8 @@ chop_log_user_data (chop_log_t *__log)
 }
 
 /* Return the name of LOG.  */
-static __inline__ const char *chop_log_name (const chop_log_t *__log)
+static __inline__ const char *
+chop_log_name (const chop_log_t *__log)
 {
   return (__log->name);
 }
@@ -99,7 +102,8 @@ static __inline__ const char *chop_log_name (const chop_log_t *__log)
 extern errcode_t chop_log_set_name (chop_log_t *log, const char *name);
 
 /* Return non-zero if LOG is attached.  */
-static __inline__ int chop_log_attached (const chop_log_t *__log)
+static __inline__ int
+chop_log_attached (const chop_log_t *__log)
 {
   return (__log->attached);
 }
@@ -137,5 +141,8 @@ static __inline__ void chop_log_printf (chop_log_t *__log,
     chop_log_builtin_printf (__log, __fmt, __ap);
   va_end (__ap);
 }
+
+
+_CHOP_END_DECLS
 
 #endif

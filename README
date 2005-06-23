@@ -1,0 +1,33 @@
+libchop
+=======
+
+This is libchop, a file hashing, ciphering, and indexing library.  This
+library provides a framework which allows:
+
+  1.  to cut a file into pieces, store each of these blocks into a block
+      store, and then store sufficient information for later retrieval
+      and rebuilding of the indexed file;
+
+  2.  to restore (rebuild) a file based on an abstract index, reading
+      blocks from one (or several) block stores.
+
+This is particularly suitable for content-based indexing (as used by
+many peer-to-peer file sharing systems, as well as several revision
+control systems such as Monotone and Torvalds' GIT), and content-hash
+ciphering (as used by anonymous file sharing systems such as GNUnet and
+FreeNet).
+
+libchop contains several implementations of the various operations
+listed above (several block stores, several file cutting algorithm,
+etc.).  It is meant to be as flexible as possible while still retaining
+performance.
+
+The best way to experiment with libchop is to try out the
+`chop-archiver' sample utility program available in the `utils'
+directory.
+
+Note that libchop primarily targets the GNU system (i.e. GNU C compiler
+and GNU C library).
+
+
+Ludovic Courtès <ludovic.courtes@laas.fr>.
