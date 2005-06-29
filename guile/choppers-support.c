@@ -21,7 +21,8 @@ chop_fixed_size_chopper_open_alloc (chop_stream_t *input,
 {
   errcode_t err;
 
-  *chopper = malloc (chop_class_instance_size (&chop_fixed_size_chopper_class));
+  *chopper =
+    malloc (chop_class_instance_size ((chop_class_t *)&chop_fixed_size_chopper_class));
   if (!*chopper)
     return ENOMEM;
 
@@ -42,7 +43,8 @@ chop_anchor_based_chopper_open_alloc (chop_stream_t *input,
 {
   errcode_t err;
 
-  *chopper = malloc (chop_class_instance_size (&chop_anchor_based_chopper_class));
+  *chopper =
+    malloc (chop_class_instance_size ((chop_class_t *)&chop_anchor_based_chopper_class));
   if (!*chopper)
     return ENOMEM;
 

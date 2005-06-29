@@ -27,6 +27,7 @@ chop_index_handle_close_dealloc (chop_index_handle_t *handle)
 static __inline__ errcode_t
 chop_hash_tree_indexer_open_alloc (chop_hash_method_t content_hash_method,
 				   chop_hash_method_t key_hash_method,
+				   chop_cipher_handle_t cipher,
 				   size_t keys_per_block,
 				   chop_indexer_t **indexer)
 {
@@ -37,6 +38,7 @@ chop_hash_tree_indexer_open_alloc (chop_hash_method_t content_hash_method,
     return ENOMEM;
 
   err = chop_hash_tree_indexer_open (content_hash_method, key_hash_method,
+				     cipher,
 				     keys_per_block, *indexer);
   if (err)
     {
@@ -143,7 +145,7 @@ chop_index_handle_ascii_deserialize (chop_indexer_t *indexer,
   if (!*handle)
     return ENOMEM;
 
-  err = chop_object_deserialize (*handle, handle_class,
+  err = chop_object_deserialize ((chop_object_t *)*handle, handle_class,
 				 CHOP_SERIAL_ASCII,
 				 ascii_handle, strlen (ascii_handle));
   if (err)

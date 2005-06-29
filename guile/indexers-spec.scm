@@ -19,6 +19,7 @@
 (define-module (indexers-spec)
   #:use-module (core-spec)
   #:use-module (hash-spec)
+  #:use-module (cipher-spec)
   #:use-module (streams-spec)
   #:use-module (stores-spec)
   #:use-module (choppers-spec)
@@ -42,7 +43,7 @@
 
 (define-class <chop-indexer-wrapset> (<gw-guile-wrapset>)
   #:id 'indexers
-  #:dependencies '(standard core hash streams stores choppers))
+  #:dependencies '(standard core hash cipher streams stores choppers))
 
 
 (define-method (global-declarations-cg (ws <chop-indexer-wrapset>))
@@ -80,6 +81,7 @@
 		  #:returns '<errcode>
 		  #:arguments '((hash-method content-hash-method)
 				(hash-method key-hash-method)
+				(<cipher-handle> cipher)
 				(int keys-per-block (default 100))
 				((<indexer> out) indexer)))
 
