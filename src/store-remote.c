@@ -106,6 +106,10 @@ chop_remote_read_block (chop_block_store_t *store,
   err = chop_buffer_push (buffer,
 			  ret->block.chop_rblock_content_t_val,
 			  ret->block.chop_rblock_content_t_len);
+  if (err)
+    *read = 0;
+  else
+    *read = ret->block.chop_rblock_content_t_len;
 
   return err;
 }

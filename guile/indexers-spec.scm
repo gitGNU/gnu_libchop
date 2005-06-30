@@ -23,6 +23,7 @@
   #:use-module (streams-spec)
   #:use-module (stores-spec)
   #:use-module (choppers-spec)
+  #:use-module (logs-spec)
 
   #:use-module (oop goops)
   #:use-module (srfi srfi-1)
@@ -43,7 +44,7 @@
 
 (define-class <chop-indexer-wrapset> (<gw-guile-wrapset>)
   #:id 'indexers
-  #:dependencies '(standard core hash cipher streams stores choppers))
+  #:dependencies '(standard core hash cipher streams stores choppers logs))
 
 
 (define-method (global-declarations-cg (ws <chop-indexer-wrapset>))
@@ -122,6 +123,11 @@
 				((mchars caller-owned) ascii-handle)
 				((<index-handle> out) handle)))
 
+  (wrap-function! ws
+		  #:name 'hash-tree-indexer-log
+		  #:returns '<log>
+		  #:c-name "chop_hash_tree_indexer_log"
+		  #:arguments '((<indexer> indexer)))
 
 )
 
