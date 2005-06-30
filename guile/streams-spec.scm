@@ -82,7 +82,7 @@
 		  #:name 'mem-stream-open
 		  #:returns '<stream>
 		  #:c-name "chop_mem_stream_open_alloc"
-		  #:arguments '((<raw-u8vector> vector)))
+		  #:arguments '((<raw-scheme-type> vector)))
 
   ;; FIXME: We could (should?) also provide a port interface for streams just
   ;; like what `(gnome gnome-vfs)' does.

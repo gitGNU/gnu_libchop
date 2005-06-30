@@ -147,28 +147,28 @@
 
 
 
-;; A simple type that allows us to return a raw u8vector (an `SCM' object on
-;; the C side) in `hash-buffer' and the likes.
+;; A simple type that allows us to return a raw Scheme object (an
+;; `SCM' object on the C side) in `hash-buffer' and the likes.
 
-(define-class <chop-raw-u8vector> (<gw-type>))
+(define-class <chop-raw-scheme-type> (<gw-type>))
 
-(define-method (check-typespec-options (type <chop-raw-u8vector>)
+(define-method (check-typespec-options (type <chop-raw-scheme-type>)
 				       (options <list>))
   #t)
 
-(define-method (c-type-name (type <chop-raw-u8vector>))
+(define-method (c-type-name (type <chop-raw-scheme-type>))
   "SCM")
 
-(define-method (c-type-name (type <chop-raw-u8vector>)
+(define-method (c-type-name (type <chop-raw-scheme-type>)
 			    (typespec <gw-typespec>))
   (if (memq 'out (options typespec)) "SCM *" "SCM"))
 
-(define-method (wrap-value-cg (type <chop-raw-u8vector>)
+(define-method (wrap-value-cg (type <chop-raw-scheme-type>)
 			      (param <gw-value>) error-var)
   (list "\n/* Returning a raw, ready-to-use, u8vector.  */\n"
 	(scm-var param) " = " (var param) ";\n"))
 
-(define-method (unwrap-value-cg (type <chop-raw-u8vector>)
+(define-method (unwrap-value-cg (type <chop-raw-scheme-type>)
 				(param <gw-value>) error-var)
   (list "\n/* Returning a raw, ready-to-use, u8vector.  */\n"
 	(var param) " = " (scm-var param) ";\n"))
@@ -178,7 +178,7 @@
 ;; SRFI-4 u8vectors.
 ;;
 ;; FIXME:  This is unused 'cause I couldn't make it work.  Instead, I found
-;; it much easier to use <raw-u8vector> and do part of the work by myself...
+;; it much easier to use <raw-scheme-type> and do part of the work by myself...
 
 (define-class <chop-output-buffer> (<gw-type>))
 
@@ -304,8 +304,8 @@
   (add-type! ws (make <chop-writable-input-buffer-type>
 		  #:name '<writable-input-buffer>))
 
-  (add-type! ws (make <chop-raw-u8vector>
-		  #:name '<raw-u8vector>))
+  (add-type! ws (make <chop-raw-scheme-type>
+		  #:name '<raw-scheme-type>))
 
   (wrap-function! ws
 		  #:name 'frob

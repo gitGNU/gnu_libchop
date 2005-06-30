@@ -154,11 +154,7 @@ chop_store_read_block_alloc_u8vector (chop_block_store_t *store,
 }
 
 
-/* Support for writing block stores in Guile Scheme.
-   XXX:  I'm trying to avoid resorting to this sort of hack.  So this is
-   abandoned for now.  */
-
-#include <libguile.h>
+/* Support for writing block stores in Guile Scheme.  */
 
 CHOP_DECLARE_RT_CLASS (scheme_block_store, block_store,
 		       SCM read_block;
@@ -168,11 +164,144 @@ CHOP_DECLARE_RT_CLASS (scheme_block_store, block_store,
 		       SCM close;
 		       SCM sync;);
 
+static SCM guile_chop_store_type = SCM_BOOL_F;
 
+static errcode_t
+scm_store_read_block (chop_block_store_t *store,
+		      const chop_block_key_t *key,
+		      chop_buffer_t *buffer, size_t *read)
+{
+  errcode_t err;
+  chop_scheme_block_store_t *scm_store;
+
+  scm_store = (chop_scheme_block_store_t *)store;
+  if (scm_procedure_p (scm_store->read_block) == SCM_BOOL_T)
+    {
+      SCM s_key, s_block, s_store;
+
+      s_store = gw_wcp_assimilate_ptr (store, guile_chop_store_type);
+      s_key = scm_take_u8vector (chop_block_key_buffer (key),
+				 chop_block_key_size (key));
+      s_block = scm_call_2 (scm_store->read_block, s_store, s_key);
+      if (scm_u8vector_p (s_block) == SCM_BOOL_T)
+	{
+	  scm_t_array_handle handle;
+	  const char *block;
+	  size_t size;
+	  ssize_t inc;
+
+	  err = 0;
+	  block = scm_u8vector_elements (s_block, &handle, &size, &inc);
+	  *read = size;
+	  if (inc == 1)
+	    err = chop_buffer_push (buffer, block, size);
+	  else
+	    {
+	      const char *p;
+
+	      chop_buffer_clear (buffer);
+	      for (p = block; size; size--, p += inc)
+		{
+		  err = chop_buffer_append (buffer, p, 1);
+		  if (err)
+		    break;
+		}
+	    }
+	  scm_array_handle_release (&handle);
+	}
+      else
+	/* FIXME:  We could consider other error conditions too.  */
+	err = CHOP_STORE_BLOCK_UNAVAIL;
+    }
+  else
+    err = CHOP_ERR_NOT_IMPL;
+
+  return err;
+}
+
+static errcode_t
+scm_store_write_block (chop_block_store_t *store,
+		       const chop_block_key_t *key,
+		       const char *buffer, size_t size)
+{
+  errcode_t err;
+  chop_scheme_block_store_t *scm_store;
+
+  scm_store = (chop_scheme_block_store_t *)store;
+  if (scm_procedure_p (scm_store->write_block) == SCM_BOOL_T)
+    {
+      SCM s_key, s_store, s_result;
+
+      s_store = gw_wcp_assimilate_ptr (store, guile_chop_store_type);
+      s_key = scm_take_u8vector (chop_block_key_buffer (key),
+				 chop_block_key_size (key));
+      s_result = scm_call_2 (scm_store->write_block, s_store, s_key);
+      if (s_result == SCM_BOOL_F)
+	err = CHOP_STORE_ERROR;
+      else
+	err = 0;
+    }
+  else
+    err = CHOP_ERR_NOT_IMPL;
+
+  return err;
+}
+
+static errcode_t
+scm_store_close (chop_block_store_t *store)
+{
+  errcode_t err;
+  chop_scheme_block_store_t *scm_store;
+
+  scm_store = (chop_scheme_block_store_t *)store;
+  if (scm_procedure_p (scm_store->close) == SCM_BOOL_T)
+    {
+      SCM s_store, s_result;
+
+      s_store = gw_wcp_assimilate_ptr (store, guile_chop_store_type);
+      s_result = scm_call_1 (scm_store->close, s_store);
+      if (s_result == SCM_BOOL_F)
+	err = CHOP_STORE_ERROR;
+      else
+	err = 0;
+    }
+  else
+    err = CHOP_ERR_NOT_IMPL;
+
+  return err;
+}
+
+static errcode_t
+scm_store_sync (chop_block_store_t *store)
+{
+  errcode_t err;
+  chop_scheme_block_store_t *scm_store;
+
+  scm_store = (chop_scheme_block_store_t *)store;
+  if (scm_procedure_p (scm_store->sync) == SCM_BOOL_T)
+    {
+      SCM s_store, s_result;
+
+      s_store = gw_wcp_assimilate_ptr (store, guile_chop_store_type);
+      s_result = scm_call_1 (scm_store->sync, s_store);
+      if (s_result == SCM_BOOL_F)
+	err = CHOP_STORE_ERROR;
+      else
+	err = 0;
+    }
+  else
+    err = CHOP_ERR_NOT_IMPL;
+
+  return err;
+}
+
+
+
+
 static __inline__ chop_block_store_t *
 chop_make_scheme_block_store (SCM read_block, SCM write_block,
 			      SCM block_exists, SCM remove_block,
-			      SCM close, SCM sync)
+			      SCM sync, SCM close)
 {
   chop_scheme_block_store_t *store;
 
@@ -183,12 +312,30 @@ chop_make_scheme_block_store (SCM read_block, SCM write_block,
   chop_object_initialize ((chop_object_t *)store,
 			  &chop_scheme_block_store_class);
 
+  store->block_store.read_block = scm_store_read_block;
+  store->block_store.write_block = scm_store_write_block;
+  store->block_store.close = scm_store_close;
+  store->block_store.sync = scm_store_sync;
+
+  /* The following are assumed to be Scheme procedures.  */
   store->read_block = read_block;
   store->write_block = write_block;
   store->block_exists = block_exists;
   store->remove_block = remove_block;
   store->close = close;
   store->sync = sync;
+
+  if (guile_chop_store_type == SCM_BOOL_F)
+    {
+      /* Find the module type object `<store>' in the `(chop stores)'
+	 module.  This is then used in conjunction with
+	 `gw_wcp_assimilate_ptr ()'.  Yes, this is somewhat ugly.  (XXX)  */
+      SCM module_name, module;
+
+      module = scm_c_resolve_module ("chop stores");
+      guile_chop_store_type = scm_c_module_lookup (module, "<store>");
+      guile_chop_store_type = scm_variable_ref (guile_chop_store_type);
+    }
 
   return ((chop_block_store_t *)store);
 }

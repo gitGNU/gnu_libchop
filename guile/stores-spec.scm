@@ -165,6 +165,17 @@
 				((<store> out) new-store)))
 
   (wrap-function! ws
+		  #:name 'make-block-store
+		  #:c-name "chop_make_scheme_block_store"
+		  #:returns '<store>
+		  #:arguments '((<raw-scheme-type> read-block-proc)
+				(<raw-scheme-type> write-block-proc)
+				(<raw-scheme-type> block-exists-proc)
+				(<raw-scheme-type> remove-block-proc)
+				(<raw-scheme-type> sync-proc)
+				(<raw-scheme-type> close-proc)))
+
+  (wrap-function! ws
 		  #:name 'store-write-block
 		  #:returns '<errcode>
 		  #:c-name "chop_store_write_block"
@@ -179,7 +190,7 @@
 		  #:c-name "chop_store_read_block_alloc_u8vector"
 		  #:arguments '((<store> store)
 				(<block-key> key)
-				((<raw-u8vector> out) buffer))
+				((<raw-scheme-type> out) buffer))
 		  #:description "Read from @var{store} the block whose key
 is @var{key} and return a u8vector representing its content.")
 

@@ -89,7 +89,7 @@
 		  #:c-name "chop_chopper_read_block_alloc_u8vector"
 		  #:returns '<errcode>
 		  #:arguments '((<chopper> chopper)
-				((<raw-u8vector> out) buffer)))
+				((<raw-scheme-type> out) buffer)))
 
   (wrap-function! ws
 		  #:name 'chopper-set-stream!

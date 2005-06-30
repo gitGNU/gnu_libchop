@@ -70,7 +70,7 @@
   (wrap-function! ws
 		  #:name 'hash-buffer
 		  #:c-name "chop_hash_buffer_alloc"
-		  #:returns '<raw-u8vector>
+		  #:returns '<raw-scheme-type>
 		  #:arguments '((hash-method method)
 				(<input-buffer> buffer))
 		  #:description "Return a newly allocated u8vector containing
