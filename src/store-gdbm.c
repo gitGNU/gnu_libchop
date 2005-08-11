@@ -38,6 +38,10 @@ CHOP_DEFINE_RT_CLASS_WITH_METACLASS (gdbm_block_store, block_store,
 
 
 
+static errcode_t chop_gdbm_block_exists (chop_block_store_t *,
+					 const chop_block_key_t *,
+					 int *);
+
 static errcode_t chop_gdbm_read_block (chop_block_store_t *,
 				       const chop_block_key_t *,
 				       chop_buffer_t *,
@@ -47,6 +51,16 @@ static errcode_t chop_gdbm_write_block (chop_block_store_t *,
 					const chop_block_key_t *,
 					const char *,
 					size_t);
+
+static errcode_t chop_gdbm_delete_block (chop_block_store_t *,
+					 const chop_block_key_t *);
+
+static errcode_t chop_gdbm_first_key (chop_block_store_t *,
+				      chop_block_key_t *);
+
+static errcode_t chop_gdbm_next_key (chop_block_store_t *,
+				     const chop_block_key_t *,
+				     chop_block_key_t *);
 
 static errcode_t chop_gdbm_sync (chop_block_store_t *);
 
@@ -79,8 +93,12 @@ chop_gdbm_store_open (const char *name, size_t block_size,
 	return (gdbm_errno ? gdbm_errno : errno);
     }
 
+  store->block_store.block_exists = chop_gdbm_block_exists;
   store->block_store.read_block = chop_gdbm_read_block;
   store->block_store.write_block = chop_gdbm_write_block;
+  store->block_store.delete_block = chop_gdbm_delete_block;
+  store->block_store.first_key = chop_gdbm_first_key;
+  store->block_store.next_key = chop_gdbm_next_key;
   store->block_store.sync = chop_gdbm_sync;
   store->block_store.close = chop_gdbm_close;
 
@@ -93,12 +111,16 @@ chop_gdbm_store_open (const char *name, size_t block_size,
 
 #define DB_TYPE       gdbm
 #define DB_DATA_TYPE  datum
+#define DB_EXISTS(_db, _key)           gdbm_exists ((_db), (_key))
 #define DB_READ(_db, _key, _datap)  (*(_datap)) = gdbm_fetch ((_db), (_key))
 #define DB_WRITE(_db, _key, _data, _flags)  \
   gdbm_store ((_db), (_key), (_data), (_flags))
 #define DB_WRITE_REPLACE_FLAG  GDBM_REPLACE
-#define DB_SYNC(_db)    gdbm_sync ((_db))
-#define DB_CLOSE(_db)   gdbm_close ((_db))
+#define DB_DELETE(_db, _key)           gdbm_delete ((_db), (_key))
+#define DB_FIRST_KEY(_db)              gdbm_firstkey ((_db))
+#define DB_NEXT_KEY(_db, _key)         gdbm_nextkey ((_db), (_key))
+#define DB_SYNC(_db)                   gdbm_sync ((_db))
+#define DB_CLOSE(_db)                  gdbm_close ((_db))
 
 /* Convert `chop_block_key_t' object CK into GDBM key GDBMK.  */
 #define CHOP_KEY_TO_DB(_gdbmk, _ck)			\

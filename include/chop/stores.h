@@ -14,12 +14,25 @@
 CHOP_DECLARE_RT_CLASS (block_store, object,
 		       char *name;
 
+		       errcode_t (* block_exists) (struct chop_block_store *,
+						   const chop_block_key_t *,
+						   int *);
+
 		       errcode_t (* read_block) (struct chop_block_store *,
 						 const chop_block_key_t *,
 						 chop_buffer_t *, size_t *);
 		       errcode_t (* write_block) (struct chop_block_store *,
 						  const chop_block_key_t *,
 						  const char *, size_t);
+		       errcode_t (* delete_block) (struct chop_block_store *,
+						   const chop_block_key_t *);
+
+		       errcode_t (* first_key) (struct chop_block_store *,
+						chop_block_key_t *);
+		       errcode_t (* next_key) (struct chop_block_store *,
+					       const chop_block_key_t *,
+					       chop_block_key_t *);
+
 		       errcode_t (* close) (struct chop_block_store *);
 		       errcode_t (* sync) (struct chop_block_store *););
 
@@ -170,15 +183,22 @@ chop_remote_block_store_open (const char *host, const char *protocol,
 
 /* The block store interface.  */
 
+/* Check whether a block with key KEY is available in STORE.  On success,
+   zero is returned and *EXISTS is set to zero if nothing is available under
+   KEY, non-zero otherwise.  */
 static __inline__ errcode_t
-chop_store_write_block (chop_block_store_t *__store,
-			const chop_block_key_t *__key,
-			const char *__block,
-			size_t __size)
+chop_store_block_exists (chop_block_store_t *__store,
+			 const chop_block_key_t *__key,
+			 int *__exists)
 {
-  return (__store->write_block (__store, __key, __block, __size));
+  if (__store->block_exists)
+    return (__store->block_exists (__store, __key, __exists));
+
+  return CHOP_ERR_NOT_IMPL;
 }
 
+/* Store into BUFFER the data stored under key KEY in STORE.  On success,
+   return zero and set *SIZE to the size in bytes of the data read.  */
 static __inline__ errcode_t
 chop_store_read_block (chop_block_store_t *__store,
 		       const chop_block_key_t *__key,
@@ -188,8 +208,60 @@ chop_store_read_block (chop_block_store_t *__store,
 }
 
 
-extern errcode_t chop_store_delete_block (chop_block_store_t *store,
-					  const chop_block_key_t key);
+/* Write the SIZE bytes pointed to by BLOCK under key KEY in STORE.  Return
+   zero on success.  */
+static __inline__ errcode_t
+chop_store_write_block (chop_block_store_t *__store,
+			const chop_block_key_t *__key,
+			const char *__block,
+			size_t __size)
+{
+  return (__store->write_block (__store, __key, __block, __size));
+}
+
+/* Delete the block store under KEY from STORE.  If no data was stored under
+   KEY in STORE then CHOP_STORE_BLOCK_UNAVAIL is returned.  */
+static __inline__ errcode_t
+chop_store_delete_block (chop_block_store_t *__store,
+			 const chop_block_key_t *__key)
+{
+  if (__store->delete_block)
+    return (__store->delete_block (__store, __key));
+
+  return CHOP_ERR_NOT_IMPL;
+}
+
+/* Return in KEY, an uninitialized block key object, the key of the very
+   first object available in STORE.  On success, zero is returned and the
+   user shall eventually call CHOP_BLOCK_KEY_FREE on KEY.  If STORE is empty,
+   CHOP_STORE_END is returned.  If STORE does not implement sequential block
+   access, CHOP_ERR_NOT_IMPL is returned.  */
+static __inline__ errcode_t
+chop_store_first_key (chop_block_store_t *__store,
+		      chop_block_key_t *__key)
+{
+  if (__store->first_key)
+    return (__store->first_key (__store, __key));
+
+  return CHOP_ERR_NOT_IMPL;
+}
+
+/* Return in NEXT, an uninitialized block key object, the key of the object
+   next to the one index by KEY in STORE.  On success, zero is returned and
+   the user shall eventually call CHOP_BLOCK_KEY_FREE on NEXT.  If STORE is
+   empty, CHOP_STORE_END is returned.  If STORE does not implement sequential
+   block access, CHOP_ERR_NOT_IMPL is returned.  */
+static __inline__ errcode_t
+chop_store_next_key (chop_block_store_t *__store,
+		     const chop_block_key_t *__key,
+		     chop_block_key_t *__next)
+{
+  if (__store->next_key)
+    return (__store->next_key (__store, __key, __next));
+
+  return CHOP_ERR_NOT_IMPL;
+}
+
 
 static __inline__ errcode_t chop_store_sync (chop_block_store_t *__store)
 {

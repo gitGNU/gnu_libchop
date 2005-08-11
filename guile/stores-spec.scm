@@ -172,6 +172,8 @@
 				(<raw-scheme-type> write-block-proc)
 				(<raw-scheme-type> block-exists-proc)
 				(<raw-scheme-type> remove-block-proc)
+				(<raw-scheme-type> first-key-proc)
+				(<raw-scheme-type> next-key-proc)
 				(<raw-scheme-type> sync-proc)
 				(<raw-scheme-type> close-proc)))
 
@@ -193,6 +195,44 @@
 				((<raw-scheme-type> out) buffer))
 		  #:description "Read from @var{store} the block whose key
 is @var{key} and return a u8vector representing its content.")
+
+  (wrap-function! ws
+		  #:name 'store-block-exists?
+		  #:returns '<errcode>
+		  #:c-name "chop_store_block_exists"
+		  #:arguments '((<store> store)
+				(<block-key> key)
+				((bool out) exists?))
+		  #:description "Return @code{#t} if block under key
+@var{key} exists in @var{store}.")
+
+  (wrap-function! ws
+		  #:name 'store-delete-block
+		  #:returns '<errcode>
+		  #:c-name "chop_store_delete_block"
+		  #:arguments '((<store> store)
+				(<block-key> key))
+		  #:description "Delete from @var{store} block with key
+@var{key}.")
+
+  (wrap-function! ws
+		  #:name 'store-first-key
+		  #:returns '<errcode>
+		  #:c-name "chop_store_first_key"
+		  #:arguments '((<store> store)
+				((<block-key> ) key))
+		  #:description "Return the first key under which data is
+available in @var{store}.")
+
+  (wrap-function! ws
+		  #:name 'store-next-key
+		  #:returns '<errcode>
+		  #:c-name "chop_store_next_key"
+		  #:arguments '((<store> store)
+				(<block-key> key)
+				((<block-key> ) next-key)) #:description
+"Return the key right after @var{key} under which data is available in
+@var{store}.")
 
   (wrap-function! ws
 		  #:name 'store-sync

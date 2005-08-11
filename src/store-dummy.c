@@ -25,6 +25,40 @@ CHOP_DEFINE_RT_CLASS (dummy_block_store, block_store,
 
 
 static errcode_t
+chop_dummy_block_store_block_exists (chop_block_store_t *store,
+				     const chop_block_key_t *key,
+				     int *exists)
+{
+  errcode_t err;
+  chop_dummy_block_store_t *dummy =
+    (chop_dummy_block_store_t *)store;
+  char hex_key[1024];
+
+  chop_block_key_to_hex_string (key, hex_key);
+  chop_log_printf (&dummy->log,
+		   "dummy: block_exists (%s@%p, 0x%s)",
+		   store->name, store, hex_key);
+  *exists = 0;
+
+  if (!dummy->backend)
+    return CHOP_ERR_NOT_IMPL;
+
+  err = chop_store_block_exists (dummy->backend, key, exists);
+
+  if (err)
+    chop_log_printf (&dummy->log,
+		     "dummy: block_exists: underlying store returned \"%s\"\n",
+		     error_message (err));
+  else
+    chop_log_printf (&dummy->log,
+		     "dummy: block 0x%s does %sexist",
+		     hex_key, (*exists ? "" : "NOT "));
+
+
+  return err;
+}
+
+static errcode_t
 chop_dummy_block_store_read_block (chop_block_store_t *store,
 				   const chop_block_key_t *key,
 				   chop_buffer_t *buffer,
@@ -83,8 +117,97 @@ chop_dummy_block_store_write_block (chop_block_store_t *store,
   err = chop_store_write_block (dummy->backend, key, block, size);
   if (err)
     chop_log_printf (&dummy->log,
-		     "dummy: read_block: underlying store returned \"%s\"\n",
+		     "dummy: write_block: underlying store returned \"%s\"\n",
 		     error_message (err));
+
+  return err;
+}
+
+static errcode_t
+chop_dummy_block_store_delete_block (chop_block_store_t *store,
+				     const chop_block_key_t *key)
+{
+  errcode_t err;
+  char hex_key[1024];
+  chop_dummy_block_store_t *dummy =
+    (chop_dummy_block_store_t *)store;
+
+  chop_block_key_to_hex_string (key, hex_key);
+  chop_log_printf (&dummy->log,
+		   "dummy: delete_block (%s@%p, 0x%s,\n",
+		   store->name, store, hex_key);
+
+  if (!dummy->backend)
+    return 0;
+
+  err = chop_store_delete_block (dummy->backend, key);
+  if (err)
+    chop_log_printf (&dummy->log,
+		     "dummy: delete_block: underlying store returned \"%s\"\n",
+		     error_message (err));
+
+  return err;
+}
+
+static errcode_t
+chop_dummy_block_store_first_key (chop_block_store_t *store,
+				  chop_block_key_t *key)
+{
+  errcode_t err;
+  char hex_key[1024];
+  chop_dummy_block_store_t *dummy =
+    (chop_dummy_block_store_t *)store;
+
+  if (!dummy->backend)
+    {
+      chop_block_key_init (key, NULL, 0, NULL, NULL);
+      return CHOP_STORE_END;
+    }
+
+  err = chop_store_first_key (dummy->backend, key);
+  if (err)
+    chop_log_printf (&dummy->log,
+		     "dummy: first_key: underlying store returned \"%s\"\n",
+		     error_message (err));
+  else
+    {
+      chop_block_key_to_hex_string (key, hex_key);
+      chop_log_printf (&dummy->log,
+		       "dummy: first_key (%s@%p) => 0x%s",
+		       store->name, store, hex_key);
+    }
+
+  return err;
+}
+
+static errcode_t
+chop_dummy_block_store_next_key (chop_block_store_t *store,
+				 const chop_block_key_t *key,
+				 chop_block_key_t *next)
+{
+  errcode_t err;
+  char hex_key[1024];
+  chop_dummy_block_store_t *dummy =
+    (chop_dummy_block_store_t *)store;
+
+  if (!dummy->backend)
+    {
+      chop_block_key_init (next, NULL, 0, NULL, NULL);
+      return CHOP_STORE_END;
+    }
+
+  err = chop_store_next_key (dummy->backend, key, next);
+  if (err)
+    chop_log_printf (&dummy->log,
+		     "dummy: next_key: underlying store returned \"%s\"\n",
+		     error_message (err));
+  else
+    {
+      chop_block_key_to_hex_string (key, hex_key);
+      chop_log_printf (&dummy->log,
+		       "dummy: next_key (%s@%p) => 0x%s",
+		       store->name, store, hex_key);
+    }
 
   return err;
 }
@@ -144,8 +267,12 @@ chop_dummy_block_store_open (const char *name,
   chop_log_attach (&dummy->log, 2, 0);
 
   store->name = strdup (name);
+  store->block_exists = chop_dummy_block_store_block_exists;
   store->read_block = chop_dummy_block_store_read_block;
   store->write_block = chop_dummy_block_store_write_block;
+  store->delete_block = chop_dummy_block_store_delete_block;
+  store->first_key = chop_dummy_block_store_first_key;
+  store->next_key = chop_dummy_block_store_next_key;
   store->close = chop_dummy_block_store_close;
   store->sync = chop_dummy_block_store_sync;
 

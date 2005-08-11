@@ -19,6 +19,10 @@ CHOP_DEFINE_RT_CLASS (remote_block_store, block_store,
 
 
 
+static errcode_t chop_remote_block_exists (chop_block_store_t *,
+					   const chop_block_key_t *,
+					   int *);
+
 static errcode_t chop_remote_read_block  (struct chop_block_store *,
 					  const chop_block_key_t *,
 					  chop_buffer_t *, size_t *);
@@ -26,6 +30,16 @@ static errcode_t chop_remote_read_block  (struct chop_block_store *,
 static errcode_t chop_remote_write_block (struct chop_block_store *,
 					  const chop_block_key_t *,
 					  const char *, size_t);
+
+static errcode_t chop_remote_delete_block (chop_block_store_t *,
+					   const chop_block_key_t *);
+
+static errcode_t chop_remote_first_key (chop_block_store_t *,
+					chop_block_key_t *);
+
+static errcode_t chop_remote_next_key (chop_block_store_t *,
+				       const chop_block_key_t *,
+				       chop_block_key_t *);
 
 static errcode_t chop_remote_close (struct chop_block_store *);
 
@@ -70,12 +84,44 @@ chop_remote_block_store_open (const char *host, const char *protocol,
       return -1;
     }
 
+  store->block_exists = chop_remote_block_exists;
   store->read_block = chop_remote_read_block;
   store->write_block = chop_remote_write_block;
+  store->delete_block = chop_remote_delete_block;
+  store->first_key = chop_remote_first_key;
+  store->next_key = chop_remote_next_key;
   store->close = chop_remote_close;
   store->sync = chop_remote_sync;
 
   return 0;
+}
+
+
+static errcode_t
+chop_remote_block_exists (chop_block_store_t *store,
+			  const chop_block_key_t *key,
+			  int *exists)
+{
+  errcode_t err;
+  int *ret;
+  chop_rblock_key_t rkey;
+  chop_remote_block_store_t *remote = (chop_remote_block_store_t *)store;
+
+  rkey.chop_rblock_key_t_len = chop_block_key_size (key);
+  rkey.chop_rblock_key_t_val = (char *)chop_block_key_buffer (key);
+
+  ret = block_exists_0 (&rkey, remote->rpc_client);
+  if (!ret)
+    {
+      chop_log_printf (&remote->log, "exists RPC failed");
+
+      *exists = 0;
+      err = CHOP_STORE_ERROR;
+    }
+  else
+    *exists = *ret;
+
+  return err;
 }
 
 static errcode_t
@@ -141,6 +187,30 @@ chop_remote_write_block (chop_block_store_t *store,
     }
 
   return 0;
+}
+
+static errcode_t
+chop_remote_delete_block (chop_block_store_t *store,
+			  const chop_block_key_t *key)
+{
+  return CHOP_ERR_NOT_IMPL;
+}
+
+static errcode_t
+chop_remote_first_key (chop_block_store_t *store,
+		       chop_block_key_t *key)
+{
+  chop_block_key_init (key, NULL, 0, NULL, NULL);
+  return CHOP_ERR_NOT_IMPL;
+}
+
+static errcode_t
+chop_remote_next_key (chop_block_store_t *store,
+		      const chop_block_key_t *key,
+		      chop_block_key_t *next)
+{
+  chop_block_key_init (next, NULL, 0, NULL, NULL);
+  return CHOP_ERR_NOT_IMPL;
 }
 
 static errcode_t

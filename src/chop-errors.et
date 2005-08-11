@@ -36,6 +36,9 @@ error_code CHOP_FILTER_ERROR,
 error_code CHOP_STORE_ERROR,
            "Block store generic error"
 
+error_code CHOP_STORE_END,
+	   "End of block store"
+
 error_code CHOP_INDEXER_ERROR,
            "Indexer generic error"
 

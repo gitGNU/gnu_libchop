@@ -1,5 +1,5 @@
 
-bin_PROGRAMS = chop-file chop-archiver gdbm-list-entries \
+bin_PROGRAMS = chop-file chop-archiver chop-store-list-entries \
                chop-show-anchors chop-show-similarities
 
 CPPFLAGS += -I$(srcdir)/src

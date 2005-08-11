@@ -160,11 +160,21 @@ CHOP_DECLARE_RT_CLASS (scheme_block_store, block_store,
 		       SCM read_block;
 		       SCM write_block;
 		       SCM block_exists;
-		       SCM remove_block;
+		       SCM delete_block;
+		       SCM first_key;
+		       SCM next_key;
 		       SCM close;
 		       SCM sync;);
 
 static SCM guile_chop_store_type = SCM_BOOL_F;
+
+static errcode_t
+scm_store_block_exists (chop_block_store_t *store,
+			const chop_block_key_t *key, int *exists)
+{
+  *exists = 0;
+  return CHOP_ERR_NOT_IMPL;  /* FIXME */
+}
 
 static errcode_t
 scm_store_read_block (chop_block_store_t *store,
@@ -248,6 +258,28 @@ scm_store_write_block (chop_block_store_t *store,
 }
 
 static errcode_t
+scm_store_delete_block (chop_block_store_t *store,
+			const chop_block_key_t *key)
+{
+  return CHOP_ERR_NOT_IMPL;  /* FIXME */
+}
+
+static errcode_t
+scm_store_first_key (chop_block_store_t *store,
+		     chop_block_key_t *key)
+{
+  return CHOP_ERR_NOT_IMPL;  /* FIXME */
+}
+
+static errcode_t
+scm_store_next_key (chop_block_store_t *store,
+		    const chop_block_key_t *key,
+		    chop_block_key_t *next)
+{
+  return CHOP_ERR_NOT_IMPL;  /* FIXME */
+}
+
+static errcode_t
 scm_store_close (chop_block_store_t *store)
 {
   errcode_t err;
@@ -300,7 +332,8 @@ scm_store_sync (chop_block_store_t *store)
 
 static __inline__ chop_block_store_t *
 chop_make_scheme_block_store (SCM read_block, SCM write_block,
-			      SCM block_exists, SCM remove_block,
+			      SCM block_exists, SCM delete_block,
+			      SCM first_key, SCM next_key,
 			      SCM sync, SCM close)
 {
   chop_scheme_block_store_t *store;
@@ -312,8 +345,12 @@ chop_make_scheme_block_store (SCM read_block, SCM write_block,
   chop_object_initialize ((chop_object_t *)store,
 			  &chop_scheme_block_store_class);
 
+  store->block_store.block_exists = scm_store_block_exists;
   store->block_store.read_block = scm_store_read_block;
   store->block_store.write_block = scm_store_write_block;
+  store->block_store.delete_block = scm_store_delete_block;
+  store->block_store.first_key = scm_store_first_key;
+  store->block_store.next_key = scm_store_next_key;
   store->block_store.close = scm_store_close;
   store->block_store.sync = scm_store_sync;
 
@@ -321,7 +358,9 @@ chop_make_scheme_block_store (SCM read_block, SCM write_block,
   store->read_block = read_block;
   store->write_block = write_block;
   store->block_exists = block_exists;
-  store->remove_block = remove_block;
+  store->delete_block = delete_block;
+  store->first_key = first_key;
+  store->next_key = next_key;
   store->close = close;
   store->sync = sync;
 
