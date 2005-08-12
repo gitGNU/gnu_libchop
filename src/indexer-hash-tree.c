@@ -485,7 +485,6 @@ chop_hash_tree_index_block (chop_cipher_handle_t cipher_handle,
   if (cipher_handle)
     {
       /* Encrypt the block using its hash as a key.  */
-      gcry_error_t gerr;
       size_t hash_key_size, cipher_key_size, block_size, padding_size;
       chop_cipher_algo_t algo;
       char *hash_key;
@@ -519,21 +518,29 @@ chop_hash_tree_index_block (chop_cipher_handle_t cipher_handle,
 				hash_key, hash_key_size);
 
       /* Provide exactly the right key size.  */
-      gerr = chop_cipher_set_key (cipher_handle, index->hash_key,
-				  cipher_key_size);
+      err = chop_cipher_set_key (cipher_handle, index->hash_key,
+				 cipher_key_size);
+
+      while (err == CHOP_CIPHER_WEAK_KEY)
+	{
+	  /* The key we wanted to use was considered weak.  Hence, we use a
+	     random one, hoping that it won't be considered weak...  */
+	  chop_randomize (index->hash_key, cipher_key_size);
+	  err = chop_cipher_set_key (cipher_handle, index->hash_key,
+				     cipher_key_size);
+	}
+
 #if 0
-      if (!gerr)
-	gerr = chop_cipher_set_iv (cipher_handle, zero_vector,
-				   block_size);
+      if (!err)
+	err = chop_cipher_set_iv (cipher_handle, zero_vector,
+				  block_size);
 #endif
 
-      if (!gerr)
-	gerr = chop_cipher_encrypt (cipher_handle,
-				    block_content, total_size,
-				    buffer, total_size);
+      if (!err)
+	err = chop_cipher_encrypt (cipher_handle,
+				   block_content, total_size,
+				   buffer, total_size);
 
-      if (gerr)
-	err = CHOP_INVALID_ARG;  /* FIXME */
 
       /* Set up the index for this block.  */
       index->ciphered = 1;
@@ -1295,7 +1302,6 @@ chop_decoded_block_fetch (chop_block_store_t *store,
     {
       /* Decrypt BLOCK's content using its hash key and the specified
 	 ciphering algorithm.  */
-      gcry_error_t gerr;
       chop_cipher_handle_t cipher_handle;
       chop_cipher_algo_t cipher_algo;
 
@@ -1326,39 +1332,39 @@ chop_decoded_block_fetch (chop_block_store_t *store,
 	}
 
       /* Provide exactly the right key size.  */
-      gerr = chop_cipher_set_key (cipher_handle,
-				  index->hash_key,
-				  chop_cipher_algo_key_size (cipher_algo));
+      err = chop_cipher_set_key (cipher_handle,
+				 index->hash_key,
+				 chop_cipher_algo_key_size (cipher_algo));
 #if 0
-      if (!gerr)
-	gerr = chop_cipher_set_iv (cipher_handle, zero_vector,
-				   chop_cipher_algo_block_size
-				   (chop_cipher_algorithm (cipher_handle)));
+      if (!err)
+	err = chop_cipher_set_iv (cipher_handle, zero_vector,
+				  chop_cipher_algo_block_size
+				  (chop_cipher_algorithm (cipher_handle)));
 #endif
 
-      if (!gerr)
+      if (!err)
 	{
 	  char *cleartext = alloca (block_size);
 
-	  gerr = chop_cipher_decrypt (cipher_handle,
-				      cleartext, block_size,
-				      chop_buffer_content (&block->buffer),
-				      block_size);
-	  if (!gerr)
+	  err = chop_cipher_decrypt (cipher_handle,
+				     cleartext, block_size,
+				     chop_buffer_content (&block->buffer),
+				     block_size);
+	  if (!err)
 	    /* Push only INDEX->BLOCK_SIZE bytes (the payload).  */
 	    err = chop_buffer_push (&block->buffer, cleartext,
 				    index->block_size);
 	}
 
-      if (gerr)
+      if (err)
 	{
 	  char *block_id;
 	  block_id = alloca (index->block_id_size * 2 + 1);
 	  chop_buffer_to_hex_string (index->block_id, index->block_id_size,
 				     block_id);
 	  chop_log_printf (block->log, "block `%s': decryption error: %s",
-			   block_id, gcry_strerror (gerr));
-	  return CHOP_INDEXER_ERROR; /* XXX:  A bit vague...  */
+			   block_id, error_message (err));
+	  return err;
 	}
     }
 

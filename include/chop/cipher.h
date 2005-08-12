@@ -111,6 +111,21 @@ extern errcode_t chop_cipher_decrypt (chop_cipher_handle_t cipher,
 extern void chop_cipher_close (chop_cipher_handle_t handle);
 
 
+/* Fill BUFFER with SIZE random bytes.  */
+extern void chop_randomize (char *buffer, size_t size);
+
+
+
+/* Debugging.  */
+
+#include <chop/logs.h>
+
+
+/* The log one might want to attach to get cipher-related debugging
+   output.  */
+extern chop_log_t chop_cipher_log;
+
+
 _CHOP_END_DECLS
 
 #endif

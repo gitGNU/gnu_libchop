@@ -10,6 +10,10 @@
 
 
 
+/* This log is initialized by `chop_init ()'.  */
+chop_log_t chop_cipher_log;
+
+
 typedef struct
 {
   chop_cipher_algo_t chop_name;
@@ -151,6 +155,14 @@ chop_cipher_set_key (chop_cipher_handle_t handle,
   gcry_error_t gerr;
 
   gerr = gcry_cipher_setkey (handle->gcry_handle, key, key_size);
+  if (gerr)
+    chop_log_printf (&chop_cipher_log,
+		     "chop_cipher_set_key (%u bytes): %s [src: %s]",
+		     key_size,
+		     gcry_strerror (gerr), gcry_strsource (gerr));
+
+  if (gcry_err_code (gerr) == GPG_ERR_WEAK_KEY)
+    return CHOP_CIPHER_WEAK_KEY;
 
   return (gerr ? CHOP_OUT_OF_RANGE_ARG : 0);
 }
@@ -189,6 +201,12 @@ chop_cipher_encrypt (chop_cipher_handle_t cipher,
 
   gerr = gcry_cipher_encrypt (cipher->gcry_handle, out, out_size,
 			      in, in_size);
+  if (gerr)
+    chop_log_printf (&chop_cipher_log,
+		     "chop_cipher_encrypt (in: %u bytes; out: %u bytes): "
+		     "%s [src: %s]\n",
+		     in_size, out_size,
+		     gcry_strerror (gerr), gcry_strsource (gerr));
 
   return (gerr ? CHOP_INVALID_ARG : 0);
 }
@@ -214,6 +232,12 @@ chop_cipher_close (chop_cipher_handle_t cipher)
   free (cipher);
 }
 
+
+void
+chop_randomize (char *buffer, size_t size)
+{
+  gcry_randomize (buffer, size, GCRY_STRONG_RANDOM);
+}
 
 
 #if 0

@@ -51,4 +51,10 @@ error_code CHOP_DESERIAL_TOO_SHORT,
 error_code CHOP_DESERIAL_CORRUPT_INPUT,
            "Deserialization input buffer corrupted"
 
+error_code CHOP_CIPHER_ERROR,
+	   "Generic cipher error"
+
+error_code CHOP_CIPHER_WEAK_KEY,
+	   "Weak encryption key detected"
+
 end

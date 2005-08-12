@@ -211,10 +211,13 @@ chop_integer_to_hex_string (unsigned num, char *hex)
 
 /* Initialization.  */
 
+#include <chop/cipher.h>
+
 errcode_t
 chop_init (void)
 {
   initialize_chop_error_table ();
+  chop_log_init ("cipher", &chop_cipher_log);
   return 0;
 }
 
