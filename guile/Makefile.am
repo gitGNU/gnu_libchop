@@ -14,6 +14,7 @@ EXTRA_DIST = choppers-spec.scm cipher-spec.scm core-spec.scm	\
 
 CPPFLAGS += -I../include $(shell $(G_WRAP_CONFIG) --c-compile-args guile)
 LIBS += $(shell $(G_WRAP_CONFIG) --c-link-args guile) -L../src -lchop
+CFLAGS += -O0
 
 ## FIXME:  This fixes a g-wrap-config deficiency here.
 CPPFLAGS += -I/usr/local/include

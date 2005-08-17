@@ -77,15 +77,31 @@
 	(size-var (string-append (var value) "_size"))
 	(increment-var (string-append (var value) "_inc"))
 	(content-var (string-append (var value) "_buf")))
+;	(content-cpy-var (string-append (var value) "_buf_cpy")))
     (list "if (SCM_FALSEP (scm_u8vector_p (" (scm-var value) ")))"
 	  `(gw:error ,error-var type ,(wrapped-var value))
 	  "else { "
+;;	  "char *" content-cpy-var ";\n"
+	  "scm_gc_protect_object (" (scm-var value) ");\n"
 	  content-var " = " "scm_u8vector_elements ("
 	  (scm-var value)
 	  ", &" handle-var ", &" size-var ", &" increment-var ");\n"
+;;	  content-cpy-var " = scm_malloc (" size-var ");\n"
+;;	  "if (!" content-cpy-var ") { "
+;;	  "abort ();\n"
+;;;	  `(gw:error ,error-var memory ,(wrapped-var value))
+;;	  "} else memcpy (" content-cpy-var ", " content-var
+;;	  ", " size-var ");\n"
 	  "chop_block_key_init (&" (var value) ", (char *)" content-var
 	  ", " size-var ", NULL, NULL);\n"
 	  "}\n")))
+
+(define-method (post-call-arg-cg (type <chop-block-key-type>)
+				 (param <gw-value>) error-var)
+  (let ((handle-var (string-append (var param) "_handle")))
+    (list "\n/* post-call-arg-cg/block-key */\n"
+	  "scm_array_handle_release (&" handle-var ");\n"
+	  "scm_gc_unprotect_object (" (scm-var param) ");\n")))
 
 (define-method (call-arg-cg (type <chop-block-key-type>)
 			    (value <gw-value>))

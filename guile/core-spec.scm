@@ -27,7 +27,9 @@
   #:dependencies '(standard))
 
 
+;;
 ;; XXX  Hack:  Allow <gw-wct> to be used as `out' parameters.
+;;
 
 (define-method (check-typespec-options (type <gw-wct>)
 				       (options <list>))
@@ -36,7 +38,9 @@
   #t)
 
 
+;;
 ;; The error code type `errcode_t' mapped to Guile exceptions.
+;;
 
 (define-class <chop-errcode-type> (<gw-type>))
 
@@ -52,8 +56,8 @@
      "  if (" result-var " != 0)"
      "    {"
      "      SCM_ALLOW_INTS;  /* FIXME:  This is too specific! */"
-     "      scm_throw (scm_str2symbol (\"chop-error\"), "
-     "                 scm_int2num (" result-var "));"
+     "      scm_throw (scm_from_locale_symbol (\"chop-error\"), "
+     "                 scm_list_1 (scm_from_long (" result-var ")));"
      "    }"
      "}")))
 
@@ -63,7 +67,9 @@
   '())
 
 
+;;
 ;; Input buffers as SRFI-4 vectors
+;;
 
 (define-class <chop-input-buffer-type> (<gw-type>))
 (define-class <chop-writable-input-buffer-type> (<chop-input-buffer-type>))
@@ -113,6 +119,7 @@
     (list "if (SCM_FALSEP (scm_u8vector_p (" (scm-var value) ")))"
 	  `(gw:error ,error-var type ,(wrapped-var value))
 	  "else { "
+	  "scm_gc_protect_object (" (scm-var value) ");\n"
 	  (var value) " = "
 	  (if writable-buffer?
 	      "scm_u8vector_writable_elements ("
@@ -135,8 +142,9 @@
 (define-method (post-call-arg-cg (type <chop-input-buffer-type>)
 				 (param <gw-value>) error-var)
   (let ((handle-var (string-append (var param) "_handle")))
-    (list "\n/* post-call-arg-cg */\n"
-	  "scm_array_handle_release (&" handle-var ");\n")))
+    (list "\n/* post-call-arg-cg/input-buffer */\n"
+	  "scm_array_handle_release (&" handle-var ");\n"
+	  "scm_gc_unprotect_object (" (scm-var param) ");\n")))
 
 (define-method (call-arg-cg (type <chop-input-buffer-type>)
 			    (value <gw-value>))
@@ -147,8 +155,10 @@
 
 
 
+;;
 ;; A simple type that allows us to return a raw Scheme object (an
 ;; `SCM' object on the C side) in `hash-buffer' and the likes.
+;;
 
 (define-class <chop-raw-scheme-type> (<gw-type>))
 
@@ -174,11 +184,13 @@
 	(var param) " = " (scm-var param) ";\n"))
 
 
+;;
 ;; Growing `chop_buffer_t' buffers used as output buffers and mapped to
 ;; SRFI-4 u8vectors.
 ;;
-;; FIXME:  This is unused 'cause I couldn't make it work.  Instead, I found
-;; it much easier to use <raw-scheme-type> and do part of the work by myself...
+;; FIXME: This is unused 'cause I couldn't make it work.  Instead, I found it
+;; much easier to use <raw-scheme-type> and do part of the work by myself...
+;;
 
 (define-class <chop-output-buffer> (<gw-type>))
 
@@ -258,7 +270,9 @@
     (list (next-method) ", & /* the unvisible arg */" size-var)))
 
 
+;;
 ;; The guts of the core, waow.
+;;
 
 (define-method (initializations-cg (ws <chop-core-wrapset>) error-var)
   (list (next-method)

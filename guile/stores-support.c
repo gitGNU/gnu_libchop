@@ -240,12 +240,20 @@ scm_store_write_block (chop_block_store_t *store,
   scm_store = (chop_scheme_block_store_t *)store;
   if (scm_procedure_p (scm_store->write_block) == SCM_BOOL_T)
     {
-      SCM s_key, s_store, s_result;
+      SCM s_key, s_content, s_store, s_result;
+      char *key_cpy, *buf_cpy;
+
+      key_cpy = scm_malloc (chop_block_key_size (key));
+      memcpy (key_cpy, chop_block_key_buffer (key),
+	      chop_block_key_size (key));
+      buf_cpy = scm_malloc (size);
+      memcpy (buf_cpy, buffer, size);
 
       s_store = gw_wcp_assimilate_ptr (store, guile_chop_store_type);
-      s_key = scm_take_u8vector (chop_block_key_buffer (key),
-				 chop_block_key_size (key));
-      s_result = scm_call_2 (scm_store->write_block, s_store, s_key);
+      s_key = scm_take_u8vector (key_cpy, chop_block_key_size (key));
+      s_content = scm_take_u8vector (buf_cpy, size);
+      s_result = scm_call_3 (scm_store->write_block, s_store,
+			     s_key, s_content);
       if (s_result == SCM_BOOL_F)
 	err = CHOP_STORE_ERROR;
       else
@@ -300,6 +308,9 @@ scm_store_close (chop_block_store_t *store)
   else
     err = CHOP_ERR_NOT_IMPL;
 
+  scm_gc_unprotect_object (scm_store->block_exists);
+  /* FIXME:  Finish */
+
   return err;
 }
 
@@ -345,24 +356,21 @@ chop_make_scheme_block_store (SCM read_block, SCM write_block,
   chop_object_initialize ((chop_object_t *)store,
 			  &chop_scheme_block_store_class);
 
-  store->block_store.block_exists = scm_store_block_exists;
-  store->block_store.read_block = scm_store_read_block;
-  store->block_store.write_block = scm_store_write_block;
-  store->block_store.delete_block = scm_store_delete_block;
-  store->block_store.first_key = scm_store_first_key;
-  store->block_store.next_key = scm_store_next_key;
-  store->block_store.close = scm_store_close;
-  store->block_store.sync = scm_store_sync;
+#define SET_METHOD(_name)				\
+  store->block_store. _name = scm_store_ ## _name;	\
+  scm_gc_protect_object (_name);			\
+  store-> _name = _name;
 
-  /* The following are assumed to be Scheme procedures.  */
-  store->read_block = read_block;
-  store->write_block = write_block;
-  store->block_exists = block_exists;
-  store->delete_block = delete_block;
-  store->first_key = first_key;
-  store->next_key = next_key;
-  store->close = close;
-  store->sync = sync;
+  SET_METHOD (block_exists);
+  SET_METHOD (read_block);
+  SET_METHOD (write_block);
+  SET_METHOD (delete_block);
+  SET_METHOD (first_key);
+  SET_METHOD (next_key);
+  SET_METHOD (close);
+  SET_METHOD (sync);
+
+#undef SET_METHOD
 
   if (guile_chop_store_type == SCM_BOOL_F)
     {
