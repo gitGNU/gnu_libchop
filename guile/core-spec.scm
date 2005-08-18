@@ -33,8 +33,6 @@
 
 (define-method (check-typespec-options (type <gw-wct>)
 				       (options <list>))
-;  (format #t "check-typespec-options: ~a~%" type)
-;  (next-method)
   #t)
 
 

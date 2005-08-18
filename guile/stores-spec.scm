@@ -50,6 +50,14 @@
 ;; Define block key as a variant of non-writable input buffers.
 (define-class <chop-block-key-type> (<gw-type>))
 
+(define-method (check-typespec-options (type <chop-block-key-type>)
+				       (options <list>))
+  #t)
+
+(define-method (c-type-name (type <chop-block-key-type>)
+			    (typespec <gw-typespec>))
+  "chop_block_key_t")
+
 (define-method (c-type-name (type <chop-block-key-type>))
   "chop_block_key_t")
 
@@ -70,8 +78,7 @@
 	  (next-method))))
 
 (define-method (unwrap-value-cg (type <chop-block-key-type>)
-				(value <gw-value>)
-				error-var)
+				(value <gw-value>) error-var)
   ;; This method is actually called by `pre-call-arg-cg'.
   (let ((handle-var (string-append (var value) "_handle"))
 	(size-var (string-append (var value) "_size"))
@@ -96,12 +103,32 @@
 	  ", " size-var ", NULL, NULL);\n"
 	  "}\n")))
 
+(define-method (wrap-value-cg (type <chop-block-key-type>)
+			      (value <gw-value>) error-var)
+  (let ((key-buf (string-append (var value) "_buf")))
+    (format #t "wrap-value-cg/block-key~%")
+    (list "{ /* wrap-value-cg/block-key */\n"
+	  "  char *" key-buf ";\n"
+	  "  "key-buf" = scm_malloc (chop_block_key_size (&"(var value)"));\n"
+	  "  memcpy ("key-buf", chop_block_key_buffer (&"(var value)"),\n"
+	  "          chop_block_key_size (&"(var value)"));\n"
+	  "  "(scm-var value)" = scm_take_u8vector ("key-buf", "
+	  "chop_block_key_size (&"(var value)"));\n"
+	  "}\n")))
+
 (define-method (post-call-arg-cg (type <chop-block-key-type>)
 				 (param <gw-value>) error-var)
-  (let ((handle-var (string-append (var param) "_handle")))
-    (list "\n/* post-call-arg-cg/block-key */\n"
-	  "scm_array_handle_release (&" handle-var ");\n"
-	  "scm_gc_unprotect_object (" (scm-var param) ");\n")))
+  (if-typespec-option
+   param 'out
+
+   ;; `out' param:  call `wrap-value-cg'
+   (next-method)
+
+   ;; `in' param:  release the previously acquired handle
+   (let ((handle-var (string-append (var param) "_handle")))
+     (list "\n/* post-call-arg-cg/block-key */\n"
+	   "scm_array_handle_release (&" handle-var ");\n"
+	   "scm_gc_unprotect_object (" (scm-var param) ");\n"))))
 
 (define-method (call-arg-cg (type <chop-block-key-type>)
 			    (value <gw-value>))
@@ -236,7 +263,7 @@ is @var{key} and return a u8vector representing its content.")
 		  #:returns '<errcode>
 		  #:c-name "chop_store_first_key"
 		  #:arguments '((<store> store)
-				((<block-key> ) key))
+				((<block-key> out) key))
 		  #:description "Return the first key under which data is
 available in @var{store}.")
 
@@ -246,7 +273,8 @@ available in @var{store}.")
 		  #:c-name "chop_store_next_key"
 		  #:arguments '((<store> store)
 				(<block-key> key)
-				((<block-key> ) next-key)) #:description
+				((<block-key> out) next-key))
+		  #:description
 "Return the key right after @var{key} under which data is available in
 @var{store}.")
 
