@@ -20,7 +20,7 @@
 
 #include <argp.h>
 
-const char *argp_program_version = "chop-archiver 0.0";
+const char *argp_program_version = "chop-archiver 0.1";
 const char *argp_program_bug_address = "<ludovic.courtes@laas.fr>";
 
 static char doc[] =
@@ -126,10 +126,13 @@ do_archive (chop_stream_t *stream, chop_block_store_t *data_store,
       return err;
     }
 
-  /* Take a look at the index handle we got */
-  fprintf (stdout, "chop: done with indexing\n");
-  fprintf (stdout, "chop: got a handle of class \"%s\"\n",
-	   chop_class_name (chop_object_get_class ((chop_object_t *)handle)));
+  if (verbose)
+    {
+      /* Take a look at the index handle we got */
+      fprintf (stdout, "chop: done with indexing\n");
+      fprintf (stdout, "chop: got a handle of class \"%s\"\n",
+	       chop_class_name (chop_object_get_class ((chop_object_t *)handle)));
+    }
 
   err = chop_buffer_init (&buffer, 400);
   if (err)
@@ -145,12 +148,18 @@ do_archive (chop_stream_t *stream, chop_block_store_t *data_store,
 
   /* Display the ASCII representation of HANDLE.  We assume that it is
      zero-terminated.  */
-  fprintf (stdout, "chop: handle: %s\n", chop_buffer_content (&buffer));
+  if (verbose)
+    fprintf (stdout, "chop: handle: %s\n", chop_buffer_content (&buffer));
+  else
+    /* Print the handle on a single line so that external tools can use
+       it easily.  */
+    fprintf (stdout, "%s\n", chop_buffer_content (&buffer));
 
   chop_buffer_return (&buffer);
   chop_object_destroy ((chop_object_t *)handle);
 
-  fprintf (stdout, "chop: archive done\n");
+  if (verbose)
+    fprintf (stdout, "chop: archive done\n");
 
   return 0;
 }
