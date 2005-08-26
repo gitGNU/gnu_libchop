@@ -46,7 +46,7 @@ error_code CHOP_STORE_BLOCK_UNAVAIL,
 	   "Block is unavailable in the underlying block store"
 
 error_code CHOP_DESERIAL_TOO_SHORT,
-           "Deserialization buffer it too short"
+           "Deserialization buffer is too short"
 
 error_code CHOP_DESERIAL_CORRUPT_INPUT,
            "Deserialization input buffer corrupted"

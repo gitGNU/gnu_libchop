@@ -3,6 +3,7 @@
    borrowed from `chop-archiver.c'.  */
 
 #include <chop/chop.h>
+#include <chop/hash.h>
 #include <chop/stores.h>
 #include <chop/filters.h>
 #include <chop/block-server.h>
@@ -37,6 +38,55 @@ static char *local_store_file_name = NULL;
 /* The protocol underlying SunRPC.  */
 static char *protocol_name = "tcp";
 
+/* The name of the content hash algorithm enforced (if any).  */
+static chop_hash_method_t content_hash_enforced = CHOP_HASH_NONE;
+
+/* Whether block/key collision checking should turned off.  */
+static int no_collision_check = 0;
+
+
+
+/* Return true (non-zero) if KEY is a hash of BUFFER using hash method
+   METHOD.  */
+static int
+is_valid_hash_key (const chop_block_key_t *key,
+		   const char *buffer, size_t size,
+		   chop_hash_method_t method)
+{
+  char *hash;
+  size_t hash_size;
+
+  if (method == CHOP_HASH_NONE)
+    return 1;
+
+  hash_size = chop_hash_size (method);
+  if (hash_size != chop_block_key_size (key))
+    return 0;
+
+  hash = alloca (hash_size);
+  chop_hash_buffer (method, buffer, size, hash);
+  return (!memcmp (chop_block_key_buffer (key), hash, hash_size));
+}
+
+#define VALIDATE_HASH_KEY(key, argp)					\
+  if (!is_valid_hash_key (&key,						\
+			  argp->block.chop_rblock_content_t_val,	\
+			  argp->block.chop_rblock_content_t_len,	\
+			  content_hash_enforced))			\
+    {									\
+      char *hex_key;							\
+									\
+      hex_key = alloca (chop_block_key_size (&key) * 2 + 1);		\
+      chop_buffer_to_hex_string (chop_block_key_buffer (&key),		\
+				 chop_block_key_size (&key),		\
+				 hex_key);				\
+      fprintf (stderr, "%s: %s: key %s: "				\
+	       "violating %s content-hashing, rejected\n",		\
+	       program_name, __FUNCTION__,				\
+	       hex_key, chop_hash_method_name (content_hash_enforced));	\
+      result = -1;							\
+      return &result;							\
+    }
 
 
 /* The RPC handlers.  */
@@ -44,7 +94,7 @@ static char *protocol_name = "tcp";
 static int *
 handle_say_hello (char **argp, struct svc_req *req)
 {
-  static int result = 0;
+  static int result = 1;
 
   return &result;
 }
@@ -77,6 +127,53 @@ handle_write_block (block_store_write_block_args *argp, struct svc_req *req)
 
   chop_block_key_init (&key, argp->key.chop_rblock_key_t_val,
 		       argp->key.chop_rblock_key_t_len, NULL, NULL);
+  VALIDATE_HASH_KEY (key, argp);
+
+  if (!no_collision_check)
+    {
+      chop_buffer_t buffer;
+      size_t read;
+
+      chop_buffer_init (&buffer, 0);
+      err = chop_store_read_block (local_store, &key, &buffer, &read);
+      switch (err)
+	{
+	case CHOP_STORE_BLOCK_UNAVAIL:
+	  /* Nothing is available under KEY.  */
+	  result = 0;
+	  break;
+
+	case 0:
+	  /* Check whether the block currently stored under KEY is the same
+	     as the one passed by the caller.  */
+	  if ((argp->block.chop_rblock_content_t_len
+	       != chop_buffer_size (&buffer))
+	      || (memcmp (chop_buffer_content (&buffer),
+			  argp->block.chop_rblock_content_t_val,
+			  chop_buffer_size (&buffer))))
+	    {
+	      char *hex_key;
+	      hex_key = alloca (chop_block_key_size (&key) * 2 + 1);
+	      chop_buffer_to_hex_string (chop_block_key_buffer (&key),
+					 chop_block_key_size (&key),
+					 hex_key);
+	      fprintf (stderr, "%s: key %s: collising detected (and rejected)\n",
+		       program_name, hex_key);
+	      result = -3;
+	    }
+	  else
+	    result = 0;
+	  break;
+
+	default:
+	  result = -2;
+	}
+
+      chop_buffer_return (&buffer);
+      if (result)
+	return &result;
+    }
+
   err = chop_store_write_block (local_store, &key,
 				argp->block.chop_rblock_content_t_val,
 				argp->block.chop_rblock_content_t_len);
@@ -122,12 +219,15 @@ handle_read_block (chop_rblock_key_t *argp, struct svc_req *req)
 	    malloc (read);
 	  memcpy (result.block.chop_rblock_content_t_val,
 		  chop_buffer_content (&buffer), read);
+	  result.block.chop_rblock_content_t_len = read;
 	}
       else
 	result.block.chop_rblock_content_t_val = NULL;
     }
 
 #undef DO_FAIL
+
+  chop_buffer_return (&buffer);
 
   return &result;
 }
@@ -181,7 +281,7 @@ open_db_store (const chop_file_based_store_class_t *class,
 static SVCXPRT *
 register_rpc_handlers (void)
 {
-  int proto;
+  long proto;
   SVCXPRT *transp;
 
   /* Register the handlers themselves.  */
@@ -205,7 +305,10 @@ register_rpc_handlers (void)
 
   pmap_unset (BLOCK_STORE_PROGRAM, BLOCK_STORE_VERSION);
 
-  transp = svctcp_create (RPC_ANYSOCK, 0, 0);
+  if (proto == IPPROTO_TCP)
+    transp = svctcp_create (RPC_ANYSOCK, 0, 0);
+  else
+    transp = svcudp_create (RPC_ANYSOCK);
   if (transp == NULL)
     {
       fprintf (stderr, "%s: cannot create RPC service\n",
@@ -233,10 +336,12 @@ const char *argp_program_version = "chop-block-server 0.1";
 const char *argp_program_bug_address = "<ludovic.courtes@laas.fr>";
 
 static const char doc[] =
-"chop-block-server -- serves block store RPC\
+"chop-block-server -- serves block store RPCs\
 \v\
-This program serves block store RPCs and serves as a proxy to a local \
-block store.";
+This program serves block store RPCs by proxying LOCAL-BLOCK-STORE, a local \
+(file-based) block store.";
+
+static char args_doc[] = "LOCAL-BLOCK-STORE";
 
 /* Use the dummy store for debugging purposes.  */
 static int debugging = 0;
@@ -264,6 +369,13 @@ static struct argp_option options[] =
     { "store",   'S', "CLASS", 0,
       "Use CLASS as the underlying file-based block store" },
 #endif
+    /* Content hashing.  */
+    { "enforce-hash", 'H', "ALGO", 0,
+      "Enforce content-hash algorithm ALGO" },
+    { "no-collision-check", 'C', 0, 0,
+      "Turn off block/key collision checks" },
+
+    /* Network.  */
     { "restrict",'R', "HOSTS", 0,
       "Restrict access to HOSTS, a comma-separated list of hostnames." },
     { "protocol",'P', "PROTO", 0,
@@ -303,6 +415,18 @@ parse_opt (int key, char *arg, struct argp_state *state)
       break;
 #endif
 
+    case 'C':
+      no_collision_check = 1;
+      break;
+    case 'H':
+      if (chop_hash_method_lookup (arg, &content_hash_enforced))
+	{
+	  fprintf (stderr, "%s: %s: unknown hash method name\n",
+		   program_name, arg);
+	  exit (1);
+	}
+      break;
+
     case ARGP_KEY_ARG:
       if (state->arg_num >= 1)
 	/* Too many arguments. */
@@ -326,7 +450,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
 }
 
 /* Argp argument parsing.  */
-static struct argp argp = { options, parse_opt, 0, doc };
+static struct argp argp = { options, parse_opt, args_doc, doc };
 
 
 /* The program.  */

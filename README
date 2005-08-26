@@ -26,8 +26,42 @@ The best way to experiment with libchop is to try out the
 `chop-archiver' sample utility program available in the `utils'
 directory.
 
-Note that libchop primarily targets the GNU system (i.e. GNU C compiler
-and GNU C library).
+
+Requirements
+------------
+
+Libchop primarily targets the GNU system (i.e. GNU C compiler and GNU C
+library), although porting it to other systems shouldn't be too hard
+(especially with the help of `gnulib' for instance).
+
+If building from scratch:
+
+  Autoconf 2.59
+  Automake 1.9
+
+Optional (but highly recommended) build dependency:
+
+  GNU Gperf
+
+Mandatory dependencies:
+
+  libcom_err
+  GNU libgcrypt
+
+Optional dependencies:
+
+  GNU GDBM
+  libtdb
+  zlib
+  libbz2
+
+If you want to build the Guile bindings of libchop (you don't have to),
+then you'll need the following:
+
+  GNU Guile 1.7+
+  G-Wrap 1.9.6+  
+
+And that's it.
 
 
 Ludovic Courtès <ludovic.courtes@laas.fr>.

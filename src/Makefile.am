@@ -24,13 +24,18 @@ if HAVE_TDB
 libchop_la_SOURCES += store-tdb.c
 endif
 
-# RPC client-side stubs (for the remote block store)
-rpc_client_stubs = block_rstore_clnt.c block_rstore_xdr.c
-libchop_la_SOURCES += $(rpc_client_stubs)
-BUILT_SOURCES += $(rpc_client_stubs)
+# RPC stubs (for the remote block store)
+rpc_xdr =  block_rstore_xdr.c
+rpc_client_stubs = block_rstore_clnt.c
+rpc_server_stubs = block_rstore_svc.c
+rpc_headers = $(top_srcdir)/include/chop/block_rstore.h	\
+              $(top_srcdir)/rpc/block_rstore.h
+libchop_la_SOURCES += $(rpc_client_stubs) $(rpc_xdr)
+BUILT_SOURCES += $(rpc_client_stubs) $(rpc_server_stubs)	\
+		 $(rpc_xdr) $(rpc_headers)
 
 # The convenience library for block store RPC servers.
-libchop_block_server_la_SOURCES = store-server.c
+libchop_block_server_la_SOURCES = store-server.c $(rpc_xdr)
 libchop_block_server_la_LIBS = -lchop
 
 CPPFLAGS = -I../include -Wall -fno-strict-aliasing -D_GNU_SOURCE=1
