@@ -2,6 +2,30 @@
 # arch-tag: automatic-ChangeLog--lcourtes@laas.fr--2004-mosaic/libchop--main--0.1
 #
 
+2005-08-29 17:00:59 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-45
+
+    Summary:
+      Minor change to the build process, minor bug fix, use Lightning in `chopper-anchor-based.c'.
+    Revision:
+      libchop--main--0.1--patch-45
+
+    * configure.ac:  Use `AM_PATH_LIBGCRYPT' in order to check whether the
+      right `libgcrypt' is here.  Look for <lightning.h>.
+    
+    * src/indexer-hash-tree.c (chop_decoded_block_fetch):  Removed the
+      assertion, return `CHOP_INDEXER_ERROR' and log a message instead.
+    
+    * src/chopper-anchor-based.c:  Look for <lightning.h> and compile and use
+      `compile_multiplication_function ()' if available.
+
+    new files:
+     .arch-ids/INSTALL.id INSTALL
+
+    modified files:
+     ChangeLog README configure.ac src/chopper-anchor-based.c
+     src/indexer-hash-tree.c
+
+
 2005-08-26 14:02:36 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-44
 
     Summary:

@@ -46,7 +46,7 @@ Optional (but highly recommended) build dependency:
 Mandatory dependencies:
 
   libcom_err
-  GNU libgcrypt
+  GNU libgcrypt 1.2
 
 Optional dependencies:
 

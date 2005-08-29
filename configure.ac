@@ -26,10 +26,16 @@ if test "x$compile_et" = "xno"; then
 fi
 
 # Checks for libraries.
+AM_PATH_LIBGCRYPT([1.2.0], [has_libgcrypt=yes], [has_libgcrypt=no])
+if test "x$has_libgcrypt" != "xyes"; then
+   AC_MSG_ERROR([`libgcrypt' 1.2+ not found.  Please, install it first.])
+else
+   CPPFLAGS="$CPPFLAGS $LIBGCRYPT_CFLAGS"
+   LIBS="$LIBS $LIBGCRYPT_LIBS"
+fi
+
 AC_CHECK_LIB([c], [vasprintf], [],
   [AC_MSG_ERROR([`vasprintf' not found.  Are you using the GNU libc?])])
-AC_CHECK_LIB([gcrypt], [gcry_md_hash_buffer], [],
-  [AC_MSG_ERROR([`libgcrypt' not found.  Please, install it first.])])
 AC_CHECK_LIB([com_err], [com_err], [],
   [AC_MSG_ERROR([`libcom_err' not found.  Please, install it first, ok?!])])
 AC_CHECK_LIB([gdbm], [gdbm_open], [],
@@ -52,7 +58,7 @@ fi
 
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([stdlib.h obstack.h argp.h gdbm.h gcrypt.h com_err.h zlib.h netinet/in.h])
+AC_CHECK_HEADERS([stdlib.h obstack.h argp.h gdbm.h gcrypt.h com_err.h zlib.h netinet/in.h lightning.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST

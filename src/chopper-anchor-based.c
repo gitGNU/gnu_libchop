@@ -14,6 +14,7 @@
 
 #include <chop/chop.h>
 #include <chop/choppers.h>
+#include <chop/chop-config.h>
 
 #include <stdint.h>
 #include <assert.h>
@@ -36,6 +37,16 @@ typedef struct
 } sliding_window_t;
 
 
+#ifdef HAVE_LIGHTNING_H
+#warning "compiling the Lightning-based version"
+/* Well, there's nothing wrong with it, just to let you know.  ;-)  */
+
+/* The type of a dynamically compiled multiplication function.  */
+typedef unsigned long (* jit_multiplier_t) (unsigned long);
+
+#endif
+
+
 /* Declare `chop_anchor_based_chopper_t' which inherits from
    `chop_chopper_t'.  */
 CHOP_DECLARE_RT_CLASS_WITH_METACLASS (anchor_based_chopper, chopper,
@@ -52,9 +63,15 @@ CHOP_DECLARE_RT_CLASS_WITH_METACLASS (anchor_based_chopper, chopper,
 			  when reading the input stream.  */
 		       sliding_window_t sliding_window;
 
+#ifndef HAVE_LIGHTNING_H
 		       /* Cache of multiplication of a byte by PRIME to the
 			  WINDOW_SIZE */
 		       fpr_t product_cache[256];
+#else
+		       /* Dynamically generated function that computes an
+			  integer multiplied by PRIME_TO_THE_WS */
+		       jit_multiplier_t jit_multiply_with_prime_to_the_ws;
+#endif
 
 		       /* Tells whether this is the first time we process
 			  this stream.  */
@@ -113,6 +130,8 @@ chop_anchor_chopper_close (chop_chopper_t *);
 
 
 
+#ifndef HAVE_LIGHTNING_H
+
 /* Multiply WHAT by ANCHOR->PRIME to the ANCHOR->WINDOW_SIZE.  */
 static inline fpr_t
 multiply_with_prime_to_the_ws (chop_anchor_based_chopper_t *anchor,
@@ -140,6 +159,59 @@ multiply_with_prime_to_the_ws (chop_anchor_based_chopper_t *anchor,
   return (cached);
 }
 
+#else /* HAVE_LIGHTNING_H */
+
+#include <lightning.h>
+
+/* XXX:  Maybe we should actually compile the whole
+   `compute_next_window_fingerprint ()' function here, so as to avoid the
+   function-call overhead for just one multiplication.  */
+
+/* Compile and return a function that multiplies an unsigned long with
+   PRIME_TO_THE_WS.  The returned function must be freed eventually.  */
+static inline jit_multiplier_t
+compile_multiplication_function (unsigned long prime_to_the_ws)
+{
+#define MAX_CODE_SIZE   1024
+  unsigned long input_arg;
+  char *buffer, *start, *end;
+  jit_multiplier_t result;
+
+  buffer = malloc (MAX_CODE_SIZE);
+  if (!buffer)
+    return NULL;
+
+  result = (jit_multiplier_t)(jit_set_ip ((void *)buffer).iptr);
+  start = jit_get_ip ().ptr;
+
+  /* Take one argument (the character).  */
+  jit_prolog (1);
+  input_arg = jit_arg_ul ();
+  jit_getarg_l (JIT_R2, input_arg);
+
+  /* Actually perform the multiplication:  PRIME_TO_THE_WS is now considered
+     a compile-time value.  */
+  jit_muli_ul (JIT_R1, JIT_R2, prime_to_the_ws);
+
+  /* Return the value just computed.  */
+  jit_movr_ul (JIT_RET, JIT_R1);
+  jit_ret ();
+
+  /* Finish.  */
+  end = jit_get_ip ().ptr;
+  assert (end - start < MAX_CODE_SIZE);
+  jit_flush_code (start, end);
+
+  buffer = realloc (buffer, end - start);
+  return result;
+#undef MAX_CODE_SIZE
+}
+
+#define multiply_with_prime_to_the_ws(_chopper, _char)			\
+  (_chopper)->jit_multiply_with_prime_to_the_ws ((unsigned long)(_char))
+
+#endif /* HAVE_LIGHTNING_H */
+
 
 /* Read a whole window (ie. ANCHOR->WINDOW_SIZE bytes) from ANCHOR's input
    stream and store it inot BUFFER.  */
@@ -155,25 +227,27 @@ read_sliding_window (chop_anchor_based_chopper_t *anchor,
 /* Compute the fingerprint that comes after FPR.  FPR is both an input value
    (the previous fingerprint) and an output argument (the newly computed
    fingerprint).  */
-static inline void
+static inline fpr_t
 compute_next_window_fingerprint (chop_anchor_based_chopper_t *anchor,
 				 char first_char, char last_char,
-				 fpr_t *fpr)
+				 fpr_t fpr)
 {
-  *fpr *= ANCHOR_PRIME_NUMBER;
-  *fpr -= multiply_with_prime_to_the_ws (anchor, anchor->prev_first_char);
-  *fpr += last_char;
-  *fpr &= ANCHOR_MODULO_MASK;
+  fpr *= ANCHOR_PRIME_NUMBER;
+  fpr -= multiply_with_prime_to_the_ws (anchor, anchor->prev_first_char);
+  fpr += last_char;
+  fpr &= ANCHOR_MODULO_MASK;
 
   anchor->prev_first_char = first_char;
-  anchor->prev_fpr = *fpr;
+  anchor->prev_fpr = fpr;
+
+  return fpr;
 }
 
-static inline void
+static inline fpr_t
 compute_window_fingerprint (chop_anchor_based_chopper_t *anchor,
-			    sliding_window_t *window,
-			    fpr_t *fpr)
+			    sliding_window_t *window)
 {
+  register fpr_t fpr;
   int subwinnum;
   const char *subwin, *p;
   char first_char = '\0';
@@ -182,7 +256,7 @@ compute_window_fingerprint (chop_anchor_based_chopper_t *anchor,
   size_t start_offset, end_offset;
 
   /* Traverse the WINDOW from its end offset to its start offset.  */
-  *fpr = 0;
+  fpr = 0;
   for (subwinnum = 1, start_offset = 0, end_offset = window->offsets[0];
        subwinnum >= 0;
        subwinnum--,
@@ -195,7 +269,7 @@ compute_window_fingerprint (chop_anchor_based_chopper_t *anchor,
 	  fpr_t this_fpr = *p;
 
 	  first_char = *p;
-	  *fpr += this_fpr * prime_power;
+	  fpr += this_fpr * prime_power;
 	  prime_power *= ANCHOR_PRIME_NUMBER;
 	  if (--total == 0)
 	    break;
@@ -208,6 +282,8 @@ compute_window_fingerprint (chop_anchor_based_chopper_t *anchor,
   /* ANCHOR->PREV_FIRST_CHAR is then used in
      COMPUTE_NEXT_WINDOW_FINGERPRINT.  */
   anchor->prev_first_char = first_char;
+
+  return fpr;
 }
 
 
@@ -451,7 +527,11 @@ anchor_based_ctor (chop_object_t *object,
 
   chopper->window_size = 0;
   chopper->first = 1;
+#ifndef HAVE_LIGHTNING_H
   memset (&chopper->product_cache, 0, sizeof (chopper->product_cache));
+#else
+  chopper->jit_multiply_with_prime_to_the_ws = NULL;
+#endif
 }
 
 errcode_t
@@ -480,6 +560,14 @@ chop_anchor_based_chopper_init (chop_stream_t *input,
   for (i = 0; i < window_size; i++)
     chopper->prime_to_the_ws *= ANCHOR_PRIME_NUMBER;
 
+#ifdef HAVE_LIGHTNING_H
+  chopper->jit_multiply_with_prime_to_the_ws =
+    compile_multiplication_function (chopper->prime_to_the_ws);
+
+  if (!chopper->jit_multiply_with_prime_to_the_ws)
+    return ENOMEM;
+#endif
+
   err = chop_log_init ("anchor-based-chopper", &chopper->log);
 
   return err;
@@ -505,7 +593,7 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
   int end_of_stream = 0, first = 1;
   char *window_dest;
   size_t start_offset = 0, discard_size, *window_dest_size;
-  fpr_t window_fpr;
+  register fpr_t window_fpr;
   chop_anchor_based_chopper_t *anchor =
     (chop_anchor_based_chopper_t *)chopper;
 
@@ -558,7 +646,7 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
 	{
 	  /* For the first window, we must compute the fingerprint from
 	     scratch.  */
-	  compute_window_fingerprint (anchor, window, &window_fpr);
+	  window_fpr = compute_window_fingerprint (anchor, window);
 	  first = 0;
 	}
       else
@@ -570,8 +658,9 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
 	  first_char = sliding_window_first_char (window);
 	  last_char = sliding_window_last_char (window);
 
-	  compute_next_window_fingerprint (anchor, first_char, last_char,
-					   &window_fpr);
+	  window_fpr = compute_next_window_fingerprint (anchor,
+							first_char, last_char,
+							window_fpr);
 	}
 
       chop_log_printf (&anchor->log, "fingerprint: 0x%x", window_fpr);
@@ -663,6 +752,10 @@ chop_anchor_chopper_close (chop_chopper_t *chopper)
     (chop_anchor_based_chopper_t *)chopper;
 
   sliding_window_destroy (&anchor->sliding_window);
+
+#ifdef HAVE_LIGHTNING_H
+  free (anchor->jit_multiply_with_prime_to_the_ws);
+#endif
 }
 
 chop_log_t *

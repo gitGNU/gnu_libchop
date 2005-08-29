@@ -1317,7 +1317,13 @@ chop_decoded_block_fetch (chop_block_store_t *store,
 #endif
 
       cipher_handle = ciphering_context->cipher_handle;
-      assert (cipher_handle != CHOP_CIPHER_HANDLE_NIL);
+      if (cipher_handle == CHOP_CIPHER_HANDLE_NIL)
+	{
+	  chop_log_printf (block->log, "block_fetch: "
+			   "index handle refers to a ciphered block but "
+			   "no cipher handle was passed");
+	  return CHOP_INDEXER_ERROR;
+	}
       cipher_algo = chop_cipher_algorithm (cipher_handle);
 
       /* We round hash keys so that their size is equal to the key size
