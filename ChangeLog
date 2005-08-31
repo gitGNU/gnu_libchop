@@ -2,6 +2,68 @@
 # arch-tag: automatic-ChangeLog--lcourtes@laas.fr--2004-mosaic/libchop--main--0.1
 #
 
+2005-08-31 15:53:33 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-46
+
+    Summary:
+      Added experimental support for QDBM;  new tool `chop-store-convert'.
+    Revision:
+      libchop--main--0.1--patch-46
+
+    * src/store-qdbm.c:  New file.
+    
+    * src/store-smart.c:  New file.
+    
+    * configure.ac:  Look for QDBM.
+    
+    * utils/chop-store-convert.c:  New file.
+    
+    * guile/stores-spec.scm (smart-block-store-open):  New binding.
+      (file-based-block-store-open):  New binding.
+    
+    * guile/stores-support.c (chop_smart_block_store_open_alloc):  New
+      function.
+      (chop_file_based_store_open_alloc):  New function.
+    
+    * include/chop/stores.h (chop_qdbm_block_store_class):  New decl.
+      (chop_smart_block_store_class):  New decl.
+      (chop_qdbm_store_open):  New decl.
+      (chop_smart_block_store_open):  New decl.
+      (chop_smart_block_store_log):  New decl.
+    
+    * src/Makefile.am (libchop_la_SOURCES):  Account for `store-qdbm.c' and
+      `store-smart.c'.  Use `AM_CPPFLAGS' and `AM_CFLAGS' instead of their
+      non-prefixed counterparts.
+    
+    * src/chopper-anchor-based.c (compile_multiplication_function):  Started
+      an experimental thing to inline generated code.
+    
+    * src/store-remote.c (chop_remote_block_exists):  Fixed an uninitialized
+      variable.
+    
+    * utils/Makefile.am (bin_PROGRAMS):  Updated.
+      (LDADD):  Simplified.
+    
+    * utils/chop-store-list-entries.c:  Renamed to `chop-store-list.c'.
+
+    new files:
+     src/.arch-ids/store-qdbm.c.id src/.arch-ids/store-smart.c.id
+     src/store-qdbm.c src/store-smart.c
+     utils/.arch-ids/chop-store-convert.c.id
+     utils/chop-store-convert.c
+
+    modified files:
+     ChangeLog configure.ac guile/stores-spec.scm
+     guile/stores-support.c include/chop/stores.h src/Makefile.am
+     src/chopper-anchor-based.c src/indexer-hash-tree.c
+     src/store-remote.c utils/Makefile.am utils/chop-store-list.c
+
+    renamed files:
+     utils/.arch-ids/chop-store-list-entries.c.id
+       ==> utils/.arch-ids/chop-store-list.c.id
+     utils/chop-store-list-entries.c
+       ==> utils/chop-store-list.c
+
+
 2005-08-29 17:00:59 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-45
 
     Summary:

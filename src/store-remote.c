@@ -102,7 +102,7 @@ chop_remote_block_exists (chop_block_store_t *store,
 			  const chop_block_key_t *key,
 			  int *exists)
 {
-  errcode_t err;
+  errcode_t err = 0;
   int *ret;
   chop_rblock_key_t rkey;
   chop_remote_block_store_t *remote = (chop_remote_block_store_t *)store;

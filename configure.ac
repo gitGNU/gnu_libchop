@@ -53,8 +53,31 @@ if test "x$have_libtdb" = "xyes"; then
    AC_DEFINE([HAVE_TDB], 1, [Tells whether libtdb is available.])
    LIBS="$LIBS -ltdb"
 else
-   AC_MSG_WARN([`libtdb' not found won't be used])
+   AC_MSG_WARN([`libtdb' not found, won't be used])
 fi
+
+# QDBM, http://qdbm.sf.net/
+if pkg-config qdbm; then
+   # Looks like it's available.
+   CPPFLAGS="$CPPFLAGS `pkg-config qdbm --cflags`"
+   LIBS="$LIBS `pkg-config qdbm --libs`"
+
+   AC_CHECK_LIB([qdbm], [dpopen], [have_libqdbm=yes], [have_libqdbm=no])
+   if test "x$have_libqdbm" = "xyes"; then
+      AC_CHECK_HEADER([depot.h], [], [have_libqdbm=no])
+      AC_CHECK_HEADER([hovel.h], [], [have_libqdbm=no])
+   fi
+else
+   have_libqdbm=no
+fi
+
+AM_CONDITIONAL([HAVE_QDBM], test "x$have_libqdbm" = "xyes")
+if test "x$have_libqdbm" = "xyes"; then
+   AC_DEFINE([HAVE_QDBM], 1, [Tells whether libqdbm is available.])
+else
+   AC_MSG_WARN([`libqdbm' not found, won't be used])
+fi
+   
 
 # Checks for header files.
 AC_HEADER_STDC

@@ -180,6 +180,26 @@
 				(<store> backend)))
 
   (wrap-function! ws
+		  #:name 'smart-block-store-open
+		  #:c-name "chop_smart_block_store_open_alloc"
+		  #:returns '<store>
+		  #:arguments '((<store> backend)))
+
+  (wrap-function! ws
+		  #:name 'file-based-block-store-open
+		  #:c-name "chop_file_based_store_open_alloc"
+		  #:returns '<errcode>
+		  #:arguments '(((mchars caller-owned) class-name)
+				((mchars caller-owned) file-name)
+				(int open-flags (default "O_RDWR | O_CREAT"))
+				(int mode (default "S_IRUSR | S_IWUSR"))
+				((<store> out) new-store)))
+
+  ;; XXX: In the end, the `gdbm', `tdb', etc. functions below should be
+  ;; superseded by `file-based-block-store-open'.  This would allow Scheme
+  ;; code to use libchop even if not all those store classes are available.
+
+  (wrap-function! ws
 		  #:name 'gdbm-block-store-open
 		  #:c-name "chop_gdbm_block_store_open_alloc"
 		  #:returns '<errcode>

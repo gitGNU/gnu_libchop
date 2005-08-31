@@ -184,17 +184,28 @@ compile_multiplication_function (unsigned long prime_to_the_ws)
   result = (jit_multiplier_t)(jit_set_ip ((void *)buffer).iptr);
   start = jit_get_ip ().ptr;
 
-  /* Take one argument (the character).  */
-  jit_prolog (1);
+#if 1
+  /* Take one argument (the character), and instruct Lightning that we won't
+     call any function.  */
+  jit_leaf (1);
   input_arg = jit_arg_ul ();
   jit_getarg_l (JIT_R2, input_arg);
+#else /* #ifdef __GNUC__ */
+  /* The point here would be to inline the generated code by leveraging the
+     various `patch' macros of Lightning and the ``labels as pointers''
+     extension in GCC.  XXX:  To be done.  */
+  /* Create a zero-argument function.  The first `movi' instructions are
+     meant to be patched later, in `compute_next_window_fingerprint ()'.  */
+  jit_leaf (0);
+  result.operand_ptr_movi_addr = jit_movi_p (JIT_R0, 777);
+#endif
 
   /* Actually perform the multiplication:  PRIME_TO_THE_WS is now considered
      a compile-time value.  */
   jit_muli_ul (JIT_R1, JIT_R2, prime_to_the_ws);
 
   /* Return the value just computed.  */
-  jit_movr_ul (JIT_RET, JIT_R1);
+  jit_retval_ul (JIT_R1);
   jit_ret ();
 
   /* Finish.  */
@@ -230,10 +241,26 @@ read_sliding_window (chop_anchor_based_chopper_t *anchor,
 static inline fpr_t
 compute_next_window_fingerprint (chop_anchor_based_chopper_t *anchor,
 				 char first_char, char last_char,
-				 fpr_t fpr)
+				 register fpr_t fpr)
 {
+#if 0 /* (defined HAVE_LIGHTNING_H) && (defined __GNUC__) */
+  unsigned long multiplication;
+
+  if (!anchor->jit_multiply_with_prime_to_the_ws.patched)
+    {
+      jit_patch_movi ((jit_insn *)NULL, 2);
+      jit_patch_at ((jit_insn *)NULL, label);
+    }
+#endif
+
   fpr *= ANCHOR_PRIME_NUMBER;
+#if 0 /* (defined HAVE_LIGHTNING_H) && (defined __GNUC__) */
+  goto (anchor->jit_multiply_with_prime_to_the_ws.func);
+ after_mult:
+  /* XXX */
+#else
   fpr -= multiply_with_prime_to_the_ws (anchor, anchor->prev_first_char);
+#endif
   fpr += last_char;
   fpr &= ANCHOR_MODULO_MASK;
 

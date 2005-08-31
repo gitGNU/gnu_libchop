@@ -117,7 +117,9 @@ CHOP_DECLARE_RT_CLASS (file_based_store_class, class,
 extern const chop_class_t chop_dummy_block_store_class;
 extern const chop_file_based_store_class_t chop_gdbm_block_store_class;
 extern const chop_file_based_store_class_t chop_tdb_block_store_class;
+extern const chop_file_based_store_class_t chop_qdbm_block_store_class;
 extern const chop_class_t chop_remote_block_store_class;
+extern const chop_class_t chop_smart_block_store_class;
 
 
 /* Initialize STORE as a "dummy" block store that does nothing but display
@@ -161,6 +163,14 @@ extern errcode_t chop_tdb_store_open (const char *name,
 				      int open_flags, mode_t mode,
 				      chop_block_store_t *store);
 
+/* Same as `chop_gdbm_store_open ()' for a QDBM database.  */
+extern errcode_t chop_qdbm_store_open (const char *name, size_t block_size,
+				       int open_flags, mode_t mode,
+				       chop_block_store_t *store);
+
+/* XXX:  Implement a store for SkipDB,
+   http://www.dekorte.com/projects/opensource/SkipDB/ .  */
+
 /* This function is a simple version of the GDBM/TDB block store open
    functions which it just calls.  The first argument gives the pointer to
    one of the database-based block store classes.  */
@@ -175,9 +185,20 @@ extern errcode_t
 chop_remote_block_store_open (const char *host, const char *protocol,
 			      chop_block_store_t *store);
 
-/* XXX:  We might want to have a look at Berkeley DB and the Trivial DB
-   (`libdb3' and `libtdb1'), or even the TDB Replication System
-   (http://tdbrepl.inodes.org/) or a DHT.  */
+/* Initialize STORE as a ``smart proxy'' of BACKEND, meaning that STORE will
+   only forward `write_block' requests to BACKEND is the block doesn't
+   already exist in BACKEND.  This is particularly useful as a proxy to
+   remote block stores.  */
+extern errcode_t chop_smart_block_store_open (chop_block_store_t *backend,
+					      chop_block_store_t *store);
+
+/* Return the log attached to STORE, a smart block store.  If STORE is not an
+   instance of CHOP_SMART_BLOCK_STORE_CLASS, then NULL is returned.  */
+extern chop_log_t *chop_smart_block_store_log (chop_block_store_t *store);
+
+
+/* XXX: We might want to have a look at Berkeley DB (`libdb3'), or even the
+   TDB Replication System (http://tdbrepl.inodes.org/) or a DHT.  */
 
 
 

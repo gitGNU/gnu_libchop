@@ -34,6 +34,60 @@ chop_dummy_proxy_block_store_open_alloc (const char *name,
   return store;
 }
 
+static __inline__ chop_block_store_t *
+chop_smart_block_store_open_alloc (chop_block_store_t *backend)
+{
+  chop_block_store_t *store;
+
+  store = malloc (chop_class_instance_size (&chop_smart_block_store_class));
+  if (!store)
+    return NULL;
+
+  chop_smart_block_store_open (backend, store);
+
+  return store;
+}
+
+
+static __inline__ errcode_t
+chop_file_based_store_open_alloc (const char *class_nickname,
+				  const char *file, int open_flags,
+				  mode_t mode,
+				  chop_block_store_t **store)
+{
+  errcode_t err;
+  char *class_realname;
+  const chop_class_t *class;
+
+  class_realname = alloca (strlen (class_nickname) + 20);
+  strcpy (class_realname, class_nickname);
+  strcat (class_realname, "_block_store");
+
+  class = chop_class_lookup (class_realname);
+  if (!class)
+    return CHOP_ERR_NOT_FOUND;
+
+  if (chop_object_get_class ((chop_object_t *)class)
+      != &chop_file_based_store_class_class)
+    return CHOP_INVALID_ARG;
+
+  *store = malloc (chop_class_instance_size (class));
+  if (!*store)
+    return ENOMEM;
+
+  err = chop_file_based_store_open ((chop_file_based_store_class_t *)class,
+				    file, open_flags, mode,
+				    *store);
+  if (err)
+    {
+      free (*store);
+      *store = NULL;
+    }
+
+  return err;
+}
+
+
 static __inline__ errcode_t
 chop_gdbm_block_store_open_alloc (const char *name, size_t block_size,
 				  int open_flags, mode_t mode,

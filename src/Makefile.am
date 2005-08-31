@@ -4,24 +4,29 @@ EXTRA_DIST = filter-zip-push-pull.c store-generic-db.c \
 
 lib_LTLIBRARIES = libchop.la libchop-block-server.la
 
-libchop_la_SOURCES = chop.c chop-errors.c logs.c		\
-		     chopper-fixed-size.c			\
-                     chopper-anchor-based.c			\
-		     stores.c					\
-		     store-dummy.c				\
-		     store-gdbm.c				\
-		     store-remote.c				\
-		     store-filtered.c				\
-		     cipher.c                                   \
-		     hash.c					\
-		     buffers.c					\
-		     indexer-hash-tree.c			\
-		     filters.c					\
-		     filter-zlib-zip.c filter-zlib-unzip.c	\
+libchop_la_SOURCES = chop.c chop-errors.c logs.c			\
+		     chopper-fixed-size.c				\
+                     chopper-anchor-based.c				\
+		     stores.c						\
+		     store-dummy.c					\
+		     store-gdbm.c					\
+		     store-remote.c					\
+		     store-filtered.c					\
+		     store-smart.c					\
+		     cipher.c						\
+		     hash.c						\
+		     buffers.c						\
+		     indexer-hash-tree.c				\
+		     filters.c						\
+		     filter-zlib-zip.c filter-zlib-unzip.c		\
 		     stream-file.c stream-mem.c # stream-ext2.c 
 
 if HAVE_TDB
 libchop_la_SOURCES += store-tdb.c
+endif
+
+if HAVE_QDBM
+libchop_la_SOURCES += store-qdbm.c
 endif
 
 # RPC stubs (for the remote block store)
@@ -38,8 +43,8 @@ BUILT_SOURCES += $(rpc_client_stubs) $(rpc_server_stubs)	\
 libchop_block_server_la_SOURCES = store-server.c $(rpc_xdr)
 libchop_block_server_la_LIBS = -lchop
 
-CPPFLAGS = -I../include -Wall -fno-strict-aliasing -D_GNU_SOURCE=1
-CFLAGS = -O0 -g
+AM_CPPFLAGS = -I../include -Wall -fno-strict-aliasing -D_GNU_SOURCE=1
+AM_CFLAGS = -O0 -g
 
 COMPILE_ET = compile_et
 RPCGEN = rpcgen

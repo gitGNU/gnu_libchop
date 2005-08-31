@@ -3,6 +3,7 @@
 #include <assert.h>
 
 #include <chop/chop.h>
+#include <chop/chop-config.h>
 #include <chop/buffers.h>
 #include <chop/serializable.h>
 #include <chop/stores.h>
@@ -10,11 +11,11 @@
 #include <argp.h>
 
 
-const char *argp_program_version = "chop-archiver 0.0";
+const char *argp_program_version = "chop-store-list 0.0";
 const char *argp_program_bug_address = "<ludovic.courtes@laas.fr>";
 
 static char doc[] =
-"chop-store-list-entries -- list entries of a keyed block store\
+"chop-store-list -- list entries of a keyed block store\
 \v\
 This program allows to list entries contained in the file-based keyed \
 block store available in FILE.\n";

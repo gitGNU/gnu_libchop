@@ -754,7 +754,7 @@ chop_block_tree_flush (key_block_tree_t *tree,
 {
   errcode_t err = 0;
   key_block_t *block;
-  size_t depth = 0, last_depth;
+  size_t depth = 0, last_depth = 0;
 
   for (block = tree->current;
        block != NULL;
