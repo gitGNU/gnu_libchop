@@ -16,14 +16,21 @@ _CHOP_BEGIN_DECLS
 
 typedef struct chop_log chop_log_t;
 
+typedef void (* chop_log_user_logger_t) (chop_log_t *, const char *,
+					 va_list);
+typedef void (* chop_log_dtor_t) (chop_log_t *);
+
+
 struct chop_log
 {
   char *name;
   int attached;
   int eventually_close;
   int fd;
-  void (* printf) (struct chop_log *, const char *, va_list);
+
+  chop_log_user_logger_t printf;
   void *data;
+  chop_log_dtor_t dtor;
 };
 
 
@@ -31,32 +38,40 @@ struct chop_log
 /* Initialize LOG with name NAME.  */
 extern errcode_t chop_log_init (const char *name, chop_log_t *log);
 
-/* Close LOG.  */
-static __inline__ void chop_log_close (chop_log_t *__log)
-{
-  if (!__log->attached)
-    return;
-  if (__log->eventually_close)
-    close (__log->fd);
-  if (__log->name)
-    free (__log->name);
-  __log->name = NULL;
-  __log->attached = 0;
-  __log->fd = 0;
-}
 
 /* Detach LOG from any associated file descriptor or user-provided logging
    method.  */
 static __inline__ void chop_log_detach (chop_log_t *__log)
 {
-  if (!__log->attached)
-    return;
-  if ((!__log->printf) && (__log->eventually_close))
-    close (__log->fd);
+  if ((__log->attached) && (__log->eventually_close))
+    {
+      if (__log->printf)
+	{
+	  if (__log->dtor)
+	    __log->dtor (__log);
+	}
+      else
+	close (__log->fd);
+    }
+
   __log->attached = 0;
   __log->fd = 0;
   __log->printf = NULL;
   __log->data = NULL;
+  __log->dtor = NULL;
+}
+
+/* Close LOG.  */
+static __inline__ void chop_log_close (chop_log_t *__log)
+{
+  chop_log_detach (__log);
+
+  if (__log->name)
+    free (__log->name);
+
+  __log->name = NULL;
+  __log->attached = 0;
+  __log->fd = 0;
 }
 
 /* Attach LOG to file descriptor FD.  If EVENTUALLY_CLOSE is non-zero, then
@@ -70,17 +85,20 @@ static __inline__ void chop_log_attach (chop_log_t *__log, int __fd,
   __log->attached = 1;
 }
 
+
 /* Attach LOG to the user-provided logging method PRINTF with specific data
-   DATA.  */
+   DATA.  Upon closing or detaching LOG, if DTOR is not NULL then it will be
+   called.  */
 static __inline__ void
 chop_log_attach_to_user (chop_log_t *__log,
-			 void (* __printf) (chop_log_t *, const char *,
-					    va_list),
-			 void *__data)
+			 chop_log_user_logger_t __printf,
+			 void *__data,
+			 chop_log_dtor_t __dtor)
 {
   chop_log_detach (__log);
   __log->printf = __printf;
   __log->data = __data;
+  __log->dtor = __dtor;
   __log->attached = 1;
 }
 
@@ -90,6 +108,15 @@ chop_log_user_data (chop_log_t *__log)
 {
   return (__log->data);
 }
+
+/* If LOG is attached to a user logger, then return it;  otherwise, return
+   NULL.  */
+static __inline__ chop_log_user_logger_t
+chop_log_user_logger (chop_log_t *__log)
+{
+  return (__log->printf);
+}
+
 
 /* Return the name of LOG.  */
 static __inline__ const char *

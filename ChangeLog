@@ -2,6 +2,33 @@
 # arch-tag: automatic-ChangeLog--lcourtes@laas.fr--2004-mosaic/libchop--main--0.1
 #
 
+2005-09-01 16:38:29 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-48
+
+    Summary:
+      Fixed the `chop_log_t' API to avoid memory leaks.
+    Revision:
+      libchop--main--0.1--patch-48
+
+    * include/chop/logs.h (chop_log_t):  Added the `dtor' field.
+      (chop_log_attach_to_user):  Added a `dtor' parameter.
+      (chop_log_detach):  Call `dtor' if available.
+    
+    * src/logs.c (chop_log_mimic):  Take `dtor' into account.
+    
+    * guile/logs-support.c (chop_log_attach_to_scheme_user):  Updated
+      accordingly.  Call `scm_gc_protect_object ()' on PROC.
+      (scm_log_dtor):  New function.
+    
+    * tests/interfaces/choppers.c:  Strengthened a bit.
+    
+    * utils/chop-store-convert.c (main):  Show the number of pairs converted.
+
+    modified files:
+     ChangeLog guile/logs-support.c include/chop/logs.h
+     src/chopper-anchor-based.c src/indexer-hash-tree.c src/logs.c
+     tests/interfaces/choppers.c utils/chop-store-convert.c
+
+
 2005-09-01 09:08:30 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-47
 
     Summary:

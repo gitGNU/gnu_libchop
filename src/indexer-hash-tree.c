@@ -1667,5 +1667,6 @@ hash_tree_stream_close (chop_stream_t *stream)
   chop_hash_tree_stream_t *tstream = (chop_hash_tree_stream_t *)stream;
 
   chop_decoded_block_tree_free (&tstream->tree);
+  chop_log_close (&tstream->log);
 }
 

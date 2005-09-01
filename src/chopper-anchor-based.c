@@ -37,6 +37,7 @@ typedef struct
 } sliding_window_t;
 
 
+#undef HAVE_LIGHTNING_H
 #ifdef HAVE_LIGHTNING_H
 #warning "compiling the Lightning-based version"
 /* Well, there's nothing wrong with it, just to let you know.  ;-)  */
@@ -779,6 +780,7 @@ chop_anchor_chopper_close (chop_chopper_t *chopper)
     (chop_anchor_based_chopper_t *)chopper;
 
   sliding_window_destroy (&anchor->sliding_window);
+  chop_log_close (&anchor->log);
 
 #ifdef HAVE_LIGHTNING_H
   free (anchor->jit_multiply_with_prime_to_the_ws);

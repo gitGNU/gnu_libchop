@@ -245,6 +245,8 @@ main (int argc, char *argv[])
     err = 0;
 
  finish:
+  printf ("%u pairs converted\n", count);
+
   chop_store_close (source);
   chop_store_close (dest);
 

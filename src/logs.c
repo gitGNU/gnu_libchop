@@ -13,6 +13,7 @@ chop_log_init (const char *name, chop_log_t *log)
   log->eventually_close = 0;
   log->printf = NULL;
   log->data = NULL;
+  log->dtor = NULL;
 
   log->name = strdup (name);
   if (!log->name)
@@ -44,13 +45,21 @@ chop_log_mimic (chop_log_t *log, chop_log_t *parent, int takeover)
       if (takeover)
 	{
 	  log->eventually_close = 1;
+	  log->dtor = parent->dtor;
 	  parent->eventually_close = 0;
+	  parent->dtor = NULL;
 	}
       else
-	log->eventually_close = 0;
+	{
+	  log->eventually_close = 0;
+	  log->dtor = NULL;
+	}
     }
   else
-    log->eventually_close = 0;
+    {
+      log->eventually_close = 0;
+      log->dtor = NULL;
+    }
 
   log->printf = parent->printf;
   log->data = parent->data;

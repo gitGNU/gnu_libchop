@@ -19,7 +19,7 @@ main (int argc, char *argv[])
       &chop_anchor_based_chopper_class,
       NULL
     };
-  static char mem_stream_contents[10000];
+  static char mem_stream_contents[1000000];
   char *mem;
   const chop_chopper_class_t **class;
   chop_stream_t *input;
@@ -34,7 +34,8 @@ main (int argc, char *argv[])
        mem - mem_stream_contents < sizeof (mem_stream_contents);
        mem++)
     {
-      *mem = (random () % 64) + '!';
+/*       *mem = (random () % 64) + '!'; */
+      *mem = random () % 255;
     }
 
   chop_buffer_init (&buffer, 0);
@@ -68,15 +69,24 @@ main (int argc, char *argv[])
 	  size_t amount = 0;
 
 	  err = chop_chopper_read_block (chopper, &buffer, &amount);
-	  if ((!err) && (amount > 0))
+	  if (!err)
 	    {
-	      /* Verify that CHOPPER complies with the interface
-		 specifications.  */
-	      assert (amount == chop_buffer_size (&buffer));
-	      assert (!memcmp (mem_stream_contents + bytes_read,
-			       chop_buffer_content (&buffer),
-			       amount));
-	      bytes_read += amount;
+	      if (amount > 0)
+		{
+		  /* Verify that CHOPPER complies with the interface
+		     specifications.  */
+		  assert (amount == chop_buffer_size (&buffer));
+		  assert (!memcmp (mem_stream_contents + bytes_read,
+				   chop_buffer_content (&buffer),
+				   amount));
+		  bytes_read += amount;
+		}
+	      else
+		{
+		  fprintf (stderr, "chopper of class `%s' returned no data\n",
+			   chop_class_name ((chop_class_t *)*class));
+		  exit (2);
+		}
 	    }
 	}
 
