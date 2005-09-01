@@ -24,6 +24,20 @@ CHOP_DEFINE_RT_CLASS (filtered_block_store, block_store,
 
 
 static errcode_t
+chop_filtered_block_store_block_exists (chop_block_store_t *store,
+					const chop_block_key_t *key,
+					int *exists)
+{
+  errcode_t err;
+  chop_filtered_block_store_t *filtered =
+    (chop_filtered_block_store_t *)store;
+
+  err = chop_store_block_exists (filtered->backend, key, exists);
+
+  return err;
+}
+
+static errcode_t
 chop_filtered_block_store_read_block (chop_block_store_t *store,
 				      const chop_block_key_t *key,
 				      chop_buffer_t *buffer,
@@ -87,6 +101,46 @@ chop_filtered_block_store_write_block (chop_block_store_t *store,
 }
 
 static errcode_t
+chop_filtered_block_store_delete_block (chop_block_store_t *store,
+					const chop_block_key_t *key)
+{
+  errcode_t err;
+  chop_filtered_block_store_t *filtered =
+    (chop_filtered_block_store_t *)store;
+
+  err = chop_store_delete_block (filtered->backend, key);
+
+  return err;
+}
+
+static errcode_t
+chop_filtered_block_store_first_key (chop_block_store_t *store,
+				     chop_block_key_t *key)
+{
+  errcode_t err;
+  chop_filtered_block_store_t *filtered =
+    (chop_filtered_block_store_t *)store;
+
+  err = chop_store_first_key (filtered->backend, key);
+
+  return err;
+}
+
+static errcode_t
+chop_filtered_block_store_next_key (chop_block_store_t *store,
+				    const chop_block_key_t *key,
+				    chop_block_key_t *next)
+{
+  errcode_t err;
+  chop_filtered_block_store_t *filtered =
+    (chop_filtered_block_store_t *)store;
+
+  err = chop_store_next_key (filtered->backend, key, next);
+
+  return err;
+}
+
+static errcode_t
 chop_filtered_block_store_sync (chop_block_store_t *store)
 {
   errcode_t err;
@@ -113,8 +167,13 @@ chop_filtered_store_open (chop_filter_t *input_filter,
   chop_filtered_block_store_t *filtered =
     (chop_filtered_block_store_t *)store;
 
+  store->name = NULL;
+  store->block_exists = chop_filtered_block_store_block_exists;
   store->read_block = chop_filtered_block_store_read_block;
   store->write_block = chop_filtered_block_store_write_block;
+  store->delete_block = chop_filtered_block_store_delete_block;
+  store->first_key = chop_filtered_block_store_first_key;
+  store->next_key = chop_filtered_block_store_next_key;
   store->close = chop_filtered_block_store_close;
   store->sync = chop_filtered_block_store_sync;
 
