@@ -10,6 +10,8 @@
 #include <sys/time.h>
 #include <time.h>
 
+/* #define DEBUG 1 */
+
 int
 main (int argc, char *argv[])
 {
@@ -19,7 +21,7 @@ main (int argc, char *argv[])
       &chop_anchor_based_chopper_class,
       NULL
     };
-  static char mem_stream_contents[1000000];
+  static char mem_stream_contents[1000007];
   char *mem;
   const chop_chopper_class_t **class;
   chop_stream_t *input;
@@ -63,6 +65,14 @@ main (int argc, char *argv[])
 		   chop_class_name ((chop_class_t *)*class));
 	  exit (1);
 	}
+
+#ifdef DEBUG
+      if (*class == &chop_anchor_based_chopper_class)
+	{
+	  chop_log_t *log = chop_anchor_based_chopper_log (chopper);
+	  chop_log_attach (log, 2, 0);
+	}
+#endif
 
       while (!err)
 	{

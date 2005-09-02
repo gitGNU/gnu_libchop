@@ -2,6 +2,34 @@
 # arch-tag: automatic-ChangeLog--lcourtes@laas.fr--2004-mosaic/libchop--main--0.1
 #
 
+2005-09-02 15:44:00 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-49
+
+    Summary:
+      Partially rewrote and hopefully fixed the anchor-based chopper.
+    Revision:
+      libchop--main--0.1--patch-49
+
+    * src/Makefile.am (AM_CFLAGS):  Added `-Winline'.
+    
+    * src/chopper-anchor-based.c (sliding_window_t):  Changed the `offset'
+      field into an single integer instead of an array.
+      (sliding_window_end):  Renamed to `sliding_window_unfull'.
+      (sliding_window_end_offset):  Fixed
+      (sliding_window_skip):  New function.
+      (sliding_window_increase_offset):  Renamed to
+      `sliding_window_increment_offset' and changed the semantics.
+      (chop_anchor_chopper_read_block):  Simplified and (hopefully) fixed a
+      bug.
+    
+    * tests/interfaces/choppers.c:  Instrumented as a debugging aid.
+    
+    * utils/chop-show-anchors.c:  Likewise.
+
+    modified files:
+     ChangeLog src/Makefile.am src/chopper-anchor-based.c
+     tests/interfaces/choppers.c utils/chop-show-anchors.c
+
+
 2005-09-01 16:38:29 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-48
 
     Summary:
