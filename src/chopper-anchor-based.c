@@ -37,16 +37,63 @@ typedef struct
   size_t sizes[2];           /* size of each of the subwindows */
 } sliding_window_t;
 
-
+/* Beware:  on PPC, the more optimizations you enable (Lightning, and then
+   inlining of Lightning code), the slower it gets.  :-)  So I undefined it
+   by default.  */
 #undef HAVE_LIGHTNING_H
+
 #ifdef HAVE_LIGHTNING_H
 #warning "compiling the Lightning-based version"
 /* Well, there's nothing wrong with it, just to let you know.  ;-)  */
 
-/* The type of a dynamically compiled multiplication function.  */
-typedef unsigned long (* jit_multiplier_t) (unsigned long);
+#include <lightning.h>
 
+
+#ifdef __GNUC__
+/* GCC has an extensions for ``labels as pointers'' and the other way.  We
+   can leverage this to inline the dynamically-generated code.  */
+#define INLINE_LIGHTNING_CODE 1
 #endif
+
+/* The type of function we want to compile.  */
+typedef unsigned long (* jit_multiplier_func_t) (unsigned long);
+
+#ifdef INLINE_LIGHTNING_CODE
+#warning "You're compiling the inlining stuff, great!"
+
+/* In order to inline code, we'll need to generate it once and then patch it
+   every time before we use it.  Lightning's patch operations are not
+   costly.  */
+typedef struct
+{
+  jit_multiplier_func_t func;
+  jit_insn *operand_ptr_movi;
+  jit_insn *final_jump;
+  int patched;
+} jit_multiplier_t;
+
+#define JIT_MULTIPLIER_INIT(_m)				\
+do							\
+{							\
+  (_m).func = NULL;					\
+  (_m).patched = 0;					\
+  (_m).operand_ptr_movi = (_m).final_jump = NULL;	\
+}							\
+while (0)
+
+#define JIT_MULTIPLIER_FUNC(_m)  (_m).func
+
+#else /* INLINE_LIGHTNING_CODE */
+
+/* The type of a dynamically compiled multiplication function.  */
+typedef jit_multiplier_func_t jit_multiplier_t;
+
+#define JIT_MULTIPLIER_INIT(_m)  (_m) = NULL;
+#define JIT_MULTIPLIER_FUNC(_m)  (_m)
+
+#endif /* INLINE_LIGHTNING_CODE */
+
+#endif /* HAVE_LIGHTNING_H */
 
 
 /* Declare `chop_anchor_based_chopper_t' which inherits from
@@ -163,8 +210,6 @@ multiply_with_prime_to_the_ws (chop_anchor_based_chopper_t *anchor,
 
 #else /* HAVE_LIGHTNING_H */
 
-#include <lightning.h>
-
 /* XXX:  Maybe we should actually compile the whole
    `compute_next_window_fingerprint ()' function here, so as to avoid the
    function-call overhead for just one multiplication.  */
@@ -175,40 +220,64 @@ static inline jit_multiplier_t
 compile_multiplication_function (unsigned long prime_to_the_ws)
 {
 #define MAX_CODE_SIZE   1024
+
+#ifndef INLINE_LIGHTNING_CODE
   unsigned long input_arg;
+#endif
   char *buffer, *start, *end;
   jit_multiplier_t result;
 
+  JIT_MULTIPLIER_INIT (result);
   buffer = malloc (MAX_CODE_SIZE);
   if (!buffer)
-    return NULL;
+    return result;
 
-  result = (jit_multiplier_t)(jit_set_ip ((void *)buffer).iptr);
+  JIT_MULTIPLIER_FUNC (result) =
+    (jit_multiplier_func_t)(jit_set_ip ((void *)buffer).iptr);
   start = jit_get_ip ().ptr;
 
-#if 1
+#ifndef INLINE_LIGHTNING_CODE
+
   /* Take one argument (the character), and instruct Lightning that we won't
      call any function.  */
   jit_leaf (1);
   input_arg = jit_arg_ul ();
   jit_getarg_l (JIT_R2, input_arg);
-#else /* #ifdef __GNUC__ */
-  /* The point here would be to inline the generated code by leveraging the
-     various `patch' macros of Lightning and the ``labels as pointers''
-     extension in GCC.  XXX:  To be done.  */
+
+#else /* INLINE_LIGHTNING_CODE */
+
   /* Create a zero-argument function.  The first `movi' instructions are
      meant to be patched later, in `compute_next_window_fingerprint ()'.  */
   jit_leaf (0);
-  result.operand_ptr_movi_addr = jit_movi_p (JIT_R0, 777);
+  jit_pushr_p (JIT_R1);
+  jit_pushr_p (JIT_R2);
+  result.operand_ptr_movi = jit_movi_p (JIT_R1, NULL);
+  jit_ldr_p (JIT_R2, JIT_R1);
+
 #endif
 
   /* Actually perform the multiplication:  PRIME_TO_THE_WS is now considered
      a compile-time value.  */
-  jit_muli_ul (JIT_R1, JIT_R2, prime_to_the_ws);
+  jit_muli_ul (JIT_R2, JIT_R2, prime_to_the_ws);
+
+#ifndef INLINE_LIGHTNING_CODE
 
   /* Return the value just computed.  */
-  jit_retval_ul (JIT_R1);
+  jit_retval_ul (JIT_R2);
   jit_ret ();
+
+#else
+
+  /* Store the result at the address pointed to by R1.  */
+  jit_str_p (JIT_R1, JIT_R2);
+
+  /* Restore the registers and jump out.  */
+  jit_popr_p (JIT_R2);
+  jit_popr_p (JIT_R1);
+
+  result.final_jump = jit_jmpi (NULL);
+
+#endif
 
   /* Finish.  */
   end = jit_get_ip ().ptr;
@@ -524,24 +593,39 @@ compute_next_window_fingerprint (chop_anchor_based_chopper_t *anchor,
 				 char first_char, char last_char,
 				 register fpr_t fpr)
 {
-#if 0 /* (defined HAVE_LIGHTNING_H) && (defined __GNUC__) */
-  unsigned long multiplication;
+#if (defined HAVE_LIGHTNING_H) && (defined INLINE_LIGHTNING_CODE)
+  register jit_insn *movi;
+  volatile unsigned long multiplication;
 
   if (!anchor->jit_multiply_with_prime_to_the_ws.patched)
     {
-      jit_patch_movi ((jit_insn *)NULL, 2);
-      jit_patch_at ((jit_insn *)NULL, label);
+      register jit_insn *jmp;
+
+      jmp  = anchor->jit_multiply_with_prime_to_the_ws.final_jump;
+      jit_patch_at (jmp, &&after_mult);
+      anchor->jit_multiply_with_prime_to_the_ws.patched = 1;
     }
+
+  /* This one has to be patched every type since MULTIPLICATION is on the
+     stack. */
+  movi = anchor->jit_multiply_with_prime_to_the_ws.operand_ptr_movi;
+  jit_patch_movi (movi, &multiplication);
 #endif
 
   fpr *= ANCHOR_PRIME_NUMBER;
-#if 0 /* (defined HAVE_LIGHTNING_H) && (defined __GNUC__) */
-  goto (anchor->jit_multiply_with_prime_to_the_ws.func);
+
+#if (defined HAVE_LIGHTNING_H) && (defined INLINE_LIGHTNING_CODE)
+  /* Set the input parameter.  */
+  multiplication = anchor->prev_first_char;
+  goto *anchor->jit_multiply_with_prime_to_the_ws.func;
+
  after_mult:
-  /* XXX */
+  /* At this point, MULTIPLICATION should contain the result.  */
+  fpr -= multiplication;
 #else
   fpr -= multiply_with_prime_to_the_ws (anchor, anchor->prev_first_char);
 #endif
+
   fpr += last_char;
   fpr &= ANCHOR_MODULO_MASK;
 
@@ -622,7 +706,7 @@ anchor_based_ctor (chop_object_t *object,
 #ifndef HAVE_LIGHTNING_H
   memset (&chopper->product_cache, 0, sizeof (chopper->product_cache));
 #else
-  chopper->jit_multiply_with_prime_to_the_ws = NULL;
+  JIT_MULTIPLIER_INIT (chopper->jit_multiply_with_prime_to_the_ws);
 #endif
 }
 
@@ -656,7 +740,7 @@ chop_anchor_based_chopper_init (chop_stream_t *input,
   chopper->jit_multiply_with_prime_to_the_ws =
     compile_multiplication_function (chopper->prime_to_the_ws);
 
-  if (!chopper->jit_multiply_with_prime_to_the_ws)
+  if (!JIT_MULTIPLIER_FUNC (chopper->jit_multiply_with_prime_to_the_ws))
     return ENOMEM;
 #endif
 
@@ -863,7 +947,7 @@ chop_anchor_chopper_close (chop_chopper_t *chopper)
   chop_log_close (&anchor->log);
 
 #ifdef HAVE_LIGHTNING_H
-  free (anchor->jit_multiply_with_prime_to_the_ws);
+  free (JIT_MULTIPLIER_FUNC (anchor->jit_multiply_with_prime_to_the_ws));
 #endif
 }
 

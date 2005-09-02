@@ -2,6 +2,28 @@
 # arch-tag: automatic-ChangeLog--lcourtes@laas.fr--2004-mosaic/libchop--main--0.1
 #
 
+2005-09-02 16:42:11 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-50
+
+    Summary:
+      Implemented inlining of Lightning code in chopper-anchor-based.c;  turns out to be inefficient.
+    Revision:
+      libchop--main--0.1--patch-50
+
+    * src/chopper-anchor-based.c (INLINE_LIGHTNING_CODE):  New macro.
+      (jit_multiplier_func_t):  New typedef.
+      (jit_multiplier_t):  Define it as a struct when INLINE_LIGHTNING_CODE
+      is defined.
+      (JIT_MULTIPLIER_INIT):  New macro.
+      (JIT_MULTIPLIER_FUNC):  New macro.
+      (compile_multiplication_function):  If INLINE_LIGHTNING_CODE, compile
+      code that can be inlined eventually.
+      (compute_next_window_fingerprint):  If INLINE_LIGHTNING_CODE, well,
+      inline Lightning code by patching the right instructions.
+
+    modified files:
+     ChangeLog src/chopper-anchor-based.c
+
+
 2005-09-02 15:44:00 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-49
 
     Summary:
