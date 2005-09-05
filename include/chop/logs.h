@@ -174,8 +174,8 @@ static void _chop_log_printf (chop_log_t *__log,
      ;
 
 /* The following function cannot actually be inlined.  */
-static __inline__ void _chop_log_printf (chop_log_t *__log,
-					 const char *__fmt, ...)
+static void _chop_log_printf (chop_log_t *__log,
+			      const char *__fmt, ...)
 {
   va_list __ap;
 

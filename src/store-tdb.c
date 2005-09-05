@@ -66,6 +66,28 @@ static errcode_t chop_tdb_sync (chop_block_store_t *);
 
 static errcode_t chop_tdb_close (chop_block_store_t *);
 
+/* #define DEBUG 1 */
+
+#ifdef DEBUG
+#include <stdio.h>
+#include <stdarg.h>
+
+static void
+show_message (TDB_CONTEXT *db, int level, const char *message, ...)
+{
+  va_list args;
+  char *fmt;
+
+  fmt = alloca (strlen (message) + 15);
+  strcpy (fmt, "tdb: ");
+  strcat (fmt, message);
+  strcat (fmt, "\n");
+
+  va_start (args, message);
+  vfprintf (stderr, fmt, args);
+  va_end (args);
+}
+#endif
 
 errcode_t
 chop_tdb_store_open (const char *name,
@@ -74,10 +96,16 @@ chop_tdb_store_open (const char *name,
 		     chop_block_store_t *s)
 {
   chop_tdb_block_store_t *store = (chop_tdb_block_store_t *)s;
-  store->db = tdb_open (name, hash_size, TDB_DEFAULT,
+  /* FIXME:  The `TDB_NOLOCK' thing works around what looks like a bug on the
+     PowerPC (`tdb_store ()' eventually loops in `spin_lock ()').  */
+  store->db = tdb_open (name, hash_size, TDB_DEFAULT | TDB_NOLOCK,
 			open_flags, mode);
   if (!store->db)
     return (errno);  /* FIXME:  Is this true?  */
+
+#ifdef DEBUG
+  tdb_logging_function (store->db, show_message);
+#endif
 
   store->block_store.block_exists = chop_tdb_block_exists;
   store->block_store.read_block = chop_tdb_read_block;

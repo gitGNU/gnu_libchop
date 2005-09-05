@@ -62,7 +62,7 @@ chop_file_stream_open (const char *path,
       return errno;
     }
 
-  madvise (stream->map, stream->size, MADV_SEQUENTIAL);
+  madvise (stream->map, file_stats.st_size, MADV_SEQUENTIAL);
 
   stream->position = 0;
   stream->stream.close = chop_file_stream_close;

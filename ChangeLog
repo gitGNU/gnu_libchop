@@ -2,6 +2,27 @@
 # arch-tag: automatic-ChangeLog--lcourtes@laas.fr--2004-mosaic/libchop--main--0.1
 #
 
+2005-09-05 16:56:21 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-52
+
+    Summary:
+      Bugfix in `stream-file.c';  workaround in `store-tdb.c'.
+    Revision:
+      libchop--main--0.1--patch-52
+
+    * src/stream-file.c (chop_file_stream_open):  Fixed the oldest bug out
+      there:  arg 2 of `madvise' was uninitialized.
+    
+    * src/store-tdb.c (chop_tdb_store_open):  Pass `TDB_NOLOCK' to `tdb_open ()' 
+      in order to work around a bug found on the PPC.
+    
+    * include/chop/logs.c (_chop_log_printf):  Don't declare it inline since
+      it's not inlinable.
+
+    modified files:
+     ChangeLog include/chop/logs.h src/store-tdb.c
+     src/stream-file.c
+
+
 2005-09-05 14:43:45 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-51
 
     Summary:
