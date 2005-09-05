@@ -31,16 +31,15 @@ typedef uint32_t fpr_t;
 typedef struct
 {
   size_t window_size;        /* size of the sliding window */
+  size_t raw_size;           /* 2 * WINDOW_SIZE */
+  char *raw_window;          /* pointer to RAW_SIZE bytes pointed to by the
+				two subwindows */
   char *windows[2];          /* two subwindows, each of which points
 				to WINDOW_SIZE bytes */
   size_t offset;             /* start offset within the sliding window */
   size_t sizes[2];           /* size of each of the subwindows */
 } sliding_window_t;
 
-/* Beware:  on PPC, the more optimizations you enable (Lightning, and then
-   inlining of Lightning code), the slower it gets.  :-)  So I undefined it
-   by default.  */
-#undef HAVE_LIGHTNING_H
 
 #ifdef HAVE_LIGHTNING_H
 #warning "compiling the Lightning-based version"
@@ -51,8 +50,9 @@ typedef struct
 
 #ifdef __GNUC__
 /* GCC has an extensions for ``labels as pointers'' and the other way.  We
-   can leverage this to inline the dynamically-generated code.  */
-#define INLINE_LIGHTNING_CODE 1
+   can leverage this to inline the dynamically-generated code.  Beware:  this
+   is slower than the no-inlining version.  */
+/* #define INLINE_LIGHTNING_CODE 1 */
 #endif
 
 /* The type of function we want to compile.  */
@@ -96,6 +96,7 @@ typedef jit_multiplier_func_t jit_multiplier_t;
 #endif /* HAVE_LIGHTNING_H */
 
 
+
 /* Declare `chop_anchor_based_chopper_t' which inherits from
    `chop_chopper_t'.  */
 CHOP_DECLARE_RT_CLASS_WITH_METACLASS (anchor_based_chopper, chopper,
@@ -301,57 +302,58 @@ static inline errcode_t
 read_sliding_window (chop_anchor_based_chopper_t *anchor,
 		     char *buffer, size_t *size)
 {
+  errcode_t err;
   chop_stream_t *input = anchor->chopper.stream;
 
-  return (chop_stream_read (input, buffer, anchor->window_size, size));
+  err = chop_stream_read (input, buffer, anchor->window_size, size);
+  if ((!err) && (*size < anchor->window_size))
+    /* Pad with zeros.  This is meant to help the "fast" implementation of
+       sliding windows.  */
+    memset (buffer + *size, 0, anchor->window_size - *size);
+
+  return err;
 }
 
 
 
 /* Sliding windows.  */
 
+/* Return the offset starting from WIN->RAW_WINDOW that corresponds to the
+   offset OFFS starting from the beginning of the current sliding window.  */
+#define sliding_window_get_raw_offset(_win, _offs)	\
+((((_win)->windows[0] - (_win)->raw_window) + (_offs))	\
+ % (_win)->raw_size)
+
+/* Return the character located at offset OFFS within WIN.  */
+#define sliding_window_ref(_win, _offs)					\
+((_win)->raw_window[sliding_window_get_raw_offset (_win, _offs)])
+
 /* Return the character at the current start offset of WINDOW.  */
-static inline char
-sliding_window_first_char (sliding_window_t *window)
-{
-  char first_char;
-
-  if (window->offset < window->sizes[0])
-    first_char = window->windows[0][window->offset];
-  else
-    {
-      assert (window->sizes[1]);
-      first_char = window->windows[1][window->offset - window->sizes[0]];
-    }
-
-  return first_char;
-}
+#define sliding_window_first_char(_win)		\
+(sliding_window_ref (_win, (_win)->offset))
 
 /* Return the character at the current end offset (start offset + window
    size) of WINDOW.  */
-static inline char
-sliding_window_last_char (sliding_window_t *window)
-{
-  register char last_char;
+#define sliding_window_last_char(_win)					\
+(sliding_window_ref (_win, (_win)->offset + (_win)->window_size - 1))
 
-  if (window->sizes[0] < window->window_size)
-    /* We've probably reached the end on the input stream, so we'll pad with
-       zeros.  */
-    return '\0';
 
-  if (window->offset == 0)
-    last_char = window->windows[0][window->sizes[0] - 1];
-  else
-    {
-      if (window->offset <= window->sizes[1])
-	last_char = window->windows[1][window->offset - 1];
-      else
-	/* Pad with zeros */
-	last_char = '\0';
-    }
+/* Forward declarations.  */
 
-  return last_char;
-}
+#ifdef __GNUC__
+# define INLINED  __attribute__ ((__always_inline__))
+#else
+# define INLINED
+#endif
+
+static int sliding_window_unfull (sliding_window_t *) INLINED;
+static char * sliding_window_dest_buffer (sliding_window_t *,
+					  size_t **,
+					  size_t *) INLINED;
+static int sliding_window_unfull (sliding_window_t *) INLINED;
+static void sliding_window_increment_offset (sliding_window_t *) INLINED;
+
+
 
 /* Return non-zero if less than WINDOW->WINDOW_SIZE bytes are available from
    WINDOW's current offset.  */
@@ -562,14 +564,17 @@ sliding_window_clear (sliding_window_t *window)
 static inline errcode_t
 sliding_window_init (sliding_window_t *window, size_t size)
 {
-  window->windows[0] = calloc (size, 1);
-  window->windows[1] = calloc (size, 1);
-  if ((!window->windows[0]) || (!window->windows[1]))
+  window->raw_window = calloc (2 * size, 1);
+  if (!window->raw_window)
     return ENOMEM;
+
+  window->windows[0] = window->raw_window;
+  window->windows[1] = window->raw_window + size;
 
   window->offset = 0;
   window->sizes[0] = window->sizes[1] = 0;
   window->window_size = size;
+  window->raw_size = 2 * size;
 
   return 0;
 }
@@ -577,8 +582,8 @@ sliding_window_init (sliding_window_t *window, size_t size)
 static inline void
 sliding_window_destroy (sliding_window_t *window)
 {
-  free (window->windows[0]);
-  free (window->windows[1]);
+  free (window->raw_window);
+  window->raw_window = NULL;
   window->windows[0] = window->windows[1] = NULL;
 }
 
@@ -870,7 +875,7 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
 	{
 	  /* For subsequent windows, the fingerprint can be computed
 	     efficiently based on the previous fingerprint.  */
-	  char first_char, last_char;
+	  register char first_char, last_char;
 
 	  first_char = sliding_window_first_char (window);
 	  last_char = sliding_window_last_char (window);

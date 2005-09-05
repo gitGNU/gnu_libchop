@@ -145,21 +145,44 @@ extern void chop_log_mimic (chop_log_t *child, chop_log_t *parent,
 extern void chop_log_builtin_printf (chop_log_t *__log,
 				     const char *__fmt, va_list);
 
+#ifdef __GNUC__
+
+/* Since variadic functions cannot be inlined, we use a GCC variadic macro to
+   make sure that this function doesn't imply any function when LOG is not
+   attached.  */
+#define chop_log_printf(__log, __args...)	\
+do						\
+{						\
+  if ((__log)->attached)			\
+    _chop_log_printf ((__log), __args);		\
+}						\
+while (0)
+
+#else
+
+/* Always make a function call.  */
+#define _chop_log_printf chop_log_printf
+
+#endif
+
 /* Write a formatted message onto LOG.  */
-static __inline__ void chop_log_printf (chop_log_t *__log,
-					const char *__fmt, ...)
+static void _chop_log_printf (chop_log_t *__log,
+			      const char *__fmt, ...)
 #ifdef __GNUC__
      __attribute__ ((format (printf, 2, 3)))
 #endif
      ;
 
-static __inline__ void chop_log_printf (chop_log_t *__log,
-					const char *__fmt, ...)
+/* The following function cannot actually be inlined.  */
+static __inline__ void _chop_log_printf (chop_log_t *__log,
+					 const char *__fmt, ...)
 {
   va_list __ap;
 
+#ifndef __GNUC__
   if (!__log->attached)
     return;
+#endif
 
   va_start (__ap, __fmt);
   if (__log->printf)
@@ -169,6 +192,7 @@ static __inline__ void chop_log_printf (chop_log_t *__log,
   va_end (__ap);
 }
 
+#undef _chop_log_printf
 
 _CHOP_END_DECLS
 

@@ -2,6 +2,31 @@
 # arch-tag: automatic-ChangeLog--lcourtes@laas.fr--2004-mosaic/libchop--main--0.1
 #
 
+2005-09-05 14:43:45 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-51
+
+    Summary:
+      Optimized the sliding window mechanism in `chopper-anchor-based.c'.
+    Revision:
+      libchop--main--0.1--patch-51
+
+    * include/chop/logs.h (chop_log_printf):  Made a macro so that it could
+      be inlined.
+      (_chop_log_printf):  New name of the actual function.
+    
+    * src/chopper-anchor-based.c (sliding_window_t)[raw_size]:  New field.
+      [raw_window]:  New field.
+      (sliding_window_init):  Allocate contiguous subwindows.
+      (read_sliding_window):  Pad data with zeros when needed.
+      (sliding_window_get_raw_offset):  New macro.
+      (sliding_window_ref):  New macro.
+      (sliding_window_first_char):  Rewritten, became a macro.
+      (sliding_window_last_char):  Likewise.
+      (sliding_window_destroy):  Updated.
+
+    modified files:
+     ChangeLog include/chop/logs.h src/chopper-anchor-based.c
+
+
 2005-09-02 16:42:11 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-50
 
     Summary:
