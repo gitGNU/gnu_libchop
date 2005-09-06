@@ -38,7 +38,8 @@ what file or revision so you have to do this by yourself.\n\
 Also, if you passed `--zip' at archival time, you will have to pass it \
 at restoration time as well so that the archived stream gets decompressed \
 on the fly.  Failing to do so, you will get the raw, zlib-compressed, file \
-and won't be able to do anything with it (`gunzip' won't work).";
+and won't be able to do anything with it (`gunzip' won't work).  The same \
+goes for `--cipher'.";
 
 
 const char *program_name = NULL;

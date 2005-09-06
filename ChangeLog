@@ -2,6 +2,24 @@
 # arch-tag: automatic-ChangeLog--lcourtes@laas.fr--2004-mosaic/libchop--main--0.1
 #
 
+2005-09-06 16:42:19 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-55
+
+    Summary:
+      Augmented the toy RCS script.
+    Revision:
+      libchop--main--0.1--patch-55
+
+    * utils/chop-rcs.sh (find_tree_root):  New function.
+      (initialize):  New function.
+      (changes):  New command.
+      (tree-root):  New command.
+    
+    * utils/chop-archiver.c:  Very slightly augmented the doc string.
+
+    modified files:
+     ChangeLog utils/chop-archiver.c utils/chop-rcs.sh
+
+
 2005-09-06 15:50:50 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-54
 
     Summary:
