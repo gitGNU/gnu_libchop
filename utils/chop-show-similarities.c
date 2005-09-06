@@ -28,6 +28,9 @@ static int debug = 0;
 /* The window size used when computing Rabin fingerprints.  */
 static size_t window_size = 48;
 
+/* The magic fingerprint mask.  */
+static unsigned long magic_fpr_mask = 0x1fff; /* the 13 LSBs */
+
 /* The input file names.  */
 static char *file_name1 = NULL, *file_name2 = NULL;
 
@@ -51,6 +54,10 @@ static struct argp_option options[] =
     { "window-size", 'w', "SIZE", 0,
       "Set the size of windows used when computing fingerprints "
       "to SIZE bytes" },
+    { "magic-fpr-mask", 'f', "MASK", 0,
+      "Use MASK as the fingerprint mask used to determine whether a "
+      "fingerprint is magic, i.e. whether it should yield a block "
+      "boundary" },
 
     { 0, 0, 0, 0, 0 }
   };
@@ -208,6 +215,10 @@ parse_opt (int key, char *arg, struct argp_state *state)
       window_size = atoi (arg);
       break;
 
+    case 'f':
+      magic_fpr_mask = strtoul (arg, NULL, 0);
+      break;
+
     case ARGP_KEY_ARG:
       if (state->arg_num >= 2)
 	/* Too many arguments. */
@@ -278,14 +289,16 @@ main (int argc, char *argv[])
       return 1;
     }
 
-  err = chop_anchor_based_chopper_init (stream1, window_size, chopper1);
+  err = chop_anchor_based_chopper_init (stream1, window_size, magic_fpr_mask,
+					chopper1);
   if (err)
     {
       com_err (argv[0], err, "anchor-based-chopper");
       return 1;
     }
 
-  err = chop_anchor_based_chopper_init (stream2, window_size, chopper2);
+  err = chop_anchor_based_chopper_init (stream2, window_size, magic_fpr_mask,
+					chopper2);
   if (err)
     {
       com_err (argv[0], err, "anchor-based-chopper");

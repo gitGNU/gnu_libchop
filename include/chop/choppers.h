@@ -25,6 +25,7 @@ CHOP_DECLARE_RT_CLASS (chopper, object,
    creation method (a "factory").  */
 CHOP_DECLARE_RT_CLASS (chopper_class, class,
 		       errcode_t (* generic_open) (chop_stream_t *,
+						   size_t,
 						   chop_chopper_t *););
 
 /* These classes inherit from `chop_chopper_t'.  Both have
@@ -40,15 +41,18 @@ extern const chop_chopper_class_t chop_anchor_based_chopper_class;
 /* Initialize CHOPPER as an instance of the CLASS chopper class with input
    stream INPUT.  The implementation of CLASS will choose default parameters
    for the specific chopper implementation (class-specific initialization
-   methods are available below for fine-tuning of parameters).  Return zero
-   on success.  */
+   methods are available below for fine-tuning of parameters).  It should,
+   however, make sure that the average block size will be TYPICAL_BLOCK_SIZE
+   bytes.  If TYPICAL_BLOCK_SIZE is zero, then the implementation of CLASS is
+   free to choose any block size.  Return zero on success.  */
 static __inline__ errcode_t
 chop_chopper_generic_open (const chop_chopper_class_t *class,
 			   chop_stream_t *input,
+			   size_t typical_block_size,
 			   chop_chopper_t *chopper)
 {
   if (class->generic_open)
-    return (class->generic_open (input, chopper));
+    return (class->generic_open (input, typical_block_size, chopper));
 
   return CHOP_ERR_NOT_IMPL;
 }
@@ -71,9 +75,16 @@ chop_fixed_size_chopper_init (chop_stream_t *input,
    deterministically find anchors within a file such that identical blocks
    among similar files may be discovered.  WINDOW_SIZE is the size of the
    sliding window used to compute fingerprints.  The paper recommends 50.
-   Lower values may yield smaller blocks and better similarity detection.  */
+   Lower values may yield smaller blocks and better similarity detection.
+   The probability of finding a block boundary, and therefore the average
+   size of blocks, largely depends on the value of MAGIC_FPR_MASK, the mask
+   that will be applied to each fingerprint computed in order to determine
+   whether it should yield a block boundary.  The more bits are set in
+   MAGIC_FPR_MASK, the less likely a fingerprint will match, and the larger
+   the average block size will be.  */
 extern errcode_t
 chop_anchor_based_chopper_init (chop_stream_t *input, size_t window_size,
+				unsigned long magic_fpr_mask,
 				chop_chopper_t *chopper);
 
 /* If CHOPPER is an anchor-based chopper, return its log.  Return NULL

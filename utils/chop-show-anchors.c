@@ -31,6 +31,10 @@ static struct argp_option options[] =
     { "window-size", 'w', "SIZE", 0,
       "Set the size of windows used when computing fingerprints "
       "to SIZE bytes" },
+    { "magic-fpr-mask", 'f', "MASK", 0,
+      "Use MASK as the fingerprint mask used to determine whether a "
+      "fingerprint is magic, i.e. whether it should yield a block "
+      "boundary" },
     { "quiet",   'q', 0, 0,
       "Don't display FILE's contents" },
     { "stats",   's', 0, 0,
@@ -56,6 +60,9 @@ static char *file_name = NULL;
 
 /* The size of the window used when computing fingerprints.  */
 static size_t window_size = 48;
+
+/* The magic fingerprint mask.  */
+static unsigned long magic_fpr_mask = 0x1fff; /* the 13 LSBs */
 
 
 
@@ -97,9 +104,11 @@ stats_update (block_stats_t *stats, size_t size)
 static void
 stats_display (block_stats_t *stats)
 {
+  fprintf (stderr, "window size:    % 7u\n", window_size);
+  fprintf (stderr, "magic fpr mask: 0x%08x\n\n", magic_fpr_mask);
+
   fprintf (stderr, "block count:    % 7u\n", stats->count);
   fprintf (stderr, "size in bytes:  % 7u\n", stats->bytes);
-  fprintf (stderr, "window size:    % 7u\n", window_size);
   fprintf (stderr, "max size:       % 7u\n", stats->max);
   fprintf (stderr, "min size:       % 7u\n", stats->min);
   fprintf (stderr, "avg size:       % 7.2f\n", stats->average);
@@ -127,6 +136,10 @@ parse_opt (int key, char *arg, struct argp_state *state)
 
     case 'w':
       window_size = atoi (arg);
+      break;
+
+    case 'f':
+      magic_fpr_mask = strtoul (arg, NULL, 0);
       break;
 
     case ARGP_KEY_ARG:
@@ -196,7 +209,8 @@ main (int argc, char *argv[])
       return 1;
     }
 
-  err = chop_anchor_based_chopper_init (stream, window_size, chopper);
+  err = chop_anchor_based_chopper_init (stream, window_size, magic_fpr_mask,
+					chopper);
   if (err)
     {
       com_err (argv[0], err, "anchor-based-chopper");

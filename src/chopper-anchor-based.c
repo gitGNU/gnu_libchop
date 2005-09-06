@@ -105,6 +105,11 @@ CHOP_DECLARE_RT_CLASS_WITH_METACLASS (anchor_based_chopper, chopper,
 		       /* Sliding widow size */
 		       size_t window_size;
 
+		       /* Mask used to determing whether a fingerprint if
+			  "magic", i.e. whether this should be made a block
+			  boundary */
+		       fpr_t magic_fpr_mask;
+
 		       /* The value of ANCHOR_PRIME_NUMBER to the
 			  WINDOW_SIZE */
 		       fpr_t  prime_to_the_ws;
@@ -139,9 +144,24 @@ CHOP_DECLARE_RT_CLASS_WITH_METACLASS (anchor_based_chopper, chopper,
 
 /* A generic `open' method that chooses default values.  */
 static errcode_t
-ab_generic_open (chop_stream_t *input, chop_chopper_t *chopper)
+ab_generic_open (chop_stream_t *input, size_t average_size,
+		 chop_chopper_t *chopper)
 {
-  return (chop_anchor_based_chopper_init (input, 48 /* window size */,
+  size_t power_of_two = 1;
+
+  if (average_size == 0)
+    power_of_two = 0x1fff; /* the 13 LSBs, i.e. 8KB */
+  else
+    {
+      while ((power_of_two << 1) < average_size)
+	power_of_two <<= 1;
+
+      power_of_two -= 1;
+    }
+
+  return (chop_anchor_based_chopper_init (input,
+					  48 /* window size */,
+					  power_of_two /* magic fpr mask */,
 					  chopper));
 }
 
@@ -166,8 +186,6 @@ CHOP_DEFINE_RT_CLASS_WITH_METACLASS (anchor_based_chopper, chopper,
 #define ANCHOR_PRIME_NUMBER (3)
 #define ANCHOR_MODULO_MASK  (0x3fffffff)
 
-/* Return true if FPR should be chosen as an anchor point.  */
-#define IS_ANCHOR_FINGERPRINT(_fpr)   (((_fpr) & 0x3f) == 0)
 
 
 
@@ -650,20 +668,24 @@ compute_window_fingerprint (chop_anchor_based_chopper_t *anchor,
   fpr_t prime_power = 1;
   size_t total = anchor->window_size;
 
-#define ITERATE_OVER_SUBWINDOW(subwin, end_offset, start_offset)		\
-  do										\
-    {										\
-      for (p = subwin + end_offset - 1; p >= subwin + start_offset; p--)	\
-	{									\
-	  fpr_t this_fpr = *p;							\
-										\
-	  first_char = *p;							\
-	  fpr += this_fpr * prime_power;					\
-	  prime_power *= ANCHOR_PRIME_NUMBER;					\
-	  if (--total == 0)							\
-	    break;								\
-	}									\
-    }										\
+#define ITERATE_OVER_SUBWINDOW(subwin, end_offset, start_offset)	\
+  do									\
+    {									\
+      for (p = subwin + end_offset - 1;					\
+	   p >= subwin + start_offset;					\
+	   p--)								\
+	{								\
+	  fpr_t this_fpr = *p;						\
+									\
+	  first_char = *p;						\
+	  fpr += this_fpr * prime_power;				\
+	  fpr &= ANCHOR_MODULO_MASK;					\
+									\
+	  prime_power *= ANCHOR_PRIME_NUMBER;				\
+	  if (--total == 0)						\
+	    break;							\
+	}								\
+    }									\
   while (0)
 
 
@@ -718,6 +740,7 @@ anchor_based_ctor (chop_object_t *object,
 errcode_t
 chop_anchor_based_chopper_init (chop_stream_t *input,
 				size_t window_size,
+				unsigned long magic_fpr_mask,
 				chop_chopper_t *uchopper)
 {
   errcode_t err;
@@ -729,8 +752,9 @@ chop_anchor_based_chopper_init (chop_stream_t *input,
 			  (chop_class_t *)&chop_anchor_based_chopper_class);
 
   chopper->chopper.stream = input;
-  chopper->chopper.typical_block_size = window_size; /* FIXME: ??? */
+  chopper->chopper.typical_block_size = magic_fpr_mask + window_size;
   chopper->window_size = window_size;
+  chopper->magic_fpr_mask = magic_fpr_mask;
 
   err = sliding_window_init (&chopper->sliding_window, window_size);
   if (err)
@@ -773,12 +797,16 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
          WINDOW_SIZE bytes which yielded the magic value.  Goto 1.  */
 
 
+/* Return true if FPR should be chosen as an anchor point.  */
+#define IS_ANCHOR_FINGERPRINT(_fpr)   (((_fpr) & magic_fpr_mask) == 0)
+
   errcode_t err;
   sliding_window_t *window;
   int first = 1;
   char *window_dest;
   size_t start_offset, *window_dest_size;
   register fpr_t window_fpr;
+  register fpr_t magic_fpr_mask;
   chop_anchor_based_chopper_t *anchor =
     (chop_anchor_based_chopper_t *)chopper;
 
@@ -786,6 +814,7 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
   chop_buffer_clear (buffer);
   window = &anchor->sliding_window;
 
+  magic_fpr_mask = anchor->magic_fpr_mask;
   start_offset = window->offset;
 
   anchor->first = 0;

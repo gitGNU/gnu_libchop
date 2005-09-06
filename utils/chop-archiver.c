@@ -50,6 +50,11 @@ const char *program_name = NULL;
 /* Whether archival or retrieval is to be performed.  */
 static int archive_queried = 0, restore_queried = 0;
 
+/* If ARCHIVE_QUERIED, this is the typical size of blocks that should be
+   produced by the chopper.  Zero means ``chopper class preferred
+   value''.  */
+static size_t typical_block_size = 0;
+
 /* The option passed to either `--archive' or `--restore'.  */
 static char *option_argument = NULL;
 
@@ -80,9 +85,12 @@ static struct argp_option options[] =
     { "debug",   'd', 0, 0,
       "Produce debugging output and use a dummy block store (i.e. a block "
       "store that does nothing but print messages)" },
+    { "block-size", 'b', "SIZE", 0,
+      "Choose a typical size of SIZE bytes for the blocks produced by "
+      "the chopper" },
     { "zip",     'z', 0, 0,
-      "Pass data through a zlib filter to compress (resp. decompress) data "
-      "when writing (resp. reading) to (resp. from) the archive" },
+      "Pass data blocks through a zlib filter to compress (resp. decompress) "
+      "data when writing (resp. reading) to (resp. from) the archive" },
     { "cipher",  'c', "ALGO", 0,
       "Content-hash encrypt blocks using ALGO as the ciphering algorithm" },
     { "remote",  'R', "HOST", 0,
@@ -268,7 +276,7 @@ process_command (const char *argument,
 
       chopper = chop_class_alloca_instance ((chop_class_t *)chopper_class);
       err = chop_chopper_generic_open (chopper_class, stream,
-				       chopper);
+				       typical_block_size, chopper);
       if (err)
 	{
 	  com_err (program_name, err,
@@ -391,6 +399,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
       break;
     case 'd':
       debugging = 1;
+      break;
+    case 'b':
+      typical_block_size = strtoul (arg, NULL, 0);
       break;
     case 'a':
       archive_queried = 1;

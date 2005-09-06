@@ -2,6 +2,39 @@
 # arch-tag: automatic-ChangeLog--lcourtes@laas.fr--2004-mosaic/libchop--main--0.1
 #
 
+2005-09-06 15:50:50 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-54
+
+    Summary:
+      Improved the flexibility wrt. chopping of the various tools.
+    Revision:
+      libchop--main--0.1--patch-54
+
+    * include/chop/choppers.h (chop_chopper_class_class):  Added one
+      parameter to the `generic_open' method.
+      (chop_chopper_generic_open):  Added the TYPICAL_BLOCK_SIZE parameter.
+    
+    * src/chopper-anchor-based.c
+      (chop_anchor_based_chopper_t)[magic_fpr_mask]:  New field.
+      (ab_generic_open):  Updated.
+      (IS_ANCHOR_FINGERPRINT):  Updated.
+      (chop_anchor_based_chopper_init):  Added the MAGIC_FPR_MASK parameter.
+      (chop_anchor_chopper_read_block):  Use the value of MAGIC_FPR_MASK.
+    
+    * src/chopper-fixed-size.c (chop_fs_generic_open):  Updated.
+    
+    * utils/chop-archiver.c (typical_block_size):  New variable.
+      (options):  New `block-size' option.
+    
+    * utils/chop-show-anchors.c (options):  New `magic-fpr-mask' option.
+    
+    * utils/chop-show-similarities.c (options):  Likewise.
+
+    modified files:
+     ChangeLog include/chop/choppers.h src/chopper-anchor-based.c
+     src/chopper-fixed-size.c utils/chop-archiver.c
+     utils/chop-show-anchors.c utils/chop-show-similarities.c
+
+
 2005-09-06 11:59:16 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-53
 
     Summary:
