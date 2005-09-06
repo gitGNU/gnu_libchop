@@ -168,6 +168,7 @@ while (0)
 /* Write a formatted message onto LOG.  */
 static void _chop_log_printf (chop_log_t *__log,
 			      const char *__fmt, ...)
+     _CHOP_UNUSED
 #ifdef __GNUC__
      __attribute__ ((format (printf, 2, 3)))
 #endif

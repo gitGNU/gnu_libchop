@@ -141,7 +141,7 @@ CHOP_DECLARE_RT_CLASS_WITH_METACLASS (anchor_based_chopper, chopper,
 static errcode_t
 ab_generic_open (chop_stream_t *input, chop_chopper_t *chopper)
 {
-  return (chop_anchor_based_chopper_init (input, 10 /* window size */,
+  return (chop_anchor_based_chopper_init (input, 48 /* window size */,
 					  chopper));
 }
 
@@ -448,7 +448,7 @@ sliding_window_end_offset (sliding_window_t *window)
 static inline void
 sliding_window_skip (sliding_window_t *window, size_t amount)
 {
-  assert (amount <= window->window_size);
+  assert (amount <= window->raw_size - window->offset);
 
   /* Actually, WINDOW->SIZES[0] should be equal to WINDOW->WINDOW_SIZE most
      of the time.  */
@@ -762,17 +762,16 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
 {
   /* Algorithm:
 
-     1.  Read two times WINDOW_SIZE bytes into a "sliding window", actually a
-         double buffer;
+     1.  If less than WINDOW_SIZE bytes are available starting from the
+         current offset of the sliding window, read in WINDOW_SIZE bytes
 
      2.  Compute the fingerprint of each WINDOW_SIZE-long sliding window,
          i.e. fingerprint of [0..29], then [1..30], ..., [30..59].
 
      3.  Whenever such a fingerprint is considered "magic", then make it an
-         anchor and return all the data read till then.
+         anchor and return all the data read till then, including the
+         WINDOW_SIZE bytes which yielded the magic value.  Goto 1.  */
 
-     4.  When the start offset within the sliding window WINDOW has reached
-         WINDOW_SIZE, read in another WINDOW_SIZE bytes and jump to 2.  */
 
   errcode_t err;
   sliding_window_t *window;
@@ -786,35 +785,6 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
   *size = 0;
   chop_buffer_clear (buffer);
   window = &anchor->sliding_window;
-
-
-  if (!anchor->first)
-    {
-      /* We want to start _after_ the anchor, i.e. after the end offset of
-	 the previous sliding window.  */
-      size_t end, start, amount;
-
-      end = sliding_window_end_offset (window);
-      start = sliding_window_start_offset (window);
-      assert (start <= end);
-
-      /* Push the rest of the previous window, i.e. WINDOW_SIZE bytes
-	 starting at the WINDOW->OFFSET which is where an anchor was
-	 found.  */
-      amount = end - start;
-      chop_log_printf (&anchor->log, "pushing %u bytes from the "
-		       "previous window", amount);
-
-      err = sliding_window_append_to_buffer (window,
-					     sliding_window_start_offset (window),
-					     amount, buffer);
-      if (err)
-	return err;
-
-      /* Resume fingerprinting after the end of the last sliding window.  */
-      sliding_window_skip (window, amount);
-    }
-
 
   start_offset = window->offset;
 
@@ -892,11 +862,11 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
 	     we need to flush the remaining bytes.  */
 	  size_t amount;
 
-	  /* Push all the bytes up to the anchor itself (located at WINDOW's
-	     start offset) into the user's buffer (we consider the anchor to
-	     be the location of the end of the current sliding window).  */
-	  assert (sliding_window_start_offset (window) >= start_offset);
-	  amount = sliding_window_start_offset (window) - start_offset;
+	  /* Push all the bytes up to the anchor itself into the user's
+	     buffer (we consider the anchor to be the location of the end of
+	     the current sliding window).  */
+	  assert (sliding_window_end_offset (window) >= start_offset);
+	  amount = sliding_window_end_offset (window) - start_offset;
 
 	  if (amount)
 	    {
@@ -904,6 +874,10 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
 						     amount, buffer);
 	      if (err)
 		return err;
+
+	      /* Fingerprinting will resume after the current WINDOW_SIZE
+		 bytes on the next call.  */
+	      sliding_window_skip (window, window->window_size);
 
 	      chop_log_printf (&anchor->log,
 			       "found an anchor (fpr: 0x%x, block size: %u)",

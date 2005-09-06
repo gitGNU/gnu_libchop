@@ -15,9 +15,12 @@
 #  define _CHOP_PURE_FUNC  __attribute__ ((__pure__))
 # endif
 
+# define _CHOP_UNUSED __attribute__ ((__unused__))
+
 #else
 
 # define _CHOP_PURE_FUNC
+# define _CHOP_UNUSED
 
 #endif
 

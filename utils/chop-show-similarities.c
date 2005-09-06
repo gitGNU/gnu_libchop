@@ -20,11 +20,47 @@
 #include <string.h>
 #include <stdio.h>
 
+#include <argp.h>
 
+/* Whether to debug.  */
 static int debug = 0;
+
+/* The window size used when computing Rabin fingerprints.  */
+static size_t window_size = 48;
+
+/* The input file names.  */
+static char *file_name1 = NULL, *file_name2 = NULL;
+
+
+const char *argp_program_version = "chop-show-similarities 0.1";
+const char *argp_program_bug_address = "<ludovic.courtes@laas.fr>";
+
+static char doc[] =
+"chop-show-similarities -- show the amount of similarity between two files\
+\v\
+Show the amount of similarity between the content of FILE1 and that of \
+FILE2.  This works by cutting both files into chunks, using Rabin \
+fingerprints computed on the contents to determine chunk boundaries.  \
+Similarity is then evaluated based on the number of equal chunks.";
+
+static struct argp_option options[] =
+  {
+    { "debug",   'd', 0, 0,
+      "Turn on debugging output" },
+
+    { "window-size", 'w', "SIZE", 0,
+      "Set the size of windows used when computing fingerprints "
+      "to SIZE bytes" },
+
+    { 0, 0, 0, 0, 0 }
+  };
+
+static char args_doc[] = "FILE1 FILE2";
+
 
 static const char *program_name = NULL;
 
+
 /* Information about a file block.  */
 typedef struct
 {
@@ -158,6 +194,50 @@ show_similarities (block_info_vector_t *vector1,
 }
 
 
+/* Parse a single option. */
+static error_t
+parse_opt (int key, char *arg, struct argp_state *state)
+{
+  switch (key)
+    {
+    case 'd':
+      debug = 1;
+      break;
+
+    case 'w':
+      window_size = atoi (arg);
+      break;
+
+    case ARGP_KEY_ARG:
+      if (state->arg_num >= 2)
+	/* Too many arguments. */
+	argp_usage (state);
+
+      if (!file_name1)
+	file_name1 = arg;
+      else
+	file_name2 = arg;
+
+      break;
+
+    case ARGP_KEY_END:
+      if (state->arg_num < 2)
+	/* Not enough arguments. */
+	argp_usage (state);
+      break;
+
+    default:
+      return ARGP_ERR_UNKNOWN;
+    }
+
+  return 0;
+}
+
+/* Argp argument parsing.  */
+static struct argp argp = { options, parse_opt, args_doc, doc };
+
+
+
 int
 main (int argc, char *argv[])
 {
@@ -168,8 +248,6 @@ main (int argc, char *argv[])
   block_info_vector_t blocks1, blocks2;
 
   program_name = argv[0];
-  if (argc < 3)
-    return 1;
 
   err = chop_init ();
   if (err)
@@ -178,33 +256,36 @@ main (int argc, char *argv[])
       return 1;
     }
 
+  /* Parse arguments.  */
+  argp_parse (&argp, argc, argv, 0, NULL, 0);
+
   stream1  = chop_class_alloca_instance (&chop_file_stream_class);
   stream2  = chop_class_alloca_instance (&chop_file_stream_class);
   chopper1 = chop_class_alloca_instance ((chop_class_t *)&chop_anchor_based_chopper_class);
   chopper2 = chop_class_alloca_instance ((chop_class_t *)&chop_anchor_based_chopper_class);
 
-  err = chop_file_stream_open (argv[1], stream1);
+  err = chop_file_stream_open (file_name1, stream1);
   if (err)
     {
-      com_err (argv[0], err, "%s", argv[1]);
+      com_err (argv[0], err, "%s", file_name1);
       return 1;
     }
 
-  err = chop_file_stream_open (argv[2], stream2);
+  err = chop_file_stream_open (file_name2, stream2);
   if (err)
     {
-      com_err (argv[0], err, "%s", argv[2]);
+      com_err (argv[0], err, "%s", file_name2);
       return 1;
     }
 
-  err = chop_anchor_based_chopper_init (stream1, 10, chopper1);
+  err = chop_anchor_based_chopper_init (stream1, window_size, chopper1);
   if (err)
     {
       com_err (argv[0], err, "anchor-based-chopper");
       return 1;
     }
 
-  err = chop_anchor_based_chopper_init (stream2, 10, chopper2);
+  err = chop_anchor_based_chopper_init (stream2, window_size, chopper2);
   if (err)
     {
       com_err (argv[0], err, "anchor-based-chopper");

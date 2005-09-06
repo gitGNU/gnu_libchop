@@ -2,6 +2,34 @@
 # arch-tag: automatic-ChangeLog--lcourtes@laas.fr--2004-mosaic/libchop--main--0.1
 #
 
+2005-09-06 11:59:16 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-53
+
+    Summary:
+      Slightly augmented the tools that relate to the anchor-based chopper.
+    Revision:
+      libchop--main--0.1--patch-53
+
+    * include/chop/chop.h (_CHOP_UNUSED):  New macro.
+    
+    * include/chop/logs.h (_chop_log_printf):  Marked as `_CHOP_UNUSED'.
+    
+    * src/chopper-anchor-based.c (chop_anchor_chopper_read_block):  When an
+      anchor is detected, push the contents of the window as well.  This also
+      further simplifies the algorithm.
+      (ab_generic_open):  Use a default window size of 48 bytes.
+    
+    * utils/chop-show-anchors.c:  Added options for debugging, statistics,
+      verbosity, and window size.
+    
+    * utils/chop-show-similarities.c:  Added options for debugging and window
+      size.
+
+    modified files:
+     ChangeLog include/chop/chop.h include/chop/logs.h
+     src/chopper-anchor-based.c utils/chop-show-anchors.c
+     utils/chop-show-similarities.c
+
+
 2005-09-05 16:56:21 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-52
 
     Summary:
