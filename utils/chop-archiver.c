@@ -2,6 +2,7 @@
 #include <chop/streams.h>
 #include <chop/choppers.h>
 #include <chop/stores.h>
+#include <chop/store-stats.h>
 #include <chop/filters.h>
 
 #include <chop/indexers.h>
@@ -13,6 +14,7 @@
 #include <alloca.h>
 #include <getopt.h>
 #include <errno.h>
+#include <assert.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -72,6 +74,9 @@ static int verbose = 0;
 /* Whether to use the zlib filters.  */
 static int use_zlib_filters = 0;
 
+/* Whether to show store statistics.  */
+static int show_stats = 0;
+
 /* The remote block store host name or NULL.  */
 static char *remote_hostname = NULL;
 
@@ -90,6 +95,9 @@ static struct argp_option options[] =
     { "debug",   'd', 0, 0,
       "Produce debugging output and use a dummy block store (i.e. a block "
       "store that does nothing but print messages)" },
+    { "show-stats", 's', 0, 0,
+      "Show statistics about the blocks that have been written (in archival "
+      "mode)" },
     { "db-file", 'f', "FILE", 0,
       "Write the block database to FILE instead of the default files" },
     { "block-size", 'b', "SIZE", 0,
@@ -407,6 +415,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
     case 'd':
       debugging = 1;
       break;
+    case 's':
+      show_stats = 1;
+      break;
     case 'f':
       db_file_name = arg;
       break;
@@ -618,9 +629,68 @@ main (int argc, char *argv[])
 	}
     }
 
+  if (show_stats)
+    {
+      /* Create ``statistic stores'' proxying both block stores.  */
+      chop_block_store_t *raw_store, *raw_metastore;
+
+      raw_store = store;
+      raw_metastore = metastore;
+
+      store = chop_class_alloca_instance (&chop_stat_block_store_class);
+      err = chop_stat_block_store_open ("data-store", raw_store, 1,
+					store);
+      if (!err)
+	{
+	  if (raw_metastore != raw_store)
+	    {
+	      metastore =
+		chop_class_alloca_instance (&chop_stat_block_store_class);
+	      err = chop_stat_block_store_open ("meta-data-store", raw_metastore,
+						1, metastore);
+	    }
+	  else
+	    metastore = store;
+	}
+
+      if (err)
+	{
+	  com_err (program_name, err, "while initializing stat store");
+	  exit (5);
+	}
+    }
+
   /* */
   err = process_command (option_argument, store, metastore,
 			 indexer, chop_hash_tree_indexer_log (indexer));
+
+  if ((archive_queried) && (show_stats))
+    {
+      /* Show statistics about the blocks written by both the data store and
+	 the meta-data store.  */
+      chop_log_t log;
+      chop_block_store_t **s;
+      chop_block_store_t *the_stores[3];
+
+      the_stores[0] = store;
+      the_stores[1] = (store != metastore) ? metastore : NULL;
+      the_stores[2] = NULL;
+
+      chop_log_init ("stats", &log);
+      chop_log_attach (&log, 2, 0);
+
+      for (s = the_stores; *s; s++)
+	{
+	  chop_block_store_stats_t *stats;
+
+	  stats = chop_stat_block_store_stats (*s);
+	  assert (stats);
+
+	  chop_block_store_stats_display (stats, &log);
+	}
+
+      chop_log_detach (&log);
+    }
 
   err = chop_store_close ((chop_block_store_t *)store);
   if (err)

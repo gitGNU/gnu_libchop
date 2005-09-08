@@ -154,6 +154,9 @@ chop_smart_block_store_open (chop_block_store_t *backend,
   if (!backend)
     return CHOP_INVALID_ARG;
 
+  chop_object_initialize ((chop_object_t *)store,
+			  &chop_smart_block_store_class);
+
   err = chop_log_init ("smart-block-store", &smart->log);
   if (err)
     return err;

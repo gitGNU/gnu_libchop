@@ -432,7 +432,8 @@ chop_key_block_fill_header (key_block_t *block)
   assert (header - (unsigned char *)block->keys <= KEY_BLOCK_HEADER_SIZE);
 
   /* Don't leave uninitialized bytes.  */
-  memset (header, 0, header - (unsigned char *)block->keys);
+  memset (header, 0,
+	  KEY_BLOCK_HEADER_SIZE - (header - (unsigned char *)block->keys));
 }
 
 

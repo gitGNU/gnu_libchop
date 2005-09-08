@@ -13,6 +13,7 @@ libchop_la_SOURCES = chop.c chop-errors.c logs.c			\
 		     store-remote.c					\
 		     store-filtered.c					\
 		     store-smart.c					\
+		     store-stat.c					\
 		     cipher.c						\
 		     hash.c						\
 		     buffers.c						\

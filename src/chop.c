@@ -119,6 +119,9 @@ chop_object_destroy (chop_object_t *object)
 
 #ifdef HAVE_GPERF
 
+/* The following header declares a class.  */
+#include <chop/store-stats.h>
+
 /* Class definitions that are internal to `indexer-hash-tree.c' (FIXME).  */
 extern const chop_class_t chop_chk_index_handle_class,
   chop_hash_tree_stream_class;

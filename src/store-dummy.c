@@ -8,11 +8,7 @@
 #include <stdio.h>
 
 
-/* Class definition (this has to be somewhere).  */
-
-CHOP_DEFINE_RT_CLASS (block_store, object,
-		      NULL, NULL, /* No constructor/destructor */
-		      NULL, NULL  /* No serializer/deserializer */);
+/* Class definition.  */
 
 CHOP_DECLARE_RT_CLASS (dummy_block_store, block_store,
 		       chop_log_t log;
@@ -262,6 +258,9 @@ chop_dummy_block_store_open (const char *name,
   err = chop_log_init (log_name, &dummy->log);
   if (err)
     return; /* XXX */
+
+  chop_object_initialize ((chop_object_t *)store,
+			  &chop_dummy_block_store_class);
 
   /* By default, dump to stderr */
   chop_log_attach (&dummy->log, 2, 0);
