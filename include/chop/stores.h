@@ -88,11 +88,11 @@ chop_block_key_buffer (const chop_block_key_t *__key)
    to be at least twice as long as KEY's buffer plus one byte.  */
 static __inline__ void
 chop_block_key_to_hex_string (const chop_block_key_t *__key,
-			      char *hex)
+			      char *__hex)
 {
   chop_buffer_to_hex_string (chop_block_key_buffer (__key),
 			     chop_block_key_size (__key),
-			     hex);
+			     __hex);
 }
 
 

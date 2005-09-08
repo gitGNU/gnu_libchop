@@ -70,14 +70,14 @@ CHOP_DECLARE_RT_CLASS (chk_index_handle, index_handle,
 		       chop_hash_method_t block_id_hash_method;
 
 		       /* The actual block identifier and its size */
-		       char block_id[30];
+		       char block_id[80];
 		       size_t block_id_size;
 
 		       unsigned ciphered:1;
 
 		       /* Relevant only if CIPHERED is 1 */
 		       chop_hash_method_t hash_key_hash_method;
-		       char hash_key[50];
+		       char hash_key[80];
 		       size_t hash_key_size;);
 
 
@@ -428,6 +428,11 @@ chop_key_block_fill_header (key_block_t *block)
   *(header++) = (depth & 0xff);  depth >>= 8;
   *(header++) = (depth & 0xff);  depth >>= 8;
   assert (!depth);
+
+  assert (header - (unsigned char *)block->keys <= KEY_BLOCK_HEADER_SIZE);
+
+  /* Don't leave uninitialized bytes.  */
+  memset (header, 0, header - (unsigned char *)block->keys);
 }
 
 

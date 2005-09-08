@@ -59,6 +59,10 @@ static size_t typical_block_size = 0;
 /* The option passed to either `--archive' or `--restore'.  */
 static char *option_argument = NULL;
 
+/* The file where to store the data, if not DB_DATA_FILE_BASE and
+   DB_META_DATA_FILE_BASE.  */
+static char *db_file_name = NULL;
+
 /* Use the dummy store for debugging purposes.  */
 static int debugging = 0;
 
@@ -86,6 +90,8 @@ static struct argp_option options[] =
     { "debug",   'd', 0, 0,
       "Produce debugging output and use a dummy block store (i.e. a block "
       "store that does nothing but print messages)" },
+    { "db-file", 'f', "FILE", 0,
+      "Write the block database to FILE instead of the default files" },
     { "block-size", 'b', "SIZE", 0,
       "Choose a typical size of SIZE bytes for the blocks produced by "
       "the chopper" },
@@ -359,7 +365,7 @@ open_db_store (const chop_file_based_store_class_t *class,
 				    O_RDWR | O_CREAT, S_IRUSR | S_IWUSR,
 				    store);
   if (err)
-    com_err (program_name, err, "while opening `%s' data file \"%s\"",
+    com_err (program_name, err, "whileopening `%s' data file \"%s\"",
 	     chop_class_name ((chop_class_t *)class), file);
 
   return err;
@@ -400,6 +406,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
       break;
     case 'd':
       debugging = 1;
+      break;
+    case 'f':
+      db_file_name = arg;
       break;
     case 'b':
       typical_block_size = strtoul (arg, NULL, 0);
@@ -528,14 +537,34 @@ main (int argc, char *argv[])
 	  metastore = (chop_block_store_t *)
 	    chop_class_alloca_instance ((chop_class_t *)db_store_class);
 
-	  err = open_db_store (db_store_class, DB_DATA_FILE_BASE, store);
-	  if (err)
-	    exit (3);
+	  if (db_file_name)
+	    {
+	      /* We'll actually use only one database stored in the file
+		 whose name was passed by the user.  */
+	      err = chop_file_based_store_open (db_store_class, db_file_name,
+						O_RDWR | O_CREAT,
+						S_IRUSR | S_IWUSR,
+						store);
+	      if (err)
+		{
+		  com_err (program_name, err, "%s", db_file_name);
+		  exit (3);
+		}
 
-	  err = open_db_store (db_store_class, DB_META_DATA_FILE_BASE,
-			       metastore);
-	  if (err)
-	    exit (3);
+	      metastore = store;
+	    }
+	  else
+	    {
+	      /* Open the two default databases.  */
+	      err = open_db_store (db_store_class, DB_DATA_FILE_BASE, store);
+	      if (err)
+		exit (3);
+
+	      err = open_db_store (db_store_class, DB_META_DATA_FILE_BASE,
+				   metastore);
+	      if (err)
+		exit (3);
+	    }
 	}
     }
   else
@@ -600,11 +629,14 @@ main (int argc, char *argv[])
       exit (7);
     }
 
-  err = chop_store_close ((chop_block_store_t *)metastore);
-  if (err)
+  if (store != metastore)
     {
-      com_err (argv[0], err, "while closing output meta-data block store");
-      exit (7);
+      err = chop_store_close ((chop_block_store_t *)metastore);
+      if (err)
+	{
+	  com_err (argv[0], err, "while closing output meta-data block store");
+	  exit (7);
+	}
     }
 
   return 0;

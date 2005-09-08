@@ -6,6 +6,11 @@
 #include <unistd.h>
 #include <errno.h>
 
+
+/* Define the following variable to compile-in pool support.  */
+#define ENABLE_POOL 1
+
+#ifdef ENABLE_POOL
 /* Keep at most BUFFER_POOL_MAX_SIZE buffers in the buffer pool, for a total
    of at most BUFFER_POOL_MAX_AVAILABLE bytes.  */
 #define BUFFER_POOL_MAX_SIZE       (20)
@@ -39,12 +44,16 @@ find_buffer_in_pool (size_t size, chop_buffer_t *found)
 
   return 0;
 }
+#endif
 
+
 errcode_t
 chop_buffer_init (chop_buffer_t *buffer, size_t size)
 {
+#ifdef ENABLE_POOL
   if (find_buffer_in_pool (size, buffer))
     return 0;
+#endif
 
   buffer->buffer = (char *)calloc (1, size);
   if (!buffer->buffer)
@@ -62,8 +71,10 @@ chop_buffer_grow (chop_buffer_t *buffer, size_t size)
   size_t new_size = buffer->real_size;
   char *larger;
 
+#ifdef ENABLE_POOL
   if (find_buffer_in_pool (size, buffer))
     return 0;
+#endif
 
   new_size = (new_size == 0) ? 1 : new_size;
   while (new_size < size)
@@ -118,6 +129,7 @@ chop_buffer_append (chop_buffer_t *buffer,
   return 0;
 }
 
+#ifdef ENABLE_POOL
 static inline void
 _chop_buffer_return (chop_buffer_t *buffer)
 {
@@ -129,11 +141,17 @@ _chop_buffer_return (chop_buffer_t *buffer)
       buffer_pool_available += buffer->real_size;
     }
 }
+#endif
 
 void
 chop_buffer_return (chop_buffer_t *buffer)
 {
+#ifdef ENABLE_POOL
   _chop_buffer_return (buffer);
+#else
+  if (buffer->buffer)
+    free (buffer->buffer);
+#endif
 
   buffer->size = buffer->real_size = 0;
   buffer->buffer = 0;
