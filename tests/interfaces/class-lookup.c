@@ -4,6 +4,8 @@
 #include <chop/chop.h>
 #include <chop/serializable.h>
 
+#include <testsuite.h>
+
 #include <stdio.h>
 
 int
@@ -19,6 +21,11 @@ main (int argc, char *argv[])
     };
   const char *const *name;
   unsigned passed = 0, failed = 0;
+
+  test_init (argv[0]);
+
+  test_stage ("%u class lookups by name",
+	      (sizeof (class_names) / sizeof (*class_names)) - 1);
 
   for (name = class_names;
        *name != NULL;
@@ -44,14 +51,14 @@ main (int argc, char *argv[])
 	}
     }
 
+  test_stage_result (!failed);
+
   if (failed)
     {
       fprintf (stderr, "FAIL: %u classes found, %u classes not found\n",
 	       passed, failed);
       return failed;
     }
-
-  fprintf (stderr, "PASS: %u classes found\n", passed);
 
   return 0;
 }

@@ -491,7 +491,7 @@ main (int argc, char *argv[])
   indexer = chop_class_alloca_instance (&chop_hash_tree_indexer_class);
   err = chop_hash_tree_indexer_open (CHOP_HASH_SHA1, CHOP_HASH_SHA1,
 				     cipher_handle,
-				     12,
+				     100 /* keys per block */,
 				     indexer);
   if (err)
     {
@@ -642,15 +642,12 @@ main (int argc, char *argv[])
 					store);
       if (!err)
 	{
-	  if (raw_metastore != raw_store)
-	    {
-	      metastore =
-		chop_class_alloca_instance (&chop_stat_block_store_class);
-	      err = chop_stat_block_store_open ("meta-data-store", raw_metastore,
-						1, metastore);
-	    }
-	  else
-	    metastore = store;
+	  metastore =
+	    chop_class_alloca_instance (&chop_stat_block_store_class);
+	  err = chop_stat_block_store_open ("meta-data-store", raw_metastore,
+					    (raw_store != raw_metastore)
+					    ? 1 : 0,
+					    metastore);
 	}
 
       if (err)

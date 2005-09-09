@@ -4,6 +4,8 @@
 #include <chop/chop.h>
 #include <chop/cipher.h>
 
+#include <testsuite.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
@@ -59,8 +61,8 @@ open_cipher_handle (chop_cipher_algo_t algo,
     }
 
   key_size = chop_cipher_algo_key_size (algo);
-  printf ("Algorithm `%s' expects keys of %u bytes\n",
-	  chop_cipher_algo_name (algo), key_size);
+  test_debug ("algorithm `%s' expects keys of %u bytes\n",
+	      chop_cipher_algo_name (algo), key_size);
 
   err = chop_cipher_set_key (cipher_handle, the_key, key_size);
   if (err)
@@ -84,14 +86,21 @@ main (int argc, char *argv[])
   char the_clear_text[SIZE_OF_INPUT], the_cipher_text[SIZE_OF_INPUT];
   char the_key[40];
 
+#define DID_FAIL()				\
+  failed++, test_stage_result (0);
+
+
   /* Initialize.  */
   program_name = argv[0];
+  test_init (argv[0]);
 
   for (algo = the_algorithms, algo_count = 0;
        *algo != CHOP_CIPHER_NONE;
        algo++, algo_count++)
     {
       unsigned i;
+
+      test_stage ("algorithm `%s'", chop_cipher_algo_name (*algo));
 
       for (i = 0; i < sizeof (random_clear_text); i++)
 	random_clear_text[i] = rand ();
@@ -102,7 +111,9 @@ main (int argc, char *argv[])
 
       /* Open the ciphering algorithm.  */
       cipher_handle = open_cipher_handle (*algo, the_key);
+      test_assert (cipher_handle != CHOP_CIPHER_HANDLE_NIL);
 
+      test_stage_intermediate ("encrypt");
       err = chop_cipher_encrypt (cipher_handle,
 				 the_cipher_text, sizeof (the_cipher_text),
 				 the_clear_text, sizeof (the_clear_text));
@@ -110,7 +121,7 @@ main (int argc, char *argv[])
 	{
 	  com_err (argv[0], err, "while encrypting %u bytes",
 		   sizeof (the_clear_text));
-	  failed++;
+	  DID_FAIL ();
 	  continue;
 	}
 
@@ -118,18 +129,20 @@ main (int argc, char *argv[])
 	{
 	  printf ("%s: cipher text and clear text are identical\n",
 		  chop_cipher_algo_name (*algo));
-	  failed++;
+	  DID_FAIL ();
 	  continue;
 	}
 
       /* Close the cipher handle and start again.  */
       chop_cipher_close (cipher_handle);
       cipher_handle = open_cipher_handle (*algo, the_key);
+      test_assert (cipher_handle != CHOP_CIPHER_HANDLE_NIL);
 
       /* Destroy the clear text.  */
       for (i = 0; i < sizeof (the_clear_text); i++)
 	the_clear_text[i] = rand ();
 
+      test_stage_intermediate ("decrypt");
       err = chop_cipher_decrypt (cipher_handle,
 				 the_clear_text, sizeof (the_clear_text),
 				 the_cipher_text, sizeof (the_cipher_text));
@@ -137,7 +150,7 @@ main (int argc, char *argv[])
 	{
 	  com_err (argv[0], err, "while decrypting %u bytes",
 		   sizeof (the_cipher_text));
-	  failed++;
+	  DID_FAIL ();
 	  continue;
 	}
 
@@ -146,20 +159,12 @@ main (int argc, char *argv[])
 	{
 	  printf ("%s: decryption result differs from original clear text\n",
 		  chop_cipher_algo_name (*algo));
-	  failed++;
+	  DID_FAIL ();
 	  continue;
 	}
 
-      printf ("PASS:  Algorithm `%s' was successfully used\n",
-	      chop_cipher_algo_name (*algo));
+      test_stage_result (1);
     }
-
-  if (!failed)
-    printf ("PASS: %u ciphering algorithms successfully used\n",
-	    algo_count);
-  else
-    printf ("FAIL: %u ciphering algorithms failed (out of %u)\n",
-	    failed, algo_count);
 
   return (failed ? 1 : 0);
 }

@@ -4,6 +4,8 @@
 #include <chop/stores.h>
 #include <chop/chop-config.h>
 
+#include <testsuite.h>
+
 #include <stdio.h>
 
 
@@ -17,13 +19,22 @@ main (int argc, char *argv[])
 #ifdef HAVE_TDB
       &chop_tdb_block_store_class,
 #endif
+#ifdef HAVE_QDBM
+      &chop_qdbm_block_store_class,
+#endif
       NULL
     };
-  static const char db_file[] = "test.db";
+  static const char db_file[] = ",,t-stores.db";
+
+  errcode_t err;
   const chop_file_based_store_class_t **class;
   char random_bytes[256];
   chop_block_key_t random_key;
   chop_buffer_t buffer;
+
+  test_init (argv[0]);
+  err = chop_init ();
+  test_check_errcode (err, "initializing libchop");
 
   chop_block_key_init (&random_key, random_bytes, sizeof (random_bytes),
 		       NULL, NULL);
@@ -34,11 +45,12 @@ main (int argc, char *argv[])
        class++)
     {
       errcode_t err;
+      int exists = 0;
       size_t amount = 0;
       chop_block_store_t *store;
 
-      printf ("** Testing the `%s' class...\n",
-	      chop_class_name ((chop_class_t *)*class));
+      test_stage ("the `%s' class",
+		  chop_class_name ((chop_class_t *)*class));
 
       /* Open */
       store = (chop_block_store_t *)
@@ -64,6 +76,14 @@ main (int argc, char *argv[])
 	  exit (2);
 	}
 
+      /* Exists? */
+      err = chop_store_block_exists (store, &random_key, &exists);
+      if (err)
+	{
+	  com_err (argv[0], err, "while querying a `%s' store",
+		   chop_class_name ((chop_class_t *)*class));
+	  exit (3);
+	}
 
       /* Read */
       err = chop_store_read_block (store, &random_key, &buffer, &amount);
@@ -89,6 +109,8 @@ main (int argc, char *argv[])
 		   chop_class_name ((chop_class_t *)*class));
 	  exit (6);
 	}
+
+      test_stage_result (1);
     }
 
   return 0;

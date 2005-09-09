@@ -199,6 +199,7 @@ chop_stat_block_store_open (const char *name,
   store->sync = chop_stat_block_store_sync;
 
   stat->backend = backend;
+  stat->takeover = takeover;
 
   return 0;
 }

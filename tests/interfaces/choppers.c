@@ -4,6 +4,8 @@
 #include <chop/chop.h>
 #include <chop/choppers.h>
 
+#include <testsuite.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
@@ -11,6 +13,8 @@
 #include <time.h>
 
 /* #define DEBUG 1 */
+
+#define CHOPPER_BLOCK_SIZE  (4565)
 
 int
 main (int argc, char *argv[])
@@ -29,6 +33,8 @@ main (int argc, char *argv[])
   chop_buffer_t buffer;
   errcode_t err;
   struct timeval tv;
+
+  test_init (argv[0]);
 
   gettimeofday (&tv, NULL);
   srandom (tv.tv_sec);
@@ -49,8 +55,8 @@ main (int argc, char *argv[])
     {
       size_t bytes_read = 0;
 
-      fprintf (stdout, "Testing chopper class `%s'...\n",
-	       chop_class_name ((chop_class_t *)*class));
+      test_stage ("chopper class `%s'",
+		  chop_class_name ((chop_class_t *)*class));
 
       /* Open the input stream.  */
       chop_mem_stream_open (mem_stream_contents, sizeof (mem_stream_contents),
@@ -58,7 +64,8 @@ main (int argc, char *argv[])
 
       /* Open the chopper.  */
       chopper = chop_class_alloca_instance ((chop_class_t *)*class);
-      err = chop_chopper_generic_open (*class, input, chopper);
+      err = chop_chopper_generic_open (*class, input,
+				       CHOPPER_BLOCK_SIZE, chopper);
       if (err)
 	{
 	  com_err (argv[0], err, "while initializing `%s' chopper",
@@ -117,6 +124,8 @@ main (int argc, char *argv[])
 		   bytes_read, sizeof (mem_stream_contents));
 	  exit (4);
 	}
+
+      test_stage_result (1);
     }
 
   return 0;

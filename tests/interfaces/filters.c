@@ -5,6 +5,8 @@
 #include <chop/chop.h>
 #include <chop/filters.h>
 
+#include <testsuite.h>
+
 #include <stdio.h>
 #include <assert.h>
 
@@ -21,9 +23,9 @@ handle_input_fault (chop_filter_t *filter, size_t amount, void *data)
   if (input_offset >= SIZE_OF_INPUT)
     return CHOP_STREAM_END;
 
-  fprintf (stderr, "serving input fault for the `%s' (%u bytes)\n",
-	   chop_class_name (chop_object_get_class ((chop_object_t *)filter)),
-	   amount);
+  test_debug ("serving input fault for the `%s' (%u bytes)",
+	      chop_class_name (chop_object_get_class ((chop_object_t *)filter)),
+	      amount);
   available = SIZE_OF_INPUT - input_offset;
   amount = (amount > available) ? available : amount;
 
@@ -39,26 +41,30 @@ main (int argc, char *argv[])
 {
   errcode_t err;
   chop_filter_t *filter;
-  chop_log_t *log;
   char output[123];
   size_t output_size = 0;
   size_t pulled = 0;
 
+  test_init (argv[0]);
+
   err = chop_init ();
-  if (err)
-    {
-      com_err (argv[0], err, "while initializing libchop");
-      return 1;
-    }
+  test_check_errcode (err, "initializing libchop");
 
   filter = chop_class_alloca_instance (&chop_zlib_zip_filter_class);
   err = chop_zlib_zip_filter_init (-1, 0, filter);
-  if (err)
-    return 1;
+  test_check_errcode (err, "initializing zlib zip filter");
 
-  /* Attach FILTER's log to stderr.  */
-  log = chop_filter_log (filter);
-  chop_log_attach (log, 2, 0);
+  test_stage ("input filter `%s'",
+	      chop_class_name (&chop_zlib_zip_filter_class));
+
+  if (test_debug_mode ())
+    {
+      /* Attach FILTER's log to stderr.  */
+      chop_log_t *log;
+
+      log = chop_filter_log (filter);
+      chop_log_attach (log, 2, 0);
+    }
 
   chop_filter_set_input_fault_handler (filter, handle_input_fault, NULL);
 
@@ -91,11 +97,13 @@ main (int argc, char *argv[])
       exit (3);
     }
 
-  fprintf (stdout, "input size was: %u; output size was: %u\n",
-	   SIZE_OF_INPUT, output_size);
+  test_debug ("input size was: %u; output size was: %u",
+	      SIZE_OF_INPUT, output_size);
 
   /* Make sure everything was read.  */
   assert (input_offset == SIZE_OF_INPUT);
+
+  test_stage_result (1);
 
   return 0;
 }

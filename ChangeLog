@@ -2,6 +2,57 @@
 # arch-tag: automatic-ChangeLog--lcourtes@laas.fr--2004-mosaic/libchop--main--0.1
 #
 
+2005-09-09 13:59:12 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-58
+
+    Summary:
+      Augmented and improved the test suite;  fixed a couple of bugs.
+    Revision:
+      libchop--main--0.1--patch-58
+
+    * tests/include/testsuite.h:  New file.
+    
+    * tests/features/Makefile.am:  Use the `AM_'-prefixed variables.
+    
+    * tests/features/filter-zlib.c:  Use the `test_' utilities.
+    
+    * tests/interfaces/class-lookup.c:  Likewise.
+    
+    * tests/interfaces/choppers.c:  Likewise.
+    
+    * tests/interfaces/cipher.c:  Likewise.
+    
+    * tests/interfaces/stores.c:  Likewise.  Also added the QDBM block store
+      class if available.  Added a test for `chop_store_block_exists ()'.
+    
+    * tests/interfaces/indexers.c:  New file.
+    
+    * src/store-stat.c (chop_stat_block_store_open):  Initialize the
+      `takeover' field.
+    
+    * src/chop-archiver.c (main):  Use 100 keys per block, instead of 12,
+      when opening the indexer.  If SHOW_STATS, always open a stat store for
+      both the data store and the meta-data store.
+
+    new files:
+     tests/include/.arch-ids/=id
+     tests/include/.arch-ids/Makefile.am.id
+     tests/include/.arch-ids/testsuite.h.id
+     tests/include/Makefile.am tests/include/testsuite.h
+     tests/interfaces/.arch-ids/indexers.c.id
+     tests/interfaces/indexers.c
+
+    modified files:
+     ChangeLog configure.ac src/store-stat.c tests/Makefile.am
+     tests/features/Makefile.am tests/features/filter-zlib.c
+     tests/interfaces/Makefile.am tests/interfaces/choppers.c
+     tests/interfaces/cipher.c tests/interfaces/class-lookup.c
+     tests/interfaces/filters.c tests/interfaces/stores.c
+     utils/chop-archiver.c
+
+    new directories:
+     tests/include tests/include/.arch-ids
+
+
 2005-09-08 16:10:15 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-57
 
     Summary:

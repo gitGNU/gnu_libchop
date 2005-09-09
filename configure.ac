@@ -137,6 +137,7 @@ AC_CONFIG_FILES([Makefile
                  src/Makefile
 		 utils/Makefile
 		 tests/Makefile
+		 tests/include/Makefile
 		 tests/interfaces/Makefile
 		 tests/features/Makefile
 		 guile/Makefile])

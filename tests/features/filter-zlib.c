@@ -18,10 +18,13 @@
 #include <chop/chop.h>
 #include <chop/filters.h>
 
+#include <testsuite.h>
+
 #include <stdio.h>
 #include <assert.h>
 
-#define SIZE_OF_INPUT  27773
+
+#define SIZE_OF_INPUT  1779773
 static char input[SIZE_OF_INPUT];
 static size_t input_offset = 0;
 
@@ -48,9 +51,9 @@ handle_random_input_fault (chop_filter_t *filter,
   if (input_offset >= SIZE_OF_INPUT)
     return CHOP_STREAM_END;
 
-  fprintf (stderr, "serving input fault for the `%s' (%u bytes)\n",
-	   chop_class_name (chop_object_get_class ((chop_object_t *)filter)),
-	   amount);
+  test_debug ("serving input fault for the `%s' (%u bytes)",
+	      chop_class_name (chop_object_get_class ((chop_object_t *)filter)),
+	      amount);
   available = SIZE_OF_INPUT - input_offset;
   amount = (amount > available) ? available : amount;
 
@@ -76,9 +79,10 @@ handle_zipped_input_fault (chop_filter_t *unzip_filter,
   assert (chop_object_is_a ((chop_object_t *)zip_filter,
 			    &chop_zlib_zip_filter_class));
 
-  fprintf (stderr, "handling input fault for the `%s' (%u bytes)\n",
-	   chop_class_name (chop_object_get_class ((chop_object_t *)unzip_filter)),
-	   amount);
+  test_debug ("handling input fault for the `%s' (%u bytes)",
+	      chop_class_name (chop_object_get_class
+			       ((chop_object_t *)unzip_filter)),
+	      amount);
 
   buffer = alloca (amount);
   err = chop_filter_pull (zip_filter, flushing,
@@ -115,31 +119,28 @@ main (int argc, char *argv[])
   size_t output_size = 0;
   size_t pulled = 0;
 
+  test_init (argv[0]);
+
   /* Initialize libchop, create one zip filter and one unzip filter.  */
   err = chop_init ();
-  if (err)
-    {
-      com_err (argv[0], err, "while initializing libchop");
-      return 1;
-    }
+  test_check_errcode (err, "initializing libchop");
 
   zip_filter = chop_class_alloca_instance (&chop_zlib_zip_filter_class);
   unzip_filter = chop_class_alloca_instance (&chop_zlib_unzip_filter_class);
   err = chop_zlib_zip_filter_init (-1, 0, zip_filter);
-  if (err)
-    return 1;
+  test_check_errcode (err, "initializing zlib zip filter");
 
   err = chop_zlib_unzip_filter_init (0, unzip_filter);
-  if (err)
-    return 2;
+  test_check_errcode (err, "initializing zlib unzip filter");
 
-#if 0
-  /* Attach filters' logs to stderr (for debugging).  */
-  zip_log = chop_filter_log (zip_filter);
-  unzip_log = chop_filter_log (unzip_filter);
-  chop_log_attach (zip_log, 2, 0);
-  chop_log_attach (unzip_log, 2, 0);
-#endif
+  if (test_debug_mode ())
+    {
+      /* Attach filters' logs to stderr (for debugging).  */
+      zip_log = chop_filter_log (zip_filter);
+      unzip_log = chop_filter_log (unzip_filter);
+      chop_log_attach (zip_log, 2, 0);
+      chop_log_attach (unzip_log, 2, 0);
+    }
 
   /* Feed the zip filter with random input.  */
   chop_filter_set_input_fault_handler (zip_filter,
@@ -153,7 +154,10 @@ main (int argc, char *argv[])
   /* Randomize the input (which hasn't been read yet).  */
   randomize_input (input, sizeof (input));
 
+  test_stage ("pulling data from the unzip filter");
+
   /* Pull data from UNZIP_FILTER until an end-of-stream error is caught.  */
+  test_stage_intermediate ("initial data");
   while (!err)
     {
       err = chop_filter_pull (unzip_filter, 0 /* don't flush */,
@@ -176,6 +180,7 @@ main (int argc, char *argv[])
 
   /* Flush the remaining data from UNZIP_FILTER, i.e. without pulling new
      data.  */
+  test_stage_intermediate ("flush");
   do
     {
       pulled = 0;
@@ -195,11 +200,13 @@ main (int argc, char *argv[])
 
 
   /* We're done.  */
-  fprintf (stdout, "input size was: %u; output size was: %u\n",
-	   SIZE_OF_INPUT, output_size);
+  test_debug ("input size was: %u; output size was: %u",
+	      SIZE_OF_INPUT, output_size);
 
-  assert (output_size == SIZE_OF_INPUT);
-  assert (!memcmp (input, output, SIZE_OF_INPUT));
+  test_assert (output_size == SIZE_OF_INPUT);
+  test_assert (!memcmp (input, output, SIZE_OF_INPUT));
+
+  test_stage_result (1);
 
   return 0;
 }
