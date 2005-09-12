@@ -39,6 +39,7 @@ chop_fixed_size_chopper_open_alloc (chop_stream_t *input,
 static __inline__ errcode_t
 chop_anchor_based_chopper_open_alloc (chop_stream_t *input,
 				      size_t window_size,
+				      unsigned long magic_fpr_mask,
 				      chop_chopper_t **chopper)
 {
   errcode_t err;
@@ -48,7 +49,8 @@ chop_anchor_based_chopper_open_alloc (chop_stream_t *input,
   if (!*chopper)
     return ENOMEM;
 
-  err = chop_anchor_based_chopper_init (input, window_size, *chopper);
+  err = chop_anchor_based_chopper_init (input, window_size, magic_fpr_mask,
+					*chopper);
   if (err)
     {
       free (*chopper);
@@ -58,6 +60,45 @@ chop_anchor_based_chopper_open_alloc (chop_stream_t *input,
   return err;
 }
 
+static __inline__ errcode_t
+chop_chopper_generic_open_alloc (const char *class_nickname,
+				 chop_stream_t *input,
+				 unsigned long typical_block_size,
+				 chop_chopper_t **chopper)
+{
+  errcode_t err;
+  char *class_realname;
+  const chop_class_t *class;
+
+  class_realname = alloca (strlen (class_nickname) + 20);
+  strcpy (class_realname, class_nickname);
+  strcat (class_realname, "_chopper");
+
+  class = chop_class_lookup (class_realname);
+  if (!class)
+    return CHOP_ERR_NOT_FOUND;
+
+  if (chop_object_get_class ((chop_object_t *)class)
+      != &chop_chopper_class_class)
+    return CHOP_INVALID_ARG;
+
+  *chopper = scm_malloc (chop_class_instance_size (class));
+  if (!*chopper)
+    return ENOMEM;
+
+  err = chop_chopper_generic_open ((chop_chopper_class_t *)class, input,
+				   typical_block_size, *chopper);
+  if (err)
+    {
+      free (*chopper);
+      *chopper = NULL;
+      return err;
+    }
+
+  return err;
+}
+
+
 static __inline__ errcode_t
 chop_chopper_read_block_alloc_u8vector (chop_chopper_t *chopper,
 					SCM *result)

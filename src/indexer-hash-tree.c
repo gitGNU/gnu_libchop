@@ -185,7 +185,7 @@ chop_chk_index_handle_size (const chop_chk_index_handle_t *index)
 /* Read from BUFFER (SIZE-byte long) an ASCII serialization of a hash and
    return its hash method in METHOD and its content in HASH.  Return in COUNT
    the number of bytes read from BUFFER.  */
-static inline errcode_t
+static errcode_t
 read_ascii_hash (const char *buffer, size_t size,
 		 chop_hash_method_t *method, size_t *hash_size,
 		 char *hash, size_t *count)
@@ -1266,7 +1266,7 @@ chop_decoded_block_new (decoded_block_t **block, chop_log_t *log)
 /* Fetch block with index INDEX from STORE and update BLOCK accordingly.
    PARENT, if not NULL, is assumed to be the parent of the block being
    fetched.  */
-static inline errcode_t
+static errcode_t
 chop_decoded_block_fetch (chop_block_store_t *store,
 			  const chop_chk_index_handle_t *index,
 			  const ciphering_context_t *ciphering_context,

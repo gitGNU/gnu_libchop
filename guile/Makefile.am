@@ -5,11 +5,13 @@ SETGWPATH = "(set! %load-path (cons \"/usr/local/share/guile/site\" %load-path))
 lib_LTLIBRARIES = libguile-chop.la
 
 libguile_chop_la_SOURCES = core.c hash.c cipher.c logs.c streams.c	\
-                           stores.c choppers.c indexers.c
+                           stores.c choppers.c indexers.c		\
+			   store-stats.c filters.c
 
-EXTRA_DIST = choppers-spec.scm cipher-spec.scm core-spec.scm	\
-             hash-spec.scm indexers-spec.scm stores-spec.scm	\
-             streams-spec.scm logs-spec.scm
+EXTRA_DIST = choppers-spec.scm cipher-spec.scm core-spec.scm		\
+             hash-spec.scm indexers-spec.scm stores-spec.scm		\
+             streams-spec.scm logs-spec.scm store-stats-spec.scm	\
+	     filters-spec.scm
 
 
 CPPFLAGS += -I../include $(shell $(G_WRAP_CONFIG) --c-compile-args guile)

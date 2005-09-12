@@ -2,6 +2,64 @@
 # arch-tag: automatic-ChangeLog--lcourtes@laas.fr--2004-mosaic/libchop--main--0.1
 #
 
+2005-09-12 16:25:15 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-59
+
+    Summary:
+      Updated and augmented the Guile bindings.
+    Revision:
+      libchop--main--0.1--patch-59
+
+    * {arch}/=tagging-method:  Switched to `tagline'.
+    
+    * guile/filters-spec.scm:  New file.
+    
+    * guile/filters-support.c:  New file.
+    
+    * guile/store-stats-spec.scm:  New file.
+    
+    * guile/store-stats-support.c:  New file.
+    
+    * guile/Makefile.am:  Updated.
+    
+    * guile/choppers-spec.scm (anchor-based-chopper-open):  Updated.
+      (chopper-generic-open):  New wrapped function.
+    
+    * guile/choppers-support.c:  Updated.
+    
+    * guile/stores-support.c:  Use `scm_malloc ()' instead of `malloc ()'.
+    
+    * include/chop/serializable.h (chop_class_inherits):  New function.
+      (chop_object_is_a):  Use the above function.
+    
+    * include/chop/store-stats.h:  Added accessors.
+    
+    * src/Makefile.am (AM_CFLAGS):  Added `-fno-strict-aliasing', moved from
+      `AM_CPPFLAGS'.
+    
+    * src/indexer-hash-tree.c (read_ascii_hash):  Removed the `inline'
+      keyword since it is not inlinable.
+    
+    * src/store-stat.c (chop_stat_block_store_close):  Initialize ERR.
+      (chop_stat_block_store_stats):  Take and return `const' things.
+    
+    * utils/Makefile.am (AM_CFLAGS):  Added `-fno-strict-aliasing'.
+    
+    * utils/chop-show-anchors.c (stats_display):  Fixed printf format for
+      MAGIC_FPR_MASK.
+
+    new files:
+     guile/filters-spec.scm guile/filters-support.c
+     guile/store-stats-spec.scm guile/store-stats-support.c
+
+    modified files:
+     ChangeLog guile/Makefile.am guile/choppers-spec.scm
+     guile/choppers-support.c guile/stores-spec.scm
+     guile/stores-support.c include/chop/serializable.h
+     include/chop/store-stats.h src/Makefile.am
+     src/indexer-hash-tree.c src/store-stat.c utils/Makefile.am
+     utils/chop-show-anchors.c {arch}/=tagging-method
+
+
 2005-09-09 13:59:12 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-58
 
     Summary:

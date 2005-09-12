@@ -9,4 +9,4 @@ LDADD = -L../src -lchop
 chop_block_server_LDADD = $(LDADD) -lchop-block-server
 
 AM_CPPFLAGS += -I../include
-AM_CFLAGS = -O0 -g -Wall
+AM_CFLAGS = -O0 -g -Wall -fno-strict-aliasing

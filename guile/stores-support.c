@@ -10,9 +10,8 @@ chop_dummy_block_store_open_alloc (const char *name)
 {
   chop_block_store_t *store;
 
-  store = malloc (chop_class_instance_size (&chop_dummy_block_store_class));
-  if (!store)
-    return NULL;
+  store =
+    scm_malloc (chop_class_instance_size (&chop_dummy_block_store_class));
 
   chop_dummy_block_store_open (name, store);
 
@@ -25,9 +24,8 @@ chop_dummy_proxy_block_store_open_alloc (const char *name,
 {
   chop_block_store_t *store;
 
-  store = malloc (chop_class_instance_size (&chop_dummy_block_store_class));
-  if (!store)
-    return NULL;
+  store =
+    scm_malloc (chop_class_instance_size (&chop_dummy_block_store_class));
 
   chop_dummy_proxy_block_store_open (name, backend, store);
 
@@ -39,9 +37,8 @@ chop_smart_block_store_open_alloc (chop_block_store_t *backend)
 {
   chop_block_store_t *store;
 
-  store = malloc (chop_class_instance_size (&chop_smart_block_store_class));
-  if (!store)
-    return NULL;
+  store =
+    scm_malloc (chop_class_instance_size (&chop_smart_block_store_class));
 
   chop_smart_block_store_open (backend, store);
 
@@ -71,9 +68,7 @@ chop_file_based_store_open_alloc (const char *class_nickname,
       != &chop_file_based_store_class_class)
     return CHOP_INVALID_ARG;
 
-  *store = malloc (chop_class_instance_size (class));
-  if (!*store)
-    return ENOMEM;
+  *store = scm_malloc (chop_class_instance_size (class));
 
   err = chop_file_based_store_open ((chop_file_based_store_class_t *)class,
 				    file, open_flags, mode,
@@ -95,10 +90,9 @@ chop_gdbm_block_store_open_alloc (const char *name, size_t block_size,
 {
   errcode_t err;
 
-  *store = malloc
+  *store =
+    scm_malloc
     (chop_class_instance_size ((chop_class_t *)&chop_gdbm_block_store_class));
-  if (!*store)
-    return ENOMEM;
 
   err = chop_gdbm_store_open (name, block_size, open_flags, mode, NULL,
 			      *store);
@@ -118,10 +112,8 @@ chop_tdb_block_store_open_alloc (const char *name, int hash_size,
 {
   errcode_t err;
 
-  *store = malloc
+  *store = scm_malloc
     (chop_class_instance_size ((chop_class_t *)&chop_tdb_block_store_class));
-  if (!*store)
-    return ENOMEM;
 
   err = chop_tdb_store_open (name, hash_size, 0, open_flags, mode,
 			     *store);
@@ -140,9 +132,8 @@ chop_remote_block_store_open_alloc (const char *host, const char *protocol,
 {
   errcode_t err;
 
-  *store = malloc (chop_class_instance_size (&chop_remote_block_store_class));
-  if (!*store)
-    return ENOMEM;
+  *store =
+    scm_malloc (chop_class_instance_size (&chop_remote_block_store_class));
 
   err = chop_remote_block_store_open (host, protocol, *store);
   if (err)
@@ -191,17 +182,10 @@ chop_store_read_block_alloc_u8vector (chop_block_store_t *store,
     *result = SCM_BOOL_F;
   else
     {
-      char *block = malloc (size);
-      if (block)
-	{
-	  memcpy (block, chop_buffer_content (&buffer), size);
-	  *result = scm_take_u8vector (block, size);
-	}
-      else
-	{
-	  err = ENOMEM;
-	  *result = SCM_BOOL_F;
-	}
+      char *block = scm_malloc (size);
+
+      memcpy (block, chop_buffer_content (&buffer), size);
+      *result = scm_take_u8vector (block, size);
     }
 
   return err;
@@ -403,9 +387,7 @@ chop_make_scheme_block_store (SCM read_block, SCM write_block,
 {
   chop_scheme_block_store_t *store;
 
-  store = malloc (sizeof (chop_scheme_block_store_t));
-  if (!store)
-    return NULL;
+  store = scm_malloc (sizeof (chop_scheme_block_store_t));
 
   chop_object_initialize ((chop_object_t *)store,
 			  &chop_scheme_block_store_class);

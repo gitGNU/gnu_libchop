@@ -80,6 +80,16 @@
 		  #:returns '<errcode>
 		  #:arguments '((<stream> input)
 				(int window-size (default 10))
+				(long window-fpr-mask (default 8191))
+				((<chopper> out) chopper)))
+
+  (wrap-function! ws
+		  #:name 'chopper-generic-open
+		  #:c-name "chop_chopper_generic_open_alloc"
+		  #:returns '<errcode>
+		  #:arguments '(((mchars caller-owned) class-name)
+				(<stream> input)
+				(int typical-block-size (default 8191))
 				((<chopper> out) chopper)))
 
   ;; methods

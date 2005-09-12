@@ -157,7 +157,7 @@ chop_stat_block_store_sync (chop_block_store_t *store)
 static errcode_t
 chop_stat_block_store_close (chop_block_store_t *store)
 {
-  errcode_t err;
+  errcode_t err = 0;
   chop_stat_block_store_t *stat =
     (chop_stat_block_store_t *)store;
 
@@ -204,8 +204,8 @@ chop_stat_block_store_open (const char *name,
   return 0;
 }
 
-chop_block_store_stats_t *
-chop_stat_block_store_stats (chop_block_store_t *store)
+const chop_block_store_stats_t *
+chop_stat_block_store_stats (const chop_block_store_t *store)
 {
   chop_stat_block_store_t *stat;
 

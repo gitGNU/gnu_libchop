@@ -240,6 +240,9 @@
 				(<raw-scheme-type> sync-proc)
 				(<raw-scheme-type> close-proc)))
 
+
+  ;; methods
+
   (wrap-function! ws
 		  #:name 'store-write-block
 		  #:returns '<errcode>

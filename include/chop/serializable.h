@@ -279,19 +279,28 @@ chop_object_get_class (const chop_object_t *__object)
   return (__object->class);
 }
 
+/* Return non-zero if class CLASS inherits from MAYBE_PARENT.  */
+static __inline__ int
+chop_class_inherits (const chop_class_t *__class,
+		     const chop_class_t *__maybe_parent)
+{
+  const chop_class_t *_c;
+  for (_c = __class;
+       _c != NULL;
+       _c = chop_class_parent_class (_c))
+    {
+      if (_c == __maybe_parent)
+	return 1;
+    }
+  return 0;
+}
+
 /* Return non-zero OBJECT's type is CLASS or a derivative.  */
 static __inline__ int
 chop_object_is_a (const chop_object_t *__object, const chop_class_t *__class)
 {
-  const chop_class_t *_c;
-  for (_c = chop_object_get_class (__object);
-       _c != NULL;
-       _c = chop_class_parent_class (_c))
-    {
-      if (_c == __class)
-	return 1;
-    }
-  return 0;
+  return (chop_class_inherits (chop_object_get_class (__object),
+			       __class));
 }
 
 /* Serialize OBJECT according to serialization method METHOD into BUFFER.  If

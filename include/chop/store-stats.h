@@ -37,9 +37,10 @@ extern errcode_t chop_stat_block_store_open (const char *name,
 					     chop_block_store_t *store);
 
 /* Return the statistics gathered by STAT_STORE which must be a instance of
-   CHOP_STAT_BLOCK_STORE_CLASS.  */
-extern chop_block_store_stats_t *
-chop_stat_block_store_stats (chop_block_store_t *stat_store);
+   CHOP_STAT_BLOCK_STORE_CLASS.  Recall that the data pointed to by the
+   returned pointer will be unavailable as soon as STAT_STORE is close.  */
+extern const chop_block_store_stats_t *
+chop_stat_block_store_stats (const chop_block_store_t *stat_store);
 
 
 
@@ -55,6 +56,51 @@ extern void chop_block_store_stats_clear (chop_block_store_stats_t *stats);
 
 extern void chop_block_store_stats_display (const chop_block_store_stats_t *,
 					    chop_log_t *log);
+
+
+/* Accessors.  */
+
+static __inline__ const char *
+chop_block_store_stats_name (const chop_block_store_stats_t *__stats)
+{
+  return (__stats->name);
+}
+
+static __inline__ size_t
+chop_block_store_stats_blocks_written (const chop_block_store_stats_t *__stats)
+{
+  return (__stats->blocks_written);
+}
+
+static __inline__ size_t
+chop_block_store_stats_bytes_written (const chop_block_store_stats_t *__stats)
+{
+  return (__stats->bytes_written);
+}
+
+static __inline__ size_t
+chop_block_store_stats_virgin_writes (const chop_block_store_stats_t *__stats)
+{
+  return (__stats->virgin_writes);
+}
+
+static __inline__ float
+chop_block_store_stats_average_block_size (const chop_block_store_stats_t *__stats)
+{
+  return (__stats->average_block_size);
+}
+
+static __inline__ size_t
+chop_block_store_stats_max_block_size (const chop_block_store_stats_t *__stats)
+{
+  return (__stats->max_block_size);
+}
+
+static __inline__ size_t
+chop_block_store_stats_min_block_size (const chop_block_store_stats_t *__stats)
+{
+  return (__stats->min_block_size);
+}
 
 
 _CHOP_END_DECLS

@@ -44,8 +44,8 @@ BUILT_SOURCES += $(rpc_client_stubs) $(rpc_server_stubs)	\
 libchop_block_server_la_SOURCES = store-server.c $(rpc_xdr)
 libchop_block_server_la_LIBS = -lchop
 
-AM_CPPFLAGS = -I../include -Wall -fno-strict-aliasing -D_GNU_SOURCE=1
-AM_CFLAGS = -O0 -g -Winline
+AM_CPPFLAGS = -I../include -D_GNU_SOURCE=1
+AM_CFLAGS = -O0 -g -Winline -Wall -fno-strict-aliasing
 
 COMPILE_ET = compile_et
 RPCGEN = rpcgen
