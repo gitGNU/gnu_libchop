@@ -9,7 +9,7 @@ chop_indexer_close_dealloc (chop_indexer_t *indexer)
 {
   if (indexer)
     {
-      /* chop_indexer_close (indexer); */ /* FIXME:  This should exist! */
+      chop_object_destroy ((chop_object_t *)indexer);
       free (indexer);
     }
 }
@@ -19,7 +19,7 @@ chop_index_handle_close_dealloc (chop_index_handle_t *handle)
 {
   if (handle)
     {
-      /* FIXME: chop_index_handle_close (handle); */
+      chop_object_destroy ((chop_object_t *)handle);
       free (handle);
     }
 }

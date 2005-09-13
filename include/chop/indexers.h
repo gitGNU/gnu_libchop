@@ -15,7 +15,9 @@
 CHOP_DECLARE_RT_CLASS (index_handle, object, /**/);
 
 
-/* Declare the `chop_indexer_t' class that inherits from `chop_object_t'.  */
+/* Declare the `chop_indexer_t' class that inherits from `chop_object_t'.
+   Note that indexers have no `close ()' method:  they must eventually be
+   destroyed using `chop_object_destroy ()'.  */
 CHOP_DECLARE_RT_CLASS (indexer, object,
 		       errcode_t (* index_blocks) (struct chop_indexer *,
 						   chop_chopper_t *,

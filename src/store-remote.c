@@ -7,12 +7,42 @@
 
 #include <chop/block_rstore.h>
 
+
 CHOP_DECLARE_RT_CLASS (remote_block_store, block_store,
 		       chop_log_t log;
 		       CLIENT *rpc_client;);
 
+static void
+remote_ctor (chop_object_t *object, const chop_class_t *class)
+{
+  chop_remote_block_store_t *remote;
+
+  remote = (chop_remote_block_store_t *)object;
+
+  remote->rpc_client = NULL;
+
+  /* XXX:  Hoping this call will not return an error.  */
+  chop_log_init ("remote-block-store", &remote->log);
+}
+
+static void
+remote_dtor (chop_object_t *object)
+{
+  chop_remote_block_store_t *remote;
+
+  remote = (chop_remote_block_store_t *)object;
+
+  if (remote->rpc_client)
+    {
+      clnt_destroy (remote->rpc_client);
+      remote->rpc_client = NULL;
+    }
+
+  chop_log_close (&remote->log);
+}
+
 CHOP_DEFINE_RT_CLASS (remote_block_store, block_store,
-		      NULL, NULL, /* No constructor/destructor */
+		      remote_ctor, remote_dtor,
 		      NULL, NULL  /* No serializer/deserializer */);
 
 
@@ -235,9 +265,8 @@ chop_remote_close (chop_block_store_t *store)
 	  return CHOP_STORE_ERROR;
 	}
 
-
-      clnt_destroy (remote->rpc_client);
-      remote->rpc_client = NULL;
+      /* Invoke the destructor.  */
+      remote_dtor ((chop_object_t *)remote);
     }
 
   return 0;

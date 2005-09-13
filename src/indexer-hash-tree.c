@@ -52,8 +52,34 @@ CHOP_DECLARE_RT_CLASS (hash_tree_indexer, indexer,
 		       /* For debugging purposes */
 		       chop_log_t         log;);
 
+static void
+iht_ctor (chop_object_t *object, const chop_class_t *class)
+{
+  chop_hash_tree_indexer_t *htree;
+
+  htree = (chop_hash_tree_indexer_t *)object;
+  htree->key_size = 0;
+  htree->keys_per_block = 0;
+  htree->cipher_handle = CHOP_CIPHER_HANDLE_NIL;
+
+  /* XXX:  We're hoping the following call won't fail.  */
+  chop_log_init ("hash-tree-indexer", &htree->log);
+}
+
+static void
+iht_dtor (chop_object_t *object)
+{
+  chop_hash_tree_indexer_t *htree;
+
+  htree = (chop_hash_tree_indexer_t *)object;
+  htree->key_size = 0;
+  htree->keys_per_block = 0;
+  htree->cipher_handle = CHOP_CIPHER_HANDLE_NIL;
+  chop_log_close (&htree->log);
+}
+
 CHOP_DEFINE_RT_CLASS (hash_tree_indexer, indexer,
-		      NULL, NULL, /* No constructor/destructor */
+		      iht_ctor, iht_dtor,
 		      NULL, NULL  /* No serializer/deserializer */);
 
 
@@ -796,13 +822,15 @@ chop_block_tree_flush (key_block_tree_t *tree,
 static void
 chop_block_tree_free (key_block_tree_t *tree)
 {
-  key_block_t *block;
+  key_block_t *block, *parent;
 
   for (block = tree->current;
        block != NULL;
-       block = block->parent)
+       block = parent)
     {
-      /* FIXME:  Do something!  */
+      parent = block->parent;
+      free (block->keys);
+      free (block);
     }
 }
 
@@ -839,7 +867,6 @@ chop_hash_tree_indexer_open (chop_hash_method_t content_hash_method,
 			     size_t keys_per_block,
 			     chop_indexer_t *indexer)
 {
-  errcode_t err;
   chop_hash_tree_indexer_t *htree;
 
   if (key_hash_method == CHOP_HASH_NONE)
@@ -853,9 +880,6 @@ chop_hash_tree_indexer_open (chop_hash_method_t content_hash_method,
 			  &chop_hash_tree_indexer_class);
 
   htree = (chop_hash_tree_indexer_t *)indexer;
-  err = chop_log_init ("hash-tree", &htree->log);
-  if (err)
-    return err;
 
   htree->indexer.index_blocks = chop_hash_tree_index_blocks;
   htree->indexer.fetch_stream = chop_hash_tree_fetch_stream;
@@ -976,6 +1000,8 @@ chop_hash_tree_index_blocks (chop_indexer_t *indexer,
   /* Free memory associated with TREE */
   chop_block_tree_free (&tree);
 
+  chop_buffer_return (&buffer);
+
   return err;
 }
 
@@ -1074,7 +1100,7 @@ chk_index_initialize_from_context (chop_chk_index_handle_t *index,
   index->hash_key_size = context->hash_key_size;
 }
 
-static inline void
+static inline errcode_t
 chop_decoded_block_tree_init (decoded_block_tree_t *tree,
 			      chop_block_store_t *data_store,
 			      chop_block_store_t *metadata_store,
@@ -1090,7 +1116,10 @@ chop_decoded_block_tree_init (decoded_block_tree_t *tree,
   tree->data_store = data_store;
   tree->metadata_store = metadata_store;
   tree->index = malloc (chop_class_instance_size (handle_class));
-  assert (tree->index);  /* XXX: This is bad */
+  if (!tree->index)
+    return ENOMEM;
+
+  /* XXX:  This is just a ``shallow'' object copy.  */
   memcpy (tree->index, handle, chop_class_instance_size (handle_class));
   tree->top_level = NULL;
   tree->current_offset = 0;
@@ -1121,11 +1150,35 @@ chop_decoded_block_tree_init (decoded_block_tree_t *tree,
       tree->ciphering_context.hash_key_size;
 
   tree->log = log;
+
+  return 0;
 }
 
+
+/* Free resources associated with TREE.  */
+static void
+chop_decoded_block_tree_free (decoded_block_tree_t *tree)
+{
+  decoded_block_t *block, *next;
+
+  for (block = tree->top_level;
+       block != NULL;
+       block = next)
+    {
+      next = block->current_child;
+      chop_buffer_return (&block->buffer);
+      free (block);
+    }
+
+  tree->top_level = NULL;
+  free (tree->index);
+  tree->index = NULL;
+}
+
+
 /* Constructor.  */
 static void
-hash_tree_stream_init (chop_object_t *object, const chop_class_t *class)
+hash_tree_stream_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_hash_tree_stream_t *stream = (chop_hash_tree_stream_t *)object;
 
@@ -1137,9 +1190,20 @@ hash_tree_stream_init (chop_object_t *object, const chop_class_t *class)
   chop_log_init ("hash-tree-stream", &stream->log);
 }
 
+/* Destructor.  */
+static void
+hash_tree_stream_dtor (chop_object_t *object)
+{
+  chop_hash_tree_stream_t *tstream = (chop_hash_tree_stream_t *)object;
+
+  chop_decoded_block_tree_free (&tstream->tree);
+  chop_log_close (&tstream->log);
+}
+
+
 
 CHOP_DEFINE_RT_CLASS (hash_tree_stream, object,
-		      hash_tree_stream_init, NULL, /* No constructor/destructor */
+		      hash_tree_stream_ctor, hash_tree_stream_dtor,
 		      NULL, NULL  /* No serializer/deserializer */);
 
 
@@ -1155,8 +1219,6 @@ chop_hash_tree_fetch_stream (struct chop_indexer *indexer,
 {
   errcode_t err;
   chop_hash_tree_stream_t *tstream;
-  const chop_class_t *handle_class;
-  chop_index_handle_t *handle_copy;
   chop_hash_tree_indexer_t *htree = (chop_hash_tree_indexer_t *)indexer;
 
   /* Make sure HANDLE is something familiar.  */
@@ -1169,25 +1231,15 @@ chop_hash_tree_fetch_stream (struct chop_indexer *indexer,
 			  &chop_hash_tree_stream_class);
   tstream = (chop_hash_tree_stream_t *)output;
 
-  /* Copy HANDLE */
-  handle_class = chop_object_get_class ((chop_object_t *)handle);
-  handle_copy = malloc (chop_class_instance_size (handle_class));
-  if (!handle_copy)
-    return ENOMEM;
-  memcpy (handle_copy, handle, chop_class_instance_size (handle_class));
+  err = chop_decoded_block_tree_init (&tstream->tree, input, metadata,
+				      handle,
+				      htree->cipher_handle,
+				      htree->block_id_hash_method,
+				      htree->hash_key_hash_method,
+				      &htree->log);
 
-  chop_decoded_block_tree_init (&tstream->tree, input, metadata,
-				handle,
-				htree->cipher_handle,
-				htree->block_id_hash_method,
-				htree->hash_key_hash_method,
-				&htree->log);
-
-  /* Initialize the log (for debugging purposes) */
-  err = chop_log_init ("hash-tree-stream", &tstream->log);
-  if (err)
-    return err;
-
+  /* Set up the log (for debugging purposes) that had been initialized in the
+     constructor.  */
   chop_log_mimic (&tstream->log, &htree->log, 0);
 
   chop_log_printf (&htree->log, "fetching stream");
@@ -1636,23 +1688,6 @@ chop_decoded_block_tree_read (decoded_block_tree_t *tree,
   return err;
 }
 
-/* Free resources associated with TREE.  */
-static void
-chop_decoded_block_tree_free (decoded_block_tree_t *tree)
-{
-  decoded_block_t *block, *next;
-
-  for (block = tree->top_level;
-       block != NULL;
-       block = next)
-    {
-      next = block->current_child;
-      free (block);
-    }
-
-  tree->top_level = NULL;
-}
-
 
 /* The stream `read' method for hash tree streams.  */
 static errcode_t
@@ -1670,9 +1705,7 @@ hash_tree_stream_read (chop_stream_t *stream, char *buffer, size_t size,
 static void
 hash_tree_stream_close (chop_stream_t *stream)
 {
-  chop_hash_tree_stream_t *tstream = (chop_hash_tree_stream_t *)stream;
-
-  chop_decoded_block_tree_free (&tstream->tree);
-  chop_log_close (&tstream->log);
+  hash_tree_stream_dtor ((chop_object_t *)stream);
 }
+
 

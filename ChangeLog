@@ -2,6 +2,43 @@
 # arch-tag: automatic-ChangeLog--lcourtes@laas.fr--2004-mosaic/libchop--main--0.1
 #
 
+2005-09-13 13:13:17 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-60
+
+    Summary:
+      Fixed several memory leaks.
+    Revision:
+      libchop--main--0.1--patch-60
+
+    * guile/indexers-support.c (chop_indexer_close_dealloc):  Call
+      `chop_object_destroy ()'.
+      (chop_index_handle_close_dealloc):  Likewise.
+    
+    * include/chop/indexers.h (chop_indexer_t):  Documented the fact that
+      users should eventually call `chop_object_destroy ()'.
+    
+    * src/chopper-anchor-based.c (anchor_based_ctor):  Renamed to `ab_ctor'.
+      (ab_dtor):  New function.
+      (chop_anchor_based_chopper_init):  Initialize WINDOW_FPR.
+      (chop_anchor_chopper_close):  Call `ab_dtor ()'.
+    
+    * src/indexer-hash-tree.c (iht_ctor):  New function.
+      (iht_dtor):  New function.
+      (chop_block_tree_free):  Free BLOCK and BLOCK->KEYS.
+      (chop_hash_tree_indexer_open):  Delegated some work to `iht_ctor ()'.
+      (chop_decoded_block_tree_init):  Return `errcode_t' instead of `void'.
+      (chop_decoded_block_tree_free):  Free BLOCK and BLOCK->BUFFER.
+      (hash_tree_stream_init):  Renamed to `hash_tree_stream_ctor'.
+      (hash_tree_stream_dtor):  New function.
+      (chop_hash_tree_fetch_stream):  Delegated part of the work to
+      `hash_tree_stream_ctor ()'.
+      (hash_tree_stream_close):  Call `hash_tree_stream_dtor ()'.
+
+    modified files:
+     ChangeLog guile/indexers-support.c include/chop/indexers.h
+     src/chopper-anchor-based.c src/indexer-hash-tree.c
+     src/store-remote.c utils/chop-archiver.c
+
+
 2005-09-12 16:25:15 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-59
 
     Summary:

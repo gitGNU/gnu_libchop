@@ -223,6 +223,8 @@ do_retrieve (chop_index_handle_t *handle, chop_block_store_t *data_store,
       return err;
     }
 
+  chop_stream_close (stream);
+
   return 0;
 }
 
@@ -305,6 +307,7 @@ process_command (const char *argument,
 			chopper, indexer);
 
       chop_stream_close ((chop_stream_t *)stream);
+      chop_chopper_close (chopper);
     }
   else if (restore_queried)
     {
@@ -678,7 +681,7 @@ main (int argc, char *argv[])
 
       for (s = the_stores; *s; s++)
 	{
-	  chop_block_store_stats_t *stats;
+	  const chop_block_store_stats_t *stats;
 
 	  stats = chop_stat_block_store_stats (*s);
 	  assert (stats);
@@ -686,8 +689,19 @@ main (int argc, char *argv[])
 	  chop_block_store_stats_display (stats, &log);
 	}
 
-      chop_log_detach (&log);
+      chop_log_close (&log);
     }
+
+
+  /* Destroy everything.  */
+
+  chop_object_destroy ((chop_object_t *)indexer);
+  if (cipher_handle != CHOP_CIPHER_HANDLE_NIL)
+    chop_cipher_close (cipher_handle);
+  if (input_filter)
+    chop_object_destroy ((chop_object_t *)input_filter);
+  if (output_filter)
+    chop_object_destroy ((chop_object_t *)output_filter);
 
   err = chop_store_close ((chop_block_store_t *)store);
   if (err)

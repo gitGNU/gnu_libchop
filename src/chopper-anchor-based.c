@@ -165,7 +165,8 @@ ab_generic_open (chop_stream_t *input, size_t average_size,
 					  chopper));
 }
 
-static void anchor_based_ctor (chop_object_t *, const chop_class_t *);
+static void ab_ctor (chop_object_t *, const chop_class_t *);
+static void ab_dtor (chop_object_t *);
 
 CHOP_DEFINE_RT_CLASS_WITH_METACLASS (anchor_based_chopper, chopper,
 				     chopper_class,  /* Metaclass */
@@ -173,7 +174,7 @@ CHOP_DEFINE_RT_CLASS_WITH_METACLASS (anchor_based_chopper, chopper,
 				     /* Metaclass inits */
 				     .generic_open = ab_generic_open,
 
-				     anchor_based_ctor, NULL,
+				     ab_ctor, ab_dtor,
 				     NULL, NULL  /* No serial/deserial */);
 
 
@@ -717,8 +718,7 @@ compute_window_fingerprint (chop_anchor_based_chopper_t *anchor,
 
 /* Initialization code.  */
 static void
-anchor_based_ctor (chop_object_t *object,
-		   const chop_class_t *class)
+ab_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_anchor_based_chopper_t *chopper =
     (chop_anchor_based_chopper_t *)object;
@@ -734,6 +734,20 @@ anchor_based_ctor (chop_object_t *object,
   memset (&chopper->product_cache, 0, sizeof (chopper->product_cache));
 #else
   JIT_MULTIPLIER_INIT (chopper->jit_multiply_with_prime_to_the_ws);
+#endif
+}
+
+static void
+ab_dtor (chop_object_t *object)
+{
+  chop_anchor_based_chopper_t *anchor =
+    (chop_anchor_based_chopper_t *)object;
+
+  sliding_window_destroy (&anchor->sliding_window);
+  chop_log_close (&anchor->log);
+
+#ifdef HAVE_LIGHTNING_H
+  free (JIT_MULTIPLIER_FUNC (anchor->jit_multiply_with_prime_to_the_ws));
 #endif
 }
 
@@ -805,7 +819,7 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
   int first = 1;
   char *window_dest;
   size_t start_offset, *window_dest_size;
-  register fpr_t window_fpr;
+  register fpr_t window_fpr = 0;
   register fpr_t magic_fpr_mask;
   chop_anchor_based_chopper_t *anchor =
     (chop_anchor_based_chopper_t *)chopper;
@@ -948,16 +962,9 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
 static void
 chop_anchor_chopper_close (chop_chopper_t *chopper)
 {
-  chop_anchor_based_chopper_t *anchor =
-    (chop_anchor_based_chopper_t *)chopper;
-
-  sliding_window_destroy (&anchor->sliding_window);
-  chop_log_close (&anchor->log);
-
-#ifdef HAVE_LIGHTNING_H
-  free (JIT_MULTIPLIER_FUNC (anchor->jit_multiply_with_prime_to_the_ws));
-#endif
+  ab_dtor ((chop_object_t *)chopper);
 }
+
 
 chop_log_t *
 chop_anchor_based_chopper_log (chop_chopper_t *chopper)
