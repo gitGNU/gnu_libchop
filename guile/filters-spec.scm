@@ -24,6 +24,7 @@
   #:use-module (srfi srfi-1)
 
   #:use-module (g-wrap)
+  #:use-module (g-wrap c-codegen)
   #:use-module (g-wrap rti)
   #:use-module (g-wrap c-types)
   #:use-module (g-wrap ws standard)
@@ -47,6 +48,7 @@
   (list (next-method)
 	"#include <chop/chop.h>\n#include <chop/stores.h>\n"
 	"#include <chop/filters.h>\n\n"
+	"#include \"core-support.h\"\n"
 	"#include \"filters-support.c\"\n\n"))
 
 
@@ -59,11 +61,10 @@
 
   (next-method ws (append '(#:module (chop filters)) initargs))
 
-  (wrap-as-wct! ws
-		#:name '<filter>
-		#:c-type-name "chop_filter_t *"
-		#:c-const-type-name "const chop_filter_t *"
-		#:destroy-value-function-name "chop_filter_dealloc")
+  (wrap-as-chop-object! ws
+			#:name '<filter>
+			#:c-type-name "chop_filter_t *"
+			#:c-const-type-name "const chop_filter_t *")
 
   ;; constructors
 

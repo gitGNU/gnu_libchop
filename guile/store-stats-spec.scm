@@ -24,6 +24,7 @@
   #:use-module (srfi srfi-1)
 
   #:use-module (g-wrap)
+  #:use-module (g-wrap c-codegen)
   #:use-module (g-wrap rti)
   #:use-module (g-wrap c-types)
   #:use-module (g-wrap ws standard)
@@ -47,6 +48,7 @@
   (list (next-method)
 	"#include <chop/chop.h>\n#include <chop/stores.h>\n"
 	"#include <chop/store-stats.h>\n\n"
+	"#include \"core-support.h\"\n"
 	"#include \"store-stats-support.c\"\n\n"))
 
 
@@ -59,12 +61,10 @@
 
   (next-method ws (append '(#:module (chop store-stats)) initargs))
 
-  (wrap-as-wct! ws
-		#:name '<block-store-stats>
-		#:c-type-name "chop_block_store_stats_t *"
-		#:c-const-type-name "const chop_block_store_stats_t *"
-		#:destroy-value-function-name
-		"chop_block_store_stats_dealloc")
+  (wrap-as-chop-object! ws
+			#:name '<block-store-stats>
+			#:c-type-name "chop_block_store_stats_t *"
+			#:c-const-type-name "const chop_block_store_stats_t *")
 
   ;; constructors
 
@@ -73,8 +73,7 @@
 		  #:c-name "chop_stat_block_store_open_alloc"
 		  #:returns '<errcode>
 		  #:arguments '(((mchars caller-owned) name)
-				(<store> backend)
-				(bool takeover?)
+				((<store> aggregated) backend)
 				((<store> out) store))
 		  #:description "Return a statistic-gathering block store
 that acts as a proxy to store @var{backend}.")
@@ -104,8 +103,14 @@ block store, return a copy of the statistics it has gathered so far (a
 		  #:arguments '((<block-store-stats> stats)))
 
   (wrap-function! ws
-		  #:name 'block-store-stats:virgin-writes
-		  #:c-name "chop_block_store_stats_virgin_writes"
+		  #:name 'block-store-stats:virgin-blocks
+		  #:c-name "chop_block_store_stats_virgin_blocks"
+		  #:returns 'int
+		  #:arguments '((<block-store-stats> stats)))
+
+  (wrap-function! ws
+		  #:name 'block-store-stats:virgin-bytes
+		  #:c-name "chop_block_store_stats_virgin_bytes"
 		  #:returns 'int
 		  #:arguments '((<block-store-stats> stats)))
 

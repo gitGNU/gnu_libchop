@@ -12,7 +12,6 @@
 static __inline__ errcode_t
 chop_stat_block_store_open_alloc (const char *name,
 				  chop_block_store_t *backend,
-				  int takeover,
 				  chop_block_store_t **store)
 {
   errcode_t err;
@@ -20,7 +19,9 @@ chop_stat_block_store_open_alloc (const char *name,
   *store =
     scm_malloc (chop_class_instance_size (&chop_stat_block_store_class));
 
-  err = chop_stat_block_store_open (name, backend, takeover, *store);
+  err = chop_stat_block_store_open (name, backend,
+				    0, /* let the GC do its work */
+				    *store);
   if (err)
     {
       free (*store);

@@ -81,38 +81,40 @@ chop_remote_block_store_open (const char *host, const char *protocol,
 			      chop_block_store_t *store)
 {
   static const char generic_hello_arg[] = "libchop's remote block store client";
-  errcode_t err;
+  CLIENT *rpc_client;
   int *granted;
   char *hello_arg;
   chop_remote_block_store_t *remote = (chop_remote_block_store_t *)store;
 
-  err = chop_log_init ("remote-block-store", &remote->log);
-  if (err)
-    return err;
 
-  remote->rpc_client = clnt_create (host, BLOCK_STORE_PROGRAM,
-				    BLOCK_STORE_VERSION,
-				    protocol);
-  if (!remote->rpc_client)
+  rpc_client = clnt_create (host, BLOCK_STORE_PROGRAM,
+			    BLOCK_STORE_VERSION,
+			    protocol);
+  if (!rpc_client)
     {
       clnt_pcreateerror (host);  /* FIXME */
       return -1;
     }
 
   hello_arg = (char *)generic_hello_arg;
-  granted = say_hello_0 (&hello_arg, remote->rpc_client);
+  granted = say_hello_0 (&hello_arg, rpc_client);
   if ((!granted) || (!*granted))
     {
       if (!granted)
-	clnt_perror (remote->rpc_client, "`hello' call failed");
+	clnt_perror (rpc_client, "`hello' call failed");
       else
-	clnt_perror (remote->rpc_client,
+	clnt_perror (rpc_client,
 		     "remote host didn't wanna say `hello'");
 
-      clnt_destroy (remote->rpc_client);
+      clnt_destroy (rpc_client);
       remote->rpc_client = NULL;
       return -1;
     }
+
+  chop_object_initialize ((chop_object_t *)store,
+			  &chop_remote_block_store_class);
+
+  remote->rpc_client = rpc_client;
 
   store->block_exists = chop_remote_block_exists;
   store->read_block = chop_remote_read_block;

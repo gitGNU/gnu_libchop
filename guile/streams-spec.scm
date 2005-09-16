@@ -4,12 +4,12 @@
 ;;;; modify it under the terms of the GNU Lesser General Public
 ;;;; License as published by the Free Software Foundation; either
 ;;;; version 2, or (at your option) any later version.
-;;;; 
+;;;;
 ;;;; This program is distributed in the hope that it will be useful,
 ;;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 ;;;; Lesser General Public License for more details.
-;;;; 
+;;;;
 ;;;; You should have received a copy of the GNU Lesser General Public
 ;;;; License along with this software; see the file COPYING.  If not,
 ;;;; write to the Free Software Foundation, 675 Mass Ave, Cambridge,
@@ -21,6 +21,7 @@
 
   #:use-module (oop goops)
   #:use-module (g-wrap)
+  #:use-module (g-wrap c-codegen)
   #:use-module (g-wrap rti)
   #:use-module (g-wrap c-types)
   #:use-module (g-wrap ws standard)
@@ -49,6 +50,7 @@
 (define-method (global-declarations-cg (ws <chop-stream-wrapset>))
   (list (next-method)
 	"#include <chop/chop.h>\n#include <chop/streams.h>\n\n"
+	"#include \"core-support.h\"\n"
 	"#include \"streams-support.c\"\n\n"))
 
 
@@ -65,11 +67,10 @@
 		  #:value "CHOP_STREAM_END"
 		  #:description "End of stream")
 
-  (wrap-as-wct! ws
-		#:name '<stream>
-		#:c-type-name "chop_stream_t *"
-		#:c-const-type-name "const chop_stream_t *"
-		#:destroy-value-function-name "chop_stream_close_dealloc")
+  (wrap-as-chop-object! ws
+			#:name '<stream>
+			#:c-type-name "chop_stream_t *"
+			#:c-const-type-name "const chop_stream_t *")
 
   (wrap-function! ws
 		  #:name 'file-stream-open

@@ -9,9 +9,7 @@ chop_file_stream_open_alloc (const char *path, chop_stream_t **stream)
 {
   errcode_t err;
 
-  *stream = malloc (chop_class_instance_size (&chop_file_stream_class));
-  if (!*stream)
-    return ENOMEM;
+  *stream = scm_malloc (chop_class_instance_size (&chop_file_stream_class));
 
   err = chop_file_stream_open (path, *stream);
   if (err)
@@ -35,18 +33,10 @@ chop_mem_stream_open_alloc (SCM u8vector)
     /* Lazyness... */
     goto end;
 
-  elements_copy = malloc (size);
-  if (!elements_copy)
-    goto end;
-
+  elements_copy = scm_malloc (size);
   memcpy (elements_copy, elements, size);
 
-  stream = malloc (chop_class_instance_size (&chop_mem_stream_class));
-  if (!stream)
-    {
-      free (elements_copy);
-      goto end;
-    }
+  stream = scm_malloc (chop_class_instance_size (&chop_mem_stream_class));
 
   /* ELEMENTS_COPY will be automatically freed with `free ()' when STREAM is
      closed.  */

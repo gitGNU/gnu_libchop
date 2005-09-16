@@ -4,12 +4,12 @@
 ;;;; modify it under the terms of the GNU Lesser General Public
 ;;;; License as published by the Free Software Foundation; either
 ;;;; version 2, or (at your option) any later version.
-;;;; 
+;;;;
 ;;;; This program is distributed in the hope that it will be useful,
 ;;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 ;;;; Lesser General Public License for more details.
-;;;; 
+;;;;
 ;;;; You should have received a copy of the GNU Lesser General Public
 ;;;; License along with this software; see the file COPYING.  If not,
 ;;;; write to the Free Software Foundation, 675 Mass Ave, Cambridge,
@@ -29,6 +29,7 @@
   #:use-module (srfi srfi-1)
 
   #:use-module (g-wrap)
+  #:use-module (g-wrap c-codegen)
   #:use-module (g-wrap rti)
   #:use-module (g-wrap c-types)
   #:use-module (g-wrap ws standard)
@@ -50,6 +51,7 @@
 (define-method (global-declarations-cg (ws <chop-indexer-wrapset>))
   (list (next-method)
 	"#include <chop/chop.h>\n#include <chop/indexers.h>\n"
+	"#include \"core-support.h\"\n"
 	"#include \"indexers-support.c\"\n\n"))
 
 
@@ -62,17 +64,15 @@
 
   (next-method ws (append '(#:module (chop indexers)) initargs))
 
-  (wrap-as-wct! ws
-		#:name '<indexer>
-		#:c-type-name "chop_indexer_t *"
-		#:c-const-type-name "const chop_indexer_t *"
-		#:destroy-value-function-name "chop_indexer_close_dealloc")
+  (wrap-as-chop-object! ws
+			#:name '<indexer>
+			#:c-type-name "chop_indexer_t *"
+			#:c-const-type-name "const chop_indexer_t *")
 
-  (wrap-as-wct! ws
-		#:name '<index-handle>
-		#:c-type-name "chop_index_handle_t *"
-		#:c-const-type-name "const chop_index_handle_t *"
-		#:destroy-value-function-name "chop_index_handle_close_dealloc")
+  (wrap-as-chop-object! ws
+			#:name '<index-handle>
+			#:c-type-name "chop_index_handle_t *"
+			#:c-const-type-name "const chop_index_handle_t *")
 
   ;; constructors
 
@@ -82,7 +82,7 @@
 		  #:returns '<errcode>
 		  #:arguments '((hash-method content-hash-method)
 				(hash-method key-hash-method)
-				(<cipher-handle> cipher)
+				((<cipher-handle> aggregated) cipher)
 				(int keys-per-block (default 100))
 				((<indexer> out) indexer)))
 
@@ -110,6 +110,8 @@
 
   (wrap-function! ws
 		  #:name 'index-handle-ascii-serialize
+		  ;; FIXME:  There is currently a leak here:  the returned
+		  ;; string is never freed.  That's a G-Wrap problem.
 		  #:returns '<errcode>
 		  #:c-name "chop_index_handle_ascii_serialize"
 		  #:arguments '((<index-handle> handle)

@@ -291,6 +291,9 @@ chop_class_inherits (const chop_class_t *__class,
     {
       if (_c == __maybe_parent)
 	return 1;
+
+      if (_c == &chop_class_class)
+	break;
     }
   return 0;
 }

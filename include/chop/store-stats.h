@@ -13,7 +13,9 @@ CHOP_DECLARE_RT_CLASS (block_store_stats, object,
 
 		       size_t blocks_written;
 		       size_t bytes_written;
-		       size_t virgin_writes;
+
+		       size_t virgin_blocks;
+		       size_t virgin_bytes;
 
 		       float  average_block_size;
 		       size_t min_block_size;
@@ -79,9 +81,15 @@ chop_block_store_stats_bytes_written (const chop_block_store_stats_t *__stats)
 }
 
 static __inline__ size_t
-chop_block_store_stats_virgin_writes (const chop_block_store_stats_t *__stats)
+chop_block_store_stats_virgin_blocks (const chop_block_store_stats_t *__stats)
 {
-  return (__stats->virgin_writes);
+  return (__stats->virgin_blocks);
+}
+
+static __inline__ size_t
+chop_block_store_stats_virgin_bytes (const chop_block_store_stats_t *__stats)
+{
+  return (__stats->virgin_bytes);
 }
 
 static __inline__ float

@@ -274,7 +274,8 @@ chop_block_store_stats_init (const char *name,
 void
 chop_block_store_stats_clear (chop_block_store_stats_t *stats)
 {
-  stats->blocks_written = stats->bytes_written = stats->virgin_writes = 0;
+  stats->blocks_written = stats->bytes_written = 0;
+  stats->virgin_blocks = stats->virgin_bytes = 0;
 
   stats->average_block_size = 0;
   stats->min_block_size = stats->max_block_size = 0;
@@ -297,7 +298,10 @@ chop_block_store_stats_update (chop_block_store_stats_t *stats,
 
   stats->bytes_written += block_size;
   if (virgin_write)
-    stats->virgin_writes++;
+    {
+      stats->virgin_blocks++;
+      stats->virgin_bytes += block_size;
+    }
 }
 
 void
@@ -311,10 +315,14 @@ chop_block_store_stats_display (const chop_block_store_stats_t *stats,
 		   stats->blocks_written);
   chop_log_printf (log, "  bytes written:         % 7u",
 		   stats->bytes_written);
-  chop_log_printf (log, "  virgin writes:         % 7u (% 2.1f%%)",
-		   stats->virgin_writes,
-		   ((float)stats->virgin_writes
+  chop_log_printf (log, "  virgin blocks:         % 7u (% 2.1f%%)",
+		   stats->virgin_blocks,
+		   ((float)stats->virgin_blocks
 		    / (float)stats->blocks_written) * 100);
+  chop_log_printf (log, "  virgin bytes:          % 7u (% 2.1f%%)",
+		   stats->virgin_bytes,
+		   ((float)stats->virgin_bytes
+		    / (float)stats->bytes_written)* 100);
 
   chop_log_printf (log, "  average block size:    % 7.2f",
 		   stats->average_block_size);

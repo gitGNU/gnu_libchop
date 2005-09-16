@@ -41,13 +41,29 @@ chop_qdbm_generic_open (const chop_class_t *class,
   return (chop_qdbm_store_open (file, 0, open_flags, mode, store));
 }
 
+
+static void
+qdbm_dtor (chop_object_t *object)
+{
+  chop_qdbm_block_store_t *store;
+
+  store = (chop_qdbm_block_store_t *)object;
+  chop_store_close ((chop_block_store_t *)store);
+
+  store->db = NULL;
+  store->block_store.read_block = NULL;
+  store->block_store.write_block = NULL;
+  store->block_store.block_exists = NULL;
+}
+
+
 CHOP_DEFINE_RT_CLASS_WITH_METACLASS (qdbm_block_store, block_store,
 				     file_based_store_class,
 
 				     /* metaclass inits */
 				     .generic_open = chop_qdbm_generic_open,
 
-				     NULL, NULL, /* No ctor/dtor */
+				     NULL, qdbm_dtor,
 				     NULL, NULL  /* No serial/deserial */);
 
 
@@ -87,6 +103,7 @@ chop_qdbm_store_open (const char *name, size_t block_size,
 		      int open_flags, mode_t mode,
 		      chop_block_store_t *s)
 {
+  GDBM_FILE db;
   chop_qdbm_block_store_t *store = (chop_qdbm_block_store_t *)s;
   int gdbm_flags = 0;
 
@@ -101,15 +118,19 @@ chop_qdbm_store_open (const char *name, size_t block_size,
   if (open_flags & O_WRONLY)
     gdbm_flags |= GDBM_WRITER;
 
-  store->db = gdbm_open ((char *)name, block_size, gdbm_flags,
-			 mode, NULL /* FIXME:  Incompatibility */);
-  if (!store->db)
+  db = gdbm_open ((char *)name, block_size, gdbm_flags,
+		  mode, NULL /* FIXME:  Incompatibility */);
+  if (!db)
     {
       if (gdbm_errno == GDBM_FILE_OPEN_ERROR)
 	return ENOENT;
       else
 	return (gdbm_errno ? gdbm_errno : errno);
     }
+
+  chop_object_initialize ((chop_object_t *)store,
+			  (chop_class_t *)&chop_qdbm_block_store_class);
+  store->db = db;
 
   store->block_store.block_exists = chop_qdbm_block_exists;
   store->block_store.read_block = chop_qdbm_read_block;

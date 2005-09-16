@@ -1,0 +1,47 @@
+Guile bindings for libchop
+==========================
+
+This directory contains the G-Wrap specifications used to generate Guile
+(Scheme) bindings for libchop.  However, G-Wrap is constantly in flux,
+so a few notes are necessary here.
+
+First, the version that was originally used is G-Wrap 1.9.5 (and
+1.9.6).  However, future versions introduce a slight architectural
+change which has the unfortunate consequence of requiring each
+specification module (the `*-spec.scm' files here) to add the following
+line:
+
+  #:use-modules (g-wrap c-codegen)
+
+This is because the methods that are overloaded in these files (e.g.
+`declarations-cg', `wrap-value-cg', etc.) are now exported by this
+module.  In 1.9.[56], those were exported by `(g-wrap)', so one just
+needs to comment out this `#:use-module' line to get things working with
+1.9.[56].
+
+This latest and greatest version we are talking about is available in at
+least two GNU Arch archives [2]:
+
+  rotty@debian.org--2005/g-wrap--dev--0 (starting from `patch-18')
+  lcourtes@laas.fr--2004-libre/g-wrap--devo--1.9.6
+
+Also, look at the archives of the `g-wrap-dev@nongnu.org' list for
+merge requests I posted in Sept. 2005:
+http://lists.nongnu.org/archive/html/g-wrap-dev/ .
+
+Additionally, G-Wrap currently targets Guile 1.6, while we target 1.7
+(in particular, we use SRFI-4 vectors and related C functions,
+e.g. `scm_u8vector_elements ()').
+
+
+References
+----------
+
+[1] The G-Wrap Wrapper Generator, http://www.nongnu.org/g-wrap/ .
+
+[2] http://people.debian.org/~rotty/arch/rotty@debian.org--2005/
+    and
+    http://www.laas.fr/~lcourtes/software/lcourtes@laas.fr--2004-libre
+    respectively.
+
+;;; arch-tag: d74735d0-9856-4b44-b056-872c6bd5a994

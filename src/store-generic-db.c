@@ -175,8 +175,12 @@ DB_CLOSE_METHOD (chop_block_store_t *store)
 {
   DB_STORE_TYPE *gdbm = (DB_STORE_TYPE *)store;
 
-  /* `db_close ()' calls `db_sync ()' */
-  DB_CLOSE (gdbm->db);
+  if (gdbm->db != NULL)
+    {
+      /* `db_close ()' calls `db_sync ()' */
+      DB_CLOSE (gdbm->db);
+      gdbm->db = NULL;
+    }
 
   return 0;
 }

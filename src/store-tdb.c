@@ -26,13 +26,27 @@ chop_tdb_generic_open (const chop_class_t *class,
 			       open_flags, mode, store));
 }
 
+static void
+tdb_dtor (chop_object_t *object)
+{
+  chop_tdb_block_store_t *store;
+
+  store = (chop_tdb_block_store_t *)object;
+  chop_store_close ((chop_block_store_t *)store);
+
+  store->db = NULL;
+  store->block_store.read_block = NULL;
+  store->block_store.write_block = NULL;
+  store->block_store.block_exists = NULL;
+}
+
 CHOP_DEFINE_RT_CLASS_WITH_METACLASS (tdb_block_store, block_store,
 				     file_based_store_class,
 
 				     /* metaclass inits */
 				     .generic_open = chop_tdb_generic_open,
 
-				     NULL, NULL, /* No ctor/dtor */
+				     NULL, tdb_dtor,
 				     NULL, NULL  /* No serial/deserial */);
 
 
@@ -95,17 +109,19 @@ chop_tdb_store_open (const char *name,
 		     int open_flags, mode_t mode,
 		     chop_block_store_t *s)
 {
+  TDB_CONTEXT *db;
   chop_tdb_block_store_t *store = (chop_tdb_block_store_t *)s;
+
   /* FIXME:  The `TDB_NOLOCK' thing works around what looks like a bug on the
      PowerPC (`tdb_store ()' eventually loops in `spin_lock ()').  */
-  store->db = tdb_open (name, hash_size, TDB_DEFAULT | TDB_NOLOCK,
-			open_flags, mode);
-  if (!store->db)
+  db = tdb_open (name, hash_size, TDB_DEFAULT | TDB_NOLOCK,
+		 open_flags, mode);
+  if (!db)
     return (errno);  /* FIXME:  Is this true?  */
 
-#ifdef DEBUG
-  tdb_logging_function (store->db, show_message);
-#endif
+  chop_object_initialize ((chop_object_t *)store,
+			  (chop_class_t *)&chop_tdb_block_store_class);
+  store->db = db;
 
   store->block_store.block_exists = chop_tdb_block_exists;
   store->block_store.read_block = chop_tdb_read_block;
@@ -115,6 +131,10 @@ chop_tdb_store_open (const char *name,
   store->block_store.next_key = chop_tdb_next_key;
   store->block_store.sync = chop_tdb_sync;
   store->block_store.close = chop_tdb_close;
+
+#ifdef DEBUG
+  tdb_logging_function (store->db, show_message);
+#endif
 
   return 0;
 }

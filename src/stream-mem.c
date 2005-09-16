@@ -30,8 +30,21 @@ mem_stream_ctor (chop_object_t *object,
   stream->free_func = NULL;
 }
 
+static void
+mem_stream_dtor (chop_object_t *object)
+{
+  chop_mem_stream_t *mem_stream = (chop_mem_stream_t *)object;
+
+  if ((mem_stream->base) && (mem_stream->free_func))
+    mem_stream->free_func ((void *)mem_stream->base);
+
+  mem_stream->base = NULL;
+  mem_stream->offset = mem_stream->size = 0;
+}
+
+
 CHOP_DEFINE_RT_CLASS (mem_stream, stream,
-		      mem_stream_ctor, NULL,
+		      mem_stream_ctor, mem_stream_dtor,
 		      NULL, NULL  /* No serializer/deserializer */);
 
 
@@ -55,13 +68,7 @@ chop_mem_stream_open (const char *base, size_t size,
 static void
 chop_mem_stream_close (chop_stream_t *stream)
 {
-  chop_mem_stream_t *mem_stream = (chop_mem_stream_t *)stream;
-
-  if ((mem_stream->base) && (mem_stream->free_func))
-    mem_stream->free_func ((void *)mem_stream->base);
-
-  mem_stream->base = NULL;
-  mem_stream->offset = mem_stream->size = 0;
+  mem_stream_dtor ((chop_object_t *)stream);
 }
 
 static errcode_t

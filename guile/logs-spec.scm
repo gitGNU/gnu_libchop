@@ -3,6 +3,7 @@
 
   #:use-module (oop goops)
   #:use-module (g-wrap)
+  #:use-module (g-wrap c-codegen)
   #:use-module (g-wrap rti)
   #:use-module (g-wrap c-types)
   #:use-module (g-wrap enumeration)

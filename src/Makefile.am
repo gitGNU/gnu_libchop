@@ -7,16 +7,14 @@ lib_LTLIBRARIES = libchop.la libchop-block-server.la
 libchop_la_SOURCES = chop.c chop-errors.c logs.c			\
 		     chopper-fixed-size.c				\
                      chopper-anchor-based.c				\
-		     stores.c						\
+		     streams.c stores.c					\
+		     cipher.c hash.c buffers.c				\
 		     store-dummy.c					\
 		     store-gdbm.c					\
 		     store-remote.c					\
 		     store-filtered.c					\
 		     store-smart.c					\
 		     store-stat.c					\
-		     cipher.c						\
-		     hash.c						\
-		     buffers.c						\
 		     indexer-hash-tree.c				\
 		     filters.c						\
 		     filter-zlib-zip.c filter-zlib-unzip.c		\

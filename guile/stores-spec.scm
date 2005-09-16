@@ -4,12 +4,12 @@
 ;;;; modify it under the terms of the GNU Lesser General Public
 ;;;; License as published by the Free Software Foundation; either
 ;;;; version 2, or (at your option) any later version.
-;;;; 
+;;;;
 ;;;; This program is distributed in the hope that it will be useful,
 ;;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 ;;;; Lesser General Public License for more details.
-;;;; 
+;;;;
 ;;;; You should have received a copy of the GNU Lesser General Public
 ;;;; License along with this software; see the file COPYING.  If not,
 ;;;; write to the Free Software Foundation, 675 Mass Ave, Cambridge,
@@ -23,6 +23,7 @@
   #:use-module (srfi srfi-1)
 
   #:use-module (g-wrap)
+  #:use-module (g-wrap c-codegen)
   #:use-module (g-wrap rti)
   #:use-module (g-wrap c-types)
   #:use-module (g-wrap ws standard)
@@ -42,10 +43,6 @@
 
 
 ;; types
-
-;; A wrapped C pointer.
-(define-class <chop-store-type> (<gw-wct>))
-
 
 ;; Define block key as a variant of non-writable input buffers.
 (define-class <chop-block-key-type> (<gw-type>))
@@ -114,6 +111,7 @@
 	  "          chop_block_key_size (&"(var value)"));\n"
 	  "  "(scm-var value)" = scm_take_u8vector ("key-buf", "
 	  "chop_block_key_size (&"(var value)"));\n"
+	  "  chop_block_key_free (&"(var value)");\n"
 	  "}\n")))
 
 (define-method (post-call-arg-cg (type <chop-block-key-type>)
@@ -143,6 +141,7 @@
 	"#include <sys/types.h>\n"
 	"#include <sys/stat.h>\n"
 	"#include <fcntl.h>\n\n"
+	"#include \"core-support.h\"\n"
 	"#include \"stores-support.c\"\n\n"))
 
 
@@ -158,11 +157,10 @@
   (add-type! ws (make <chop-block-key-type>
 		  #:name '<block-key>))
 
-  (wrap-as-wct! ws
-		#:name '<store>
-		#:c-type-name "chop_block_store_t *"
-		#:c-const-type-name "const chop_block_store_t *"
-		#:destroy-value-function-name "chop_store_close_dealloc")
+  (wrap-as-chop-object! ws
+			#:name '<store>
+			#:c-type-name "chop_block_store_t *"
+			#:c-const-type-name "const chop_block_store_t *")
 
   ;; constructors
 
@@ -177,13 +175,13 @@
 		  #:c-name "chop_dummy_proxy_block_store_open_alloc"
 		  #:returns '<store>
 		  #:arguments '(((mchars caller-owned) name)
-				(<store> backend)))
+				((<store> aggregated) backend)))
 
   (wrap-function! ws
 		  #:name 'smart-block-store-open
 		  #:c-name "chop_smart_block_store_open_alloc"
 		  #:returns '<store>
-		  #:arguments '((<store> backend)))
+		  #:arguments '(((<store> aggregated) backend)))
 
   (wrap-function! ws
 		  #:name 'file-based-block-store-open
@@ -230,7 +228,7 @@
   (wrap-function! ws
 		  #:name 'make-block-store
 		  #:c-name "chop_make_scheme_block_store"
-		  #:returns '<store>
+		  #:returns '<raw-scheme-type>
 		  #:arguments '((<raw-scheme-type> read-block-proc)
 				(<raw-scheme-type> write-block-proc)
 				(<raw-scheme-type> block-exists-proc)

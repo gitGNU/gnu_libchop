@@ -188,21 +188,32 @@ chop_store_read_block_alloc_u8vector (chop_block_store_t *store,
       *result = scm_take_u8vector (block, size);
     }
 
+  chop_buffer_return (&buffer);
+
   return err;
 }
 
 
 /* Support for writing block stores in Guile Scheme.  */
 
-CHOP_DECLARE_RT_CLASS (scheme_block_store, block_store,
-		       SCM read_block;
-		       SCM write_block;
-		       SCM block_exists;
-		       SCM delete_block;
-		       SCM first_key;
-		       SCM next_key;
-		       SCM close;
-		       SCM sync;);
+/* Definition of a Scheme block store.  Since instances of this class contain
+   SCM objects, we choose CHOP_HYBRID_SCHEME_CLASS_CLASS as its metaclass.
+   This allows to specify a `mark' method for instances of this class.  */
+CHOP_DECLARE_RT_CLASS_WITH_METACLASS (scheme_block_store, block_store,
+				      hybrid_scheme_class /* metaclass */,
+
+				      /* the one and only SMOB created for
+					 this object */
+				      SCM this_smob;
+
+				      SCM read_block;
+				      SCM write_block;
+				      SCM block_exists;
+				      SCM delete_block;
+				      SCM first_key;
+				      SCM next_key;
+				      SCM close;
+				      SCM sync;);
 
 static SCM guile_chop_store_type = SCM_BOOL_F;
 
@@ -227,7 +238,7 @@ scm_store_read_block (chop_block_store_t *store,
     {
       SCM s_key, s_block, s_store;
 
-      s_store = gw_wcp_assimilate_ptr (store, guile_chop_store_type);
+      s_store = scm_store->this_smob;
       s_key = scm_take_u8vector (chop_block_key_buffer (key),
 				 chop_block_key_size (key));
       s_block = scm_call_2 (scm_store->read_block, s_store, s_key);
@@ -287,7 +298,7 @@ scm_store_write_block (chop_block_store_t *store,
       buf_cpy = scm_malloc (size);
       memcpy (buf_cpy, buffer, size);
 
-      s_store = gw_wcp_assimilate_ptr (store, guile_chop_store_type);
+      s_store = scm_store->this_smob;
       s_key = scm_take_u8vector (key_cpy, chop_block_key_size (key));
       s_content = scm_take_u8vector (buf_cpy, size);
       s_result = scm_call_3 (scm_store->write_block, s_store,
@@ -336,7 +347,7 @@ scm_store_close (chop_block_store_t *store)
     {
       SCM s_store, s_result;
 
-      s_store = gw_wcp_assimilate_ptr (store, guile_chop_store_type);
+      s_store = scm_store->this_smob;
       s_result = scm_call_1 (scm_store->close, s_store);
       if (s_result == SCM_BOOL_F)
 	err = CHOP_STORE_ERROR;
@@ -363,7 +374,7 @@ scm_store_sync (chop_block_store_t *store)
     {
       SCM s_store, s_result;
 
-      s_store = gw_wcp_assimilate_ptr (store, guile_chop_store_type);
+      s_store = scm_store->this_smob;
       s_result = scm_call_1 (scm_store->sync, s_store);
       if (s_result == SCM_BOOL_F)
 	err = CHOP_STORE_ERROR;
@@ -376,21 +387,56 @@ scm_store_sync (chop_block_store_t *store)
   return err;
 }
 
+#ifdef DEBUG
+# include <stdio.h>
+#endif
 
+static SCM
+scm_store_mark (chop_object_t *object)
+{
+  chop_scheme_block_store_t *scm_store;
+
+  scm_store = (chop_scheme_block_store_t *)object;
+
+#ifdef DEBUG
+  fprintf (stderr, "%s: marking scm block store %p\n",
+	   __FUNCTION__, scm_store);
+#endif
+
+#define DO_MARK(_s)				\
+  if (scm_store-> _s != SCM_BOOL_F)		\
+    scm_gc_mark (scm_store-> _s);
+
+  DO_MARK (block_exists);
+  DO_MARK (read_block);
+  DO_MARK (write_block);
+  DO_MARK (delete_block);
+  DO_MARK (first_key);
+  DO_MARK (next_key);
+  DO_MARK (close);
+
+#undef DO_MARK
+
+  if (scm_store->sync != SCM_BOOL_F)
+    return (scm_store->sync);
+
+  return SCM_BOOL_F;
+}
 
 
-static __inline__ chop_block_store_t *
+static __inline__ SCM
 chop_make_scheme_block_store (SCM read_block, SCM write_block,
 			      SCM block_exists, SCM delete_block,
 			      SCM first_key, SCM next_key,
 			      SCM sync, SCM close)
 {
+  SCM s_store = SCM_BOOL_F;
   chop_scheme_block_store_t *store;
 
   store = scm_malloc (sizeof (chop_scheme_block_store_t));
 
   chop_object_initialize ((chop_object_t *)store,
-			  &chop_scheme_block_store_class);
+			  (chop_class_t *)&chop_scheme_block_store_class);
 
 #define SET_METHOD(_name)				\
   store->block_store. _name = scm_store_ ## _name;	\
@@ -413,19 +459,25 @@ chop_make_scheme_block_store (SCM read_block, SCM write_block,
       /* Find the module type object `<store>' in the `(chop stores)'
 	 module.  This is then used in conjunction with
 	 `gw_wcp_assimilate_ptr ()'.  Yes, this is somewhat ugly.  (XXX)  */
-      SCM module_name, module;
+      SCM module;
 
       module = scm_c_resolve_module ("chop stores");
       guile_chop_store_type = scm_c_module_lookup (module, "<store>");
       guile_chop_store_type = scm_variable_ref (guile_chop_store_type);
     }
 
-  return ((chop_block_store_t *)store);
+  /* We need to make sure that only one SMOB is created for this C object, so
+     that it doesn't get freed more than once.  For this reason, we create
+     the SMOB here, keep track of it in STORE->THIS_SMOB, and then use it
+     directly in `scm_store_* ()' method wrappers.  */
+  s_store = gw_wcp_assimilate_ptr (store, guile_chop_store_type);
+  store->this_smob = s_store;
+
+  return (s_store);
 }
 
 static void
-scheme_block_store_ctor (chop_object_t *object,
-			 const chop_class_t *class)
+sbs_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_scheme_block_store_t *store;
 
@@ -436,7 +488,28 @@ scheme_block_store_ctor (chop_object_t *object,
   store->block_store.sync = NULL;
 }
 
-CHOP_DEFINE_RT_CLASS (scheme_block_store, block_store,
-		      scheme_block_store_ctor, NULL,
-		      NULL, NULL);
+static void
+sbs_dtor (chop_object_t *object)
+{
+  chop_scheme_block_store_t *store;
+
+  store = (chop_scheme_block_store_t *)object;
+  store->read_block = SCM_BOOL_F;
+  store->write_block = SCM_BOOL_F;
+#ifdef DEBUG
+  fprintf (stderr, "%s: freed Scheme block store @%p\n",
+	   __FUNCTION__, store);
+#endif
+}
+
+/* Define the class and specify the MARK method that should be used for
+   instances of this class.  */
+CHOP_DEFINE_RT_CLASS_WITH_METACLASS (scheme_block_store, block_store,
+				     hybrid_scheme_class /* metaclass */,
+
+				     /* metaclass inits */
+				     .mark = scm_store_mark,
+
+				     sbs_ctor, sbs_dtor,
+				     NULL, NULL);
 

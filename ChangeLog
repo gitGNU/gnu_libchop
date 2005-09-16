@@ -2,6 +2,105 @@
 # arch-tag: automatic-ChangeLog--lcourtes@laas.fr--2004-mosaic/libchop--main--0.1
 #
 
+2005-09-16 15:20:15 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-61
+
+    Summary:
+      Fixed memory leaks in the Guile bindings and elsewhere.
+    Revision:
+      libchop--main--0.1--patch-61
+
+    * guile/README:  New file.
+    
+    * guile/core-support.c:  New file.
+    
+    * guile/core-support.h:  New file.
+    
+    * src/streams.c:  New file.
+    
+    * guile/Makefile.am (binding_specs):  New variable.
+      (CLEANFILES):  New variable.
+      (libguile_chop_la_SOURCES):  Added `core-support.c'.
+    
+    * guile/choppers-spec.scm:  Use `(g-wrap c-codegen)';  include
+      `core-support.h';  use `wrap-as-chop-object!';  use the new
+      `aggregated' typespec where it makes sense.
+    
+    * guile/cipher-spec.scm:  Likewise.
+    
+    * guile/filters-spec.scm:  Likewise.
+    
+    * guile/hash-spec.scm:  Likewise.
+    
+    * guile/indexers-spec.scm:  Likewise.
+    
+    * guile/logs-spec.scm:  Likewise.
+    
+    * guile/stores-spec.scm:  Likewise.
+      (wrap-value-cg):  For <chop-block-key-type> arguments, call
+      `chop_block_key_free ()' when we're done.
+    
+    * guile/stores-support.c (chop_store_read_block_alloc_u8vector):  Return
+      the buffer once we're done.
+      (chop_scheme_block_store_class):  Use `chop_hybrid_scheme_class' as its
+      meta-class.
+      (scm_store_mark):  New function.
+      (chop_make_scheme_block_store):  Return a raw SCM instead of a C
+      pointer.  Keep a copy of this SMOB into SCM_STORE->THIS_SMOB in order
+      to not re-create a new SMOB every time in the various methods.
+      (sbs_ctor):  New name of `scheme_block_store_ctor ()'.
+      (sbs_dtor):  New function.
+    
+    * guile/streams-support.c:  Use `scm_malloc ()' instead of `malloc ()'.
+    
+    * guile/store-stats-support.c (chop_stat_block_store_open_alloc):  Always
+      pass a TAKEOVER argument equal to zero.
+    
+    * guile/core-spec.scm (wrap-as-chop-object!):  New method.
+    
+    * include/chop/serializable.h (chop_class_inherits):  Leave the loop once
+      we've reached CHOP_CLASS_CLASS.
+    
+    * include/chop/store-stats.h (chop_block_store_stats_t):  Instead of
+      `virgin_writes', two fields:  `virgin_blocks' and `virgin_bytes'.
+    
+    * src/store-stats.c:  Updated accordingly.
+    
+    * src/Makefile.am (libchop_la_SOURCES):  Updated.
+    
+    * src/store-gdbm.c (chop_gdbm_block_store_class):  Define a destructor.
+      (chop_gdbm_store_open):  Call `chop_object_initialize ()'.
+    
+    * src/store-qdbm.c:  Likewise.
+    
+    * src/store-tdb.c:  Likewise.
+    
+    * src/store-remote.c:  Likewise.
+    
+    * src/stream-file.c:  Likewise.
+    
+    * src/stream-mem.c:  Likewise.
+    
+    * src/store-generic-db.c (DB_CLOSE_METHOD):  Make sure GDBM->DB is not
+      NULL.
+
+    new files:
+     guile/README guile/core-support.c guile/core-support.h
+     src/streams.c
+
+    modified files:
+     ChangeLog guile/Makefile.am guile/choppers-spec.scm
+     guile/cipher-spec.scm guile/core-spec.scm
+     guile/filters-spec.scm guile/hash-spec.scm
+     guile/indexers-spec.scm guile/logs-spec.scm
+     guile/store-stats-spec.scm guile/store-stats-support.c
+     guile/stores-spec.scm guile/stores-support.c
+     guile/streams-spec.scm guile/streams-support.c
+     include/chop/serializable.h include/chop/store-stats.h
+     src/Makefile.am src/store-gdbm.c src/store-generic-db.c
+     src/store-qdbm.c src/store-remote.c src/store-stat.c
+     src/store-tdb.c src/stream-file.c src/stream-mem.c
+
+
 2005-09-13 13:13:17 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-60
 
     Summary:

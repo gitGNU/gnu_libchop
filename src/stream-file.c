@@ -12,12 +12,7 @@
 
 
 
-/* Class definitions.  */
-
-CHOP_DEFINE_RT_CLASS (stream, object,
-		      NULL, NULL, /* No constructor/destructor */
-		      NULL, NULL  /* No serializer/deserializer */);
-
+/* Class definition.  */
 
 /* File stream class that inherits from `chop_stream_t'.  This declares
    CHOP_FILE_STREAM_CLASS, the object representing this class at
@@ -28,8 +23,20 @@ CHOP_DECLARE_RT_CLASS (file_stream, stream,
 		       char  *map;
 		       size_t position;);
 
+static void
+fs_dtor (chop_object_t *object)
+{
+  chop_file_stream_t *file = (chop_file_stream_t *)object;
+
+  munmap (file->map, file->size);
+  close (file->fd);
+
+  file->map = NULL;
+  file->fd = -1;
+}
+
 CHOP_DEFINE_RT_CLASS (file_stream, stream,
-		      NULL, NULL, /* No constructor/destructor */
+		      NULL, fs_dtor,
 		      NULL, NULL  /* No serializer/deserializer */);
 
 
@@ -43,6 +50,8 @@ chop_file_stream_open (const char *path,
 		       chop_stream_t *raw_stream)
 {
   errcode_t err;
+  int fd;
+  void *map;
   struct stat file_stats;
   chop_file_stream_t *stream = (chop_file_stream_t *)raw_stream;
 
@@ -50,19 +59,24 @@ chop_file_stream_open (const char *path,
   if (err)
     return err;
 
-  stream->fd = open (path, O_RDONLY);
-  if (stream->fd == -1)
+  fd = open (path, O_RDONLY);
+  if (fd == -1)
     return errno;
 
-  stream->map = mmap (0, file_stats.st_size, PROT_READ, MAP_SHARED,
-		      stream->fd, 0);
-  if (stream->map == MAP_FAILED)
+  map = mmap (0, file_stats.st_size, PROT_READ, MAP_SHARED, fd, 0);
+  if (map == MAP_FAILED)
     {
-      close (stream->fd);
+      close (fd);
       return errno;
     }
 
-  madvise (stream->map, file_stats.st_size, MADV_SEQUENTIAL);
+  madvise (map, file_stats.st_size, MADV_SEQUENTIAL);
+
+  chop_object_initialize ((chop_object_t *)raw_stream,
+			  &chop_file_stream_class);
+
+  stream->fd = fd;
+  stream->map = map;
 
   stream->position = 0;
   stream->stream.close = chop_file_stream_close;
@@ -99,13 +113,5 @@ chop_file_stream_read (chop_stream_t *stream,
 static void
 chop_file_stream_close (struct chop_stream *s)
 {
-  chop_file_stream_t *file = (chop_file_stream_t *)s;
-
-  free (s->name);
-
-  munmap (file->map, file->size);
-  close (file->fd);
-
-  file->map = NULL;
-  file->fd = -1;
+  chop_object_destroy ((chop_object_t *)s);
 }
