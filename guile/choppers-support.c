@@ -4,15 +4,6 @@
 #include <errno.h>
 #include <assert.h>
 
-static void
-chop_chopper_close_dealloc (chop_chopper_t *chopper)
-{
-  if (chopper)
-    {
-      chop_chopper_close (chopper);
-      free (chopper);
-    }
-}
 
 static __inline__ errcode_t
 chop_fixed_size_chopper_open_alloc (chop_stream_t *input,
@@ -22,7 +13,7 @@ chop_fixed_size_chopper_open_alloc (chop_stream_t *input,
   errcode_t err;
 
   *chopper =
-    malloc (chop_class_instance_size ((chop_class_t *)&chop_fixed_size_chopper_class));
+    scm_malloc (chop_class_instance_size ((chop_class_t *)&chop_fixed_size_chopper_class));
   if (!*chopper)
     return ENOMEM;
 
@@ -45,7 +36,7 @@ chop_anchor_based_chopper_open_alloc (chop_stream_t *input,
   errcode_t err;
 
   *chopper =
-    malloc (chop_class_instance_size ((chop_class_t *)&chop_anchor_based_chopper_class));
+    scm_malloc (chop_class_instance_size ((chop_class_t *)&chop_anchor_based_chopper_class));
   if (!*chopper)
     return ENOMEM;
 
@@ -121,20 +112,15 @@ chop_chopper_read_block_alloc_u8vector (chop_chopper_t *chopper,
   assert (size == chop_buffer_size (&buffer));
   if (size)
     {
-      char *block = malloc (size);
-      if (block)
-	{
-	  memcpy (block, chop_buffer_content (&buffer), size);
-	  *result = scm_take_u8vector (block, size);
-	}
-      else
-	{
-	  err = ENOMEM;
-	  *result = SCM_BOOL_F;
-	}
+      char *block = scm_malloc (size);
+
+      memcpy (block, chop_buffer_content (&buffer), size);
+      *result = scm_take_u8vector (block, size);
     }
   else
     *result = SCM_BOOL_F;
+
+  chop_buffer_return (&buffer);
 
   return err;
 }

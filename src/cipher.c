@@ -21,8 +21,10 @@ typedef struct
   const char *name;
 } _chop_enum_mapping;
 
-#define _STRINGIFY(_x) #_x
-#define STRINGIFY(_z)  _STRINGIFY(_z)
+#ifndef STRINGIFY
+# define _STRINGIFY(_x) #_x
+# define STRINGIFY(_z)  _STRINGIFY(_z)
+#endif
 
 #define _CIPHER_ALGO_INFO(_name) \
 { CHOP_CIPHER_ ## _name, GCRY_CIPHER_ ## _name, STRINGIFY (_name) }

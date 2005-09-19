@@ -47,16 +47,3 @@ chop_mem_stream_open_alloc (SCM u8vector)
 
   return stream;
 }
-
-static void
-chop_stream_close_dealloc (chop_stream_t *stream)
-{
-  if (stream)
-    {
-      chop_stream_close (stream);
-      free (stream);
-    }
-}
-
-
-

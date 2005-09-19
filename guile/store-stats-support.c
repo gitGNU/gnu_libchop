@@ -46,10 +46,3 @@ chop_stat_block_store_stats_alloc (chop_block_store_t *store)
 
   return result;
 }
-
-static __inline__ void
-chop_block_store_stats_dealloc (chop_block_store_stats_t *stats)
-{
-  chop_object_destroy ((chop_object_t *)stats);
-  free (stats);
-}

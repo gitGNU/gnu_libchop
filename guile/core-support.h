@@ -26,12 +26,6 @@ CHOP_DECLARE_RT_CLASS (hybrid_scheme_class, class,
 /* Initialize G-Wrap/Guile support for `chop_object_t' objects.  */
 extern void gwrap_chop_object_support_init (void);
 
-/* Before returning OBJECT, a SMOB representing a `chop_object_t' wrapped C
-   pointer (WCP), mark DEPS as its list of dependencies.  DEPS should be a
-   list of Scheme objects OBJECT depends on.  This is to prevent
-   garbage-collection of the objects being used by OBJECT.  */
-extern void gwrap_chop_object_set_dependencies (SCM object, SCM deps);
-
 /* The function that destroys WCP, a wrapped `chop_object_t' pointer, by
    calling `chop_object_destroy ()' and then freeing the object itself.  */
 extern size_t gwrap_chop_object_cleanup (SCM wcp);

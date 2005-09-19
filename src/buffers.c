@@ -140,6 +140,8 @@ _chop_buffer_return (chop_buffer_t *buffer)
       buffer_pool[buffer_pool_size++] = *buffer;
       buffer_pool_available += buffer->real_size;
     }
+  else
+    free (buffer->buffer);
 }
 #endif
 

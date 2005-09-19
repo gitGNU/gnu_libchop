@@ -18,7 +18,6 @@
 	    <chop-errcode-type>
 	    <chop-input-buffer-type>
 	    <chop-writable-input-buffer-type>
-	    <chop-object-type>
 
 	    <chop-output-buffer>
 	    <chop-output-buffer-with-out-size>
@@ -269,134 +268,13 @@
 ;;;
 ;;; Wrapping of chop classes that inherit `chop_object_t'.
 ;;;
-;;; FIXME:  Most of the methods below are copies of the <gw-guile-wct>
-;;;         methods.  See the `g-wrap-dev@nongnu.org' archives for details.
+;;; XXX:  This heavily relies on improvements made to G-Wrap.  In particular,
+;;;       the `wcp-free-function' and `wcp-mark-function' things were
+;;;       proposed in Sep. 2005, as well as the new `aggregated' typespec.
+;;;       See the `g-wrap-dev@nongnu.org' archives for details.
 ;;;
 
-(if #f (begin  ;;; IGNORE
-
-(define-class <chop-object-type> (<gw-type>)
-  (c-type-name   #:getter c-type-name   #:init-keyword #:c-type-name)
-  (wcp-mark-function #:getter wcp-mark-function
-		     #:init-keyword #:wcp-mark-function
-		     #:init-value "gwrap_chop_object_mark")
-  wct-var-name)
-
-(define-method (initialize (wct <chop-object-type>) initargs)
-  ;; XXX:  Copied from `(g-wrap guile)'.
-  (next-method)
-  (slot-set! wct 'wct-var-name
-	     (gen-c-tmp (string-append
-			 "wct_info_for"
-			 (any-str->c-sym-str (symbol->string (name wct)))))))
-
-(define-method (check-typespec-options (type <chop-object-type>)
-				       (options <list>))
-  #t)
-
-(define-method (c-type-name (type <chop-object-type>)
-			    (typespec <gw-typespec>))
-  (let ((out? (memq 'out (typespec-options typespec))))
-    (if out?
-	(string-append (c-type-name type) " *")
-	(c-type-name type))))
-
-(define-method (initializations-cg (wrapset <gw-wrapset>)
-				   (wct <chop-object-type>)
-				   error-var)
-  ;; XXX:  (Mostly) copied from `(g-wrap guile)'.
-  (let ((wct-var (slot-ref wct 'wct-var-name))
-	(wcp-type-name (symbol->string (name wct)))
-	(wcp-mark-func (slot-ref wct 'wcp-mark-function)))
-  (list
-   (next-method)
-
-   "\ngwrap_chop_object_support_init ();\n"
-   wct-var "= gw_wct_create(\"" wcp-type-name "\", NULL, NULL, "
-   wcp-mark-func ", gwrap_chop_object_cleanup);\n"
-   "scm_c_define (\"" wcp-type-name "\", " wct-var ");\n")))
-
-(define (wct-var-decl-cg wct)
-  ;; XXX:  Copied from `(g-wrap guile)'.
-  (list "static SCM "  (slot-ref wct 'wct-var-name) " = SCM_BOOL_F;\n"))
-
-(define-method (global-declarations-cg (wrapset <gw-wrapset>)
-				       (wct <chop-object-type>))
-  ;; XXX:  Copied from `(g-wrap guile)'.
-  (wct-var-decl-cg wct))
-
-(define-method (client-global-declarations-cg (wrapset <gw-wrapset>)
-					      (wct <chop-object-type>))
-  ;; XXX:  Copied from `(g-wrap guile)'.
-  (wct-var-decl-cg wct))
-
-(define-method (client-initializations-cg (wrapset <gw-wrapset>)
-					  (wct <chop-object-type>)
-					  error-var)
-  ;; XXX:  Copied from `(g-wrap guile)'.
-  (let ((wct-var (slot-ref wct 'wct-var-name))
-	(wcp-type-name (symbol->string (name wct))))
-    (list
-     "    " wct-var " = scm_c_eval_string(\"" wcp-type-name "\");\n")))
-
-(define-method (unwrap-value-cg (wct <chop-object-type>)
-				(value <gw-value>)
-				status-var)
-  ;; XXX: Copied from `(g-wrap guile)'.
-  (let ((wct-var (slot-ref wct 'wct-var-name))
-	(sv (scm-var value))
-	(c-var (var value)))
-    (list
-     "if (SCM_FALSEP(" sv "))\n"
-     "  " c-var " = NULL;\n"
-     "else if (gw_wcp_is_of_type_p(" wct-var ", " sv "))\n"
-     "  " c-var " = gw_wcp_get_ptr(" sv ");\n"
-     "else\n"
-     `(gw:error ,status-var type ,(wrapped-var value)))))
-
-(define-method (wrap-value-cg (wct <chop-object-type>)
-			      (value <gw-value>)
-			      status-var)
-  ;; XXX:  Copied from `(g-wrap guile)'.
-  (let ((wct-var (slot-ref wct 'wct-var-name))
-	(sv (scm-var value))
-	(cv (var value)))
-    (list
-     "if(" cv " == NULL) " sv " = SCM_BOOL_F;\n"
-     "else " sv " = gw_wcp_assimilate_ptr((void *) " cv ", " wct-var ");\n")))
-
-(define-method (pre-call-arg-cg (type <chop-object-type>)
-				(value <gw-value>) error-var)
-  (list (format #f "\n/* chop-object: pre-call-arg-cg: ~a */\n" value)
-	(next-method)
-	"xxx_deps = scm_cons (" (scm-var value) ", xxx_deps);\n"))
-
-(define-method (post-call-arg-cg (type <chop-object-type>)
-				 (value <gw-value> error-var))
-  (list (format #t "\n/* chop-object: post-call-arg-cg: ~a */\n" value)))
-
-(define-method (post-call-result-cg (type <chop-object-type>)
-                                    (result <gw-value>) error-var)
-  (list (format #f "\n/* chop-object: post-call-result-cg: ~a */\n" value)
-	"\n{ \n"
-	"gwrap_chop_object_set_dependencies ("
-	(scm-var result) ", xxx_deps);\n }\n"))
-
-
 (define-public (wrap-as-chop-object! ws . args)
-  "Wrap a type as a chop object, i.e. as a type that is mostly a WCT and
-which inherits @code{chop_object_t}."
-  (let ((type (apply make <chop-object-type> args)))
-    (add-type! ws type)
-    (add-module-export! ws (name type))
-    type))
-
-)) ;; END IGNORE
-
-(define-class <chop-object-type> (<gw-wct>))
-
-(define-public (wrap-as-chop-object! ws . args)
-  (format #t "wrap-as-chop-object! ~a~%" args)
   (apply wrap-as-wct! ws
 	 #:allowed-options '(caller-owned callee-owned out aggregated)
 	 #:wcp-free-function "gwrap_chop_object_cleanup"

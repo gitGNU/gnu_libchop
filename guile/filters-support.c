@@ -47,12 +47,6 @@ chop_zlib_unzip_filter_init_alloc (size_t input_size,
   return err;
 }
 
-static __inline__ void
-chop_filter_dealloc (chop_filter_t *filter)
-{
-  chop_object_destroy ((chop_object_t *)filter);
-  free (filter);
-}
 
 
 static __inline__ errcode_t

@@ -4,25 +4,6 @@
 #include <errno.h>
 #include <assert.h>
 
-static void
-chop_indexer_close_dealloc (chop_indexer_t *indexer)
-{
-  if (indexer)
-    {
-      chop_object_destroy ((chop_object_t *)indexer);
-      free (indexer);
-    }
-}
-
-static void
-chop_index_handle_close_dealloc (chop_index_handle_t *handle)
-{
-  if (handle)
-    {
-      chop_object_destroy ((chop_object_t *)handle);
-      free (handle);
-    }
-}
 
 static __inline__ errcode_t
 chop_hash_tree_indexer_open_alloc (chop_hash_method_t content_hash_method,
@@ -33,9 +14,7 @@ chop_hash_tree_indexer_open_alloc (chop_hash_method_t content_hash_method,
 {
   errcode_t err;
 
-  *indexer = malloc (chop_class_instance_size (&chop_hash_tree_indexer_class));
-  if (!*indexer)
-    return ENOMEM;
+  *indexer = scm_malloc (chop_class_instance_size (&chop_hash_tree_indexer_class));
 
   err = chop_hash_tree_indexer_open (content_hash_method, key_hash_method,
 				     cipher,
@@ -60,9 +39,7 @@ chop_indexer_index_blocks_alloc  (chop_indexer_t *indexer,
   const chop_class_t *handle_class;
 
   handle_class = chop_indexer_index_handle_class (indexer);
-  *handle = malloc (chop_class_instance_size (handle_class));
-  if (!*handle)
-    return ENOMEM;
+  *handle = scm_malloc (chop_class_instance_size (handle_class));
 
   err = chop_indexer_index_blocks (indexer, input,
 				   datastore, metadatastore, *handle);
@@ -91,9 +68,7 @@ chop_indexer_fetch_stream_alloc (chop_indexer_t *indexer,
   const chop_class_t *stream_class;
 
   stream_class = chop_indexer_stream_class (indexer);
-  *stream = malloc (chop_class_instance_size (stream_class));
-  if (!*stream)
-    return ENOMEM;
+  *stream = scm_malloc (chop_class_instance_size (stream_class));
 
   err = chop_indexer_fetch_stream (indexer, handle,
 				   datastore, metadatastore, *stream);
@@ -141,9 +116,7 @@ chop_index_handle_ascii_deserialize (chop_indexer_t *indexer,
   const chop_class_t *handle_class;
 
   handle_class = chop_indexer_index_handle_class (indexer);
-  *handle = malloc (chop_class_instance_size (handle_class));
-  if (!*handle)
-    return ENOMEM;
+  *handle = scm_malloc (chop_class_instance_size (handle_class));
 
   err = chop_object_deserialize ((chop_object_t *)*handle, handle_class,
 				 CHOP_SERIAL_ASCII,

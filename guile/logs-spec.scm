@@ -34,11 +34,12 @@
 
   (next-method ws (append '(#:module (chop logs)) initargs))
 
+  ;; We don't need to destroy the underlying C object so everything is pretty
+  ;; easy.
   (wrap-as-wct! ws
 		#:name '<log>
 		#:c-type-name "chop_log_t *"
-		#:c-const-type-name "const chop_log_t *"
-		#:destroy-value-function-name "_chop_log_destroy")
+		#:c-const-type-name "const chop_log_t *")
 
   (wrap-function! ws
 		  #:name 'log-detach

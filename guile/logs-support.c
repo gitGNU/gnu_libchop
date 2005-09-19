@@ -3,11 +3,8 @@
 #define _GNU_SOURCE 1
 #include <stdio.h>
 
-static __inline__ void
-_chop_log_destroy (chop_log_t *log)
-{
-  chop_log_close (log);
-}
+#include "core-support.h"
+
 
 static __inline__ void
 chop_log_attach_to_port (chop_log_t *log, SCM port)
@@ -19,6 +16,7 @@ chop_log_attach_to_port (chop_log_t *log, SCM port)
   chop_log_attach (log, fd, 0);
 }
 
+
 static void
 scm_log_printf (chop_log_t *log, const char *fmt, va_list args)
 {

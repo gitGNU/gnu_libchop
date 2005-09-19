@@ -9,29 +9,31 @@
    is "detached", CHOP_LOG_PRINTF simply does nothing.  */
 
 #include <chop/chop.h>
+#include <chop/serializable.h>
+
 #include <unistd.h>
 #include <stdlib.h>
 
 _CHOP_BEGIN_DECLS
 
-typedef struct chop_log chop_log_t;
+struct chop_log;
 
-typedef void (* chop_log_user_logger_t) (chop_log_t *, const char *,
+typedef void (* chop_log_user_logger_t) (struct chop_log *, const char *,
 					 va_list);
-typedef void (* chop_log_dtor_t) (chop_log_t *);
+typedef void (* chop_log_dtor_t) (struct chop_log *);
 
 
-struct chop_log
-{
-  char *name;
-  int attached;
-  int eventually_close;
-  int fd;
+/* Define `chop_log_t'.  */
+CHOP_DECLARE_RT_CLASS (log, object,
 
-  chop_log_user_logger_t printf;
-  void *data;
-  chop_log_dtor_t dtor;
-};
+		       char *name;
+		       int attached;
+		       int eventually_close;
+		       int fd;
+
+		       chop_log_user_logger_t printf;
+		       void *data;
+		       chop_log_dtor_t dtor;);
 
 
 

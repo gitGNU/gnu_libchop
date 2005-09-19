@@ -5,15 +5,37 @@
 #include <string.h>
 #include <errno.h>
 
-errcode_t
-chop_log_init (const char *name, chop_log_t *log)
+
+static void
+log_ctor (chop_object_t *object, const chop_class_t *class)
 {
+  chop_log_t *log = (chop_log_t *)object;
+
   log->attached = 0;
   log->fd = 1;
   log->eventually_close = 0;
   log->printf = NULL;
   log->data = NULL;
   log->dtor = NULL;
+
+  log->name = NULL;
+}
+
+static void
+log_dtor (chop_object_t *object)
+{
+  chop_log_close ((chop_log_t *)object);
+}
+
+CHOP_DEFINE_RT_CLASS (log, object,
+		      log_ctor, log_dtor,
+		      NULL, NULL);
+
+
+errcode_t
+chop_log_init (const char *name, chop_log_t *log)
+{
+  chop_object_initialize ((chop_object_t *)log, &chop_log_class);
 
   log->name = strdup (name);
   if (!log->name)

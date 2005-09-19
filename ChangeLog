@@ -2,6 +2,66 @@
 # arch-tag: automatic-ChangeLog--lcourtes@laas.fr--2004-mosaic/libchop--main--0.1
 #
 
+2005-09-19 12:26:41 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-62
+
+    Summary:
+      Cleaned up the Guile bindings;  fixed a few more memory leaks.
+    Revision:
+      libchop--main--0.1--patch-62
+
+    * guile/choppers-support.c (chop_chopper_close_dealloc):  Removed
+      (unneeded).  Use `scm_malloc ()' instead of `malloc ()'.
+      (chop_chopper_read_block_alloc_u8vector):  Return BUFFER at the end.
+    
+    * guile/cipher-spec.scm (<cipher-handle>):  Specify the
+      `wcp-free-function' field.
+    
+    * guile/cipher-support.c (chop_cipher_handle_cleanup):  New function.
+    
+    * guile/core-spec.scm (<chop-object-type>):  Removed.  Also removed
+      related code that was commented out.
+    
+    * guile/core-support.h (gwrap_chop_object_set_dependencies):  Removed.
+    
+    * guile/filters-support.c (chop_filter_dealloc):  Removed.
+    
+    * guile/indexers-support.c (chop_indexer_close_dealloc):  Removed.
+      (chop_index_handle_close_dealloc):  Removed.
+      (chop_hash_tree_indexer_open_alloc):  Use `scm_malloc ()'.
+    
+    * guile/logs-support.c (_chop_log_destroy):  Removed.
+    
+    * guile/store-stats-support.c (chop_block_store_stats_dealloc):  Removed.
+    
+    * guile/stores-support.c (chop_store_close_dealloc):  Removed.
+    
+    * guile/streams-support.c (chop_stream_close_dealloc):  Removed.
+    
+    * include/chop/logs.h (chop_log_t):  Now declared as a run-time class.
+    
+    * include/chop/serializable.h (_STRINGIFY):  Renamed to `CHOP_STRINGIFY'.
+    
+    * src/buffers.c (_chop_buffer_return):  If the pool is full, deallocated
+      BUFFER->BUFFER.
+    
+    * src/cipher.c (_STRINGIFY):  Renamed to `STRINGIFY'.
+    
+    * src/logs.c (log_ctor):  New function.
+      (log_dtor):  New function.
+      (chop_log_class):  New variable.
+      (chop_log_init):  Call `chop_object_initialize ()'.
+
+    modified files:
+     ChangeLog guile/choppers-support.c guile/cipher-spec.scm
+     guile/cipher-support.c guile/core-spec.scm
+     guile/core-support.h guile/filters-support.c
+     guile/indexers-support.c guile/logs-spec.scm
+     guile/logs-support.c guile/store-stats-support.c
+     guile/stores-support.c guile/streams-support.c
+     include/chop/logs.h include/chop/serializable.h src/buffers.c
+     src/cipher.c src/logs.c
+
+
 2005-09-16 15:20:15 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-61
 
     Summary:

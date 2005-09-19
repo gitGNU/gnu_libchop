@@ -145,15 +145,6 @@ chop_remote_block_store_open_alloc (const char *host, const char *protocol,
   return err;
 }
 
-static void
-chop_store_close_dealloc (chop_block_store_t *store)
-{
-  if (store)
-    {
-      chop_store_close (store);
-      free (store);
-    }
-}
 
 static __inline__ errcode_t
 chop_store_read_block_alloc_u8vector (chop_block_store_t *store,
@@ -164,7 +155,9 @@ chop_store_read_block_alloc_u8vector (chop_block_store_t *store,
   size_t size;
   chop_buffer_t buffer;
 
-  chop_buffer_init (&buffer, 0);
+  err = chop_buffer_init (&buffer, 0);
+  if (err)
+    return err;
 
   err = chop_store_read_block (store, key, &buffer, &size);
   if (err)

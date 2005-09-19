@@ -68,7 +68,7 @@
 		#:name '<cipher-handle>
 		#:c-type-name "chop_cipher_handle_t"
 		#:c-const-type-name "const chop_cipher_handle_t"
-		#:destroy-value-function-name "chop_cipher_handle_close_dealloc")
+		#:wcp-free-function "chop_cipher_handle_cleanup")
 
   (wrap-function! ws
 		  #:name 'cipher-key-size
