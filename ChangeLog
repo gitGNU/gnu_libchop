@@ -2,6 +2,41 @@
 # arch-tag: automatic-ChangeLog--lcourtes@laas.fr--2004-mosaic/libchop--main--0.1
 #
 
+2005-09-19 16:15:16 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-63
+
+    Summary:
+      Fixed the anchor-based chopper;  added a test-case for it.
+    Revision:
+      libchop--main--0.1--patch-63
+
+    * src/chopper-anchor-based.c (compile_multiplication_function):  Fixed
+      the instructions that sets the return value (when INLINE_LIGHTNING_CODE
+      is not set).
+      (sliding_window_dest_buffer):  Don't set WINDOW->OFFSET to zero in the
+      last case;  just %= it to WINDOW->WINDOW_SIZE.
+    
+    * tests/features/chopper-anchor-based.c:  New file.
+    
+    * tests/features/Makefile.am:  Updated.
+    
+    * tests/include/testsuite.h (test_init_random_seed):  New function.
+    
+    * tests/features/filter-zlib.c (main):  Call `test_init_random_seed ()'.
+    
+    * tests/interfaces/indexers.c (main):  Likewise.
+    
+    * tests/interfaces/choppers.c (main):  Likewise.
+
+    new files:
+     tests/features/chopper-anchor-based.c
+
+    modified files:
+     ChangeLog src/chopper-anchor-based.c
+     tests/features/Makefile.am tests/features/filter-zlib.c
+     tests/include/testsuite.h tests/interfaces/choppers.c
+     tests/interfaces/indexers.c
+
+
 2005-09-19 12:26:41 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-62
 
     Summary:

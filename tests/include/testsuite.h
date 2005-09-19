@@ -10,6 +10,9 @@
 #include <alloca.h>
 #include <string.h>
 
+#include <sys/time.h>
+#include <time.h>
+
 
 static const char *_test_program_name = NULL;
 
@@ -21,6 +24,15 @@ test_init (const char *prog_name)
 {
   _test_program_name = prog_name;
   setvbuf (stdout, NULL, _IONBF, 0);
+}
+
+static __inline__ void
+test_init_random_seed (void)
+{
+  struct timeval tv;
+
+  gettimeofday (&tv, NULL);
+  srandom (tv.tv_sec);
 }
 
 #ifdef __GNUC__
@@ -103,7 +115,7 @@ test_debug (const char *fmt, ...)
 static __inline__ void
 test_assertion_failed (const char *file, unsigned line, const char *expr)
 {
-  fprintf (stderr, "%s:%u: assertion failed: %s\n",
+  fprintf (stderr, "\n%s:%u: assertion failed: %s\n",
 	   file, line, expr);
   abort ();
 }

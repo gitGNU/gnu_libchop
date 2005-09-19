@@ -22,6 +22,10 @@
 #include <errno.h>
 
 
+/* The following should only be defined when debugging things.  */
+/* #define AUTO_TEST 1 */
+
+
 /* A (sort of) Rabin fingerprint.  */
 typedef uint32_t fpr_t;
 
@@ -283,7 +287,7 @@ compile_multiplication_function (unsigned long prime_to_the_ws)
 #ifndef INLINE_LIGHTNING_CODE
 
   /* Return the value just computed.  */
-  jit_retval_ul (JIT_R2);
+  jit_movr_ul (JIT_RET, JIT_R2);
   jit_ret ();
 
 #else
@@ -426,7 +430,7 @@ sliding_window_dest_buffer (sliding_window_t *window,
 	  window->windows[0] = window->windows[1];
 	  window->windows[1] = new_window;
 	  window->sizes[0] = window->sizes[1];
-	  window->offset = 0;
+	  window->offset %= window->window_size;
 
 	  dest = window->windows[1];
 	  *dest_size = &window->sizes[1];
@@ -703,8 +707,10 @@ compute_window_fingerprint (chop_anchor_based_chopper_t *anchor,
     ITERATE_OVER_SUBWINDOW (window->windows[0], window->sizes[0],
 			    sliding_window_start_offset (window));
 
-  /* Note:  At this point, it less than WINDOW_SIZE bytes were available from
-     WINDOW, then TOTAL is greater than zero.  But that's no problem.  */
+  /* Note: At this point, if less than WINDOW_SIZE bytes were available from
+     WINDOW (WINDOW was ``unfull''), then TOTAL is greater than zero.  But
+     that's no problem.  */
+  assert ((sliding_window_unfull (window)) || (total == 0));
 
   /* ANCHOR->PREV_FIRST_CHAR is then used in
      COMPUTE_NEXT_WINDOW_FINGERPRINT.  */
@@ -896,6 +902,14 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
 	  window_fpr = compute_next_window_fingerprint (anchor,
 							first_char, last_char,
 							window_fpr);
+#ifdef AUTO_TEST /* debugging */
+	  {
+	    fpr_t ref_fpr;
+
+	    ref_fpr = compute_window_fingerprint (anchor, window);
+	    assert (ref_fpr == window_fpr);
+	  }
+#endif
 	}
 
       chop_log_printf (&anchor->log, "fingerprint: 0x%x", window_fpr);

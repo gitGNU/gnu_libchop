@@ -13,7 +13,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <alloca.h>
-#include <sys/time.h>
 #include <assert.h>
 
 
@@ -77,7 +76,6 @@ main (int argc, char *argv[])
   char buffer[4001];
   size_t block_size;
   char *mem;
-  struct timeval tv;
 
   test_init (argv[0]);
 
@@ -95,8 +93,7 @@ main (int argc, char *argv[])
   metastore = store;
 
   /* Randomize the input stream.  */
-  gettimeofday (&tv, NULL);
-  srandom (tv.tv_sec);
+  test_init_random_seed ();
   for (mem = mem_stream_contents;
        mem - mem_stream_contents < sizeof (mem_stream_contents);
        mem++)

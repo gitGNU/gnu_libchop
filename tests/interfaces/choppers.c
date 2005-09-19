@@ -9,8 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
-#include <sys/time.h>
-#include <time.h>
+
 
 /* #define DEBUG 1 */
 
@@ -32,12 +31,10 @@ main (int argc, char *argv[])
   chop_chopper_t *chopper;
   chop_buffer_t buffer;
   errcode_t err;
-  struct timeval tv;
 
   test_init (argv[0]);
+  test_init_random_seed ();
 
-  gettimeofday (&tv, NULL);
-  srandom (tv.tv_sec);
   for (mem = mem_stream_contents;
        mem - mem_stream_contents < sizeof (mem_stream_contents);
        mem++)

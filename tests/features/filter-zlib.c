@@ -120,6 +120,7 @@ main (int argc, char *argv[])
   size_t pulled = 0;
 
   test_init (argv[0]);
+  test_init_random_seed ();
 
   /* Initialize libchop, create one zip filter and one unzip filter.  */
   err = chop_init ();
