@@ -17,6 +17,9 @@
 #define WINDOW_SIZE         48
 #define MAGIC_FPR_MASK    2047
 
+/* Since this test operates on random data, it's best to run it several
+   times.  This is the number of iterations.  */
+#define ITERATION_COUNT      3
 
 /* Parameters of the data sets.  */
 #define SIZE_OF_INPUT      1779773
@@ -88,7 +91,7 @@ read_blocks_from_chopper (chop_chopper_t *chopper,
 
   chop_buffer_return (&buffer);
 
-  test_debug ("read %u blocks, last offset is %u", *block_count,
+  test_debug ("read %u blocks, last offset is %u\n", *block_count,
 	      offset_vector[*block_count - 1]);
 }
 
@@ -117,7 +120,12 @@ compare_block_boundaries (size_t *ref_offsets, size_t ref_block_count,
   size_t insertion_end_offset;
   size_t ref = 0, mod = 0;
 
-  test_assert (insertion_block_count >= ref_block_count);
+  test_assert ((ref_offsets[0] == 0) && (ref_offsets[0] == insertion_offsets[0]));
+
+  /* In the worst case, the original data can yield one anchor more than the
+     modified data.  This can happen if this very anchor is located within
+     WINDOW_SIZE bytes after INSERTION_OFFSET.  */
+  test_assert (insertion_block_count + 1 >= ref_block_count);
 
   /* INSERTION_END_OFFSET is the position in the input after which the input
      and modified input should have the same block boundaries.  */
@@ -135,7 +143,16 @@ compare_block_boundaries (size_t *ref_offsets, size_t ref_block_count,
   while (insertion_offsets[mod] < insertion_end_offset)
     mod++;
 
-  test_debug ("insertion yielded %u blocks", mod - ref);
+  /* The same goes for the reference offsets: the anchors that were found
+     within the WINDOW_SIZE bytes after the insertion point must be
+     ignored.  */
+  while (ref_offsets[ref] < insertion_offset + window_size)
+    ref++;
+
+  test_debug ("insertion yielded %u additional blocks\n", mod - ref);
+  test_debug ("offsets: mod=%u ref=%u insertion=[%u .. %u]\n",
+	      insertion_offsets[mod], ref_offsets[ref],
+	      insertion_offset, insertion_end_offset);
 
   while (ref < ref_block_count)
     {
@@ -148,21 +165,13 @@ compare_block_boundaries (size_t *ref_offsets, size_t ref_block_count,
   return 1;
 }
 
-
-int
-main (int argc, char *argv[])
+static int
+do_test (void)
 {
   errcode_t err;
-  int succeeded;
+  int succeeded = 0;
   chop_stream_t *stream;
   chop_chopper_t *chopper;
-
-  test_init (argv[0]);
-  test_init_random_seed ();
-
-  /* Initialize libchop, create one zip filter and one unzip filter.  */
-  err = chop_init ();
-  test_check_errcode (err, "initializing libchop");
 
   randomize_input (input, sizeof (input));
 
@@ -218,6 +227,27 @@ main (int argc, char *argv[])
 			      WINDOW_SIZE, MAGIC_FPR_MASK);
 
   test_stage_result (succeeded);
+
+  return succeeded;
+}
+
+
+int
+main (int argc, char *argv[])
+{
+  errcode_t err;
+  size_t iterations;
+  int succeeded = 0;
+
+  test_init (argv[0]);
+  test_init_random_seed ();
+
+  /* Initialize libchop, create one zip filter and one unzip filter.  */
+  err = chop_init ();
+  test_check_errcode (err, "initializing libchop");
+
+  for (iterations = 0; iterations < ITERATION_COUNT; iterations++)
+    succeeded = do_test () || succeeded;
 
   return (succeeded ? 0 : 1);
 }
