@@ -85,6 +85,10 @@ extern size_t chop_cipher_algo_block_size (chop_cipher_algo_t algo)
 extern chop_cipher_handle_t
 chop_cipher_open (chop_cipher_algo_t algo, chop_cipher_mode_t mode);
 
+/* Return a copy of HANDLE.  */
+extern chop_cipher_handle_t
+chop_cipher_copy (chop_cipher_handle_t handle);
+
 /* Return the algorithm used by HANDLE.  */
 extern chop_cipher_algo_t chop_cipher_algorithm (chop_cipher_handle_t handle)
      _CHOP_PURE_FUNC;
@@ -108,6 +112,7 @@ extern errcode_t chop_cipher_decrypt (chop_cipher_handle_t cipher,
 				      char *out, size_t out_size,
 				      const char *in, size_t in_size);
 
+/* Close HANDLE and reclaim any associated resource.  */
 extern void chop_cipher_close (chop_cipher_handle_t handle);
 
 

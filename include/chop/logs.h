@@ -21,6 +21,8 @@ struct chop_log;
 typedef void (* chop_log_user_logger_t) (struct chop_log *, const char *,
 					 va_list);
 typedef void (* chop_log_dtor_t) (struct chop_log *);
+typedef void (* chop_log_copy_ctor_t) (struct chop_log *,
+				       const struct chop_log *);
 
 
 /* Define `chop_log_t'.  */
@@ -31,9 +33,13 @@ CHOP_DECLARE_RT_CLASS (log, object,
 		       int eventually_close;
 		       int fd;
 
+		       /* All the following fields allow "subclassing" while
+			  not having to change the size of the `chop_log_t'
+			  object.  */
 		       chop_log_user_logger_t printf;
 		       void *data;
-		       chop_log_dtor_t dtor;);
+		       chop_log_dtor_t dtor;
+		       chop_log_copy_ctor_t copy_ctor;);
 
 
 
@@ -90,23 +96,26 @@ static __inline__ void chop_log_attach (chop_log_t *__log, int __fd,
 
 /* Attach LOG to the user-provided logging method PRINTF with specific data
    DATA.  Upon closing or detaching LOG, if DTOR is not NULL then it will be
-   called.  */
+   called.  COPY_CTOR will be called whenever LOG is "mimicked" via
+   `chop_log_mimic ()'.  */
 static __inline__ void
 chop_log_attach_to_user (chop_log_t *__log,
 			 chop_log_user_logger_t __printf,
 			 void *__data,
-			 chop_log_dtor_t __dtor)
+			 chop_log_dtor_t __dtor,
+			 chop_log_copy_ctor_t __copy_ctor)
 {
   chop_log_detach (__log);
   __log->printf = __printf;
   __log->data = __data;
   __log->dtor = __dtor;
+  __log->copy_ctor = __copy_ctor;
   __log->attached = 1;
 }
 
 /* Return user-provided data for LOG.  */
 static __inline__ void *
-chop_log_user_data (chop_log_t *__log)
+chop_log_user_data (const chop_log_t *__log)
 {
   return (__log->data);
 }
@@ -114,7 +123,7 @@ chop_log_user_data (chop_log_t *__log)
 /* If LOG is attached to a user logger, then return it;  otherwise, return
    NULL.  */
 static __inline__ chop_log_user_logger_t
-chop_log_user_logger (chop_log_t *__log)
+chop_log_user_logger (const chop_log_t *__log)
 {
   return (__log->printf);
 }

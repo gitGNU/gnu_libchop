@@ -43,6 +43,7 @@ chop_stat_block_store_stats_alloc (chop_block_store_t *store)
 
   result = scm_malloc (sizeof (*result));
   memcpy (result, stats, sizeof (*result));
+  result->name = strdup (stats->name);
 
   return result;
 }

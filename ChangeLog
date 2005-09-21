@@ -2,6 +2,47 @@
 # arch-tag: automatic-ChangeLog--lcourtes@laas.fr--2004-mosaic/libchop--main--0.1
 #
 
+2005-09-21 16:33:44 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-65
+
+    Summary:
+      Fixed an anchor-based-chopper bug, plus memory mgmt-related bugs.
+    Revision:
+      libchop--main--0.1--patch-65
+
+    * src/chopper-anchor-based.c (sliding_window_unfull):  Return true if
+      WINDOW->SIZES[1] is zero and WINDOW->SIZES[0] < WINDOW->WINDOW_SIZE.
+      This fixes a corner-case bug.
+    
+    * include/chop/cipher.h (chop_cipher_copy):  New function
+    
+    * src/cipher.c (chop_cipher_copy):  New function.
+    
+    * src/indexer-hash-tree.c (chop_decoded_block_tree_init):  Copy
+      CIPHER_HANDLE.
+      (chop_hash_tree_fetch_stream):  Pass &TSTREAM->LOG instead of
+      &HTREE->LOG to `chop_decoded_block_tree_init ()'.
+    
+    * include/chop/logs.h (chop_log_attach_to_user):  Added a COPY_CTOR
+      argument.
+      (chop_log_user_data):  Added `const'.
+      (chop_log_user_logger):  Likewise.
+    
+    * src/logs.c (log_ctor):  Initialize LOG->COPY_CTOR.
+      (chop_log_mimic):  Use PARENT->COPY_CTOR when available.
+    
+    * guile/logs-support.c (scm_log_copy_ctor):  New function.
+      (chop_log_attach_to_scheme_user):  Updated.
+    
+    * guile/store-stats-support.c (chop_stat_block_store_stats_alloc):  Copy
+      RESULT->NAME.
+
+    modified files:
+     ChangeLog guile/logs-support.c guile/store-stats-support.c
+     include/chop/cipher.h include/chop/logs.h
+     src/chopper-anchor-based.c src/cipher.c
+     src/indexer-hash-tree.c src/logs.c
+
+
 2005-09-20 08:53:34 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-64
 
     Summary:

@@ -126,6 +126,14 @@ chop_cipher_open (chop_cipher_algo_t algo, chop_cipher_mode_t mode)
   return (handle);
 }
 
+chop_cipher_handle_t
+chop_cipher_copy (chop_cipher_handle_t handle)
+{
+  /* XXX:  Gcrypt has no `cipher_copy' method but everything should work fine
+     this way.  */
+  return (chop_cipher_open (handle->algo, handle->mode));
+}
+
 chop_cipher_algo_t
 chop_cipher_algorithm (chop_cipher_handle_t handle)
 {

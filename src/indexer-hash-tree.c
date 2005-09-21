@@ -1105,7 +1105,7 @@ chop_decoded_block_tree_init (decoded_block_tree_t *tree,
 			      chop_block_store_t *data_store,
 			      chop_block_store_t *metadata_store,
 			      const chop_index_handle_t *handle,
-			      chop_cipher_handle_t cipher_handle,
+			      const chop_cipher_handle_t cipher_handle,
 			      chop_hash_method_t block_id_hash_method,
 			      chop_hash_method_t hash_key_hash_method,
 			      chop_log_t *log)
@@ -1124,7 +1124,19 @@ chop_decoded_block_tree_init (decoded_block_tree_t *tree,
   tree->top_level = NULL;
   tree->current_offset = 0;
 
-  tree->ciphering_context.cipher_handle = cipher_handle;
+  if (cipher_handle != CHOP_CIPHER_HANDLE_NIL)
+    {
+      /* Copy the cipher handle.  */
+      chop_cipher_handle_t copy = chop_cipher_copy (cipher_handle);
+
+      if (copy == CHOP_CIPHER_HANDLE_NIL)
+	return ENOMEM;
+
+      tree->ciphering_context.cipher_handle = copy;
+    }
+  else
+    tree->ciphering_context.cipher_handle = CHOP_CIPHER_HANDLE_NIL;
+
   tree->ciphering_context.block_id_hash_method = block_id_hash_method;
   tree->ciphering_context.hash_key_hash_method = hash_key_hash_method;
   tree->ciphering_context.block_id_size =
@@ -1173,6 +1185,12 @@ chop_decoded_block_tree_free (decoded_block_tree_t *tree)
   tree->top_level = NULL;
   free (tree->index);
   tree->index = NULL;
+
+  if (tree->ciphering_context.cipher_handle != CHOP_CIPHER_HANDLE_NIL)
+    {
+      chop_cipher_close (tree->ciphering_context.cipher_handle);
+      tree->ciphering_context.cipher_handle = CHOP_CIPHER_HANDLE_NIL;
+    }
 }
 
 
@@ -1231,16 +1249,16 @@ chop_hash_tree_fetch_stream (struct chop_indexer *indexer,
 			  &chop_hash_tree_stream_class);
   tstream = (chop_hash_tree_stream_t *)output;
 
+  /* Set up the log (for debugging purposes) that had been initialized in the
+     constructor.  */
+  chop_log_mimic (&tstream->log, &htree->log, 0);
+
   err = chop_decoded_block_tree_init (&tstream->tree, input, metadata,
 				      handle,
 				      htree->cipher_handle,
 				      htree->block_id_hash_method,
 				      htree->hash_key_hash_method,
-				      &htree->log);
-
-  /* Set up the log (for debugging purposes) that had been initialized in the
-     constructor.  */
-  chop_log_mimic (&tstream->log, &htree->log, 0);
+				      &tstream->log);
 
   chop_log_printf (&htree->log, "fetching stream");
 

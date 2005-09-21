@@ -387,7 +387,7 @@ sliding_window_unfull (sliding_window_t *window)
     return (window->offset > window->sizes[1]);
 
   if (window->sizes[0] > 0)
-    return (window->offset > 0);
+    return ((window->offset > 0) || (window->sizes[0] < window->window_size));
 
   return 1;
 }
