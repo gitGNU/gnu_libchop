@@ -1,12 +1,33 @@
+;;;; Copyright (C) 2005 Ludovic Courtès
+;;;;
+;;;; This program is free software; you can redistribute it and/or
+;;;; modify it under the terms of the GNU Lesser General Public
+;;;; License as published by the Free Software Foundation; either
+;;;; version 2, or (at your option) any later version.
+;;;;
+;;;; This program is distributed in the hope that it will be useful,
+;;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;;;; Lesser General Public License for more details.
+;;;;
+;;;; You should have received a copy of the GNU Lesser General Public
+;;;; License along with this software; see the file COPYING.  If not,
+;;;; write to the Free Software Foundation, 675 Mass Ave, Cambridge,
+;;;; MA 02139, USA.
+;;;;
+
 (define-module (core-spec)
   #:use-module (core-spec)
 
   #:use-module (oop goops)
+  #:use-module (srfi srfi-13) ;; strings
+
   #:use-module (g-wrap)
   #:use-module (g-wrap c-codegen)
   #:use-module (g-wrap util)
   #:use-module (g-wrap rti)
   #:use-module (g-wrap c-types)
+  #:use-module (g-wrap enumeration)
   #:use-module (g-wrap ws standard)
 
   ;; Guile-specific things
@@ -319,9 +340,56 @@
 
   (next-method ws (append '(#:module (chop core)) initargs))
 
+  ;; error codes
+
   (add-type! ws (make <chop-errcode-type>
 		      #:name '<errcode>
 		      #:needs-result-var? #f))
+
+  (let ((c->scm-enum (lambda (c-name)
+		       (string-map (lambda (chr)
+				     (if (char=? chr #\_)
+					 #\- chr))
+				   (string-downcase
+				    (symbol->string c-name))))))
+
+    ;; Wrap the error values defined in `src/chop-errors.et' using a
+    ;; Scheme-friendly naming Scheme.  Error names all look like
+    ;; `error/invalid-arg', `error/unknown-stream', etc.
+    ;;
+    ;; Note that specific errors (like store-related errors, etc.) are
+    ;; wrapped in the corresponding specification.
+
+    (wrap-enum! ws
+		#:name 'errcode
+		#:c-type-name "errcode_t"
+		#:values (append
+
+			  (map (lambda (name)
+				 (let ((sym-name
+					(string-append "error/"
+						       (c->scm-enum name)))
+				       (enum-value
+					(string-append "CHOP_ERR_"
+						       (symbol->string name))))
+				   `(,(string->symbol sym-name)
+				     . ,enum-value)))
+			       '(UNKNOWN_STREAM UNKNOWN_STORE NOT_FOUND
+			         NOT_IMPL))
+
+			  (map (lambda (name)
+				 (let ((sym-name
+					(string-append "error/"
+						       (c->scm-enum name)))
+				       (enum-value
+					(string-append "CHOP_"
+						       (symbol->string
+							name))))
+				   `(,(string->symbol sym-name)
+				     . ,enum-value)))
+			       '(INVALID_ARG OUT_OF_RANGE_ARG
+				 DESERIAL_TOO_SHORT
+				 DESERIAL_CORRUPT_INPUT)))))
 
   (wrap-function! ws
 		  #:name 'error-message

@@ -22,6 +22,7 @@
 
   #:use-module (oop goops)
   #:use-module (srfi srfi-1)
+  #:use-module (srfi srfi-13) ;; strings
 
   #:use-module (g-wrap)
   #:use-module (g-wrap c-codegen)
@@ -60,6 +61,34 @@
   (slot-set! ws 'shlib-path "libguile-chop")
 
   (next-method ws (append '(#:module (chop filters)) initargs))
+
+  ;; error codes
+
+  (let ((c->scm-enum (lambda (c-name)
+		       (string->symbol
+			(string-map (lambda (chr)
+				      (if (char=? chr #\_)
+					  #\- chr))
+				    (string-downcase
+				     (symbol->string c-name)))))))
+    (for-each (lambda (errcode)
+		(wrap-constant! ws
+				#:name (symbol-append 'filter-error/
+						      (c->scm-enum
+						       errcode))
+				#:type 'long
+				#:value (string-append
+					 "CHOP_FILTER_"
+					 (symbol->string errcode))))
+	    '(FULL EMPTY UNHANDLED_FAULT))
+
+    (wrap-constant! ws
+		    #:name 'filter-error/generic
+		    #:type 'long
+		    #:value "CHOP_FILTER_ERROR"
+		    #:description "Generic filter error"))
+
+  ;; filters
 
   (wrap-as-chop-object! ws
 			#:name '<filter>

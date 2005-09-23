@@ -2,6 +2,26 @@
 # arch-tag: automatic-ChangeLog--lcourtes@laas.fr--2004-mosaic/libchop--main--0.1
 #
 
+2005-09-23 15:18:35 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-66
+
+    Summary:
+      Adding wrapping of the error codes for the Guile bindings.
+    Revision:
+      libchop--main--0.1--patch-66
+
+    * guile/filters-spec.scm:  Wrap the filter-related error codes.
+    
+    * guile/indexers-spec.scm:  Likewise.
+    
+    * guile/stores-spec.scm:  Likewise.
+    
+    * guile/core-spec.scm:  Wrap libchop's generic error codes.
+
+    modified files:
+     ChangeLog guile/core-spec.scm guile/filters-spec.scm
+     guile/indexers-spec.scm guile/stores-spec.scm
+
+
 2005-09-21 16:33:44 GMT	Ludovic Court`es <ludovic.courtes@laas.fr>	patch-65
 
     Summary:

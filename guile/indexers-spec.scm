@@ -64,6 +64,12 @@
 
   (next-method ws (append '(#:module (chop indexers)) initargs))
 
+  (wrap-constant! ws
+		  #:name 'indexer-error/generic
+		  #:type 'long
+		  #:value "CHOP_INDEXER_ERROR"
+		  #:description "Generic indexer error")
+
   (wrap-as-chop-object! ws
 			#:name '<indexer>
 			#:c-type-name "chop_indexer_t *"

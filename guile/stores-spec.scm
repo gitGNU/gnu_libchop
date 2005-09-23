@@ -154,6 +154,28 @@
 
   (next-method ws (append '(#:module (chop stores)) initargs))
 
+  ;; error codes
+
+  (wrap-constant! ws
+		  #:name 'store-error/generic
+		  #:type 'long
+		  #:value "CHOP_STORE_ERROR"
+		  #:description "Generic store error")
+
+  (wrap-constant! ws
+		  #:name 'store-error/block-unavailable
+		  #:type 'long
+		  #:value "CHOP_STORE_BLOCK_UNAVAIL"
+		  #:description "Block unavailable")
+
+  (wrap-constant! ws
+		  #:name 'store/end
+		  #:type 'long
+		  #:value "CHOP_STORE_END"
+		  #:description "End of block store")
+
+  ;; types
+
   (add-type! ws (make <chop-block-key-type>
 		  #:name '<block-key>))
 
