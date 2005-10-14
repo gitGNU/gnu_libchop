@@ -5,7 +5,7 @@
 
 /* Definition of the `chop_stream_t' class.  */
 
-static void
+static errcode_t
 stream_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_stream_t *stream;
@@ -14,6 +14,8 @@ stream_ctor (chop_object_t *object, const chop_class_t *class)
   stream->name = NULL;
   stream->read = NULL;
   stream->close = NULL;
+
+  return 0;
 }
 
 static void

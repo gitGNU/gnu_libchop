@@ -6,7 +6,7 @@
 #include <errno.h>
 
 
-static void
+static errcode_t
 log_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_log_t *log = (chop_log_t *)object;
@@ -20,6 +20,8 @@ log_ctor (chop_object_t *object, const chop_class_t *class)
   log->copy_ctor = NULL;
 
   log->name = NULL;
+
+  return 0;
 }
 
 static void

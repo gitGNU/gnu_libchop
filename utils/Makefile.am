@@ -1,7 +1,8 @@
 
-bin_PROGRAMS = chop-file chop-archiver chop-store-list	\
+bin_PROGRAMS = chop-archiver chop-store-list		\
                chop-show-anchors chop-show-similarities	\
 	       chop-block-server chop-store-convert
+noinst_PROGRAMS = chop-file
 bin_SCRIPTS = chop-rcs.sh
 
 AM_CPPFLAGS = -I$(srcdir)/src

@@ -138,10 +138,20 @@ do_archive (chop_stream_t *stream, chop_block_store_t *data_store,
 {
   errcode_t err;
   chop_buffer_t buffer;
+  chop_block_indexer_t *block_indexer;
   chop_index_handle_t *handle;
 
-  handle = chop_indexer_alloca_index_handle (indexer);
-  err = chop_indexer_index_blocks (indexer, chopper,
+  block_indexer = chop_class_alloca_instance (&chop_hash_block_indexer_class);
+  err = chop_hash_block_indexer_open (CHOP_HASH_SHA1,
+				      block_indexer);
+  if (err)
+    {
+      com_err (program_name, err, "while opening hash block indexer");
+      return err;
+    }
+
+  handle = chop_block_indexer_alloca_index_handle (block_indexer);
+  err = chop_indexer_index_blocks (indexer, chopper, block_indexer,
 				   data_store, metadata_store, handle);
   if ((err) && (err != CHOP_STREAM_END))
     {
@@ -161,8 +171,8 @@ do_archive (chop_stream_t *stream, chop_block_store_t *data_store,
   if (err)
     exit (12);
 
-  err = chop_object_serialize ((chop_object_t *)handle, CHOP_SERIAL_ASCII,
-			       &buffer);
+  err = chop_ascii_serialize_index_tuple (handle, block_indexer,
+					  &buffer);
   if (err)
     {
       com_err (program_name, err, "while serializing index handle");
@@ -180,6 +190,7 @@ do_archive (chop_stream_t *stream, chop_block_store_t *data_store,
 
   chop_buffer_return (&buffer);
   chop_object_destroy ((chop_object_t *)handle);
+  chop_object_destroy ((chop_object_t *)block_indexer);
 
   if (verbose)
     fprintf (stdout, "chop: archive done\n");
@@ -190,7 +201,8 @@ do_archive (chop_stream_t *stream, chop_block_store_t *data_store,
 /* Retrieve data pointed to by HANDLE from DATA_STORE and METADATA_STORE
    using INDEXER and display it.  */
 errcode_t
-do_retrieve (chop_index_handle_t *handle, chop_block_store_t *data_store,
+do_retrieve (chop_index_handle_t *handle, chop_block_fetcher_t *fetcher,
+	     chop_block_store_t *data_store,
 	     chop_block_store_t *metadata_store, chop_indexer_t *indexer)
 {
   errcode_t err;
@@ -198,7 +210,7 @@ do_retrieve (chop_index_handle_t *handle, chop_block_store_t *data_store,
   char buffer[3577];  /* Dummy size chosen on purpose */
 
   stream = chop_indexer_alloca_stream (indexer);
-  err = chop_indexer_fetch_stream (indexer, handle,
+  err = chop_indexer_fetch_stream (indexer, handle, fetcher,
 				   data_store, metadata_store,
 				   stream);
   if (err)
@@ -311,22 +323,52 @@ process_command (const char *argument,
     }
   else if (restore_queried)
     {
+      size_t arg_len, bytes_read;
       chop_index_handle_t *handle;
-      const chop_class_t *handle_class;
+      chop_block_fetcher_t *fetcher;
+      const chop_class_t *fetcher_class, *handle_class;
 
-      handle = chop_indexer_alloca_index_handle (indexer);
-      handle_class = chop_indexer_index_handle_class (indexer);
-      err = chop_object_deserialize ((chop_object_t *)handle,
-				     handle_class, CHOP_SERIAL_ASCII,
-				     argument, strlen (argument) + 1);
+      arg_len = strlen (argument) + 1;
+      err = chop_ascii_deserialize_index_tuple_s1 (argument, arg_len,
+						   &fetcher_class,
+						   &handle_class,
+						   &bytes_read);
       if (err)
 	{
-	  com_err (program_name, err, "while deserializing index handle");
+	  com_err (program_name, err,
+		   "during stage 1 of the index deserialization");
 	  return err;
 	}
 
-      err = do_retrieve (handle,
+      fetcher = chop_class_alloca_instance (fetcher_class);
+      handle = chop_class_alloca_instance (handle_class);
+
+      err = chop_ascii_deserialize_index_tuple_s2 (argument + bytes_read,
+						   arg_len - bytes_read,
+						   fetcher_class,
+						   handle_class,
+						   fetcher, handle,
+						   &bytes_read);
+      if (err)
+	{
+	  com_err (program_name, err,
+		   "during stage 2 of the index deserialization");
+	  return err;
+	}
+
+      if (verbose)
+	{
+	  chop_log_t *fetcher_log = chop_hash_block_fetcher_log (fetcher);
+
+	  if (fetcher_log)
+	    chop_log_attach (fetcher_log, 2, 0);
+	}
+
+      err = do_retrieve (handle, fetcher,
 			 THE_STORE (data), THE_STORE (metadata), indexer);
+
+      chop_object_destroy ((chop_object_t *)handle);
+      chop_object_destroy ((chop_object_t *)fetcher);
     }
 #undef THE_STORE
   else
@@ -492,9 +534,7 @@ main (int argc, char *argv[])
     }
 
   indexer = chop_class_alloca_instance (&chop_hash_tree_indexer_class);
-  err = chop_hash_tree_indexer_open (CHOP_HASH_SHA1, CHOP_HASH_SHA1,
-				     cipher_handle,
-				     100 /* keys per block */,
+  err = chop_hash_tree_indexer_open (12 /* keys per block */,
 				     indexer);
   if (err)
     {

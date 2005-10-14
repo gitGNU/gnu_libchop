@@ -4,6 +4,10 @@
 #include <errno.h>
 #include <assert.h>
 
+#ifdef DEBUG
+# include <stdio.h>
+#endif
+
 
 static __inline__ errcode_t
 chop_hash_tree_indexer_open_alloc (chop_hash_method_t content_hash_method,
@@ -117,6 +121,13 @@ chop_index_handle_ascii_deserialize (chop_indexer_t *indexer,
 
   handle_class = chop_indexer_index_handle_class (indexer);
   *handle = scm_malloc (chop_class_instance_size (handle_class));
+
+#ifdef DEBUG
+  fprintf (stderr, "%s: deserializing index handle, class `%s', size %u\n",
+	   __FUNCTION__,
+	   chop_class_name (handle_class),
+	   chop_class_instance_size (handle_class));
+#endif
 
   err = chop_object_deserialize ((chop_object_t *)*handle, handle_class,
 				 CHOP_SERIAL_ASCII,

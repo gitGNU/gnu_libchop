@@ -70,6 +70,8 @@ main (int argc, char *argv[])
   chop_class_t *store_class;
   chop_block_store_t *store, *metastore;
   chop_chopper_t *chopper;
+  chop_block_indexer_t *block_indexer;
+  chop_block_fetcher_t *block_fetcher;
   chop_indexer_t *indexers[5];
   chop_indexer_t **current_indexer;
   chop_index_handle_t *handle;
@@ -107,29 +109,28 @@ main (int argc, char *argv[])
   chopper = chop_class_alloca_instance ((chop_class_t *)
 					&chop_fixed_size_chopper_class);
 
+  /* Choose a reasonable block indexer and its corresponding fetcher.  */
+  block_indexer = chop_class_alloca_instance (&chop_hash_block_indexer_class);
+  err = chop_hash_block_indexer_open (CHOP_HASH_SHA1, block_indexer);
+  test_check_errcode (err, "initializing a hash block indexer");
+
+  block_fetcher = chop_block_indexer_alloca_fetcher (block_indexer);
+  err = chop_block_indexer_initialize_fetcher (block_indexer, block_fetcher);
+  test_check_errcode (err, "initializing a hash block fetcher");
+
   /* Initialize of series of indexers to be tested.  */
   indexers[0] = chop_class_alloca_instance (&chop_hash_tree_indexer_class);
-  err = chop_hash_tree_indexer_open (CHOP_HASH_NONE, CHOP_HASH_SHA1,
-				     CHOP_CIPHER_HANDLE_NIL,
-				     12,
-				     indexers[0]);
+  err = chop_hash_tree_indexer_open (12, indexers[0]);
   if (err)
     goto indexer_error;
 
   indexers[1] = chop_class_alloca_instance (&chop_hash_tree_indexer_class);
-  err = chop_hash_tree_indexer_open (CHOP_HASH_NONE, CHOP_HASH_SHA256,
-				     CHOP_CIPHER_HANDLE_NIL,
-				     47,
-				     indexers[1]);
+  err = chop_hash_tree_indexer_open (47, indexers[1]);
   if (err)
     goto indexer_error;
 
   indexers[2] = chop_class_alloca_instance (&chop_hash_tree_indexer_class);
-  err = chop_hash_tree_indexer_open (CHOP_HASH_SHA1, CHOP_HASH_SHA1,
-				     chop_cipher_open (CHOP_CIPHER_BLOWFISH,
-						       CHOP_CIPHER_MODE_ECB),
-				     40,
-				     indexers[2]);
+  err = chop_hash_tree_indexer_open (40, indexers[2]);
   if (err)
     goto indexer_error;
 
@@ -153,11 +154,12 @@ main (int argc, char *argv[])
       INIT_CHOPPER ();
       INIT_STORES ();
 
-      handle = chop_indexer_alloca_index_handle (*current_indexer);
+      handle = chop_block_indexer_alloca_index_handle (block_indexer);
 
       /* Index STREAM.  */
       test_stage_intermediate ("indexing");
       err = chop_indexer_index_blocks (*current_indexer, chopper,
+				       block_indexer,
 				       store, metastore, handle);
       if ((err) && (err != CHOP_STREAM_END))
 	{
@@ -169,8 +171,9 @@ main (int argc, char *argv[])
       test_stage_intermediate ("fetching");
       fetched_stream =
 	chop_class_alloca_instance
-	(chop_indexer_index_handle_class (*current_indexer));
+	(chop_indexer_stream_class (*current_indexer));
       err = chop_indexer_fetch_stream (*current_indexer, handle,
+				       block_fetcher,
 				       store, metastore, fetched_stream);
 
       test_check_errcode (err, "fetching indexed stream");

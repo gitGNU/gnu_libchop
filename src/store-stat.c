@@ -221,7 +221,7 @@ chop_stat_block_store_stats (const chop_block_store_t *store)
 
 /* The `chop_block_store_stats_t' class.  */
 
-static void
+static errcode_t
 stats_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_block_store_stats_t *stats =
@@ -230,6 +230,8 @@ stats_ctor (chop_object_t *object, const chop_class_t *class)
   stats->name = NULL;
 
   chop_block_store_stats_clear (stats);
+
+  return 0;
 }
 
 static void

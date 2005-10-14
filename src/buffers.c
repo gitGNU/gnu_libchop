@@ -52,7 +52,10 @@ chop_buffer_init (chop_buffer_t *buffer, size_t size)
 {
 #ifdef ENABLE_POOL
   if (find_buffer_in_pool (size, buffer))
-    return 0;
+    {
+      buffer->size = 0;
+      return 0;
+    }
 #endif
 
   buffer->buffer = (char *)calloc (1, size);

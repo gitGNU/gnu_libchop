@@ -12,7 +12,7 @@ CHOP_DECLARE_RT_CLASS (remote_block_store, block_store,
 		       chop_log_t log;
 		       CLIENT *rpc_client;);
 
-static void
+static errcode_t
 remote_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_remote_block_store_t *remote;
@@ -21,8 +21,7 @@ remote_ctor (chop_object_t *object, const chop_class_t *class)
 
   remote->rpc_client = NULL;
 
-  /* XXX:  Hoping this call will not return an error.  */
-  chop_log_init ("remote-block-store", &remote->log);
+  return chop_log_init ("remote-block-store", &remote->log);
 }
 
 static void

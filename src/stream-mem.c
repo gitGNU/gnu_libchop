@@ -14,7 +14,7 @@ static errcode_t chop_mem_stream_read (chop_stream_t *,
 				       char *, size_t, size_t *);
 
 /* The constructor.  */
-static void
+static errcode_t
 mem_stream_ctor (chop_object_t *object,
 		 const chop_class_t *class)
 {
@@ -28,6 +28,8 @@ mem_stream_ctor (chop_object_t *object,
   stream->base = NULL;
   stream->offset = stream->size = 0;
   stream->free_func = NULL;
+
+  return 0;
 }
 
 static void

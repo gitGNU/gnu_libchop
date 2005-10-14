@@ -169,7 +169,7 @@ ab_generic_open (chop_stream_t *input, size_t average_size,
 					  chopper));
 }
 
-static void ab_ctor (chop_object_t *, const chop_class_t *);
+static errcode_t ab_ctor (chop_object_t *, const chop_class_t *);
 static void ab_dtor (chop_object_t *);
 
 CHOP_DEFINE_RT_CLASS_WITH_METACLASS (anchor_based_chopper, chopper,
@@ -723,7 +723,7 @@ compute_window_fingerprint (chop_anchor_based_chopper_t *anchor,
 
 
 /* Initialization code.  */
-static void
+static errcode_t
 ab_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_anchor_based_chopper_t *chopper =
@@ -741,6 +741,8 @@ ab_ctor (chop_object_t *object, const chop_class_t *class)
 #else
   JIT_MULTIPLIER_INIT (chopper->jit_multiply_with_prime_to_the_ws);
 #endif
+
+  return 0;
 }
 
 static void

@@ -10,7 +10,7 @@
 
 
 /* The constructor of class objects.  */
-static void
+static errcode_t
 _class_primitive_init (chop_object_t *object,
 		       const chop_class_t *metaclass)
 {
@@ -21,6 +21,8 @@ _class_primitive_init (chop_object_t *object,
   class->destructor = NULL;
   class->serializer = NULL;
   class->deserializer = NULL;
+
+  return 0;
 }
 
 /* The destructor of classes.  */
@@ -32,10 +34,11 @@ _class_primitive_destroy (chop_object_t *object)
 }
 
 /* Primitive object constructor.  */
-static void
+static errcode_t
 _object_primitive_init (chop_object_t *object, const chop_class_t *class)
 {
   object->class = class;
+  return 0;
 }
 
 /* Destructor of `chop_object_t' objects.  */
@@ -67,10 +70,11 @@ const chop_class_t chop_object_class =
 
 /* Run-time object system support code.  */
 
-void
+errcode_t
 chop_object_initialize (chop_object_t *object,
 			const chop_class_t *class)
 {
+  errcode_t err = 0;
   int parentcnt = 0;
   const chop_class_t *parent, *parents[256];
 
@@ -91,14 +95,23 @@ chop_object_initialize (chop_object_t *object,
 	   parent = parents[--parentcnt])
 	{
 	  if (parent->constructor)
-	    parent->constructor (object, class);
+	    {
+	      err = parent->constructor (object, class);
+	      if (err)
+		break;
+	    }
 	}
     }
 
-  if (class->constructor)
-    class->constructor (object, class);
+  if (!err)
+    {
+      if (class->constructor)
+	class->constructor (object, class);
 
-  object->class = (chop_class_t *)class;
+      object->class = (chop_class_t *)class;
+    }
+
+  return err;
 }
 
 void
@@ -122,8 +135,14 @@ chop_object_destroy (chop_object_t *object)
 /* The following header declares a class.  */
 #include <chop/store-stats.h>
 
-/* Class definitions that are internal to `indexer-hash-tree.c' (FIXME).  */
-extern const chop_class_t chop_chk_index_handle_class,
+/* Class definitions that are internal to `indexer-hash-tree.c',
+   `block-indexer-hash.c' and `block-indexer-chk.c'.  (FIXME)  */
+extern const chop_class_t chop_hash_index_handle_class,
+  chop_hash_block_indexer_class,
+  chop_hash_block_fetcher_class,
+  chop_chk_index_handle_class,
+  chop_chk_block_indexer_class,
+  chop_chk_block_fetcher_class,
   chop_hash_tree_stream_class;
 
 /* Include the gperf-generated perfect hash table.  */

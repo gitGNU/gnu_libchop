@@ -7,7 +7,7 @@
 
 /* Define the `chop_filter_t' class.  */
 
-static void
+static errcode_t
 filter_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_filter_t *filter = (chop_filter_t *)object;
@@ -15,6 +15,8 @@ filter_ctor (chop_object_t *object, const chop_class_t *class)
   filter->input_fault_handler.handle = NULL;
   filter->output_fault_handler.handle = NULL;
   filter->within_fault_handler = 0;
+
+  return 0;
 }
 
 CHOP_DEFINE_RT_CLASS (filter, object,

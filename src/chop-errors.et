@@ -39,8 +39,11 @@ error_code CHOP_STORE_ERROR,
 error_code CHOP_STORE_END,
 	   "End of block store"
 
+error_code CHOP_BLOCK_INDEXER_ERROR,
+           "Block indexer generic error"
+
 error_code CHOP_INDEXER_ERROR,
-           "Indexer generic error"
+           "Stream indexer generic error"
 
 error_code CHOP_STORE_BLOCK_UNAVAIL,
 	   "Block is unavailable in the underlying block store"

@@ -21,8 +21,8 @@ CHOP_DEFINE_RT_CLASS (chopper_class, class,
 
 /* Class definitions.  */
 
-static void fixed_size_chopper_ctor (chop_object_t *object,
-				     const chop_class_t *class);
+static errcode_t fixed_size_chopper_ctor (chop_object_t *object,
+					  const chop_class_t *class);
 
 
 /* Declare `chop_fixed_size_chopper_t' which inherits from
@@ -61,7 +61,7 @@ static errcode_t chop_fixed_chopper_read_block (chop_chopper_t *,
 						size_t *);
 
 /* The constructor.  */
-static void
+static errcode_t
 fixed_size_chopper_ctor (chop_object_t *object,
 			 const chop_class_t *class)
 {
@@ -72,6 +72,8 @@ fixed_size_chopper_ctor (chop_object_t *object,
   fixed->chopper.read_block = chop_fixed_chopper_read_block;
   fixed->chopper.typical_block_size = 0;
   fixed->chopper.close = NULL;
+
+  return 0;
 }
 
 errcode_t

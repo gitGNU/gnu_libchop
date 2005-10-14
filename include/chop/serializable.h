@@ -39,9 +39,10 @@ typedef errcode_t (* chop_serializer_t) (const chop_object_t *,
 typedef errcode_t (* chop_deserializer_t) (const char *buffer,
 					   size_t size,
 					   chop_serial_method_t,
-					   chop_object_t *);
-typedef void (* chop_constructor_t) (chop_object_t *,
-				     const chop_class_t *);
+					   chop_object_t *,
+					   size_t *bytes_read);
+typedef errcode_t (* chop_constructor_t) (chop_object_t *,
+					  const chop_class_t *);
 typedef void (* chop_destructor_t) (chop_object_t *);
 
 struct chop_object
@@ -166,26 +167,30 @@ chop_ ## _name ## _t;
 
 /* Initialize OBJECT which is to be an instance of CLASS.  This allows for
    "virtual constructors" in C++ terms.  This means that it can also be
-   relativey costly since it may yield several function calls.  */
-extern void chop_object_initialize (chop_object_t *object,
-				    const chop_class_t *class);
+   relativey costly since it may yield several function calls.  If
+   initialization fails, an error is returned.  */
+extern errcode_t chop_object_initialize (chop_object_t *object,
+					 const chop_class_t *class);
 
 /* Initialize OBJECT, which is expected to be of type CLASS, by deserializing
    BUFFER (of SIZE bytes), according to METHOD.  On success, zero is returned
    and OBJECT is initialized.  Otherwise, OBJECT is left in an undefined
-   state.  */
+   state.  On success, BYTES_READ is set to the number of bytes that were
+   read from BUFFER in order to deserialize OBJECT.  */
 static __inline__ errcode_t
 chop_object_deserialize (chop_object_t *__object,
 			 const chop_class_t *__class,
 			 chop_serial_method_t __method,
 			 const char *__buffer,
-			 size_t __size)
+			 size_t __size,
+			 size_t *__bytes_read)
 {
   if (!__class->deserializer)
     return CHOP_ERR_NOT_IMPL;
 
   __object->class = __class;
-  return (__class->deserializer (__buffer, __size, __method, __object));
+  return (__class->deserializer (__buffer, __size, __method,
+				 __object, __bytes_read));
 }
 
 /* Destroy OBJECT, i.e. deallocate any resources allocated by it.  */

@@ -4,6 +4,9 @@ EXTRA_DIST = filter-zip-push-pull.c store-generic-db.c \
 
 lib_LTLIBRARIES = libchop.la libchop-block-server.la
 
+libchop_la_LDFLAGS = -version-info 0:0:0
+libchop_block_server_la_LDFLAGS = -version-info 0:0:0
+
 libchop_la_SOURCES = chop.c chop-errors.c logs.c			\
 		     chopper-fixed-size.c				\
                      chopper-anchor-based.c				\
@@ -15,7 +18,9 @@ libchop_la_SOURCES = chop.c chop-errors.c logs.c			\
 		     store-filtered.c					\
 		     store-smart.c					\
 		     store-stat.c					\
-		     indexer-hash-tree.c				\
+		     block-indexers.c					\
+		     block-indexer-hash.c				\
+		     indexers.c indexer-hash-tree.c			\
 		     filters.c						\
 		     filter-zlib-zip.c filter-zlib-unzip.c		\
 		     stream-file.c stream-mem.c # stream-ext2.c 

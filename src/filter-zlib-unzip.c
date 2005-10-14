@@ -24,7 +24,7 @@ static errcode_t
 chop_zlib_unzip_pull (chop_filter_t *filter, int flush,
 		      char *buffer, size_t size, size_t *pulled);
 
-static void
+static errcode_t
 zlib_unzip_filter_ctor (chop_object_t *object,
 		      const chop_class_t *class)
 {
@@ -36,7 +36,7 @@ zlib_unzip_filter_ctor (chop_object_t *object,
   zfilter->zstream.zalloc = Z_NULL;
   zfilter->zstream.zfree = Z_NULL;
   zfilter->zstream.opaque = Z_NULL;
-  chop_log_init ("zlib-unzip-filter", &zfilter->filter.log);
+  return chop_log_init ("zlib-unzip-filter", &zfilter->filter.log);
 }
 
 CHOP_DEFINE_RT_CLASS (zlib_unzip_filter, filter,

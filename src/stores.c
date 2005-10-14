@@ -2,7 +2,7 @@
 #include <chop/stores.h>
 
 
-static void
+static errcode_t
 store_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_block_store_t *store =
@@ -19,6 +19,8 @@ store_ctor (chop_object_t *object, const chop_class_t *class)
   store->next_key = NULL;
   store->close = NULL;
   store->sync = NULL;
+
+  return 0;
 }
 
 CHOP_DEFINE_RT_CLASS (block_store, object,

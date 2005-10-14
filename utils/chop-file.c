@@ -1,3 +1,7 @@
+/* An example of how to use libchop.  Given a number of fixed parameters,
+   this programs cuts a file into blocks and stores them into a block
+   store (i.e. a block database).  */
+
 #include <chop/chop.h>
 #include <chop/streams.h>
 #include <chop/choppers.h>
@@ -17,6 +21,7 @@ main (int argc, char *argv[])
   chop_stream_t *stream;
   chop_block_store_t *store, *metastore;
   chop_chopper_t *chopper;
+  chop_block_indexer_t *block_indexer;
   chop_indexer_t *indexer;
   chop_buffer_t buffer;
   chop_index_handle_t *handle = NULL;
@@ -47,14 +52,19 @@ main (int argc, char *argv[])
       exit (2);
     }
 
-  indexer = chop_class_alloca_instance (&chop_hash_tree_indexer_class);
-  err = chop_hash_tree_indexer_open (CHOP_HASH_NONE, CHOP_HASH_SHA1,
-				     CHOP_CIPHER_HANDLE_NIL,
-				     12,
-				     indexer);
+  block_indexer = chop_class_alloca_instance (&chop_hash_block_indexer_class);
+  err = chop_hash_block_indexer_open (CHOP_HASH_SHA1, block_indexer);
   if (err)
     {
-      com_err (argv[0], err, "failed to open tree-hash indexer");
+      com_err (argv[0], err, "failed to open hash block indexer");
+      exit (2);
+    }
+
+  indexer = chop_class_alloca_instance (&chop_hash_tree_indexer_class);
+  err = chop_hash_tree_indexer_open (12, indexer);
+  if (err)
+    {
+      com_err (argv[0], err, "failed to open tree indexer");
       exit (2);
     }
 
@@ -66,8 +76,8 @@ main (int argc, char *argv[])
   chop_dummy_block_store_open ("data", store);
   chop_dummy_block_store_open ("meta", metastore);
 
-  handle = chop_indexer_alloca_index_handle (indexer);
-  err = chop_indexer_index_blocks (indexer, chopper,
+  handle = chop_block_indexer_alloca_index_handle (block_indexer);
+  err = chop_indexer_index_blocks (indexer, chopper, block_indexer,
 				   store, metastore, handle);
   if ((err) && (err != CHOP_STREAM_END))
     {

@@ -1,4 +1,4 @@
-check_PROGRAMS = filters stores choppers cipher indexers
+check_PROGRAMS = filters stores choppers cipher block-indexers indexers
 
 if HAVE_GPERF
 check_PROGRAMS += class-lookup
