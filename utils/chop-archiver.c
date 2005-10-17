@@ -533,9 +533,9 @@ main (int argc, char *argv[])
 	return 1;
     }
 
-  indexer = chop_class_alloca_instance (&chop_hash_tree_indexer_class);
-  err = chop_hash_tree_indexer_open (12 /* keys per block */,
-				     indexer);
+  indexer = chop_class_alloca_instance (&chop_tree_indexer_class);
+  err = chop_tree_indexer_open (100 /* keys per block */,
+				indexer);
   if (err)
     {
       com_err (program_name, err, "failed to open tree-hash indexer");
@@ -702,7 +702,7 @@ main (int argc, char *argv[])
 
   /* */
   err = process_command (option_argument, store, metastore,
-			 indexer, chop_hash_tree_indexer_log (indexer));
+			 indexer, chop_tree_indexer_log (indexer));
 
   if ((archive_queried) && (show_stats))
     {

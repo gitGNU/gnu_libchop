@@ -20,7 +20,7 @@ libchop_la_SOURCES = chop.c chop-errors.c logs.c			\
 		     store-stat.c					\
 		     block-indexers.c					\
 		     block-indexer-hash.c				\
-		     indexers.c indexer-hash-tree.c			\
+		     indexers.c indexer-tree.c				\
 		     filters.c						\
 		     filter-zlib-zip.c filter-zlib-unzip.c		\
 		     stream-file.c stream-mem.c # stream-ext2.c 

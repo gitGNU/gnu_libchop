@@ -17,6 +17,20 @@ CHOP_DECLARE_RT_CLASS (hash_index_handle, index_handle,
 		       size_t key_size;   /* size of the block key */
 		       char content[1024];/* the block key */);
 
+/* Define this to enable the use of magic bytes in the header of serialized
+   `hash_index_handle' objects.  This may help find out the cause of
+   consistency problems.  */
+#undef BINARY_SERIALIZATION_USES_MAGIC_BYTES
+
+
+#ifndef BINARY_SERIALIZATION_USES_MAGIC_BYTES
+# define BINARY_SERIALIZATION_HEADER_SIZE  (8)
+#else
+# define BINARY_SERIALIZATION_MAGIC        "HiH"
+# define BINARY_SERIALIZATION_MAGIC_SIZE   4 /* include trailing \0 */
+# define BINARY_SERIALIZATION_HEADER_SIZE  (12)
+#endif
+
 
 static errcode_t
 hih_serialize (const chop_object_t *object, chop_serial_method_t method,
@@ -47,8 +61,16 @@ hih_serialize (const chop_object_t *object, chop_serial_method_t method,
 
     case CHOP_SERIAL_BINARY:
       {
+	errcode_t err;
 	size_t orig_size;
 	unsigned char size[8];
+
+#ifdef BINARY_SERIALIZATION_USES_MAGIC_BYTES
+	err = chop_buffer_push (buffer, BINARY_SERIALIZATION_MAGIC,
+				BINARY_SERIALIZATION_MAGIC_SIZE);
+	if (err)
+	  return err;
+#endif
 
 	orig_size = handle->block_size;
 	size[0] = orig_size & 0xff;  orig_size >>= 8;
@@ -64,10 +86,15 @@ hih_serialize (const chop_object_t *object, chop_serial_method_t method,
 	size[7] = orig_size & 0xff;  orig_size >>= 8;
 	assert (!orig_size);
 
+#ifndef BINARY_SERIALIZATION_USES_MAGIC_BYTES
 	chop_buffer_push (buffer, size, sizeof (size));
-	chop_buffer_append (buffer, handle->content, handle->key_size);
+#else
+	chop_buffer_append (buffer, size, sizeof (size));
+#endif
 
-	return 0;
+	err = chop_buffer_append (buffer, handle->content, handle->key_size);
+
+	return err;
       }
 
     default:
@@ -141,8 +168,19 @@ hih_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 	/* The serialized thing has to contain at least 4 bytes representing
 	   the size of the index itself and 4 bytes representing the size of
 	   the addressed block.  */
-	if (size < 8)
+	if (size < BINARY_SERIALIZATION_HEADER_SIZE)
 	  return CHOP_DESERIAL_CORRUPT_INPUT;
+
+#ifdef BINARY_SERIALIZATION_USES_MAGIC_BYTES
+	if (memcmp (buffer, BINARY_SERIALIZATION_MAGIC,
+		    BINARY_SERIALIZATION_MAGIC_SIZE))
+	  {
+	    printf ("didn't find hih magic bytes\n");
+	    return CHOP_DESERIAL_CORRUPT_INPUT;
+	  }
+
+	buffer += BINARY_SERIALIZATION_MAGIC_SIZE;
+#endif
 
 	block_size  = buffer[3]; block_size <<= 8;
 	block_size |= buffer[2]; block_size <<= 8;
@@ -156,17 +194,21 @@ hih_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 	index_size |= buffer[4];
 	handle->key_size = index_size;
 
-	if (size - 8 < index_size)
+	if (size - BINARY_SERIALIZATION_HEADER_SIZE < index_size)
 	  {
 	    printf ("expecting block size %u and "
 		    "index size %u but only %u bytes left",
-		    block_size, index_size, size - 8);
+		    block_size, index_size,
+		    size - BINARY_SERIALIZATION_HEADER_SIZE);
 	    err = CHOP_DESERIAL_TOO_SHORT;
 	  }
 	else
 	  {
 	    memcpy (handle->content, buffer + 8, index_size);
 	    *bytes_read = index_size + 8;
+#ifdef BINARY_SERIALIZATION_USES_MAGIC_BYTES
+	    *bytes_read += BINARY_SERIALIZATION_MAGIC_SIZE;
+#endif
 	  }
 
 	break;
@@ -180,7 +222,8 @@ hih_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
     /* The size of the binary representation of that handle: this includes
        the size of the `block_size' and `key_size' fields, currently 8
        bytes.  */
-    handle->index_handle.size = handle->key_size + 8;
+    handle->index_handle.size = handle->key_size
+      + BINARY_SERIALIZATION_HEADER_SIZE;
 
   return err;
 }
@@ -462,7 +505,8 @@ hash_block_index (chop_block_indexer_t *indexer,
 
   /* Again, the binary representation uses 8 bytes to store the `block_size'
      field.  */
-  hash_handle->index_handle.size = hash_size + 8;
+  hash_handle->index_handle.size =
+    hash_size + BINARY_SERIALIZATION_HEADER_SIZE;
 
   return err;
 }

@@ -60,8 +60,8 @@ main (int argc, char *argv[])
       exit (2);
     }
 
-  indexer = chop_class_alloca_instance (&chop_hash_tree_indexer_class);
-  err = chop_hash_tree_indexer_open (12, indexer);
+  indexer = chop_class_alloca_instance (&chop_tree_indexer_class);
+  err = chop_tree_indexer_open (12 /* indices per block */, indexer);
   if (err)
     {
       com_err (argv[0], err, "failed to open tree indexer");

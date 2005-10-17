@@ -119,18 +119,18 @@ main (int argc, char *argv[])
   test_check_errcode (err, "initializing a hash block fetcher");
 
   /* Initialize of series of indexers to be tested.  */
-  indexers[0] = chop_class_alloca_instance (&chop_hash_tree_indexer_class);
-  err = chop_hash_tree_indexer_open (12, indexers[0]);
+  indexers[0] = chop_class_alloca_instance (&chop_tree_indexer_class);
+  err = chop_tree_indexer_open (6, indexers[0]);
   if (err)
     goto indexer_error;
 
-  indexers[1] = chop_class_alloca_instance (&chop_hash_tree_indexer_class);
-  err = chop_hash_tree_indexer_open (47, indexers[1]);
+  indexers[1] = chop_class_alloca_instance (&chop_tree_indexer_class);
+  err = chop_tree_indexer_open (47, indexers[1]);
   if (err)
     goto indexer_error;
 
-  indexers[2] = chop_class_alloca_instance (&chop_hash_tree_indexer_class);
-  err = chop_hash_tree_indexer_open (40, indexers[2]);
+  indexers[2] = chop_class_alloca_instance (&chop_tree_indexer_class);
+  err = chop_tree_indexer_open (1023, indexers[2]);
   if (err)
     goto indexer_error;
 

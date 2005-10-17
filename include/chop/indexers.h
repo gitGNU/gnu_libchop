@@ -128,7 +128,7 @@ chop_ascii_serialize_index_tuple (const chop_index_handle_t *index,
 
 
 /* The class of the hash tree indexer, an actual indexer implementation.  */
-extern const chop_class_t chop_hash_tree_indexer_class;
+extern const chop_class_t chop_tree_indexer_class;
 
 #include <chop/hash.h>
 #include <chop/logs.h>
@@ -139,17 +139,16 @@ extern const chop_class_t chop_hash_tree_indexer_class;
    Block keys are then computed using KEY_HASH_METHOD.  KEYS_PER_BLOCK is the
    maximum number of block keys that should be stored in each key block (or
    "inode") when indexing streams.  HTREE must point to a memory region as
-   large as needed by instances of CHOP_HASH_TREE_INDEXER_CLASS.
+   large as needed by instances of CHOP_TREE_INDEXER_CLASS.
    CIPHER_HANDLE may be either CHOP_CIPHER_HANDLE_NIL, in which case blocks
    will not be ciphered, or an open cipher handle in which case it will be
    used to cipher blocks individually.  */
-extern errcode_t
-chop_hash_tree_indexer_open (size_t indexes_per_block,
-			     chop_indexer_t *htree);
+extern errcode_t chop_tree_indexer_open (size_t indexes_per_block,
+					 chop_indexer_t *htree);
 
 /* Return the log attached to INDEXER, assuming INDEXER's class is
-   CHOP_HASH_TREE_INDEXER_CLASS.  */
-extern chop_log_t *chop_hash_tree_indexer_log (chop_indexer_t *indexer);
+   CHOP_TREE_INDEXER_CLASS.  */
+extern chop_log_t *chop_tree_indexer_log (chop_indexer_t *indexer);
 
 
 #endif
