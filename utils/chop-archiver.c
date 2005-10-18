@@ -80,13 +80,12 @@ static int show_stats = 0;
 /* The remote block store host name or NULL.  */
 static char *remote_hostname = NULL;
 
-/* The ciphering algorithm.  */
-static char *cipher_algo = NULL;
-
 
 #ifdef HAVE_GPERF
 static char *file_based_store_class_name = "gdbm_block_store";
 static char *chopper_class_name = "fixed_size_chopper";
+static char *block_indexer_class_name = "hash_block_indexer";
+static char *block_indexer_ascii = "SHA1";
 #endif
 
 static struct argp_option options[] =
@@ -106,8 +105,6 @@ static struct argp_option options[] =
     { "zip",     'z', 0, 0,
       "Pass data blocks through a zlib filter to compress (resp. decompress) "
       "data when writing (resp. reading) to (resp. from) the archive" },
-    { "cipher",  'c', "ALGO", 0,
-      "Content-hash encrypt blocks using ALGO as the ciphering algorithm" },
     { "remote",  'R', "HOST", 0,
       "Use the remote block store located at HOST (using TCP) for both "
       "data and meta-data blocks" },
@@ -116,6 +113,10 @@ static struct argp_option options[] =
       "Use CLASS as the underlying file-based block store" },
     { "chopper", 'C', "CHOPPER", 0,
       "Use CHOPPER as the input stream chopper" },
+    { "block-indexer-class", 'i', "BI-CLASS", 0,
+      "Use BI-CLASS as the block-indexer class.  This implies `-I'." },
+    { "block-indexer", 'I', "BI", 0,
+      "Deserialize BI as an instance of BI-CLASS and use it." },
 #endif
 
     /* The main functions.  */
@@ -141,6 +142,7 @@ do_archive (chop_stream_t *stream, chop_block_store_t *data_store,
   chop_block_indexer_t *block_indexer;
   chop_index_handle_t *handle;
 
+#ifndef HAVE_GPERF
   block_indexer = chop_class_alloca_instance (&chop_hash_block_indexer_class);
   err = chop_hash_block_indexer_open (CHOP_HASH_SHA1,
 				      block_indexer);
@@ -149,6 +151,44 @@ do_archive (chop_stream_t *stream, chop_block_store_t *data_store,
       com_err (program_name, err, "while opening hash block indexer");
       return err;
     }
+#else
+  {
+    size_t bytes_read = 0;
+    const chop_class_t *block_indexer_class;
+
+    block_indexer_class = chop_class_lookup (block_indexer_class_name);
+    if (!block_indexer_class)
+      {
+	com_err (program_name, err, "%s: not a valid block indexer class name",
+		 block_indexer_class_name);
+	return err;
+      }
+
+    if (!chop_class_inherits (block_indexer_class, &chop_block_indexer_class))
+      {
+	com_err (program_name, err, "%s: not a block indexer class",
+		 block_indexer_class_name);
+	return err;
+      }
+
+    block_indexer = chop_class_alloca_instance (block_indexer_class);
+    err = chop_object_deserialize ((chop_object_t *)block_indexer,
+				   block_indexer_class, CHOP_SERIAL_ASCII,
+				   block_indexer_ascii,
+				   strlen (block_indexer_ascii),
+				   &bytes_read);
+    if (err)
+      {
+	com_err (program_name, err, "%s: failed to deserialize block indexer",
+		 block_indexer_ascii);
+	return err;
+      }
+
+    if (bytes_read < strlen (block_indexer_ascii))
+      fprintf (stderr, "%s: warning: %u: trailing garbage in block-indexer\n",
+	       program_name, bytes_read);
+  }
+#endif
 
   handle = chop_block_indexer_alloca_index_handle (block_indexer);
   err = chop_indexer_index_blocks (indexer, chopper, block_indexer,
@@ -424,29 +464,6 @@ open_db_store (const chop_file_based_store_class_t *class,
   return err;
 }
 
-static chop_cipher_handle_t
-get_cipher_handle (const char *algoname)
-{
-  errcode_t err;
-  chop_cipher_algo_t algo;
-  chop_cipher_handle_t handle = CHOP_CIPHER_HANDLE_NIL;
-
-  err = chop_cipher_algo_lookup (algoname, &algo);
-  if (err)
-    com_err (program_name, err, "%s: unknown ciphering algorithm",
-	     algoname);
-  else
-    {
-      /* The MODE argument below was chosen almost arbitrarily.  */
-      handle = chop_cipher_open (algo, CHOP_CIPHER_MODE_ECB);
-      if (handle == CHOP_CIPHER_HANDLE_NIL)
-	com_err (program_name, CHOP_INVALID_ARG,
-		 "while opening cipher algorithm `%s'", algoname);
-    }
-
-  return handle;
-}
-
 
 /* Parse a single option. */
 static error_t
@@ -480,9 +497,6 @@ parse_opt (int key, char *arg, struct argp_state *state)
     case 'z':
       use_zlib_filters = 1;
       break;
-    case 'c':
-      cipher_algo = arg;
-      break;
     case 'R':
       remote_hostname = arg;
       break;
@@ -492,6 +506,12 @@ parse_opt (int key, char *arg, struct argp_state *state)
       break;
     case 'C':
       chopper_class_name = arg;
+      break;
+    case 'i':
+      block_indexer_class_name = arg;
+      break;
+    case 'I':
+      block_indexer_ascii = arg;
       break;
 #endif
     default:
@@ -524,13 +544,6 @@ main (int argc, char *argv[])
     {
       com_err (argv[0], err, "while initializing libchop");
       return 1;
-    }
-
-  if (cipher_algo)
-    {
-      cipher_handle = get_cipher_handle (cipher_algo);
-      if (cipher_handle == CHOP_CIPHER_HANDLE_NIL)
-	return 1;
     }
 
   indexer = chop_class_alloca_instance (&chop_tree_indexer_class);

@@ -21,11 +21,19 @@ main (int argc, char *argv[])
   chop_block_indexer_t *block_indexers[40];
   size_t block_indexer_count = 0;
   chop_block_indexer_t **bi_it;
+  chop_cipher_handle_t cipher_handle;
   chop_buffer_t buffer;
 
   static char random_data[24567];
 
   test_init (argv[0]);
+  test_init_random_seed ();
+
+  {
+    char *p;
+    for (p = random_data; p < random_data + sizeof (random_data); p++)
+      *p = random () % 256;
+  }
 
   err = chop_init ();
   test_check_errcode (err, "initializing libchop");
@@ -54,7 +62,17 @@ main (int argc, char *argv[])
   test_check_errcode (err, "opening hash block indexer");
   block_indexer_count++;
 
-  /* XXX: Add new tests here.  */
+  block_indexers[block_indexer_count] =
+    chop_class_alloca_instance (&chop_chk_block_indexer_class);
+  cipher_handle = chop_cipher_open (CHOP_CIPHER_BLOWFISH,
+				    CHOP_CIPHER_MODE_ECB);
+  test_assert (cipher_handle != CHOP_CIPHER_HANDLE_NIL);
+  err = chop_chk_block_indexer_open (cipher_handle, 1,
+				     CHOP_HASH_SHA1, CHOP_HASH_SHA1,
+				     block_indexers[block_indexer_count]);
+  test_check_errcode (err, "opening CHK block indexer");
+  block_indexer_count++;
+
 
   block_indexers[block_indexer_count] = NULL;
 

@@ -140,6 +140,7 @@ AC_CONFIG_FILES([Makefile
 		 tests/include/Makefile
 		 tests/interfaces/Makefile
 		 tests/features/Makefile
-		 guile/Makefile])
+		 guile/Makefile
+		 doc/Makefile])
 
 AC_OUTPUT

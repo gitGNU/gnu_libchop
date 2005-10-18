@@ -42,6 +42,9 @@ error_code CHOP_STORE_END,
 error_code CHOP_BLOCK_INDEXER_ERROR,
            "Block indexer generic error"
 
+error_code CHOP_BLOCK_FETCHER_ERROR,
+           "Block fetcher generic error"
+
 error_code CHOP_INDEXER_ERROR,
            "Stream indexer generic error"
 

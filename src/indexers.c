@@ -67,7 +67,8 @@ chop_ascii_serialize_index_tuple (const chop_index_handle_t *index,
     goto finish;
 
   err = chop_buffer_append (buffer, chop_buffer_content (&ascii_object),
-			    chop_buffer_size (&ascii_object));
+			    /* don't append the trailing `\0' */
+			    chop_buffer_size (&ascii_object) - 1);
   if (err)
     goto finish;
 

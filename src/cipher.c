@@ -140,6 +140,12 @@ chop_cipher_algorithm (chop_cipher_handle_t handle)
   return (handle->algo);
 }
 
+chop_cipher_mode_t
+chop_cipher_mode (chop_cipher_handle_t handle)
+{
+  return (handle->mode);
+}
+
 size_t
 chop_cipher_algo_key_size (chop_cipher_algo_t algo)
 {

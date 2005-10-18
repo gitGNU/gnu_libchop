@@ -81,7 +81,7 @@ extern size_t chop_cipher_algo_block_size (chop_cipher_algo_t algo)
 #define CHOP_CIPHER_HANDLE_NIL  ((void *)0)
 
 /* Return a handle to the ciphering algorithm represented by ALGO, in mode
-   MODE, using the KEY_SIZE bytes pointed to by KEY as the ciphering key.  */ 
+   MODE, using the KEY_SIZE bytes pointed to by KEY as the ciphering key.  */
 extern chop_cipher_handle_t
 chop_cipher_open (chop_cipher_algo_t algo, chop_cipher_mode_t mode);
 
@@ -91,6 +91,10 @@ chop_cipher_copy (chop_cipher_handle_t handle);
 
 /* Return the algorithm used by HANDLE.  */
 extern chop_cipher_algo_t chop_cipher_algorithm (chop_cipher_handle_t handle)
+     _CHOP_PURE_FUNC;
+
+/* Return the cipher mode used by HANDLE.  */
+extern chop_cipher_mode_t chop_cipher_mode (chop_cipher_handle_t handle)
      _CHOP_PURE_FUNC;
 
 /* Set the ciphering key to be used with HANDLE.  If KEY_SIZE is invalid for

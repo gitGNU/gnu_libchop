@@ -366,6 +366,13 @@ hash_indexer_init_fetcher (const chop_block_indexer_t *block_indexer,
 }
 
 static errcode_t
+hash_block_index (chop_block_indexer_t *indexer,
+		  chop_block_store_t *store,
+		  const char *buffer,
+		  size_t size,
+		  chop_index_handle_t *handle);
+
+static errcode_t
 hbi_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_hash_block_indexer_t *indexer;
@@ -373,6 +380,7 @@ hbi_ctor (chop_object_t *object, const chop_class_t *class)
   indexer = (chop_hash_block_indexer_t *)object;
   indexer->block_indexer.index_handle_class = &chop_hash_index_handle_class;
   indexer->block_indexer.block_fetcher_class = &chop_hash_block_fetcher_class;
+  indexer->block_indexer.index_block = hash_block_index;
   indexer->block_indexer.init_fetcher = hash_indexer_init_fetcher;
 
   indexer->hash_method = CHOP_HASH_NONE;
@@ -450,8 +458,9 @@ hbi_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 	    }
 
 	  *bytes_read = name_len;
+	  name[name_len] = '\0';
 
-	  if (!chop_hash_method_lookup (name, &indexer->hash_method))
+	  if (chop_hash_method_lookup (name, &indexer->hash_method))
 	    return CHOP_INVALID_ARG;
 
 	  break;
@@ -521,7 +530,6 @@ chop_hash_block_indexer_open (chop_hash_method_t hash_method,
 			  &chop_hash_block_indexer_class);
 
   hash_indexer = (chop_hash_block_indexer_t *)indexer;
-  hash_indexer->block_indexer.index_block = hash_block_index;
   hash_indexer->hash_method = hash_method;
 
   return 0;

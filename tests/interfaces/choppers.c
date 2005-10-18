@@ -40,7 +40,7 @@ main (int argc, char *argv[])
        mem++)
     {
 /*       *mem = (random () % 64) + '!'; */
-      *mem = random () % 255;
+      *mem = random () % 256;
     }
 
   chop_buffer_init (&buffer, 0);

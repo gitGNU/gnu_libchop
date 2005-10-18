@@ -1,0 +1,199 @@
+\input texinfo  @c -*-texinfo-*-
+
+@c %**start of header
+@setfilename libchop.info
+@settitle Libchop File Chopping Library
+@footnotestyle end
+@setchapternewpage odd
+@c %**end of header
+
+@set EDITION 1
+@set VERSION 0.2
+@c @set UPDATED 2005-04-26
+
+
+@ifinfo
+@dircategory Development
+@direntry
+* libchop: (libchop).      The Libchop File Chopping Library.
+@end direntry
+
+This file documents libchop.
+
+Copyright @copyright{} 2005 Ludovic Court`es
+
+Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+Permission is granted to copy and distribute modified versions of this
+manual under the conditions for verbatim copying, provided that the
+entire resulting derived work is distributed under the terms of a
+permission notice identical to this one.
+
+Permission is granted to copy and distribute translations of this manual
+into another language, under the above conditions for modified versions,
+except that this permission notice may be stated in a translation
+approved by the Free Software Foundation.
+@end ifinfo
+
+@titlepage
+@title The Libchop File Chopping Library
+@subtitle for Libchop @value{VERSION}
+@author Ludovic Courtès
+
+@page
+@vskip 0pt plus 1filll
+Edition @value{EDITION} @*
+@value{UPDATED} @*
+
+Copyright @copyright{} 2005 Ludovic Court`es
+
+Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+Permission is granted to copy and distribute modified versions of this
+manual under the conditions for verbatim copying, provided that the
+entire resulting derived work is distributed under the terms of a
+permission notice identical to this one.
+
+Permission is granted to copy and distribute translations of this manual
+into another language, under the above conditions for modified versions,
+except that this permission notice may be stated in a translation
+approved by the Free Software Foundation.
+@end titlepage
+
+@contents
+
+@c *********************************************************************
+@node Top, Introduction, (dir), (dir)
+@top Libchop
+
+This document describes libchop version @value{VERSION}.
+
+@menu
+* Introduction::                
+* API Reference::               
+* Libchop's Object System::     
+* Utilities::                   
+* Guile Bindings::              
+@end menu
+
+@node Introduction, API Reference, Top, Top
+@chapter Introduction
+
+Libchop is a file hashing, ciphering, and indexing library.  This
+library provides a framework which allows:
+
+@enumerate
+
+@item to cut a file into pieces, store each of these blocks into a block
+      store, and then store sufficient information for later retrieval
+      and rebuilding of the indexed file;
+
+@item to restore (rebuild) a file based on an abstract index, reading
+      blocks from one (or several) block stores.
+
+@end enumerate
+
+Libchop decomposes these task with a fine grain, providing generic
+interfaces for each of the sub-tasks involved.  It also comes with
+several implementations of each of these interfaces that allow to
+quickly experiment with various strategies.  Since each one of these
+interfaces is minimal, it is usually easy to provide your own
+implementation of one of them while reusing the others.
+
+The following section gives an overview of the various interfaces and
+how they fit together.  The next one will give an insight on typical
+use cases of the techniques and algorithms implemented by Libchop.
+
+@menu
+* Overview::                    
+* Use Cases::                   
+@end menu
+
+@node Overview, Use Cases, Introduction, Introduction
+@section Overview
+
+@node Use Cases,  , Overview, Introduction
+@section Use Cases
+
+
+@c *********************************************************************
+@node API Reference, Libchop's Object System, Introduction, Top
+@chapter API Reference
+
+@menu
+* Input Streams::               
+* Stream Choppers::             
+* Block Stores::                
+* Block Indexers & Fetchers::   
+* Stream Indexers::             
+@end menu
+
+@node Input Streams, Stream Choppers, API Reference, API Reference
+@section Input Streams
+
+@node Stream Choppers, Block Stores, Input Streams, API Reference
+@section Stream Choppers
+
+@node Block Stores, Block Indexers & Fetchers, Stream Choppers, API Reference
+@section Block Stores
+
+@node Block Indexers & Fetchers, Stream Indexers, Block Stores, API Reference
+@section Block Indexers & Fetchers
+
+@node Stream Indexers,  , Block Indexers & Fetchers, API Reference
+@section Stream Indexers
+
+
+
+@c *********************************************************************
+@node Libchop's Object System, Utilities, API Reference, Top
+@chapter Libchop's Object System
+
+Libchop comes with its own lightweight reflexive object system.
+
+@c *********************************************************************
+@node Utilities, Guile Bindings, Libchop's Object System, Top
+@chapter Utilities
+
+Libchop comes with a number of utilities that exercise all its API.
+Using them is actually a good way to become familiar with libchop's
+interfaces and their implementations.
+
+
+@c *********************************************************************
+@node Guile Bindings,  , Utilities, Top
+@chapter Guile Bindings
+
+
+@c *********************************************************************
+
+
+
+@c *********************************************************************
+@c @node Concept Index, Command Index, Related Information, Top
+@c @unnumbered Concept Index
+@c @printindex cp
+
+@c @node Command Index, Variable Index, Concept Index, Top
+@c @unnumbered Command Index
+@c @printindex fn
+
+@c @node Variable Index,  , Command Index, Top
+@c @unnumbered Variable Index
+@c @printindex vr
+
+@bye
+
+
+@ignore
+;;; arch-tag: 107c2c3c-f614-469d-a1ac-6f146ec7dd0c
+@end ignore
+
+@c Local Variables:
+@c mode:outline-minor
+@c outline-regexp:"@\\(ch\\|sec\\|subs\\)"
+@c End:

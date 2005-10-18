@@ -19,7 +19,7 @@ libchop_la_SOURCES = chop.c chop-errors.c logs.c			\
 		     store-smart.c					\
 		     store-stat.c					\
 		     block-indexers.c					\
-		     block-indexer-hash.c				\
+		     block-indexer-hash.c block-indexer-chk.c		\
 		     indexers.c indexer-tree.c				\
 		     filters.c						\
 		     filter-zlib-zip.c filter-zlib-unzip.c		\

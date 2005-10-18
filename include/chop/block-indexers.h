@@ -168,9 +168,12 @@ chop_hash_block_indexer_open (chop_hash_method_t hash_method,
 			      chop_block_indexer_t *indexer);
 
 extern errcode_t
-chop_chk_block_indexer_open (chop_hash_method_t key_hash_method,
-			     chop_cipher_handle_t cipher_handle,
-			     chop_block_indexer_t *indexer);
+chop_chk_block_indexer_open (chop_cipher_handle_t cipher_handle,
+			     int owns_cipher_handle,
+			     chop_hash_method_t key_hash_method,
+			     chop_hash_method_t block_id_hash_method,
+			     chop_block_indexer_t *block_indexer);
+
 
 /* If FETCHER is an instance of CHOP_HASH_BLOCK_FETCHER_CLASS, then return
    its associated log, otherwise return NULL.  */
