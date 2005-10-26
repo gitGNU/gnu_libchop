@@ -14,8 +14,21 @@ CHOP_DECLARE_RT_CLASS (dummy_block_store, block_store,
 		       chop_log_t log;
 		       chop_block_store_t *backend;);
 
+static void
+dbs_dtor (chop_object_t *object)
+{
+  chop_dummy_block_store_t *dummy =
+    (chop_dummy_block_store_t *)object;
+
+  if (dummy->block_store.name)
+    free (dummy->block_store.name);
+  dummy->block_store.name = NULL;
+
+  chop_log_close (&dummy->log);
+}
+
 CHOP_DEFINE_RT_CLASS (dummy_block_store, block_store,
-		      NULL, NULL, /* No constructor/destructor */
+		      NULL, dbs_dtor,
 		      NULL, NULL  /* No serializer/deserializer */);
 
 
@@ -37,7 +50,7 @@ chop_dummy_block_store_block_exists (chop_block_store_t *store,
   *exists = 0;
 
   if (!dummy->backend)
-    return CHOP_ERR_NOT_IMPL;
+    return 0; /* CHOP_ERR_NOT_IMPL ? */
 
   err = chop_store_block_exists (dummy->backend, key, exists);
 
@@ -238,8 +251,12 @@ chop_dummy_block_store_close (chop_block_store_t *store)
   chop_log_printf (&dummy->log,
 		   "dummy: close (%s@%p)\n", store->name, store);
 
-  free (store->name);
-  store->name = NULL;
+  if (dummy->backend)
+    {
+      chop_store_close (dummy->backend);
+      dummy->backend = NULL;
+    }
+
   return 0;
 }
 
@@ -255,15 +272,21 @@ chop_dummy_block_store_open (const char *name,
   log_name = alloca (strlen (name) + 6 + 1);
   strcpy (log_name, "dummy/");
   strcpy (log_name + 6, name);
+
+  err = chop_object_initialize ((chop_object_t *)store,
+				&chop_dummy_block_store_class);
+  if (err)
+    return;  /* FIXME */
+
   err = chop_log_init (log_name, &dummy->log);
   if (err)
-    return; /* XXX */
-
-  chop_object_initialize ((chop_object_t *)store,
-			  &chop_dummy_block_store_class);
+    {
+      chop_object_destroy ((chop_object_t *)store);
+      return; /* FIXME */
+    }
 
   /* By default, dump to stderr */
-  chop_log_attach (&dummy->log, 2, 0);
+/*   chop_log_attach (&dummy->log, 2, 0); */
 
   store->name = strdup (name);
   store->block_exists = chop_dummy_block_store_block_exists;

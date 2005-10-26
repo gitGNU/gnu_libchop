@@ -98,6 +98,8 @@ main (int argc, char *argv[])
 				      random_data, sizeof (random_data),
 				      index);
       test_check_errcode (err, "indexing block");
+      test_assert (chop_object_is_a ((chop_object_t *)index,
+				     &chop_index_handle_class));
 
       test_stage_intermediate ("fetching");
       fetcher = chop_block_indexer_alloca_fetcher (*bi_it);

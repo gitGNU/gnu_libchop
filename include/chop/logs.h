@@ -69,17 +69,12 @@ static __inline__ void chop_log_detach (chop_log_t *__log)
   __log->dtor = NULL;
 }
 
-/* Close LOG.  */
+/* Close LOG.  Note that calling `chop_object_destroy ()' on LOG is still
+   necessary once this is done.  However, `chop_object_destroy ()' in effect
+   calls `chop_log_close ()', removing the need for two calls.  */
 static __inline__ void chop_log_close (chop_log_t *__log)
 {
   chop_log_detach (__log);
-
-  if (__log->name)
-    free (__log->name);
-
-  __log->name = NULL;
-  __log->attached = 0;
-  __log->fd = 0;
 }
 
 /* Attach LOG to file descriptor FD.  If EVENTUALLY_CLOSE is non-zero, then

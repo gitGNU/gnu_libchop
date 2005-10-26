@@ -276,6 +276,7 @@ do_retrieve (chop_index_handle_t *handle, chop_block_fetcher_t *fetcher,
     }
 
   chop_stream_close (stream);
+  chop_object_destroy ((chop_object_t *)stream);
 
   return 0;
 }
@@ -423,6 +424,8 @@ process_command (const char *argument,
     {
       chop_store_close (data_proxy);
       chop_store_close (metadata_proxy);
+      chop_object_destroy ((chop_object_t *)data_proxy);
+      chop_object_destroy ((chop_object_t *)metadata_proxy);
     }
 
   return err;

@@ -492,30 +492,38 @@ hash_block_index (chop_block_indexer_t *indexer,
   size_t hash_size;
 
   hash_indexer = (chop_hash_block_indexer_t *)indexer;
-  chop_object_initialize ((chop_object_t *)handle,
-			  &chop_hash_index_handle_class);
+  err = chop_object_initialize ((chop_object_t *)handle,
+				&chop_hash_index_handle_class);
+  if (err)
+    return err;
+
   hash_handle = (chop_hash_index_handle_t *)handle;
 
   hash_size = chop_hash_size (hash_indexer->hash_method);
   if ((!hash_size) || (hash_size > sizeof (hash_handle->content)))
     return CHOP_INVALID_ARG;
 
+  /* Compute an identifier for BUFFER using the user-specified hash
+     method.  */
   chop_hash_buffer (hash_indexer->hash_method, buffer, size,
 		    hash_handle->content);
   hash_handle->key_size = hash_size;
   chop_block_key_init (&key, hash_handle->content,
 		       hash_handle->key_size, NULL, NULL);
 
+  /* Write BUFFER to the backing store using this identifier.  */
   err = chop_store_write_block (store, &key, buffer, size);
   if (err)
     chop_object_destroy ((chop_object_t *)handle);
+  else
+    {
+      hash_handle->block_size = size;
 
-  hash_handle->block_size = size;
-
-  /* Again, the binary representation uses 8 bytes to store the `block_size'
-     field.  */
-  hash_handle->index_handle.size =
-    hash_size + BINARY_SERIALIZATION_HEADER_SIZE;
+      /* Again, the binary representation uses 8 bytes to store the
+	 `block_size' field.  */
+      hash_handle->index_handle.size =
+	hash_size + BINARY_SERIALIZATION_HEADER_SIZE;
+    }
 
   return err;
 }

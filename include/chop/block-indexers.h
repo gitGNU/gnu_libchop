@@ -1,12 +1,13 @@
 #ifndef __CHOP_BLOCK_INDEXERS_H__
 #define __CHOP_BLOCK_INDEXERS_H__
 
-/* This code is here as a reminder of what can be done to decouple single
-   block indexing/fetching from whole stream indexing/fetching.  */
-/* #error "Unused exploratory code!" */
-
 /* Block indexers really care about indexing single blocks and the opposite,
-   that is, fetching a block given its index.  */
+   that is, fetching a block given its index.  We actually have two different
+   classes (block indexers and block fetchers) only for practical purposes:
+   usually, less information is required to fetch a block (IOW, to
+   deserialize a fetcher) than to actually index it (the block indexer may
+   need to be told about algorithms to use that the fetcher doesn't have to
+   know).  See below a description of the whole serialization issue.  */
 
 #include <chop/chop.h>
 #include <chop/hash.h>
@@ -23,6 +24,9 @@ _CHOP_BEGIN_DECLS
 CHOP_DECLARE_RT_CLASS (index_handle, object,
 		       size_t size;);
 
+
+/* Return the size (in bytes) that the binary serialization of HANDLE is
+   supposed to need.  */
 static __inline__ size_t
 chop_index_handle_binary_size (const chop_index_handle_t *__handle)
 {
@@ -57,11 +61,6 @@ CHOP_DECLARE_RT_CLASS (block_fetcher, object,
 						  chop_block_store_t *,
 						  chop_buffer_t *,
 						  size_t *););
-
-
-/* This implies that subclasses (e.g. `chk_index_handle') will have to be
-   declared as classes whose meta-class is `index_handle_class', and defined
-   with `block_indexer_class' pointing to the right class.  */
 
 
 
@@ -121,6 +120,10 @@ chop_block_indexer_initialize_fetcher (const chop_block_indexer_t *__indexer,
   return (__indexer->init_fetcher (__indexer, __fetcher));
 }
 
+/* Using INDEXER, index the SIZE-byte long data block pointed to by BUFFER to
+   STORE.  On success, return zero and initialize HANDLE with an index handle
+   sufficient to restore that block from STORE using the corresponding
+   fetcher.  Otherwise, an error is returned.  */
 static __inline__ errcode_t
 chop_block_indexer_index (chop_block_indexer_t *__indexer,
 			  chop_block_store_t *__store,
@@ -131,6 +134,9 @@ chop_block_indexer_index (chop_block_indexer_t *__indexer,
 				  __buffer, __size, __handle));
 }
 
+/* Using FETCHER, fetch from STORE the data block whose index handle is
+   HANDLE.  On success, fill in BUFFER with its contents and set SIZE to its
+   size in bytes.  */
 static __inline__ errcode_t
 chop_block_fetcher_fetch (chop_block_fetcher_t *__fetcher,
 			  const chop_index_handle_t *__handle,
@@ -141,16 +147,22 @@ chop_block_fetcher_fetch (chop_block_fetcher_t *__fetcher,
 				  __buffer, __size));
 }
 
+/* Return the index handle class that is associated with the class of block
+   fetcher F.  */
 static __inline__ const chop_class_t *
 chop_block_fetcher_index_handle_class (const chop_block_fetcher_t *__f)
 {
   return (__f->index_handle_class);
 }
 
+/* Allocate on the stack enough room to store an index handle of the index
+   handle class associated to INDEXER's class.  */
 #define chop_block_indexer_alloca_index_handle(__indexer)				   \
 ((chop_index_handle_t *)							   \
  chop_class_alloca_instance (((chop_block_indexer_t *)(__indexer))->index_handle_class))
 
+/* Allocate on the stack enough room to store a block fetcher of the block
+   fetcher class associated to INDEXER's class.  */
 #define chop_block_indexer_alloca_fetcher(__indexer)				   \
 ((chop_block_fetcher_t *)							   \
  chop_class_alloca_instance (((chop_block_indexer_t *)(__indexer))->block_fetcher_class))
@@ -163,10 +175,22 @@ chop_block_fetcher_index_handle_class (const chop_block_fetcher_t *__f)
 extern const chop_class_t chop_hash_block_indexer_class;
 extern const chop_class_t chop_chk_block_indexer_class;
 
+/* Initialize INDEXER as a hash block indexer.  INDEXER will use HASH_METHOD
+   to compute the identifier of the given blocks and will use that identifier
+   when storing the block.  It leaves the block contents unchanged.  This
+   technique is known as ``content-based addressing'', or
+   ``compare-by-hash''.   */
 extern errcode_t
 chop_hash_block_indexer_open (chop_hash_method_t hash_method,
 			      chop_block_indexer_t *indexer);
 
+/* Initialize BLOCK_INDEXER as a CHK (meaning ``content-hash key'') block
+   indexer.  BLOCK_INDEXER will cipher data blocks using CIPHER_HANDLE and
+   the block's hash yielded by KEY_HASH_METHOD (this is symmetric
+   ciphering).  Finally, BLOCK_INDEXER will compute the block's identifier
+   using BLOCK_ID_HASH_METHOD.  This technique is known as ``convergent
+   encryption'' and the index yielded is sometimes referred to as a
+   ``content-hash key'' (in GNUnet/FreeNet terminology).  */
 extern errcode_t
 chop_chk_block_indexer_open (chop_cipher_handle_t cipher_handle,
 			     int owns_cipher_handle,

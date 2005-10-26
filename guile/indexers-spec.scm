@@ -18,11 +18,10 @@
 
 (define-module (indexers-spec)
   #:use-module (core-spec)
-  #:use-module (hash-spec)
-  #:use-module (cipher-spec)
   #:use-module (streams-spec)
   #:use-module (stores-spec)
   #:use-module (choppers-spec)
+  #:use-module (block-indexers-spec)
   #:use-module (logs-spec)
 
   #:use-module (oop goops)
@@ -45,7 +44,8 @@
 
 (define-class <chop-indexer-wrapset> (<gw-guile-wrapset>)
   #:id 'indexers
-  #:dependencies '(standard core hash cipher streams stores choppers logs))
+  #:dependencies '(standard core block-indexers streams stores choppers logs))
+
 
 
 (define-method (global-declarations-cg (ws <chop-indexer-wrapset>))
@@ -75,21 +75,14 @@
 			#:c-type-name "chop_indexer_t *"
 			#:c-const-type-name "const chop_indexer_t *")
 
-  (wrap-as-chop-object! ws
-			#:name '<index-handle>
-			#:c-type-name "chop_index_handle_t *"
-			#:c-const-type-name "const chop_index_handle_t *")
 
   ;; constructors
 
   (wrap-function! ws
-		  #:name 'hash-tree-indexer-open
-		  #:c-name "chop_hash_tree_indexer_open_alloc"
+		  #:name 'tree-indexer-open
+		  #:c-name "chop_tree_indexer_open_alloc"
 		  #:returns '<errcode>
-		  #:arguments '((hash-method content-hash-method)
-				(hash-method key-hash-method)
-				((<cipher-handle> aggregated) cipher)
-				(int keys-per-block (default 100))
+		  #:arguments '((int keys-per-block (default 100))
 				((<indexer> out) indexer)))
 
   ;; methods
@@ -100,6 +93,7 @@
 		  #:returns '<errcode>
 		  #:arguments '((<indexer> indexer)
 				(<chopper> input)
+				(<block-indexer> bi)
 				(<store> data-store)
 				(<store> meta-data-store)
 				((<index-handle> out) handle)))
@@ -110,31 +104,15 @@
 		  #:returns '<errcode>
 		  #:arguments '((<indexer> indexer)
 				(<index-handle> handle)
+				(<block-fetcher> bf)
 				(<store> data-store)
 				(<store> meta-data-store)
 				((<stream> out) stream)))
 
   (wrap-function! ws
-		  #:name 'index-handle-ascii-serialize
-		  ;; FIXME:  There is currently a leak here:  the returned
-		  ;; string is never freed.  That's a G-Wrap problem.
-		  #:returns '<errcode>
-		  #:c-name "chop_index_handle_ascii_serialize"
-		  #:arguments '((<index-handle> handle)
-				((mchars out caller-owned) serialized)))
-
-  (wrap-function! ws
-		  #:name 'index-handle-ascii-deserialize
-		  #:returns '<errcode>
-		  #:c-name "chop_index_handle_ascii_deserialize"
-		  #:arguments '((<indexer> indexer)
-				((mchars caller-owned) ascii-handle)
-				((<index-handle> out) handle)))
-
-  (wrap-function! ws
-		  #:name 'hash-tree-indexer-log
+		  #:name 'tree-indexer-log
 		  #:returns '<log>
-		  #:c-name "chop_hash_tree_indexer_log"
+		  #:c-name "chop_tree_indexer_log"
 		  #:arguments '((<indexer> indexer)))
 
 )

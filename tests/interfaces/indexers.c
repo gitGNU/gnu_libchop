@@ -149,12 +149,26 @@ main (int argc, char *argv[])
       chop_stream_t *fetched_stream;
 
       test_stage ("indexer #%u", current_indexer - indexers + 1);
-      chop_mem_stream_open (mem_stream_contents, sizeof (mem_stream_contents),
-			    NULL, stream);
+
+      /* Try to index an empty stream: this should result in a
+	 CHOP_INDEXER_EMPTY_SOURCE exception.  */
+      test_stage_intermediate ("empty source");
+      chop_mem_stream_open (mem_stream_contents, 0, NULL, stream);
       INIT_CHOPPER ();
       INIT_STORES ();
 
       handle = chop_block_indexer_alloca_index_handle (block_indexer);
+      err = chop_indexer_index_blocks (*current_indexer, chopper,
+				       block_indexer,
+				       store, metastore, handle);
+      test_assert (err == CHOP_INDEXER_EMPTY_SOURCE);
+      chop_object_destroy ((chop_object_t *)chopper);
+
+
+      /* Index an actual, non-empty stream.  */
+      chop_mem_stream_open (mem_stream_contents, sizeof (mem_stream_contents),
+			    NULL, stream);
+      INIT_CHOPPER ();
 
       /* Index STREAM.  */
       test_stage_intermediate ("indexing");
@@ -166,6 +180,9 @@ main (int argc, char *argv[])
 	  com_err (argv[0], err, "while indexing blocks");
 	  exit (7);
 	}
+      test_assert (chop_object_is_a ((chop_object_t *)handle,
+				     &chop_index_handle_class));
+
 
       /* Fetch the stream.  */
       test_stage_intermediate ("fetching");

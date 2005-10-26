@@ -12,6 +12,7 @@
 #ifdef DEBUG
 # include <stdio.h>
 #endif
+#include <assert.h>
 
 
 CHOP_DEFINE_RT_CLASS (hybrid_scheme_class, class,
@@ -21,16 +22,20 @@ CHOP_DEFINE_RT_CLASS (hybrid_scheme_class, class,
 
 
 size_t
-gwrap_chop_object_cleanup (SCM wct)
+gwrap_chop_object_cleanup (SCM wcp)
 {
   chop_object_t *object;
   const chop_class_t *class;
 
-  object = (chop_object_t *)gw_wcp_get_ptr (wct);
+  /* This must be an non-immediate thing.  */
+  assert (SCM_NIMP (wcp));
+  assert (gw_wcp_p (wcp));
+
+  object = (chop_object_t *)gw_wcp_get_ptr (wcp);
 
 #ifdef DEBUG
   fprintf (stderr, "%s: freeing object @%p [SCM: %p]\n",
-	   __FUNCTION__, object, (void *)wct);
+	   __FUNCTION__, object, (void *)wcp);
 #endif
 
   class = chop_object_get_class (object);

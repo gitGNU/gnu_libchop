@@ -8,7 +8,7 @@ lib_LTLIBRARIES = libguile-chop.la
 binding_specs = choppers-spec.scm cipher-spec.scm core-spec.scm		\
 		hash-spec.scm indexers-spec.scm stores-spec.scm		\
 		streams-spec.scm logs-spec.scm store-stats-spec.scm	\
-		filters-spec.scm
+		filters-spec.scm block-indexers-spec.scm
 
 built_c_files = $(binding_specs:%-spec.scm=%.c)
 built_scm_files = $(binding_specs:%-spec.scm=%.scm)
@@ -19,7 +19,8 @@ libguile_chop_la_SOURCES = core-support.c
 # fail to compute the right $(libguile_chop_la_OBJECTS) if we do so.
 libguile_chop_la_SOURCES += choppers.c cipher.c core.c hash.c	\
 		            indexers.c stores.c streams.c	\
-			    logs.c store-stats.c filters.c
+			    logs.c store-stats.c filters.c	\
+			    block-indexers.c
 
 
 

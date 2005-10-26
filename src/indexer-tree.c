@@ -527,15 +527,15 @@ chop_tree_indexer_log (chop_indexer_t *indexer)
 
 static errcode_t
 chop_tree_index_blocks (chop_indexer_t *indexer,
-			     chop_chopper_t *input,
-			     chop_block_indexer_t *block_indexer,
-			     chop_block_store_t *output,
-			     chop_block_store_t *metadata,
-			     chop_index_handle_t *index)
+			chop_chopper_t *input,
+			chop_block_indexer_t *block_indexer,
+			chop_block_store_t *output,
+			chop_block_store_t *metadata,
+			chop_index_handle_t *index)
 {
   errcode_t err = 0;
   chop_tree_indexer_t *htree = (chop_tree_indexer_t *)indexer;
-  size_t amount;
+  size_t amount, total_amount = 0;
   chop_buffer_t buffer;
   key_block_tree_t tree;
 
@@ -559,6 +559,8 @@ chop_tree_index_blocks (chop_indexer_t *indexer,
       if (!amount)
 	continue;
 
+      total_amount += amount;
+
       /* Store this block and get its index */
       err = chop_block_indexer_index (block_indexer, output,
 				      chop_buffer_content (&buffer),
@@ -571,7 +573,7 @@ chop_tree_index_blocks (chop_indexer_t *indexer,
       chop_block_tree_add_index (&tree, block_indexer, index);
     }
 
-  if (err == CHOP_STREAM_END)
+  if ((err == CHOP_STREAM_END) && (total_amount > 0))
     /* Flush the key block tree and get its key.  Here, we get the
        top-level index handle.  */
     err = chop_block_tree_flush (&tree, block_indexer, index);
@@ -580,6 +582,10 @@ chop_tree_index_blocks (chop_indexer_t *indexer,
   chop_block_tree_free (&tree);
 
   chop_buffer_return (&buffer);
+
+  if (total_amount == 0)
+    /* Nothing was read so INDEX is kept uninitialized.  */
+    err = CHOP_INDEXER_EMPTY_SOURCE;
 
   return err;
 }

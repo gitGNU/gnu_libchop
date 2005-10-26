@@ -27,7 +27,16 @@ log_ctor (chop_object_t *object, const chop_class_t *class)
 static void
 log_dtor (chop_object_t *object)
 {
-  chop_log_close ((chop_log_t *)object);
+  chop_log_t *log = (chop_log_t *)object;
+
+  chop_log_close (log);
+
+  if (log->name)
+    free (log->name);
+
+  log->name = NULL;
+  log->attached = 0;
+  log->fd = 0;
 }
 
 CHOP_DEFINE_RT_CLASS (log, object,
@@ -38,11 +47,21 @@ CHOP_DEFINE_RT_CLASS (log, object,
 errcode_t
 chop_log_init (const char *name, chop_log_t *log)
 {
-  chop_object_initialize ((chop_object_t *)log, &chop_log_class);
+  errcode_t err;
+  char *log_name;
 
-  log->name = strdup (name);
-  if (!log->name)
+  log_name = strdup (name);
+  if (!log_name)
     return ENOMEM;
+
+  err = chop_object_initialize ((chop_object_t *)log, &chop_log_class);
+  if (err)
+    {
+      free (log_name);
+      return err;
+    }
+
+  log->name = log_name;
 
   return 0;
 }

@@ -37,11 +37,7 @@ mem_stream_dtor (chop_object_t *object)
 {
   chop_mem_stream_t *mem_stream = (chop_mem_stream_t *)object;
 
-  if ((mem_stream->base) && (mem_stream->free_func))
-    mem_stream->free_func ((void *)mem_stream->base);
-
-  mem_stream->base = NULL;
-  mem_stream->offset = mem_stream->size = 0;
+  chop_stream_close ((chop_stream_t *)mem_stream);
 }
 
 
@@ -70,7 +66,13 @@ chop_mem_stream_open (const char *base, size_t size,
 static void
 chop_mem_stream_close (chop_stream_t *stream)
 {
-  mem_stream_dtor ((chop_object_t *)stream);
+  chop_mem_stream_t *mem_stream = (chop_mem_stream_t *)stream;
+
+  if ((mem_stream->base) && (mem_stream->free_func))
+    mem_stream->free_func ((void *)mem_stream->base);
+
+  mem_stream->base = NULL;
+  mem_stream->offset = mem_stream->size = 0;
 }
 
 static errcode_t

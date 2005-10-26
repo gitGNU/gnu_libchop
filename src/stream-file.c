@@ -28,11 +28,7 @@ fs_dtor (chop_object_t *object)
 {
   chop_file_stream_t *file = (chop_file_stream_t *)object;
 
-  munmap (file->map, file->size);
-  close (file->fd);
-
-  file->map = NULL;
-  file->fd = -1;
+  chop_stream_close ((chop_stream_t *)file);
 }
 
 CHOP_DEFINE_RT_CLASS (file_stream, stream,
@@ -111,7 +107,14 @@ chop_file_stream_read (chop_stream_t *stream,
 }
 
 static void
-chop_file_stream_close (struct chop_stream *s)
+chop_file_stream_close (chop_stream_t *stream)
 {
-  chop_object_destroy ((chop_object_t *)s);
+  chop_file_stream_t *file = (chop_file_stream_t *)stream;
+
+  munmap (file->map, file->size);
+  if (file->fd > 2)
+    close (file->fd);
+
+  file->map = NULL;
+  file->fd = -1;
 }

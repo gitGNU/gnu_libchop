@@ -48,6 +48,9 @@ error_code CHOP_BLOCK_FETCHER_ERROR,
 error_code CHOP_INDEXER_ERROR,
            "Stream indexer generic error"
 
+error_code CHOP_INDEXER_EMPTY_SOURCE,
+	   "The indexer's input chopper produced zero bytes"
+
 error_code CHOP_STORE_BLOCK_UNAVAIL,
 	   "Block is unavailable in the underlying block store"
 

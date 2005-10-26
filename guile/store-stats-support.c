@@ -41,9 +41,22 @@ chop_stat_block_store_stats_alloc (chop_block_store_t *store)
   if (!stats)
     return NULL;
 
+  /* FIXME: We need `chop_object_copy ()' here.  */
   result = scm_malloc (sizeof (*result));
-  memcpy (result, stats, sizeof (*result));
+
+  /* XXX: We do this just to make sure libchop's object tracker knows about
+     us.  */
+  chop_object_initialize ((chop_object_t *)result,
+			  &chop_block_store_stats_class);
+
   result->name = strdup (stats->name);
+  result->blocks_written = stats->blocks_written;
+  result->bytes_written = stats->bytes_written;
+  result->virgin_blocks = stats->virgin_blocks;
+  result->virgin_bytes = stats->virgin_bytes;
+  result->average_block_size = stats->average_block_size;
+  result->min_block_size = stats->min_block_size;
+  result->max_block_size = stats->max_block_size;
 
   return result;
 }

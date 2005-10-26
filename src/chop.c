@@ -1,4 +1,5 @@
 #include <chop/chop.h>
+#include <chop/cipher.h>
 #include <chop/streams.h>
 #include <chop/serializable.h>  /* Serializable objects */
 
@@ -9,6 +10,231 @@
 #include <assert.h>
 
 
+/* Define this to enable run-time tracking of the objects created and
+   destroyed.  Among other things, this allows to check that an object about
+   to be destroyed was actually constructed before.  */
+#define USE_OBJECT_TRACKER
+
+/* If both USE_OBJECT_TRACKER and TRACK_OBJECT_LEAKS, then libchop will
+   report about non-destroy objects when the program finishes.  */
+#undef TRACK_OBJECT_LEAKS
+
+
+#ifdef USE_OBJECT_TRACKER
+
+#include <stdint.h>
+#include <stdlib.h>
+#include <errno.h>
+
+#ifdef __GNU_LIBRARY__
+# include <execinfo.h>
+#endif
+
+typedef struct chop_tracked_object
+{
+  struct chop_tracked_object *next;
+  chop_object_t *object;
+#ifdef __GNU_LIBRARY__
+# define BACKTRACE_SIZE  20
+  void  *backtrace[BACKTRACE_SIZE];
+  size_t backtrace_size;
+#endif
+} chop_tracked_object_t;
+
+#define BUCKET_COUNT  4096
+static chop_tracked_object_t *tracked_objects[BUCKET_COUNT];
+
+/* A list of the recently untracked (i.e. probably destroyed) objects.  */
+#define RECENTLY_UNTRACKED_COUNT 4096
+static chop_object_t *recently_untracked[RECENTLY_UNTRACKED_COUNT];
+static size_t         recently_untracked_head = 0;
+
+#define chop_object_hash(_obj) (((uintptr_t)(_obj) >> 2) & (BUCKET_COUNT - 1))
+
+
+static inline void
+chop_object_tracker_init (void)
+{
+  memset (tracked_objects, '\0', sizeof (tracked_objects));
+}
+
+static inline errcode_t
+chop_track_object (chop_object_t *object)
+{
+  uintptr_t bucket;
+  chop_tracked_object_t *new_object, *next;
+
+  new_object = malloc (sizeof (*new_object));
+  if (!new_object)
+    return ENOMEM;
+
+  bucket = chop_object_hash (object);
+  next = tracked_objects[bucket];
+  tracked_objects[bucket] = new_object;
+
+  new_object->next = next;
+  new_object->object = object;
+#ifdef __GNU_LIBRARY__
+  new_object->backtrace_size = backtrace (new_object->backtrace,
+					  BACKTRACE_SIZE);
+#endif
+
+  return 0;
+}
+
+static inline int
+chop_object_is_tracked (chop_object_t *object)
+{
+  uintptr_t bucket;
+  chop_tracked_object_t *p;
+
+  bucket = chop_object_hash (object);
+  for (p = tracked_objects[bucket]; p; p = p->next)
+    {
+      if (p->object == object)
+	return 1;
+    }
+
+  return 0;
+}
+
+static inline void
+chop_object_mark_as_untracked (chop_object_t *object)
+{
+  recently_untracked[recently_untracked_head] = object;
+  recently_untracked_head =
+    (recently_untracked_head + 1) % RECENTLY_UNTRACKED_COUNT;
+}
+
+static inline int
+chop_object_was_recently_untracked (chop_object_t *object)
+{
+  size_t num;
+
+  for (num = (recently_untracked_head - 1) % RECENTLY_UNTRACKED_COUNT;
+       num != recently_untracked_head;
+       num = (num - 1) % RECENTLY_UNTRACKED_COUNT)
+    {
+      if (recently_untracked[num] == object)
+	return 1;
+
+      if (!recently_untracked[num])
+	return 0;
+    }
+
+  return 0;
+}
+
+static inline int
+chop_test_and_untrack_object (chop_object_t *object)
+{
+  uintptr_t bucket;
+  chop_tracked_object_t *obj, *prev;
+
+  bucket = chop_object_hash (object);
+
+  for (obj = tracked_objects[bucket], prev = NULL;
+       obj;
+       prev = obj, obj = obj->next)
+    {
+      if (obj->object == object)
+	{
+	  chop_tracked_object_t *next = obj->next;
+	  if (prev)
+	    prev->next = next;
+	  else
+	    tracked_objects[bucket] = next;
+
+	  free (obj);
+
+	  chop_object_mark_as_untracked (object);
+	  return 1;
+	}
+    }
+
+  return 0;
+}
+
+static inline void
+show_tracked_object (chop_tracked_object_t *p)
+{
+#ifdef __GNU_LIBRARY__
+  char **symbols, **s;
+
+  symbols = backtrace_symbols (p->backtrace, p->backtrace_size);
+
+  fprintf (stderr, "%s: object @ %p, class `%s', initialized from:\n",
+	   __FUNCTION__, p->object,
+	   chop_class_name (p->object->class));
+  if (symbols)
+    {
+      size_t remaining = p->backtrace_size;
+
+      for (s = symbols; remaining; s++, remaining--)
+	fprintf (stderr, "    %s\n", *s);
+      fprintf (stderr, "\n");
+
+      free (symbols);
+    }
+  else
+    fprintf (stderr,  "   (stack trace unavailable)\n");
+#else
+  fprintf (stderr, "%s: object @ %p, class `%s'\n",
+	   __FUNCTION__, p->object,
+	   chop_class_name (p->object->class));
+#endif
+}
+
+static inline void
+chop_show_object_info (chop_object_t *object)
+{
+  uintptr_t bucket;
+  chop_tracked_object_t *p;
+
+  bucket = chop_object_hash (object);
+  for (p = tracked_objects[bucket]; p; p = p->next)
+    {
+      if (p->object == object)
+	{
+	  show_tracked_object (p);
+	  return;
+	}
+    }
+}
+
+static inline void
+chop_show_tracked_objects (void)
+{
+  uintptr_t bucket;
+  chop_tracked_object_t *p;
+
+  for (bucket = 0;
+       bucket < sizeof (tracked_objects) / sizeof (*tracked_objects);
+       bucket++)
+    {
+      for (p = tracked_objects[bucket]; p; p = p->next)
+	{
+	  /* CHOP_CIPHER_LOG is always be leaked, so there's no point in
+	     tracking it.  */
+	  if (p->object != (chop_object_t *)&chop_cipher_log)
+	    show_tracked_object (p);
+	}
+    }
+}
+
+#ifdef TRACK_OBJECT_LEAKS
+static void
+show_leaks (void)
+{
+  fprintf (stderr, "\n\n* libchop objects leaked:\n\n");
+  chop_show_tracked_objects ();
+}
+#endif
+
+#endif /* USE_OBJECT_TRACKER */
+
+
+
 /* The constructor of class objects.  */
 static errcode_t
 _class_primitive_init (chop_object_t *object,
@@ -38,6 +264,17 @@ static errcode_t
 _object_primitive_init (chop_object_t *object, const chop_class_t *class)
 {
   object->class = class;
+
+#ifdef USE_OBJECT_TRACKER
+  {
+    errcode_t err;
+
+    err = chop_track_object (object);
+    if (err)
+      return err;
+  }
+#endif
+
   return 0;
 }
 
@@ -45,6 +282,19 @@ _object_primitive_init (chop_object_t *object, const chop_class_t *class)
 static void
 _object_primitive_destroy (chop_object_t *object)
 {
+#ifdef USE_OBJECT_TRACKER
+  if (!chop_test_and_untrack_object (object))
+    {
+      fprintf (stderr, "%s: trying to destroy invalid chop object @ %p\n",
+	       __FUNCTION__, object);
+      if (chop_object_was_recently_untracked (object))
+	fprintf (stderr, "%s: object %p was recently destroyed already\n",
+		 __FUNCTION__, object);
+
+      abort ();
+    }
+#endif
+
   object->class = NULL;
 }
 
@@ -118,6 +368,21 @@ void
 chop_object_destroy (chop_object_t *object)
 {
   const chop_class_t *class;
+
+#ifdef USE_OBJECT_TRACKER
+  /* Actual ``untracking'' takes place in `_object_primitive_destroy ()'.  */
+  if (!chop_object_is_tracked (object))
+    {
+      fprintf (stderr, "%s: trying to destroy invalid chop object @ %p\n",
+	       __FUNCTION__, object);
+      if (chop_object_was_recently_untracked (object))
+	fprintf (stderr, "%s: object %p was recently destroyed already\n",
+		 __FUNCTION__, object);
+
+      abort ();
+    }
+#endif
+
   for (class = object->class;
        class != NULL;
        class = class->parent)
@@ -233,13 +498,20 @@ chop_integer_to_hex_string (unsigned num, char *hex)
 
 /* Initialization.  */
 
-#include <chop/cipher.h>
-
 errcode_t
 chop_init (void)
 {
   initialize_chop_error_table ();
-  chop_log_init ("cipher", &chop_cipher_log);
-  return 0;
+
+#ifdef USE_OBJECT_TRACKER
+  chop_object_tracker_init ();
+
+#ifdef TRACK_OBJECT_LEAKS
+  /* Provide a list of leaked objects.  */
+  atexit (show_leaks);
+#endif
+#endif
+
+  return chop_log_init ("cipher", &chop_cipher_log);
 }
 

@@ -20,8 +20,21 @@ CHOP_DECLARE_RT_CLASS (stat_block_store, block_store,
 
 		       chop_block_store_stats_t stats;);
 
+static void
+sbs_dtor (chop_object_t *object)
+{
+  chop_stat_block_store_t *stat = (chop_stat_block_store_t *)object;
+
+  if ((stat->backend) && (stat->takeover))
+    chop_object_destroy ((chop_object_t *)stat->backend);
+
+  chop_object_destroy ((chop_object_t *)&stat->stats);
+
+  stat->backend = NULL;
+}
+
 CHOP_DEFINE_RT_CLASS (stat_block_store, block_store,
-		      NULL, NULL, /* No constructor/destructor */
+		      NULL, sbs_dtor,
 		      NULL, NULL  /* No serializer/deserializer */);
 
 
@@ -157,14 +170,14 @@ chop_stat_block_store_sync (chop_block_store_t *store)
 static errcode_t
 chop_stat_block_store_close (chop_block_store_t *store)
 {
-  errcode_t err = 0;
+  errcode_t err;
   chop_stat_block_store_t *stat =
     (chop_stat_block_store_t *)store;
 
   if ((stat->backend) && (stat->takeover))
     err = chop_store_close (stat->backend);
-
-  chop_object_destroy ((chop_object_t *)&stat->stats);
+  else
+    err = 0;
 
   return err;
 }
@@ -260,14 +273,21 @@ errcode_t
 chop_block_store_stats_init (const char *name,
 			     chop_block_store_stats_t *stats)
 {
-  chop_object_initialize ((chop_object_t *)stats,
-			  &chop_block_store_stats_class);
+  errcode_t err;
+
+  err = chop_object_initialize ((chop_object_t *)stats,
+				&chop_block_store_stats_class);
+  if (err)
+    return err;
 
   if (name)
     {
       stats->name = strdup (name);
       if (!stats->name)
-	return ENOMEM;
+	{
+	  chop_object_destroy ((chop_object_t *)stats);
+	  return ENOMEM;
+	}
     }
 
   return 0;
