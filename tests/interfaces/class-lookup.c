@@ -2,7 +2,7 @@
    built-in class names.  */
 
 #include <chop/chop.h>
-#include <chop/serializable.h>
+#include <chop/objects.h>
 
 #include <testsuite.h>
 

@@ -9,7 +9,7 @@
    is "detached", CHOP_LOG_PRINTF simply does nothing.  */
 
 #include <chop/chop.h>
-#include <chop/serializable.h>
+#include <chop/objects.h>
 
 #include <unistd.h>
 #include <stdlib.h>

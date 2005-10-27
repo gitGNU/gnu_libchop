@@ -5,7 +5,7 @@
 /* Input data streams.  */
 
 #include <chop/chop.h>
-#include <chop/serializable.h>
+#include <chop/objects.h>
 
 
 _CHOP_BEGIN_DECLS

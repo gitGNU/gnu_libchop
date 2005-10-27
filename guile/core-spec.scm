@@ -328,7 +328,7 @@
 (define-method (global-declarations-cg (ws <chop-core-wrapset>))
   (list (next-method)
 	"#include <chop/chop.h>\n"
-	"#include <chop/serializable.h>\n\n"
+	"#include <chop/objects.h>\n\n"
 	"#include <g-wrap/core-runtime.h>\n"
 	"#include <stdio.h>\n\n"
 	"#include \"core-support.h\"\n\n"))

@@ -6,7 +6,7 @@
 #include <chop/chop.h>
 #include <chop/buffers.h>
 #include <chop/streams.h>
-#include <chop/serializable.h>
+#include <chop/objects.h>
 #include <chop/logs.h>
 
 

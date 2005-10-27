@@ -4,7 +4,7 @@
 #include <chop/chop.h>
 #include <chop/logs.h>
 #include <chop/stores.h>
-#include <chop/serializable.h>
+#include <chop/objects.h>
 
 _CHOP_BEGIN_DECLS
 

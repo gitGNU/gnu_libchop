@@ -1,7 +1,7 @@
 #include <chop/chop.h>
 #include <chop/cipher.h>
 #include <chop/streams.h>
-#include <chop/serializable.h>  /* Serializable objects */
+#include <chop/objects.h>  /* Serializable objects */
 
 #include <chop/chop-config.h>
 

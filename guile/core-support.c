@@ -4,7 +4,7 @@
 #include <g-wrap/guile-runtime.h>
 
 #include <chop/chop.h>
-#include <chop/serializable.h>
+#include <chop/objects.h>
 
 #include "core-support.h"
 

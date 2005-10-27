@@ -4,7 +4,7 @@
 #define __CHOP_CORE_SUPPORT_H__
 
 #include <chop/chop.h>
-#include <chop/serializable.h>
+#include <chop/objects.h>
 
 #include <libguile.h>
 #include <stdlib.h>

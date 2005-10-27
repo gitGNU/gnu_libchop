@@ -14,7 +14,7 @@
 #include <chop/cipher.h>
 #include <chop/stores.h>
 #include <chop/buffers.h>
-#include <chop/serializable.h>
+#include <chop/objects.h>
 
 _CHOP_BEGIN_DECLS
 

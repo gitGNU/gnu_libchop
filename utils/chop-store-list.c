@@ -5,7 +5,7 @@
 #include <chop/chop.h>
 #include <chop/chop-config.h>
 #include <chop/buffers.h>
-#include <chop/serializable.h>
+#include <chop/objects.h>
 #include <chop/stores.h>
 
 #include <argp.h>

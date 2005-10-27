@@ -2,7 +2,7 @@
 
 #include <chop/chop.h>
 #include <chop/stores.h>
-#include <chop/serializable.h>
+#include <chop/objects.h>
 #include <chop/logs.h>
 
 #include <chop/block_rstore.h>

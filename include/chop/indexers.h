@@ -8,7 +8,7 @@
 #include <chop/stores.h>
 #include <chop/streams.h>
 #include <chop/block-indexers.h>
-#include <chop/serializable.h>
+#include <chop/objects.h>
 #include <chop/cipher.h>
 
 

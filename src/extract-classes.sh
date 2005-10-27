@@ -5,7 +5,7 @@
 
 echo '%{'
 echo '#include <chop/chop.h>'
-echo '#include <chop/serializable.h>'
+echo '#include <chop/objects.h>'
 echo '#include <chop/indexers.h>'
 echo '#include <chop/filters.h>'
 echo '%}'

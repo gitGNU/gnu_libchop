@@ -6,7 +6,7 @@
 
 #include <chop/chop.h>
 #include <chop/buffers.h>
-#include <chop/serializable.h>
+#include <chop/objects.h>
 #include <chop/logs.h>
 
 /* Declare `chop_block_store_t' (represented at run-time by
