@@ -21,6 +21,7 @@ main (int argc, char *argv[])
   static const chop_chopper_class_t *classes[] =
     {
       &chop_fixed_size_chopper_class,
+      &chop_whole_stream_chopper_class,
       &chop_anchor_based_chopper_class,
       NULL
     };

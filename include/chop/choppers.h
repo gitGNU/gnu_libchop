@@ -31,6 +31,7 @@ CHOP_DECLARE_RT_CLASS (chopper_class, class,
 /* These classes inherit from `chop_chopper_t'.  Both have
    `chop_chopper_class_t' as their class.  */
 extern const chop_chopper_class_t chop_fixed_size_chopper_class;
+extern const chop_chopper_class_t chop_whole_stream_chopper_class;
 extern const chop_chopper_class_t chop_anchor_based_chopper_class;
 
 
@@ -67,6 +68,15 @@ chop_fixed_size_chopper_init (chop_stream_t *input,
 			      size_t block_size,
 			      int pad_blocks,
 			      chop_chopper_t *chopper);
+
+/* Initialize CHOPPER as a whole-stream chopper which fetches data from
+   INPUT.  CHOPPER will simply return one single block containing the entire
+   contents of INPUT.  Consequently, this is very costly in terms of memory
+   consumption.  Also, CHOP_WHOLE_STREAM_CHOPPER_CLASS does not honor at all
+   the TYPICAL_BLOCK_SIZE argument of `chop_chopper_generic_open ()'.  */
+extern errcode_t
+chop_whole_stream_chopper_open (chop_stream_t *input,
+				chop_chopper_t *chopper);
 
 /* Initialize CHOPPER as an anchor-based stream chopper.  It will read data
    from INPUT and produce variably sized blocks.  Anchor-based choppers

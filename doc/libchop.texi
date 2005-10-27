@@ -78,6 +78,8 @@ This document describes libchop version @value{VERSION}.
 * Libchop's Object System::     
 * Utilities::                   
 * Guile Bindings::              
+* Concept Index::               
+* Function Index::              
 @end menu
 
 @node Introduction, API Reference, Top, Top
@@ -87,14 +89,11 @@ Libchop is a file hashing, ciphering, and indexing library.  This
 library provides a framework which allows:
 
 @enumerate
-
 @item to cut a file into pieces, store each of these blocks into a block
-      store, and then store sufficient information for later retrieval
-      and rebuilding of the indexed file;
-
+store, and then store sufficient information for later retrieval and
+rebuilding of the indexed file;
 @item to restore (rebuild) a file based on an abstract index, reading
-      blocks from one (or several) block stores.
-
+blocks from one (or several) block stores.
 @end enumerate
 
 Libchop decomposes these task with a fine grain, providing generic
@@ -153,7 +152,167 @@ use cases of the techniques and algorithms implemented by Libchop.
 @node Libchop's Object System, Utilities, API Reference, Top
 @chapter Libchop's Object System
 
-Libchop comes with its own lightweight reflexive object system.
+@cindex object system
+Libchop comes with its own lightweight reflexive object system defined
+in the @code{<chop/objects.h>} header file.  Given that it is a
+reflexive object system, type information is available at run-time.
+While this may seem, at first, like a lot of overhead for little
+benefits, it certainly offers some advantages compared to Glib's
+object system.
+
+@cindex binary compatibility
+In particular, libchop's object system can be used to provide binary
+compatibility with almost no gratuitous overhead: the size of a given
+class' instances can be known at run-time, which allows for caller
+allocation.  Callers can allocate objects of a given class as they
+prefer (e.g. on the stack) while still having binary compatilibity
+accross changes of a class' fields layout.
+
+This is, a lightweight approach compared to the Glib family of
+libraries where binary compatibility is achieved at the cost of
+removing the possibility for caller memory allocation: constructors do
+not only initialize an object, they also allocate its storage on the
+heap.
+
+That said, libchop's object system have a lot in common with C++,
+except that it cannot benefit from the compiler's help (e.g. to manage
+type inheritance at compile-time, to automatically generate the
+invocation of an object's destructor when needed, etc.).  On the other
+hand, it provides real reflection and gives more flexibility.
+
+Let's have a closer look at it.
+
+@menu
+* Declaring and Defining a Class::  
+* Instantiating an Object::     
+* Serializing and Deserializing an Object::  
+@end menu
+
+@node Declaring and Defining a Class, Instantiating an Object, Libchop's Object System, Libchop's Object System
+@section Declaring and Defining a Class
+
+@cindex class
+
+At run-time, libchop classes are represented by @code{chop_class_t}
+objects.  The canonical naming scheme for classes is the following.
+Let @code{chbouib} be a libchop class:
+
+@itemize
+@item its C type is named @code{chop_chbouib_t};
+@item its run-time representation is a global @code{chop_class_t}
+object named @code{chop_chbouib_class}.
+@end itemize
+
+Libchop defines macros to declare and define classes while maintaining
+the naming scheme in a consistent way:
+
+@defmac CHOP_DECLARE_RT_CLASS (name, parent_name, fields)
+Declare a class named @var{name}, that is declare the type
+@code{chop_NAME_t} and the global variable @code{chop_NAME_class}.
+@var{fields} should be a list of fields (as in a @code{struct}
+definition).  Note that libchop classes must always inherit (directly
+or not) the @code{object} class.
+
+Example:
+
+@example
+CHOP_DECLARE_RT_CLASS (chbouib, object,
+                       int x;
+                       float y;);
+@end example
+
+@end defmac
+
+@defmac CHOP_DEFINE_RT_CLASS (name, parent_name, ctor, dtor, serial, dserial)
+Once the class named @var{name} has been declared, this macro defines
+it as being a sub-class of the class named @var{parent_name} (this
+must be the same name as the one used in the declaration!), with
+constructor @var{ctor} and destructor @var{dtor} (both are optional),
+and with serializer @var{serial} and deserializer @var{dserial} (both
+are optional too).
+@end defmac
+
+See the @code{<chop/objects.h>} for details.
+
+@node Instantiating an Object, Serializing and Deserializing an Object, Declaring and Defining a Class, Libchop's Object System
+@section Instantiating an Object
+
+Constructors, in libchop, do not allocate memory to store objects:
+they simple @emph{initialize} objects.  Therefore, memory must be
+allocated to store a given an object @emph{before} its constructor is
+called.  Run-time type information turns out to be helpful here: each
+@code{chop_class_t} object contains information about the amount of
+memory needed to store an instance of it.
+
+@deftypefun size_t chop_class_instance_size (const chop_class_t *class)
+Return the size, in bytes, of instances of class @var{class}.
+@end deftypefun
+
+@defmac chop_class_alloca_instance (class)
+Return a pointer to a memory area large enough to store an instance of
+@var{class}.  This macro uses @code{alloca} to allocate storage on the
+stack (see @inforef{Variable Size Automatic, the GNU libc manual,
+libc}, for details).
+@end defmac
+
+@deftypefun errcode_t chop_object_initialize (chop_object_t *object, const chop_class_t *class)
+Initialize @var{object} as an instance of class @var{class}, thus
+invoking the constructor of @var{class} and the one of its parent
+classes.
+
+As a user, you will not usually call this function directly.  Instead,
+you will call a particular constructor for @var{class} that can take
+additional arguments (e.g. @code{chop_file_stream_open ()}) and which
+will in turn call this function behind the scenes.
+@end deftypefun
+
+@deftypefun void chop_object_destroy (chop_object_t *object)
+Destroy @var{object}, that is deallocate resources associated to it.
+Note that it does not deallocate the memory where @var{object} is
+stored.
+@end deftypefun
+
+
+@node Serializing and Deserializing an Object,  , Instantiating an Object, Libchop's Object System
+@section Serializing and Deserializing an Object
+
+@cindex serialization
+@cindex deserialization
+Classes in libchop may implement a @dfn{serialization} and a
+@dfn{deserialization} methods---these methods may be specified at
+class definition time (@pxref{Declaring and Defining a Class}).
+A serialization method basically converts an object into a portable
+representation of its state as a byte stream.  The deserialization
+operation does the opposite.
+
+The @code{chop_serial_method_t} type defines two standard
+serialization/deserialization methods:
+
+@table @code
+@item CHOP_SERIAL_ASCII
+An object is serialized using only ASCII characters.  This yields
+human-readable representations.
+@item CHOP_SERIAL_BINARY
+An object is serialized using as a byte stream where each byte can
+have any value.  This usually yields to significantly more compact
+representations.
+@end table
+
+@deftypefun errcode_t chop_object_serialize (const chop_object_t *object, chop_serial_method_t method, chop_buffer_t *buffer)
+Serialize @var{object} according to serialization method @var{method}
+into @var{buffer}.  If no serializer exists for @var{object}'s class,
+@code{CHOP_ERR_NOT_IMPL} is returned.  On success, zero is returned.
+@end deftypefun
+
+@deftypefun errcode_t chop_object_deserialize (chop_object_t *object, const chop_class_t *class, chop_serial_method_t method, const char *buffer, size_t size, size_t *bytes_read)
+Initialize @var{object}, which is expected to be of type @var{class},
+by deserializing @var{buffer} (of @var{size} bytes), according to
+@var{method}.  On success, zero is returned and @var{object} is
+initialized.  Otherwise, @var{object} is left in an undefined state.
+On success, @var{bytes_read} is set to the number of bytes that were
+read from @var{buffer} in order to deserialize @var{object}.
+@end deftypefun
+
 
 @c *********************************************************************
 @node Utilities, Guile Bindings, Libchop's Object System, Top
@@ -165,35 +324,35 @@ interfaces and their implementations.
 
 
 @c *********************************************************************
-@node Guile Bindings,  , Utilities, Top
+@node Guile Bindings, Concept Index, Utilities, Top
 @chapter Guile Bindings
 
 
 @c *********************************************************************
 
 
-
-@c *********************************************************************
-@c @node Concept Index, Command Index, Related Information, Top
-@c @unnumbered Concept Index
-@c @printindex cp
 
-@c @node Command Index, Variable Index, Concept Index, Top
-@c @unnumbered Command Index
-@c @printindex fn
+@c *********************************************************************
+@node Concept Index, Function Index, Guile Bindings, Top
+@unnumbered Concept Index
+@printindex cp
+
+@node Function Index,  , Concept Index, Top
+@unnumbered Function Index
+@printindex fn
 
 @c @node Variable Index,  , Command Index, Top
 @c @unnumbered Variable Index
 @c @printindex vr
 
 @bye
-
 
 @ignore
 ;;; arch-tag: 107c2c3c-f614-469d-a1ac-6f146ec7dd0c
 @end ignore
 
 @c Local Variables:
-@c mode:outline-minor
-@c outline-regexp:"@\\(ch\\|sec\\|subs\\)"
+@c ispell-local-dictionary: "american";
 @c End:
+
+@c  LocalWords:  deserialization libchop deserializing

@@ -10,6 +10,7 @@ libchop_block_server_la_LDFLAGS = -version-info 0:0:0
 libchop_la_SOURCES = chop.c chop-errors.c logs.c			\
 		     chopper-fixed-size.c				\
                      chopper-anchor-based.c				\
+		     chopper-whole-stream.c				\
 		     streams.c stores.c					\
 		     cipher.c hash.c buffers.c				\
 		     store-dummy.c					\
