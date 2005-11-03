@@ -30,6 +30,8 @@ typedef struct
 {
   const char *buffer;
   size_t size;
+  size_t read;
+  chop_filter_fault_handler_t prev_handler;
 } input_buffer_t;
 
 static errcode_t
@@ -50,6 +52,7 @@ handle_input_fault_from_buffer (chop_filter_t *filter, size_t amount,
 
   ibuffer->buffer += pushed;
   ibuffer->size -= pushed;
+  ibuffer->read += pushed;
 
   return err;
 }
@@ -64,6 +67,8 @@ chop_filter_set_input_from_buffer (chop_filter_t *filter,
 
   ibuffer->buffer = input;
   ibuffer->size = input_size;
+  ibuffer->read = 0;
+  ibuffer->prev_handler = chop_filter_input_fault_handler (filter);
   chop_filter_set_input_fault_handler (filter,
 				       handle_input_fault_from_buffer,
 				       ibuffer);
@@ -72,17 +77,25 @@ chop_filter_set_input_from_buffer (chop_filter_t *filter,
 }
 
 void
-chop_filter_finish_input_from_buffer (chop_filter_t *filter)
+chop_filter_finish_input_from_buffer (chop_filter_t *filter,
+				      size_t *bytes_read)
 {
   chop_filter_fault_handler_t handler;
+  input_buffer_t *ibuffer;
 
   handler = chop_filter_input_fault_handler (filter);
   if (handler.handle != handle_input_fault_from_buffer)
+    /* Result unspecified.  */
     return;
 
-  free (handler.data);
+  ibuffer = (input_buffer_t *)handler.data;
+  *bytes_read = ibuffer->read;
 
-  chop_filter_set_input_fault_handler (filter, NULL, NULL);
+  chop_filter_set_input_fault_handler (filter,
+				       ibuffer->prev_handler.handle,
+				       ibuffer->prev_handler.data);
+
+  free (ibuffer);
 }
 
 errcode_t
@@ -91,6 +104,7 @@ chop_filter_through (chop_filter_t *filter,
 		     chop_buffer_t *output)
 {
   errcode_t err;
+  size_t bytes_read;
   int flush = 0;
 
   /* Set FILTER's input fault handler such that it will fetch data from
@@ -129,7 +143,7 @@ chop_filter_through (chop_filter_t *filter,
 	break;
     }
 
-  chop_filter_finish_input_from_buffer (filter);
+  chop_filter_finish_input_from_buffer (filter, &bytes_read);
 
   return err;
 }

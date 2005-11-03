@@ -137,7 +137,7 @@ do_archive (chop_stream_t *stream, chop_block_store_t *data_store,
 	    chop_block_store_t *metadata_store,
 	    chop_chopper_t *chopper, chop_indexer_t *indexer)
 {
-  errcode_t err;
+  errcode_t err = 0;
   chop_buffer_t buffer;
   chop_block_indexer_t *block_indexer;
   chop_index_handle_t *handle;

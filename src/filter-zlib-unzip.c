@@ -83,7 +83,7 @@ chop_zlib_unzip_filter_init (size_t input_size,
 
 #define ZIP_PROCESS(_zstream, _flush)  inflate ((_zstream), (_flush))
 #define ZIP_NEED_MORE_INPUT(_zstream, _zret)   ((_zret) == Z_BUF_ERROR)
-#define ZIP_CANT_PRODUCE_MORE(_zstream, _zret) (0)
+#define ZIP_CANT_PRODUCE_MORE(_zstream, _zret) ((_zret) == Z_STREAM_END)
 #define ZIP_INPUT_CORRUPTED(_zret)             ((_zret) == Z_DATA_ERROR)
 #define ZIP_RESET_PROCESSING(_zstream)         inflateReset ((_zstream))
 

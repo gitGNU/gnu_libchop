@@ -167,9 +167,12 @@ chop_filter_set_input_from_buffer (chop_filter_t *filter,
 				   const char *input, size_t input_size);
 
 /* Free resources that were allocated with FILTER when
-   CHOP_FILTER_SET_INPUT_FROM_BUFFER was called.  */
+   CHOP_FILTER_SET_INPUT_FROM_BUFFER was called, and store in BYTES_READ the
+   number of bytes that were read from the input buffer.  Additionally,
+   restore the input fault handler that was in place before.  */
 extern void
-chop_filter_finish_input_from_buffer (chop_filter_t *filter);
+chop_filter_finish_input_from_buffer (chop_filter_t *filter,
+				      size_t *bytes_read);
 
 /* Filter INPUT (of INPUT_SIZE bytes) through FILTER and store the result in
    OUTPUT.  This function may temporarily modify FILTER's fault handlers.  */

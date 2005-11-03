@@ -101,10 +101,11 @@ ZIP_PULL_METHOD (chop_filter_t *filter, int flush,
 	      chop_log_printf (&filter->log,
 			       "input fault unhandled: %s",
 			       error_message (err));
-	      if ((err != 0) && (err != CHOP_FILTER_UNHANDLED_FAULT))
-		return err;
+	      if (err != CHOP_FILTER_UNHANDLED_FAULT)
+		break;
 
-	      return CHOP_FILTER_EMPTY;
+	      err = CHOP_FILTER_EMPTY;
+	      break;
 	    }
 
 	  continue;
@@ -134,8 +135,11 @@ ZIP_PULL_METHOD (chop_filter_t *filter, int flush,
 	      /* We're done with this bunch of input processing.  So we can
 		 reset the zip stream so that we can start processing input
 		 anew eventually.  */
+	      chop_log_printf (&filter->log, "pull: done with stream "
+			       "processing");
 	      ZIP_RESET_PROCESSING (&zfilter->zstream);
-	      return CHOP_FILTER_EMPTY;
+	      err = CHOP_FILTER_EMPTY;
+	      break;
 	    }
 
 	  /* There is data remaining to be flushed so the user must call us
@@ -143,7 +147,8 @@ ZIP_PULL_METHOD (chop_filter_t *filter, int flush,
 	  chop_log_printf (&filter->log, "pull: flush was requested but "
 			   "data is still available; user should call "
 			   "again");
-	  return 0;
+	  err = 0;
+	  break;
 	}
 
       if (ZIP_CANT_PRODUCE_MORE (&zfilter->zstream, zret))
@@ -152,7 +157,7 @@ ZIP_PULL_METHOD (chop_filter_t *filter, int flush,
 	return 0;
     }
 
-  return 0;
+  return (*pulled ? 0 : err);
 }
 
 #undef ZIP_PUSH_METHOD
