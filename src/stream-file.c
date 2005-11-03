@@ -23,16 +23,11 @@ CHOP_DECLARE_RT_CLASS (file_stream, stream,
 		       char  *map;
 		       size_t position;);
 
-static void
-fs_dtor (chop_object_t *object)
-{
-  chop_file_stream_t *file = (chop_file_stream_t *)object;
 
-  chop_stream_close ((chop_stream_t *)file);
-}
-
+/* Note that the destructor of class `stream' calls `chop_stream_close ()',
+   so we don't need to define our own destructor.  */
 CHOP_DEFINE_RT_CLASS (file_stream, stream,
-		      NULL, fs_dtor,
+		      NULL, NULL,
 		      NULL, NULL  /* No serializer/deserializer */);
 
 

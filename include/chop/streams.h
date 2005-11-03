@@ -24,6 +24,7 @@ CHOP_DECLARE_RT_CLASS (stream, object,
 
 extern const chop_class_t chop_file_stream_class;
 extern const chop_class_t chop_mem_stream_class;
+extern const chop_class_t chop_filtered_stream_class;
 
 
 
@@ -71,6 +72,18 @@ extern errcode_t chop_file_stream_open (const char *path,
 extern void chop_mem_stream_open (const char *base, size_t size,
 				  void (* free_func) (void *),
 				  chop_stream_t *stream);
+
+#include <chop/filters.h>
+
+/* Initialize STREAM as a filtered stream that reads input data from
+   BACKEND through FILTER.  If OWNS_BACKEND is true, then closing STREAM
+   will close and destroy BACKEND.  Likewise, if OWNS_FILTER is true, then
+   closing STREAM will destroy FILTER.  */
+extern errcode_t chop_filtered_stream_open (chop_stream_t *backend,
+					    int owns_backend,
+					    chop_filter_t *filter,
+					    int owns_filter,
+					    chop_stream_t *stream);
 
 #if 0   /* Not implemented yet */
 extern errcode_t chop_ext2_stream_open (const char *path,

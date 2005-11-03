@@ -7,24 +7,25 @@ lib_LTLIBRARIES = libchop.la libchop-block-server.la
 libchop_la_LDFLAGS = -version-info 0:0:0
 libchop_block_server_la_LDFLAGS = -version-info 0:0:0
 
-libchop_la_SOURCES = chop.c chop-errors.c logs.c			\
-		     chopper-fixed-size.c				\
-                     chopper-anchor-based.c				\
-		     chopper-whole-stream.c				\
-		     streams.c stores.c					\
-		     cipher.c hash.c buffers.c				\
-		     store-dummy.c					\
-		     store-gdbm.c					\
-		     store-remote.c					\
-		     store-filtered.c					\
-		     store-smart.c					\
-		     store-stat.c					\
-		     block-indexers.c					\
-		     block-indexer-hash.c block-indexer-chk.c		\
-		     indexers.c indexer-tree.c				\
-		     filters.c						\
-		     filter-zlib-zip.c filter-zlib-unzip.c		\
-		     stream-file.c stream-mem.c # stream-ext2.c 
+libchop_la_SOURCES = chop.c chop-errors.c logs.c		\
+		     chopper-fixed-size.c			\
+                     chopper-anchor-based.c			\
+		     chopper-whole-stream.c			\
+		     streams.c stores.c				\
+		     cipher.c hash.c buffers.c			\
+		     store-dummy.c				\
+		     store-gdbm.c				\
+		     store-remote.c				\
+		     store-filtered.c				\
+		     store-smart.c				\
+		     store-stat.c				\
+		     block-indexers.c				\
+		     block-indexer-hash.c block-indexer-chk.c	\
+		     indexers.c indexer-tree.c			\
+		     filters.c					\
+		     filter-zlib-zip.c filter-zlib-unzip.c	\
+		     stream-file.c stream-mem.c			\
+		     stream-filtered.c  # stream-ext2.c 
 
 if HAVE_TDB
 libchop_la_SOURCES += store-tdb.c

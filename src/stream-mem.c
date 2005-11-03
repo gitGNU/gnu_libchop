@@ -32,17 +32,9 @@ mem_stream_ctor (chop_object_t *object,
   return 0;
 }
 
-static void
-mem_stream_dtor (chop_object_t *object)
-{
-  chop_mem_stream_t *mem_stream = (chop_mem_stream_t *)object;
-
-  chop_stream_close ((chop_stream_t *)mem_stream);
-}
-
 
 CHOP_DEFINE_RT_CLASS (mem_stream, stream,
-		      mem_stream_ctor, mem_stream_dtor,
+		      mem_stream_ctor, NULL,
 		      NULL, NULL  /* No serializer/deserializer */);
 
 

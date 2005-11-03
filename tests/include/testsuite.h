@@ -103,8 +103,17 @@ test_debug (const char *fmt, ...)
 
   if (test_debug_mode ())
     {
+      size_t fmt_len;
+      char *new_fmt;
+
+      fmt_len = strlen (fmt);
+      new_fmt = alloca (fmt_len + 2);
+      memcpy (new_fmt, fmt, fmt_len);
+      new_fmt[fmt_len] = '\n';
+      new_fmt[fmt_len + 1] = '\0';
+
       va_start (ap, fmt);
-      vfprintf (stderr, fmt, ap);
+      vfprintf (stderr, new_fmt, ap);
       va_end (ap);
     }
 }

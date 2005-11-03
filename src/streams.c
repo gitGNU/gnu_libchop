@@ -24,6 +24,11 @@ stream_dtor (chop_object_t *object)
   chop_stream_t *stream;
 
   stream = (chop_stream_t *)object;
+
+  /* Because we call `close' here, sub-classes usually don't need to define a
+     destructor (provided they define `close').  */
+  chop_stream_close (stream);
+
   if (stream->name)
     /* We are assuming that subclasses will use the standard libc allocation
        functions for NAME.  */

@@ -61,7 +61,7 @@ open_cipher_handle (chop_cipher_algo_t algo,
     }
 
   key_size = chop_cipher_algo_key_size (algo);
-  test_debug ("algorithm `%s' expects keys of %u bytes\n",
+  test_debug ("algorithm `%s' expects keys of %u bytes",
 	      chop_cipher_algo_name (algo), key_size);
 
   err = chop_cipher_set_key (cipher_handle, the_key, key_size);

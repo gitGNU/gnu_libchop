@@ -18,6 +18,7 @@
 
 (define-module (streams-spec)
   #:use-module (core-spec)
+  #:use-module (filters-spec)
 
   #:use-module (oop goops)
   #:use-module (g-wrap)
@@ -37,7 +38,7 @@
 
 (define-class <chop-stream-wrapset> (<gw-guile-wrapset>)
   #:id 'streams
-  #:dependencies '(standard core))
+  #:dependencies '(standard core filters))
 
 
 ;; types
@@ -84,6 +85,14 @@
 		  #:returns '<stream>
 		  #:c-name "chop_mem_stream_open_alloc"
 		  #:arguments '((<raw-scheme-type> vector)))
+
+  (wrap-function! ws
+		  #:name 'filtered-stream-open
+		  #:returns '<errcode>
+		  #:c-name "chop_filtered_stream_open_alloc"
+		  #:arguments '(((<stream> aggregated) backend)
+				((<filter> aggregated) filter)
+				((<stream> out)        stream)))
 
   ;; FIXME: We could (should?) also provide a port interface for streams just
   ;; like what `(gnome gnome-vfs)' does.
