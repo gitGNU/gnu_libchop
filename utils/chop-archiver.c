@@ -72,7 +72,8 @@ static int debugging = 0;
 static int verbose = 0;
 
 /* Whether to use the zlib filters.  */
-static int use_zlib_filters = 0;
+static int use_zlib_block_filters = 0;
+static int use_zlib_stream_filters = 0;
 
 /* Whether to show store statistics.  */
 static int show_stats = 0;
@@ -102,6 +103,10 @@ static struct argp_option options[] =
     { "block-size", 'b', "SIZE", 0,
       "Choose a typical size of SIZE bytes for the blocks produced by "
       "the chopper" },
+    { "zip-input", 'Z', 0, 0,
+      "Pass the input stream through a zlib filter to compress (resp. "
+      "decompress) data when writing (resp. reading) to (resp. from) the "
+      "archive" },
     { "zip",     'z', 0, 0,
       "Pass data blocks through a zlib filter to compress (resp. decompress) "
       "data when writing (resp. reading) to (resp. from) the archive" },
@@ -259,6 +264,30 @@ do_retrieve (chop_index_handle_t *handle, chop_block_fetcher_t *fetcher,
       return err;
     }
 
+  if (use_zlib_stream_filters)
+    {
+      /* Use a unzip-filtered stream to proxy STREAM.  */
+      chop_stream_t *raw_stream = stream;
+      chop_filter_t *unzip_filter;
+
+      unzip_filter = chop_class_alloca_instance (&chop_zlib_unzip_filter_class);
+      err = chop_zlib_unzip_filter_init (0, unzip_filter);
+      if (err)
+	{
+	  com_err (program_name, err, "while opening unzip filter");
+	  exit (1);
+	}
+
+      stream = chop_class_alloca_instance (&chop_filtered_stream_class);
+      err = chop_filtered_stream_open (raw_stream, 1, unzip_filter, 1,
+				       stream);
+      if (err)
+	{
+	  com_err (program_name, err, "while opening unzip-filtered stream");
+	  exit (1);
+	}
+    }
+
   while (1)
     {
       size_t read = 0;
@@ -322,6 +351,31 @@ process_command (const char *argument,
 	{
 	  com_err (program_name, err, "while opening %s", argument);
 	  exit (1);
+	}
+
+      if (use_zlib_stream_filters)
+	{
+	  /* Use a zip-filtered stream to proxy STREAM.  */
+	  chop_stream_t *raw_stream = stream;
+	  chop_filter_t *zip_filter;
+
+	  zip_filter = chop_class_alloca_instance (&chop_zlib_zip_filter_class);
+	  err = chop_zlib_zip_filter_init (-1, 0, zip_filter);
+	  if (err)
+	    {
+	      com_err (program_name, err, "failed to open zip filter");
+	      exit (3);
+	    }
+
+	  stream = chop_class_alloca_instance (&chop_filtered_stream_class);
+	  err = chop_filtered_stream_open (raw_stream, 1, zip_filter, 1,
+					   stream);
+	  if (err)
+	    {
+	      com_err (program_name, err,
+		       "failed to open zip-filtered input stream");
+	      exit (3);
+	    }
 	}
 
 #ifdef HAVE_GPERF
@@ -497,8 +551,11 @@ parse_opt (int key, char *arg, struct argp_state *state)
       restore_queried = 1;
       option_argument = arg;
       break;
+    case 'Z':
+      use_zlib_stream_filters = 1;
+      break;
     case 'z':
-      use_zlib_filters = 1;
+      use_zlib_block_filters = 1;
       break;
     case 'R':
       remote_hostname = arg;
@@ -649,7 +706,7 @@ main (int argc, char *argv[])
       chop_dummy_block_store_open ("meta-data", metastore);
     }
 
-  if (use_zlib_filters)
+  if (use_zlib_block_filters)
     {
       /* Create a filtered store that uses zlib filters and proxies the
 	 block store for data (not metadata).  */
