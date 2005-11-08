@@ -39,8 +39,27 @@ zlib_unzip_filter_ctor (chop_object_t *object,
   return chop_log_init ("zlib-unzip-filter", &zfilter->filter.log);
 }
 
+static void
+zlib_unzip_filter_dtor (chop_object_t *object)
+{
+  chop_zlib_unzip_filter_t *zfilter;
+  zfilter = (chop_zlib_unzip_filter_t *)object;
+
+  inflateEnd (&zfilter->zstream);
+  zfilter->zstream.zalloc = Z_NULL;
+  zfilter->zstream.zfree = Z_NULL;
+  zfilter->zstream.opaque = Z_NULL;
+
+  if (zfilter->input_buffer)
+    free (zfilter->input_buffer);
+  zfilter->input_buffer = NULL;
+  zfilter->input_buffer_size = 0;
+
+  chop_object_destroy ((chop_object_t *)&zfilter->filter.log);
+}
+
 CHOP_DEFINE_RT_CLASS (zlib_unzip_filter, filter,
-		      zlib_unzip_filter_ctor, NULL,
+		      zlib_unzip_filter_ctor, zlib_unzip_filter_dtor,
 		      NULL, NULL);
 
 
@@ -48,12 +67,15 @@ errcode_t
 chop_zlib_unzip_filter_init (size_t input_size,
 			     chop_filter_t *filter)
 {
+  errcode_t err;
   chop_zlib_unzip_filter_t *zfilter;
 
   zfilter = (chop_zlib_unzip_filter_t *)filter;
 
-  chop_object_initialize ((chop_object_t *)filter,
-			  &chop_zlib_unzip_filter_class);
+  err = chop_object_initialize ((chop_object_t *)filter,
+				&chop_zlib_unzip_filter_class);
+  if (err)
+    return err;
 
   input_size = input_size ? input_size : 1024;
   zfilter->input_buffer = malloc (input_size);

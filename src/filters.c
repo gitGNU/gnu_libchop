@@ -13,7 +13,9 @@ filter_ctor (chop_object_t *object, const chop_class_t *class)
   chop_filter_t *filter = (chop_filter_t *)object;
 
   filter->input_fault_handler.handle = NULL;
+  filter->input_fault_handler.data = NULL;
   filter->output_fault_handler.handle = NULL;
+  filter->output_fault_handler.data = NULL;
   filter->within_fault_handler = 0;
 
   return 0;
