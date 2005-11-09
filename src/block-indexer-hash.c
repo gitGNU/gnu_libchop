@@ -265,7 +265,7 @@ hbf_dtor (chop_object_t *object)
   fetcher->block_fetcher.fetch_block = NULL;
   fetcher->block_fetcher.index_handle_class = NULL;
 
-  chop_log_close (&fetcher->log);
+  chop_object_destroy ((chop_object_t *)&fetcher->log);
 }
 
 static errcode_t

@@ -90,6 +90,7 @@ chop_ascii_serialize_index_tuple (const chop_index_handle_t *index,
     goto finish;
 
  finish:
+  chop_object_destroy ((chop_object_t *)block_fetcher);
   chop_buffer_return (&ascii_object);
 
   return err;

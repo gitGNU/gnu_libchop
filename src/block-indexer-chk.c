@@ -277,7 +277,7 @@ cbf_dtor (chop_object_t *object)
   fetcher->cipher_handle = CHOP_CIPHER_HANDLE_NIL;
   fetcher->owns_cipher_handle = 0;
 
-  chop_log_close (&fetcher->log);
+  chop_object_destroy ((chop_object_t *)&fetcher->log);
 }
 
 static errcode_t

@@ -14,6 +14,7 @@ stream_ctor (chop_object_t *object, const chop_class_t *class)
   stream->name = NULL;
   stream->read = NULL;
   stream->close = NULL;
+  stream->preferred_block_size = 0;
 
   return 0;
 }

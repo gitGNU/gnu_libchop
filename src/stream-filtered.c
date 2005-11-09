@@ -146,6 +146,8 @@ chop_filtered_stream_open (chop_stream_t *backend,
   stream = (chop_filtered_stream_t *)raw_stream;
   stream->stream.read = filtered_stream_read;
   stream->stream.close = filtered_stream_close;
+  stream->stream.preferred_block_size =
+    chop_stream_preferred_block_size (backend);
 
   stream->backend = backend;
   stream->filter = filter;

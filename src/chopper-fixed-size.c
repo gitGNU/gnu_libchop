@@ -108,15 +108,13 @@ chop_fixed_chopper_read_block (chop_chopper_t *chopper,
   chop_stream_t *input = chop_chopper_stream (chopper);
 
   block = (char *)alloca (fixed->block_size);
-  if (!block)
-    return ENOMEM;
 
   *size = 0;
   while (*size < fixed->block_size)
     {
       amount = 0;
       err = chop_stream_read (input, &block[*size],
-			      fixed->block_size, &amount);
+			      fixed->block_size - *size, &amount);
       *size += amount;
 
       if (err)

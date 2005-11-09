@@ -46,8 +46,6 @@ typedef struct
 
 
 #ifdef HAVE_LIGHTNING_H
-#warning "compiling the Lightning-based version"
-/* Well, there's nothing wrong with it, just to let you know.  ;-)  */
 
 #include <lightning.h>
 
@@ -97,6 +95,8 @@ typedef jit_multiplier_func_t jit_multiplier_t;
 
 #endif /* INLINE_LIGHTNING_CODE */
 
+#else /* !HAVE_LIGHTNING_H */
+# warning "Not compiling the Lightning code"
 #endif /* HAVE_LIGHTNING_H */
 
 
@@ -752,7 +752,7 @@ ab_dtor (chop_object_t *object)
     (chop_anchor_based_chopper_t *)object;
 
   sliding_window_destroy (&anchor->sliding_window);
-  chop_log_close (&anchor->log);
+  chop_object_destroy ((chop_object_t *)&anchor->log);
 
 #ifdef HAVE_LIGHTNING_H
   free (JIT_MULTIPLIER_FUNC (anchor->jit_multiply_with_prime_to_the_ws));

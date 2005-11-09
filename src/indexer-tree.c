@@ -64,7 +64,7 @@ iht_dtor (chop_object_t *object)
   htree = (chop_tree_indexer_t *)object;
   htree->indexes_per_block = 0;
   htree->cipher_handle = CHOP_CIPHER_HANDLE_NIL;
-  chop_log_close (&htree->log);
+  chop_object_destroy ((chop_object_t *)&htree->log);
 }
 
 CHOP_DEFINE_RT_CLASS (tree_indexer, indexer,
@@ -731,7 +731,7 @@ tree_stream_dtor (chop_object_t *object)
   chop_tree_stream_t *tstream = (chop_tree_stream_t *)object;
 
   chop_decoded_block_tree_free (&tstream->tree);
-  chop_log_close (&tstream->log);
+  chop_object_destroy ((chop_object_t *)&tstream->log);
 }
 
 

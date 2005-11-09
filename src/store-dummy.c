@@ -24,7 +24,7 @@ dbs_dtor (chop_object_t *object)
     free (dummy->block_store.name);
   dummy->block_store.name = NULL;
 
-  chop_log_close (&dummy->log);
+  chop_object_destroy ((chop_object_t *)&dummy->log);
 }
 
 CHOP_DEFINE_RT_CLASS (dummy_block_store, block_store,
