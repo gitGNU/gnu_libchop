@@ -5,12 +5,12 @@
 #endif
 
 static size_t
-chop_cipher_handle_cleanup (SCM s_cipher)
+chop_cipher_handle_cleanup (void *wcp)
 {
   /* Remember that `chop_cipher_handle_t' is itself a pointer type.  */
   chop_cipher_handle_t cipher;
 
-  cipher = (chop_cipher_handle_t)gw_wcp_get_ptr (s_cipher);
+  cipher = (chop_cipher_handle_t)wcp;
 
 #ifdef DEBUG
   fprintf (stderr, "%s: freeing cipher @%p [SCM: %p]\n",

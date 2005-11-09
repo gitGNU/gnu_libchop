@@ -131,7 +131,8 @@
 		  #:name 'block-indexer-make-fetcher
 		  #:c-name "chop_block_indexer_make_fetcher_alloc"
 		  #:returns '<errcode>
-		  #:arguments '((<block-indexer> bi)))
+		  #:arguments '((<block-indexer> bi)
+				((<block-fetcher> out) bf)))
 
 
   ;; index handles

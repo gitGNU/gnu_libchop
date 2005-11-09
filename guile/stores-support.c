@@ -469,7 +469,7 @@ chop_make_scheme_block_store (SCM read_block, SCM write_block,
   return (s_store);
 }
 
-static void
+static errcode_t
 sbs_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_scheme_block_store_t *store;
@@ -479,6 +479,8 @@ sbs_ctor (chop_object_t *object, const chop_class_t *class)
   store->block_store.write_block = NULL;
   store->block_store.close = NULL;
   store->block_store.sync = NULL;
+
+  return 0;
 }
 
 static void

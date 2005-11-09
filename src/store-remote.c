@@ -37,7 +37,7 @@ remote_dtor (chop_object_t *object)
       remote->rpc_client = NULL;
     }
 
-  chop_log_close (&remote->log);
+  chop_object_destroy ((chop_object_t *)&remote->log);
 }
 
 CHOP_DEFINE_RT_CLASS (remote_block_store, block_store,

@@ -22,16 +22,13 @@ CHOP_DEFINE_RT_CLASS (hybrid_scheme_class, class,
 
 
 size_t
-gwrap_chop_object_cleanup (SCM wcp)
+gwrap_chop_object_cleanup (void *wcp)
 {
   chop_object_t *object;
   const chop_class_t *class;
 
-  /* This must be an non-immediate thing.  */
-  assert (SCM_NIMP (wcp));
-  assert (gw_wcp_p (wcp));
-
-  object = (chop_object_t *)gw_wcp_get_ptr (wcp);
+  assert (wcp);
+  object = (chop_object_t *)wcp;
 
 #ifdef DEBUG
   fprintf (stderr, "%s: freeing object @%p [SCM: %p]\n",

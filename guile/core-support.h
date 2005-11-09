@@ -28,7 +28,7 @@ extern void gwrap_chop_object_support_init (void);
 
 /* The function that destroys WCP, a wrapped `chop_object_t' pointer, by
    calling `chop_object_destroy ()' and then freeing the object itself.  */
-extern size_t gwrap_chop_object_cleanup (SCM wcp);
+extern size_t gwrap_chop_object_cleanup (void *wcp);
 
 /* The function that gets called to mark WCP, a wrapped C pointer to a
    `chop_object_t'.  */

@@ -13,6 +13,19 @@
 /* Constructors.  */
 
 static __inline__ errcode_t
+chop_block_indexer_make_fetcher_alloc (chop_block_indexer_t *indexer,
+				       chop_block_fetcher_t **fetcher)
+{
+  const chop_class_t *fetcher_class;
+
+  fetcher_class = chop_block_indexer_fetcher_class (indexer);
+  *fetcher =
+    (chop_block_fetcher_t *)scm_malloc (chop_class_instance_size (fetcher_class));
+
+  return 0;
+}
+
+static __inline__ errcode_t
 chop_hash_block_indexer_open_alloc (chop_hash_method_t hash_method,
 				    chop_block_indexer_t **bi)
 {
@@ -78,10 +91,10 @@ chop_block_indexer_index_alloc (chop_block_indexer_t *block_indexer,
 }
 
 static __inline__ errcode_t
-chop_block_fetcher_fetch_alloc (chop_block_fetcher_t *block_fetcher,
-				const chop_index_handle_t *index,
-				chop_block_store_t *store,
-				SCM *vector)
+chop_block_fetcher_fetch_alloc_u8vector (chop_block_fetcher_t *block_fetcher,
+					 const chop_index_handle_t *index,
+					 chop_block_store_t *store,
+					 SCM *vector)
 {
   errcode_t err;
   size_t size;
