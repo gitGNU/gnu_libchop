@@ -25,7 +25,7 @@ main (int argc, char *argv[])
       &chop_anchor_based_chopper_class,
       NULL
     };
-  static char mem_stream_contents[1000007];
+  static char mem_stream_contents[1000777];
   char *mem;
   const chop_chopper_class_t **class;
   chop_stream_t *input;
@@ -40,7 +40,6 @@ main (int argc, char *argv[])
        mem - mem_stream_contents < sizeof (mem_stream_contents);
        mem++)
     {
-/*       *mem = (random () % 64) + '!'; */
       *mem = random () % 256;
     }
 
@@ -51,13 +50,15 @@ main (int argc, char *argv[])
        *class != NULL;
        class++)
     {
-      size_t bytes_read = 0;
+      size_t bytes_read = 0, input_size;
 
-      test_stage ("chopper class `%s'",
-		  chop_class_name ((chop_class_t *)*class));
+      input_size = sizeof (mem_stream_contents) - (random () % 60);
+      test_stage ("chopper class `%s', %u input bytes",
+		  chop_class_name ((chop_class_t *)*class),
+		  input_size);
 
       /* Open the input stream.  */
-      chop_mem_stream_open (mem_stream_contents, sizeof (mem_stream_contents),
+      chop_mem_stream_open (mem_stream_contents, input_size,
 			    NULL, input);
 
       /* Open the chopper.  */
@@ -90,10 +91,10 @@ main (int argc, char *argv[])
 		{
 		  /* Verify that CHOPPER complies with the interface
 		     specifications.  */
-		  assert (amount == chop_buffer_size (&buffer));
-		  assert (!memcmp (mem_stream_contents + bytes_read,
-				   chop_buffer_content (&buffer),
-				   amount));
+		  test_assert (amount == chop_buffer_size (&buffer));
+		  test_assert (!memcmp (mem_stream_contents + bytes_read,
+					chop_buffer_content (&buffer),
+					amount));
 		  bytes_read += amount;
 		}
 	      else
@@ -103,6 +104,10 @@ main (int argc, char *argv[])
 		  exit (2);
 		}
 	    }
+	  else
+	    /* When the chopper fails and returns an error, it should left
+	       AMOUNT untouched or make it zero.  */
+	    test_assert (amount == 0);
 	}
 
       if (err != CHOP_STREAM_END)
@@ -115,11 +120,11 @@ main (int argc, char *argv[])
       chop_chopper_close (chopper);
       chop_stream_close (input);
 
-      if (bytes_read != sizeof (mem_stream_contents))
+      if (bytes_read != input_size)
 	{
 	  fprintf (stderr, "%s: `%s' chopper gave %u bytes instead of %u\n",
 		   argv[0], chop_class_name ((chop_class_t *)*class),
-		   bytes_read, sizeof (mem_stream_contents));
+		   bytes_read, input_size);
 	  exit (4);
 	}
 

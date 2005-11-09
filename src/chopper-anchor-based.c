@@ -320,7 +320,7 @@ compile_multiplication_function (unsigned long prime_to_the_ws)
 
 
 /* Read a whole window (ie. ANCHOR->WINDOW_SIZE bytes) from ANCHOR's input
-   stream and store it inot BUFFER.  */
+   stream and store it into BUFFER.  */
 static inline errcode_t
 read_sliding_window (chop_anchor_based_chopper_t *anchor,
 		     char *buffer, size_t *size)
@@ -328,11 +328,37 @@ read_sliding_window (chop_anchor_based_chopper_t *anchor,
   errcode_t err;
   chop_stream_t *input = anchor->chopper.stream;
 
-  err = chop_stream_read (input, buffer, anchor->window_size, size);
-  if ((!err) && (*size < anchor->window_size))
+  *size = 0;
+
+  /* Read data from INPUT until we got ANCHOR->WINDOW_SIZE bytes or
+     end-of-stream is reached.  */
+  while (*size < anchor->window_size)
+    {
+      size_t amount = 0;
+
+      err = chop_stream_read (input, buffer + *size,
+			      anchor->window_size - *size, &amount);
+      *size += amount;
+
+      if (err)
+	{
+	  if (err == CHOP_STREAM_END)
+	    break;
+	  else
+	    return err;
+	}
+    }
+
+  if (((!err) || (err == CHOP_STREAM_END))
+      && (*size < anchor->window_size))
     /* Pad with zeros.  This is meant to help the "fast" implementation of
        sliding windows.  */
     memset (buffer + *size, 0, anchor->window_size - *size);
+
+  if ((err == CHOP_STREAM_END) && (*size > 0))
+    /* We'll announce the end of stream once there is really nothing left to
+       read.  */
+    err = 0;
 
   return err;
 }

@@ -286,6 +286,9 @@ do_retrieve (chop_index_handle_t *handle, chop_block_fetcher_t *fetcher,
 	  com_err (program_name, err, "while opening unzip-filtered stream");
 	  exit (1);
 	}
+
+      if (verbose)
+	chop_log_attach (chop_filter_log (unzip_filter), 2, 0);
     }
 
   while (1)
@@ -376,6 +379,9 @@ process_command (const char *argument,
 		       "failed to open zip-filtered input stream");
 	      exit (3);
 	    }
+
+	  if (verbose)
+	    chop_log_attach (chop_filter_log (zip_filter), 2, 0);
 	}
 
 #ifdef HAVE_GPERF
@@ -704,6 +710,8 @@ main (int argc, char *argv[])
 
       chop_dummy_block_store_open ("data", store);
       chop_dummy_block_store_open ("meta-data", metastore);
+      chop_log_attach (chop_dummy_block_store_log (store), 2, 0);
+      chop_log_attach (chop_dummy_block_store_log (metastore), 2, 0);
     }
 
   if (use_zlib_block_filters)
