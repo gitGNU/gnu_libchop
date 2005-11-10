@@ -307,7 +307,6 @@ do_retrieve (chop_index_handle_t *handle, chop_block_fetcher_t *fetcher,
       return err;
     }
 
-  chop_stream_close (stream);
   chop_object_destroy ((chop_object_t *)stream);
 
   return 0;
@@ -745,7 +744,9 @@ main (int argc, char *argv[])
 	}
 
       err = chop_filtered_store_open (input_filter, output_filter,
-				      raw_store, store);
+				      raw_store,
+				      CHOP_PROXY_EVENTUALLY_DESTROY,
+				      store);
       if (err)
 	{
 	  com_err (program_name, err, "while initializing filtered store");

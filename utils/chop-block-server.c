@@ -548,7 +548,9 @@ main (int argc, char *argv[])
 	}
 
       err = chop_filtered_store_open (input_filter, output_filter,
-				      raw_store, local_store);
+				      raw_store,
+				      CHOP_PROXY_EVENTUALLY_DESTROY,
+				      local_store);
       if (err)
 	{
 	  com_err (program_name, err, "while initializing filtered store");

@@ -27,7 +27,9 @@ stream_dtor (chop_object_t *object)
   stream = (chop_stream_t *)object;
 
   /* Because we call `close' here, sub-classes usually don't need to define a
-     destructor (provided they define `close').  */
+     destructor (provided they define `close').
+     XXX:  This is actually quite evil since at this point STREAM is already
+     partly destroyed.  */
   chop_stream_close (stream);
 
   if (stream->name)

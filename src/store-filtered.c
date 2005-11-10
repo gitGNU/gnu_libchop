@@ -15,10 +15,14 @@
 CHOP_DECLARE_RT_CLASS (filtered_block_store, block_store,
 		       chop_filter_t *input_filter;
 		       chop_filter_t *output_filter;
-		       chop_block_store_t *backend;);
+		       chop_block_store_t *backend;
+		       chop_proxy_semantics_t backend_ps;);
+
+
+static errcode_t fbs_ctor (chop_object_t *, const chop_class_t *);
 
 CHOP_DEFINE_RT_CLASS (filtered_block_store, block_store,
-		      NULL, NULL, /* No constructor/destructor */
+		      fbs_ctor, NULL, /* No constructor/destructor */
 		      NULL, NULL  /* No serializer/deserializer */);
 
 
@@ -155,17 +159,36 @@ chop_filtered_block_store_sync (chop_block_store_t *store)
 static errcode_t
 chop_filtered_block_store_close (chop_block_store_t *store)
 {
-  return 0;
+  errcode_t err = 0;
+  chop_filtered_block_store_t *filtered;
+
+  filtered = (chop_filtered_block_store_t *)store;
+  switch (filtered->backend_ps)
+    {
+    case CHOP_PROXY_LEAVE_AS_IS:
+      break;
+
+    case CHOP_PROXY_EVENTUALLY_CLOSE:
+    case CHOP_PROXY_EVENTUALLY_DESTROY:
+    case CHOP_PROXY_EVENTUALLY_FREE:
+      err = chop_store_close (filtered->backend);
+      break;
+
+    default:
+      abort ();
+    }
+
+  return err;
 }
 
-errcode_t
-chop_filtered_store_open (chop_filter_t *input_filter,
-			  chop_filter_t *output_filter,
-			  chop_block_store_t *backend,
-			  chop_block_store_t *store)
+
+/* The constructor.  */
+static errcode_t
+fbs_ctor (chop_object_t *object, const chop_class_t *class)
 {
-  chop_filtered_block_store_t *filtered =
-    (chop_filtered_block_store_t *)store;
+  chop_block_store_t *store;
+
+  store = (chop_block_store_t *)object;
 
   store->name = NULL;
   store->block_exists = chop_filtered_block_store_block_exists;
@@ -177,9 +200,30 @@ chop_filtered_store_open (chop_filter_t *input_filter,
   store->close = chop_filtered_block_store_close;
   store->sync = chop_filtered_block_store_sync;
 
+  return 0;
+}
+
+
+errcode_t
+chop_filtered_store_open (chop_filter_t *input_filter,
+			  chop_filter_t *output_filter,
+			  chop_block_store_t *backend,
+			  chop_proxy_semantics_t bps,
+			  chop_block_store_t *store)
+{
+  errcode_t err;
+  chop_filtered_block_store_t *filtered =
+    (chop_filtered_block_store_t *)store;
+
+  err = chop_object_initialize ((chop_object_t *)store,
+				&chop_filtered_block_store_class);
+  if (err)
+    return err;
+
   filtered->input_filter = input_filter;
   filtered->output_filter = output_filter;
   filtered->backend = backend;
+  filtered->backend_ps = bps;
 
   return 0;
 }

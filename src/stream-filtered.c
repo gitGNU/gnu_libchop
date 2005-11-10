@@ -8,7 +8,7 @@ CHOP_DECLARE_RT_CLASS (filtered_stream, stream,
 		       chop_stream_t *backend;
 		       chop_filter_t *filter;
 		       chop_filter_fault_handler_t filter_input_handler;
-		       int owns_backend;
+		       chop_proxy_semantics_t backend_ps;
 		       int owns_filter;
 		       int flushing;
 		       int finished;);
@@ -21,7 +21,8 @@ fs_ctor (chop_object_t *object, const chop_class_t *class)
   stream = (chop_filtered_stream_t *)object;
   stream->backend = NULL;
   stream->filter = NULL;
-  stream->owns_filter = stream->owns_backend = 0;
+  stream->backend_ps = CHOP_PROXY_LEAVE_AS_IS;
+  stream->owns_filter = 0;
   stream->finished = 0;
 
   return 0;
@@ -118,19 +119,44 @@ filtered_stream_close (chop_stream_t *raw_stream)
 	   stream->filter_input_handler.data);
     }
 
-  if ((stream->backend) && (stream->owns_backend))
-    chop_object_destroy ((chop_object_t *)stream->backend);
+  if (stream->backend)
+    {
+      switch (stream->backend_ps)
+	{
+	case CHOP_PROXY_LEAVE_AS_IS:
+	  /* Leave BACKEND as is.  */
+	  break;
+
+	case CHOP_PROXY_EVENTUALLY_CLOSE:
+	  /* Close without destroy STREAM->BACKEND.  */
+	  chop_stream_close (stream->backend);
+	  break;
+
+	case CHOP_PROXY_EVENTUALLY_DESTROY:
+	  /* Close and destroy STREAM->BACKEND.  */
+	  chop_object_destroy ((chop_object_t *)stream->backend);
+	  break;
+
+	case CHOP_PROXY_EVENTUALLY_FREE:
+	  chop_object_destroy ((chop_object_t *)stream->backend);
+	  free (stream->backend);
+	  break;
+
+	default:
+	  abort ();
+	}
+    }
 
   stream->filter = NULL;
   stream->backend = NULL;
-  stream->owns_filter = stream->owns_backend = 0;
+  stream->owns_filter = 0;
 }
 
 
 
 errcode_t
 chop_filtered_stream_open (chop_stream_t *backend,
-			   int owns_backend,
+			   chop_proxy_semantics_t bps,
 			   chop_filter_t *filter,
 			   int owns_filter,
 			   chop_stream_t *raw_stream)
@@ -152,7 +178,7 @@ chop_filtered_stream_open (chop_stream_t *backend,
   stream->backend = backend;
   stream->filter = filter;
   stream->owns_filter = owns_filter;
-  stream->owns_backend = owns_backend;
+  stream->backend_ps = bps;
   stream->flushing = stream->finished = 0;
 
   stream->filter_input_handler = chop_filter_input_fault_handler (filter);

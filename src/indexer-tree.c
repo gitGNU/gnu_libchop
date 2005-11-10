@@ -730,7 +730,6 @@ tree_stream_dtor (chop_object_t *object)
 {
   chop_tree_stream_t *tstream = (chop_tree_stream_t *)object;
 
-  chop_decoded_block_tree_free (&tstream->tree);
   chop_object_destroy ((chop_object_t *)&tstream->log);
 }
 
@@ -1127,7 +1126,9 @@ tree_stream_read (chop_stream_t *stream, char *buffer, size_t size,
 static void
 tree_stream_close (chop_stream_t *stream)
 {
-  tree_stream_dtor ((chop_object_t *)stream);
+  chop_tree_stream_t *tstream = (chop_tree_stream_t *)stream;
+
+  chop_decoded_block_tree_free (&tstream->tree);
 }
 
 

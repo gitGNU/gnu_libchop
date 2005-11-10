@@ -31,12 +31,6 @@ remote_dtor (chop_object_t *object)
 
   remote = (chop_remote_block_store_t *)object;
 
-  if (remote->rpc_client)
-    {
-      clnt_destroy (remote->rpc_client);
-      remote->rpc_client = NULL;
-    }
-
   chop_object_destroy ((chop_object_t *)&remote->log);
 }
 
@@ -266,8 +260,11 @@ chop_remote_close (chop_block_store_t *store)
 	  return CHOP_STORE_ERROR;
 	}
 
-      /* Invoke the destructor.  */
-      remote_dtor ((chop_object_t *)remote);
+      if (remote->rpc_client)
+	{
+	  clnt_destroy (remote->rpc_client);
+	  remote->rpc_client = NULL;
+	}
     }
 
   return 0;

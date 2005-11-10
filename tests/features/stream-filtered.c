@@ -45,7 +45,8 @@ main (int argc, char *argv[])
   test_check_errcode (err, "initializing zip filter");
 
   zipped_stream = chop_class_alloca_instance (&chop_filtered_stream_class);
-  err = chop_filtered_stream_open (source_stream, 1,
+  err = chop_filtered_stream_open (source_stream,
+				   CHOP_PROXY_EVENTUALLY_DESTROY,
 				   zip_filter, 1,
 				   zipped_stream);
   test_check_errcode (err, "initializing zip-filtered stream");
@@ -55,7 +56,8 @@ main (int argc, char *argv[])
   test_check_errcode (err, "initializing unzip filter");
 
   unzipped_stream = chop_class_alloca_instance (&chop_filtered_stream_class);
-  err = chop_filtered_stream_open (zipped_stream, 1,
+  err = chop_filtered_stream_open (zipped_stream,
+				   CHOP_PROXY_EVENTUALLY_DESTROY,
 				   unzip_filter, 1,
 				   unzipped_stream);
   test_check_errcode (err, "initializing unzip-filtered stream");

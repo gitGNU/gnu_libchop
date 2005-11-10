@@ -32,7 +32,6 @@ tdb_dtor (chop_object_t *object)
   chop_tdb_block_store_t *store;
 
   store = (chop_tdb_block_store_t *)object;
-  chop_store_close ((chop_block_store_t *)store);
 
   store->db = NULL;
   store->block_store.read_block = NULL;

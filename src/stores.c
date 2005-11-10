@@ -23,8 +23,28 @@ store_ctor (chop_object_t *object, const chop_class_t *class)
   return 0;
 }
 
+static void
+store_dtor (chop_object_t *object)
+{
+  chop_block_store_t *store =
+    (chop_block_store_t *)object;
+
+  /* This guarantees that all stores are closed when they are destroyed.  */
+  chop_store_close (store);
+
+  store->name = NULL;
+  store->block_exists = NULL;
+  store->read_block = NULL;
+  store->write_block = NULL;
+  store->delete_block = NULL;
+  store->first_key = NULL;
+  store->next_key = NULL;
+  store->close = NULL;
+  store->sync = NULL;
+}
+
 CHOP_DEFINE_RT_CLASS (block_store, object,
-		      store_ctor, NULL, /* No destructor */
+		      store_ctor, store_dtor,
 		      NULL, NULL  /* No serializer/deserializer */);
 
 /* The meta-class for all file-based stores, i.e. GDBM, TDB, etc.  */

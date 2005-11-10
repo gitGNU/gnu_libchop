@@ -145,9 +145,10 @@ chop_test_and_untrack_object (chop_object_t *object)
 	  else
 	    tracked_objects[bucket] = next;
 
+	  chop_object_mark_as_untracked (object);
+
 	  free (obj);
 
-	  chop_object_mark_as_untracked (object);
 	  return 1;
 	}
     }

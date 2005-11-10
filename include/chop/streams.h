@@ -75,12 +75,12 @@ extern void chop_mem_stream_open (const char *base, size_t size,
 
 #include <chop/filters.h>
 
-/* Initialize STREAM as a filtered stream that reads input data from
-   BACKEND through FILTER.  If OWNS_BACKEND is true, then closing STREAM
-   will close and destroy BACKEND.  Likewise, if OWNS_FILTER is true, then
-   closing STREAM will destroy FILTER.  */
+/* Initialize STREAM as a filtered stream that reads input data from BACKEND
+   through FILTER.  BPS defines the semantics of STREAM as a proxy of BACKEND
+   (whether BACKEND should eventually be destroyed, etc.).  Similarly, if
+   OWNS_FILTER is true, then closing STREAM will destroy FILTER.  */
 extern errcode_t chop_filtered_stream_open (chop_stream_t *backend,
-					    int owns_backend,
+					    chop_proxy_semantics_t bps,
 					    chop_filter_t *filter,
 					    int owns_filter,
 					    chop_stream_t *stream);

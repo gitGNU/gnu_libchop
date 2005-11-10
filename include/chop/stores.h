@@ -200,6 +200,24 @@ extern chop_log_t *chop_smart_block_store_log (chop_block_store_t *store);
 /* XXX: We might want to have a look at Berkeley DB (`libdb3'), or even the
    TDB Replication System (http://tdbrepl.inodes.org/) or a DHT.  */
 
+
+/* The filtered block store class.  */
+
+#include <chop/filters.h>
+
+extern const chop_class_t chop_filtered_block_store_class;
+
+/* Initialize STORE as a filtered block store which uses INPUT_FILTER to
+   filter the contents of blocks that are written to it, OUTPUT_FILTER to
+   filter the contents of blocks as they are read from it, and uses BACKEND
+   as the underlying block store.  BPS specify how STORE should behave as a
+   proxy of BACKEND.  */
+extern errcode_t chop_filtered_store_open (chop_filter_t *input_filter,
+					   chop_filter_t *output_filter,
+					   chop_block_store_t *backend,
+					   chop_proxy_semantics_t bps,
+					   chop_block_store_t *store);
+
 
 
 /* The block store interface.  */

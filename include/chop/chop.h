@@ -38,11 +38,33 @@ _CHOP_BEGIN_DECLS
 /* Basic types.  */
 typedef struct chop_block_key chop_block_key_t;
 typedef enum chop_hash_method chop_hash_method_t;
+typedef enum chop_proxy_semantics chop_proxy_semantics_t;
 
 
 /* Initialize the Chop library.  This function must be called before using
    the library.  */
 extern errcode_t chop_init (void);
+
+
+/* The following type is used to define the relationship between a proxy and
+   an object it proxies.  This is used in proxying streams and proxying
+   stores, such as filtered streams and filtered stores.  */
+enum chop_proxy_semantics
+  {
+    CHOP_PROXY_LEAVE_AS_IS = 0,    /* Don't close nor destroy the proxied
+				      object.  */
+    CHOP_PROXY_EVENTUALLY_CLOSE,   /* On `close ()' (or equivalent), close
+				      the proxied object but don't destroy
+				      it.  Useful for classes that have an
+				      explicit `close ()' operation, like
+				      streams and stores.  */
+    CHOP_PROXY_EVENTUALLY_DESTROY, /* Upon destruction, destroy the proxied
+				      object, using
+				      `chop_object_destroy ()'.  */
+    CHOP_PROXY_EVENTUALLY_FREE     /* Upon destruction, destroy the proxied
+				      object and free its storage using the
+				      standard `free ()' function.  */
+  };
 
 
 

@@ -202,20 +202,5 @@ chop_zlib_unzip_filter_init (size_t input_size,
 			     chop_filter_t *filter);
 
 
-
-/* The filtered block store class.  */
-
-#include <chop/stores.h>
-
-extern const chop_class_t chop_filtered_block_store_class;
-
-/* Initialize STORE as a filtered block store which uses INPUT_FILTER to
-   filter the contents of blocks that are written to it, OUTPUT_FILTER to
-   filter the contents of blocks as they are read from it, and uses BACKEND
-   as the underlying block store.  */
-extern errcode_t chop_filtered_store_open (chop_filter_t *input_filter,
-					   chop_filter_t *output_filter,
-					   chop_block_store_t *backend,
-					   chop_block_store_t *store);
 
 #endif
