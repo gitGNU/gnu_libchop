@@ -47,24 +47,3 @@ chop_zlib_unzip_filter_init_alloc (size_t input_size,
   return err;
 }
 
-
-
-static __inline__ errcode_t
-chop_filtered_store_open_alloc (chop_filter_t *input, chop_filter_t *output,
-				chop_block_store_t *backend,
-				chop_block_store_t **store)
-{
-  errcode_t err;
-
-  *store =
-    scm_malloc (chop_class_instance_size (&chop_filtered_block_store_class));
-
-  err = chop_filtered_store_open (input, output, backend, *store);
-  if (err)
-    {
-      free (*store);
-      *store = NULL;
-    }
-
-  return err;
-}

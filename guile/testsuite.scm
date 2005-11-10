@@ -26,6 +26,7 @@ exec ${GUILE-guile} -L module -l $0 -c "(apply $main (cdr (command-line)))" "$@"
 
 (use-modules (chop core)
 	     (chop cipher)
+	     (chop filters)
 	     (chop streams)
 	     (chop stores)
 	     (chop store-stats)
@@ -44,7 +45,7 @@ exec ${GUILE-guile} -L module -l $0 -c "(apply $main (cdr (command-line)))" "$@"
 (define (stress thunk)
   (format #t "stressing... ")
   (let loop ((i 0))
-    (if (>= i 10000)
+    (if (>= i 1000)
 	(begin
 	  (format #t "done~%")
 	  (gc)
@@ -89,8 +90,28 @@ exec ${GUILE-guile} -L module -l $0 -c "(apply $main (cdr (command-line)))" "$@"
 		      (let ((stats (stat-block-store-stats sbs)))
 			(values (block-store-stats:blocks-written stats)
 				(block-store-stats:virgin-bytes stats)
-				(block-store-stats:average-block-size stats)))))
+				(block-store-stats:average-block-size
+				 stats)))))
+
+		  (lambda ()
+		    (let ((s (filtered-stream-open (file-stream-open
+						    "testsuite.scm")
+						   (zlib-zip-filter-init)))
+			  (vec (make-u8vector 1000)))
+		      (let loop ((ret (false-if-exception
+				       (stream-read! s vec))))
+			(if (not ret)
+			    (begin
+			      (format #t "closing zstream~%")
+			      (stream-close s)
+			      #t)
+			    (begin
+			      (gc)
+			      (format #t "ret=~a~%" ret)
+			      (loop (false-if-exception
+				     (stream-read! s vec))))))))
 		  ))
+
   (format #t "~%* done!~%~%~%"))
 
 (define main testsuite)

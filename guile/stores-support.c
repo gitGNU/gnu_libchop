@@ -186,6 +186,36 @@ chop_store_read_block_alloc_u8vector (chop_block_store_t *store,
   return err;
 }
 
+
+static __inline__ errcode_t
+chop_filtered_store_open_alloc (chop_filter_t *input, chop_filter_t *output,
+				chop_block_store_t *backend,
+				int close_backend,
+				chop_block_store_t **store)
+{
+  errcode_t err;
+
+  *store =
+    scm_malloc (chop_class_instance_size (&chop_filtered_block_store_class));
+
+  err = chop_filtered_store_open (input, output, backend,
+				  /* Never destroy BACKEND: this is the GC's
+				     job.  At most, close it when *STORE gets
+				     closed.  */
+				  close_backend
+				  ? CHOP_PROXY_EVENTUALLY_CLOSE
+				  : CHOP_PROXY_LEAVE_AS_IS,
+				  *store);
+  if (err)
+    {
+      free (*store);
+      *store = NULL;
+    }
+
+  return err;
+}
+
+
 
 /* Support for writing block stores in Guile Scheme.  */
 

@@ -18,6 +18,7 @@
 
 (define-module (stores-spec)
   #:use-module (core-spec)
+  #:use-module (filters-spec)
 
   #:use-module (oop goops)
   #:use-module (srfi srfi-1)
@@ -39,7 +40,7 @@
 
 (define-class <chop-store-wrapset> (<gw-guile-wrapset>)
   #:id 'stores
-  #:dependencies '(standard core))
+  #:dependencies '(standard core filters))
 
 
 ;; types
@@ -246,6 +247,16 @@
 		  #:arguments '(((mchars caller-owned) host)
 				((mchars caller-owned) protocol)
 				((<store> out) new-store)))
+
+  (wrap-function! ws
+		  #:name 'filtered-store-open
+		  #:c-name "chop_filtered_store_open_alloc"
+		  #:returns '<errcode>
+		  #:arguments '(((<filter> aggregated) input-filter)
+				((<filter> aggregated) output-filter)
+				((<store> aggregated) backend)
+				(bool close-backend? (default #f))
+				((<store> out) store)))
 
   (wrap-function! ws
 		  #:name 'make-block-store

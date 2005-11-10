@@ -92,6 +92,7 @@
 		  #:c-name "chop_filtered_stream_open_alloc"
 		  #:arguments '(((<stream> aggregated) backend)
 				((<filter> aggregated) filter)
+				(bool  close-backend? (default #f))
 				((<stream> out)        stream)))
 
   ;; FIXME: We could (should?) also provide a port interface for streams just

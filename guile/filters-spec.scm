@@ -18,7 +18,6 @@
 
 (define-module (filters-spec)
   #:use-module (core-spec)
-  #:use-module (stores-spec)
 
   #:use-module (oop goops)
   #:use-module (srfi srfi-1)
@@ -41,13 +40,13 @@
 
 (define-class <chop-filters-wrapset> (<gw-guile-wrapset>)
   #:id 'filters
-  #:dependencies '(standard core stores))
+  #:dependencies '(standard core))
 
 
 
 (define-method (global-declarations-cg (ws <chop-filters-wrapset>))
   (list (next-method)
-	"#include <chop/chop.h>\n#include <chop/stores.h>\n"
+	"#include <chop/chop.h>\n"
 	"#include <chop/filters.h>\n\n"
 	"#include \"core-support.h\"\n"
 	"#include \"filters-support.c\"\n\n"))
@@ -101,25 +100,16 @@
 		  #:name 'zlib-zip-filter-init
 		  #:c-name "chop_zlib_zip_filter_init_alloc"
 		  #:returns '<errcode>
-		  #:arguments '((int zlib-compression-level)
-				(int input-size)
+		  #:arguments '((int zlib-compression-level (default -1))
+				(int input-size (default 0))
 				((<filter> out) filter)))
 
   (wrap-function! ws
 		  #:name 'zlib-unzip-filter-init
 		  #:c-name "chop_zlib_unzip_filter_init_alloc"
 		  #:returns '<errcode>
-		  #:arguments '((int input-size)
-				((<filter> out) filter)))
-
-  (wrap-function! ws
-		  #:name 'filtered-store-open
-		  #:c-name "chop_filtered_store_open_alloc"
-		  #:returns '<errcode>
-		  #:arguments '((<filter> input-filter)
-				(<filter> output-filter)
-				(<store> backend)
-				((<store> out) store))))
+		  #:arguments '((int input-size (default 0))
+				((<filter> out) filter))))
 
 
 ;; arch-tag: e5d3a1f4-e328-4cfe-b878-51afc1a2d4ea

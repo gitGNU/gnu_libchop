@@ -51,12 +51,20 @@ chop_mem_stream_open_alloc (SCM u8vector)
 static errcode_t
 chop_filtered_stream_open_alloc (chop_stream_t *backend,
 				 chop_filter_t *filter,
+				 int close_backend,
 				 chop_stream_t **stream)
 {
   errcode_t err;
 
   *stream = scm_malloc (chop_class_instance_size (&chop_filtered_stream_class));
-  err = chop_filtered_stream_open (backend, 0, filter, 0, *stream);
+  err = chop_filtered_stream_open (backend,
+				   /* Never destroy BACKEND: this is the GC's
+				      job.  At most, close it when *STORE
+				      gets closed.  */
+				   close_backend
+				   ? CHOP_PROXY_EVENTUALLY_CLOSE
+				   : CHOP_PROXY_LEAVE_AS_IS,
+				   filter, 0, *stream);
   if (err)
     {
       free (*stream);
