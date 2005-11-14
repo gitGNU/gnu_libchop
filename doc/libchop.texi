@@ -115,8 +115,126 @@ use cases of the techniques and algorithms implemented by Libchop.
 @node Overview, Use Cases, Introduction, Introduction
 @section Overview
 
+@cindex pipeline
+Libchop, as a file chopping and indexing framework, defines several
+fine-grain interfaces for that purpose.  Objects implementing those
+interfaces may be composed together to form a @dfn{file chopping
+pipeline}: the input of this pipeline are the raw contents of a file,
+and its output is a set of data blocks and an @dfn{index handle} that
+suffices to restore the file contents from those blocks.
+
+The interfaces that allow components to interact altogether within
+this framework are the following:
+
+@itemize
+@cindex stream
+@item the @dfn{stream} interface, which delivers input data (e.g. file
+contents) as a stream;
+@cindex chopper
+@item the @dfn{chopper} interface, given an input stream, splits this
+input and returns block(s);
+@cindex block indexer
+@item the @dfn{block indexer} (resp. the @dfn{block fetcher}) interface which
+allows to name and store a single block of data (resp. to retrieve a
+single block of data given its name);
+@cindex stream indexer
+@cindex indexer
+@item the @dfn{stream indexer} interface which allows to name and
+store a whole byte stream cut into pieces (resp. to retrieve a byte
+stream given its name and a block store);
+@cindex block store
+@cindex store
+@item the @dfn{block store} interface which allows to store single
+data blocks under a specific name (or to restore a single block given
+its name).
+@end itemize
+
+Typically, the data flow in a stream indexing pipeline will look like
+this:
+
+@verbatim
+                       ,--  block indexer --.
+                       |         ^          |
+                       |         |          |
+stream ----> chopper --+-> stream indexer --+-> block store
+@end verbatim
+
+It is worth noting that the block indexer has a central position
+because it both stores data block directly to the block store, and
+produces meta-data (individual block indices) which is fed back to the
+stream indexer in order to be eventually stored and indexed as if it
+were ``normal'' data.
+
+When doing the opposite operation, i.e. restoring a data stream, the
+data flow looks like this:
+
+@verbatim
+                        ,-------------------.
+                        |                   |
+                        v                   |
+block store ----> block fetcher ----> stream indexer ----> byte stream
+@end verbatim
+
+Here, the stream ``indexer'' (actually a stream
+@emph{fetcher}@footnote{For design reasons, there is actually one
+interface (class) for both the stream indexer and the stream fetcher,
+while the block indexer and block fetcher interfaces are represented
+by two separate classes.  Conceptually, indexing and fetching are
+really two distinct functions in both cases.  They are, however,
+@emph{dual} functions, and may share code.}) is controlled by the user
+(who provided the @dfn{index handle} of the stream to be retrieved).
+The stream indexer, in turns, controls the block fetcher in order to
+retrieve individual blocks from the underlying block store.
+
+For each of these interfaces, libchop provides several
+implementations.  Therefore, the user can conveniently choose the
+pipeline configuration that fits them best.
+
+@cindex filter
+@cindex filtered stream
+@cindex filtered block store
+@findex chop_filtered_stream_open
+@findex chop_filtered_store_open
+Additionally, it is sometimes useful to @dfn{filter} input streams or
+input/output blocks, pretty much in the same way one uses ``pipes''
+under Unix.  Libchop provides a number of filters that may be used for
+this purpose, such as zlib/bz2 unzip/zip filters, or public-key
+ciphering filters.  The user can then create a filtered stream (via
+@code{chop_filtered_stream_open ()}) or a filtered block store (via
+@code{chop_filtered_store_open ()}) in order to make use of them.
+
 @node Use Cases,  , Overview, Introduction
 @section Use Cases
+
+File chopping and indexing techniques are used in a wide range of
+applications, including distributed storage, peer-to-peer file
+sharing, archival, backup, and revision control.  Each of these
+classes of application has specific requirements, and each particular
+design in these classes adds its own specificities.
+
+Anonymous peer-to-peer file sharing systems like GNUnet and FreeNet
+both use the same particular configurations of the above pipeline.
+Roughly, they use a fixed-size stream chopper (e.g. in GNUnet 0.7,
+input files are chopped into 32 kB blocks) and some form of a
+CHK@footnote{@dfn{CHK} means ``content-hash key''.  See @xref{Stream
+Choppers}, for details.} block indexer.  GNUnet uses a tree stream
+indexer.  In GNUnet, this whole encoding configuration is called
+@dfn{ECRS}.  Obviously, both projects use a completely distributed
+block store underneath.
+
+The @dfn{write-once read many} (WORM) archival system Venti (used in
+Plan 9) uses a tree indexer and a content-based block indexer.  Venti
+chops files into fixed-size blocks.
+
+Recent revision control systems (like Monotone, GIT, Mercurial,
+@code{revc}, Bazaar 2, etc.) do not cut file into pieces.  Therefore,
+they do not require a stream indexer since each input file yields one
+block.  However, they index files using a content-based block indexer,
+which guarantees single-instance storage and integrity verification.
+
+Rsync uses content-based indexing as well in order to reduce the
+amount of data to be transferred when synchronizing copies of a set of
+files across different machines over the network.
 
 
 @c *********************************************************************
@@ -129,6 +247,7 @@ use cases of the techniques and algorithms implemented by Libchop.
 * Block Stores::                
 * Block Indexers & Fetchers::   
 * Stream Indexers::             
+* Filters::                     
 @end menu
 
 @node Input Streams, Stream Choppers, API Reference, API Reference
@@ -143,9 +262,11 @@ use cases of the techniques and algorithms implemented by Libchop.
 @node Block Indexers & Fetchers, Stream Indexers, Block Stores, API Reference
 @section Block Indexers & Fetchers
 
-@node Stream Indexers,  , Block Indexers & Fetchers, API Reference
+@node Stream Indexers, Filters, Block Indexers & Fetchers, API Reference
 @section Stream Indexers
 
+@node Filters,  , Stream Indexers, API Reference
+@section Filters
 
 
 @c *********************************************************************
@@ -271,6 +392,10 @@ Destroy @var{object}, that is deallocate resources associated to it.
 Note that it does not deallocate the memory where @var{object} is
 stored.
 @end deftypefun
+
+It is important to note that all libchop objects must be destroyed
+using @code{chop_object_destroy ()}, regardless of where they are
+stored in memory.
 
 
 @node Serializing and Deserializing an Object,  , Instantiating an Object, Libchop's Object System
