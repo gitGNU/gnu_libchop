@@ -30,12 +30,12 @@ extern const chop_class_t chop_stat_block_store_class;
    statistic-gathering store.  If BACKEND is not NULL, the STORE will act as
    a proxy to BACKEND.  Otherwise, it will act like a ``dummy'' store, not
    actually writing anything, and being uncapable of providing and data if
-   `read_block ()' is called.  If BACKEND is not NULL and TAKEOVER is
-   non-zero, then BACKEND will be closed when STORE is.  NAME is the name
-   that will be used to identify the underlying block store statistics.  */
+   `read_block ()' is called.  If BACKEND is not NULL, the follow the proxy
+   semantics defined by BPS.  NAME is the name that will be used to identify
+   the underlying block store statistics.  */
 extern errcode_t chop_stat_block_store_open (const char *name,
 					     chop_block_store_t *backend,
-					     int takeover,
+					     chop_proxy_semantics_t bps,
 					     chop_block_store_t *store);
 
 /* Return the statistics gathered by STAT_STORE which must be a instance of

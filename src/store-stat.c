@@ -16,7 +16,7 @@
 
 CHOP_DECLARE_RT_CLASS (stat_block_store, block_store,
 		       chop_block_store_t *backend;
-		       int takeover;
+		       chop_proxy_semantics_t backend_ps;
 
 		       chop_block_store_stats_t stats;);
 
@@ -25,8 +25,30 @@ sbs_dtor (chop_object_t *object)
 {
   chop_stat_block_store_t *stat = (chop_stat_block_store_t *)object;
 
-  if ((stat->backend) && (stat->takeover))
-    chop_object_destroy ((chop_object_t *)stat->backend);
+  if (stat->backend)
+    {
+      switch (stat->backend_ps)
+	{
+	case CHOP_PROXY_LEAVE_AS_IS:
+	  break;
+
+	case CHOP_PROXY_EVENTUALLY_CLOSE:
+	  chop_store_close (stat->backend);
+	  break;
+
+	case CHOP_PROXY_EVENTUALLY_DESTROY:
+	  chop_object_destroy ((chop_object_t *)stat->backend);
+	  break;
+
+	case CHOP_PROXY_EVENTUALLY_FREE:
+	  chop_object_destroy ((chop_object_t *)stat->backend);
+	  free (stat->backend);
+	  break;
+
+	default:
+	  abort ();
+	}
+    }
 
   chop_object_destroy ((chop_object_t *)&stat->stats);
 
@@ -170,14 +192,27 @@ chop_stat_block_store_sync (chop_block_store_t *store)
 static errcode_t
 chop_stat_block_store_close (chop_block_store_t *store)
 {
-  errcode_t err;
+  errcode_t err = 0;
   chop_stat_block_store_t *stat =
     (chop_stat_block_store_t *)store;
 
-  if ((stat->backend) && (stat->takeover))
-    err = chop_store_close (stat->backend);
-  else
-    err = 0;
+  if (stat->backend)
+    {
+      switch (stat->backend_ps)
+	{
+	case CHOP_PROXY_LEAVE_AS_IS:
+	  break;
+
+	case CHOP_PROXY_EVENTUALLY_CLOSE:
+	case CHOP_PROXY_EVENTUALLY_DESTROY:
+	case CHOP_PROXY_EVENTUALLY_FREE:
+	  err = chop_store_close (stat->backend);
+	  break;
+
+	default:
+	  abort ();
+	}
+    }
 
   return err;
 }
@@ -188,7 +223,7 @@ chop_stat_block_store_close (chop_block_store_t *store)
 errcode_t
 chop_stat_block_store_open (const char *name,
 			    chop_block_store_t *backend,
-			    int takeover,
+			    chop_proxy_semantics_t bps,
 			    chop_block_store_t *store)
 {
   errcode_t err;
@@ -212,7 +247,7 @@ chop_stat_block_store_open (const char *name,
   store->sync = chop_stat_block_store_sync;
 
   stat->backend = backend;
-  stat->takeover = takeover;
+  stat->backend_ps = bps;
 
   return 0;
 }

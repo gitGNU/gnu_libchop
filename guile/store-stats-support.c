@@ -12,6 +12,7 @@
 static __inline__ errcode_t
 chop_stat_block_store_open_alloc (const char *name,
 				  chop_block_store_t *backend,
+				  int close_backend,
 				  chop_block_store_t **store)
 {
   errcode_t err;
@@ -20,7 +21,10 @@ chop_stat_block_store_open_alloc (const char *name,
     scm_malloc (chop_class_instance_size (&chop_stat_block_store_class));
 
   err = chop_stat_block_store_open (name, backend,
-				    0, /* let the GC do its work */
+				    /* in any case, let the GC do its work */
+				    close_backend
+				    ? CHOP_PROXY_EVENTUALLY_CLOSE
+				    : CHOP_PROXY_LEAVE_AS_IS,
 				    *store);
   if (err)
     {

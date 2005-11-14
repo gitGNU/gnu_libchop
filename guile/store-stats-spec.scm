@@ -74,6 +74,7 @@
 		  #:returns '<errcode>
 		  #:arguments '(((mchars caller-owned) name)
 				((<store> aggregated) backend)
+				(bool close-backend? (default #f))
 				((<store> out) store))
 		  #:description "Return a statistic-gathering block store
 that acts as a proxy to store @var{backend}.")
