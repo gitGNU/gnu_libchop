@@ -16,13 +16,18 @@ static __inline__ errcode_t
 chop_block_indexer_make_fetcher_alloc (chop_block_indexer_t *indexer,
 				       chop_block_fetcher_t **fetcher)
 {
+  errcode_t err;
   const chop_class_t *fetcher_class;
 
   fetcher_class = chop_block_indexer_fetcher_class (indexer);
   *fetcher =
     (chop_block_fetcher_t *)scm_malloc (chop_class_instance_size (fetcher_class));
 
-  return 0;
+  err = chop_block_indexer_initialize_fetcher (indexer, *fetcher);
+  if (err)
+    free (*fetcher);
+
+  return err;
 }
 
 static __inline__ errcode_t

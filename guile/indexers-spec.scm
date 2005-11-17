@@ -99,14 +99,17 @@
 				((<index-handle> out) handle)))
 
   (wrap-function! ws
+		  ;; FIXME: For now, BF, etc., are aggregated.  However, this
+		  ;; needs to vanish as soon as we have `chop_object_copy
+		  ;; ()'.
 		  #:name 'indexer-fetch-stream
 		  #:c-name "chop_indexer_fetch_stream_alloc"
 		  #:returns '<errcode>
 		  #:arguments '((<indexer> indexer)
 				(<index-handle> handle)
-				(<block-fetcher> bf)
-				(<store> data-store)
-				(<store> meta-data-store)
+				((<block-fetcher> aggregated) bf)
+				((<store> aggregated) data-store)
+				((<store> aggregated) meta-data-store)
 				((<stream> out) stream)))
 
   (wrap-function! ws
@@ -114,6 +117,25 @@
 		  #:returns '<log>
 		  #:c-name "chop_tree_indexer_log"
 		  #:arguments '((<indexer> indexer)))
+
+  ;; high-level
+
+  (wrap-function! ws
+		  #:name 'ascii-serialize-index-tuple
+		  #:returns '<errcode>
+		  #:c-name "chop_ascii_serialize_index_tuple_alloc"
+		  #:arguments '((<index-handle> index)
+				(<block-indexer> bi)
+				((mchars caller-owned out) serial)))
+
+  (wrap-function! ws
+		  #:name 'ascii-deserialize-index-tuple
+		  #:returns '<errcode>
+		  #:c-name "chop_ascii_deserialize_index_tuple_alloc"
+		  #:arguments '(((mchars caller-owned) serial)
+				((<index-handle> out)  index)
+				((<block-fetcher> out) bf)
+				((int out) bytes-read)))
 
 )
 

@@ -81,3 +81,63 @@ chop_indexer_fetch_stream_alloc (chop_indexer_t *indexer,
 
   return err;
 }
+
+
+static __inline__ errcode_t
+chop_ascii_serialize_index_tuple_alloc (chop_index_handle_t *index,
+					chop_block_indexer_t *block_indexer,
+					char **serial)
+{
+  errcode_t err;
+  chop_buffer_t buffer;
+
+  err = chop_buffer_init (&buffer, 0);
+  if (err)
+    return err;
+
+  err = chop_ascii_serialize_index_tuple (index, block_indexer, &buffer);
+  if (err)
+    return err;
+
+  *serial = scm_malloc (chop_buffer_size (&buffer));
+  memcpy (*serial, chop_buffer_content (&buffer), chop_buffer_size (&buffer));
+
+  return err;
+}
+
+static __inline__ errcode_t
+chop_ascii_deserialize_index_tuple_alloc (const char *serial,
+					  chop_index_handle_t **index,
+					  chop_block_fetcher_t **fetcher,
+					  unsigned *bytes_read)
+{
+  errcode_t err;
+  size_t offset = 0;
+  const chop_class_t *fetcher_class, *handle_class;
+
+  err = chop_ascii_deserialize_index_tuple_s1 (serial, strlen (serial),
+					       &fetcher_class, &handle_class,
+					       &offset);
+  if (err)
+    return err;
+
+  *index = scm_malloc (chop_class_instance_size (handle_class));
+  *fetcher = scm_malloc (chop_class_instance_size (fetcher_class));
+
+  err = chop_ascii_deserialize_index_tuple_s2 (serial + offset,
+					       strlen (serial) - offset,
+					       fetcher_class, handle_class,
+					       *fetcher, *index,
+					       bytes_read);
+  if (err)
+    {
+      free (*index);
+      free (*fetcher);
+      return err;
+    }
+
+  *bytes_read += offset;
+
+  return err;
+}
+
