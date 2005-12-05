@@ -3,6 +3,7 @@
 
 #include <chop/chop.h>
 #include <chop/block-indexers.h>
+#include <chop/chop-config.h>
 
 #include <testsuite.h>
 
@@ -73,6 +74,13 @@ main (int argc, char *argv[])
   test_check_errcode (err, "opening CHK block indexer");
   block_indexer_count++;
 
+#ifdef HAVE_LIBUUID
+  block_indexers[block_indexer_count] =
+    chop_class_alloca_instance (&chop_uuid_block_indexer_class);
+  err = chop_uuid_block_indexer_open (block_indexers[block_indexer_count]);
+  test_check_errcode (err, "opening UUID block indexer");
+  block_indexer_count++;
+#endif
 
   block_indexers[block_indexer_count] = NULL;
 

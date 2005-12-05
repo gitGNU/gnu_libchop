@@ -107,6 +107,12 @@
 				(hash-method block-id-hash-method)
 				((<block-indexer> out) bi)))
 
+  (wrap-function! ws
+		  #:name 'uuid-block-indexer-open
+		  #:c-name "chop_uuid_block_indexer_open_alloc"
+		  #:returns '<errcode>
+		  #:arguments '(((<block-indexer> out) bi)))
+
   ;; methods
 
   (wrap-function! ws

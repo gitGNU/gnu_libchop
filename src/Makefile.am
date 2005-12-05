@@ -35,6 +35,10 @@ if HAVE_QDBM
 libchop_la_SOURCES += store-qdbm.c
 endif
 
+if HAVE_LIBUUID
+libchop_la_SOURCES += block-indexer-uuid.c
+endif
+
 # RPC stubs (for the remote block store)
 rpc_xdr =  block_rstore_xdr.c
 rpc_client_stubs = block_rstore_clnt.c

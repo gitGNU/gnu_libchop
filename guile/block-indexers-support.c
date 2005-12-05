@@ -70,6 +70,22 @@ chop_chk_block_indexer_open_alloc (chop_cipher_handle_t cipher_handle,
   return err;
 }
 
+static __inline__ errcode_t
+chop_uuid_block_indexer_open_alloc (chop_block_indexer_t **bi)
+{
+  errcode_t err;
+
+  *bi = scm_malloc (chop_class_instance_size (&chop_uuid_block_indexer_class));
+  err = chop_uuid_block_indexer_open (*bi);
+  if (err)
+    {
+      free (*bi);
+      *bi = NULL;
+    }
+
+  return err;
+}
+
 
 /* Methods.  */
 

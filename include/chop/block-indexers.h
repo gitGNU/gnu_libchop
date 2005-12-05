@@ -174,6 +174,7 @@ chop_block_fetcher_index_handle_class (const chop_block_fetcher_t *__f)
 
 extern const chop_class_t chop_hash_block_indexer_class;
 extern const chop_class_t chop_chk_block_indexer_class;
+extern const chop_class_t chop_uuid_block_indexer_class;
 
 /* Initialize INDEXER as a hash block indexer.  INDEXER will use HASH_METHOD
    to compute the identifier of the given blocks and will use that identifier
@@ -198,6 +199,14 @@ chop_chk_block_indexer_open (chop_cipher_handle_t cipher_handle,
 			     chop_hash_method_t block_id_hash_method,
 			     chop_block_indexer_t *block_indexer);
 
+/* Initialize BLOCK_INDEXER as a UUID block indexer.  In other words,
+   BLOCK_INDEXER will then yield DCE compatible Universally Unique
+   Identifiers for each block, using `libuuid' (provided it was available at
+   compilation time).  Therefore, BLOCK_INDEXER will not have a
+   single-instance storage property, unlike the `chk' and `hash' block
+   indexers.  */
+extern errcode_t
+chop_uuid_block_indexer_open (chop_block_indexer_t *block_indexer);
 
 /* If FETCHER is an instance of CHOP_HASH_BLOCK_FETCHER_CLASS, then return
    its associated log, otherwise return NULL.  */

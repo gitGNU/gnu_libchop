@@ -83,6 +83,19 @@ fi
 AC_HEADER_STDC
 AC_CHECK_HEADERS([stdlib.h obstack.h argp.h gdbm.h gcrypt.h com_err.h zlib.h netinet/in.h lightning.h])
 
+# libuuid (optional)
+AC_CHECK_HEADER([uuid/uuid.h], [have_libuuid=yes], [have_libuuid=no])
+if test "x$have_libuuid" = "xyes"; then
+   AC_CHECK_LIB([uuid], [uuid_generate], [have_libuuid=yes],
+     [have_libuuid=no])
+fi
+if test "x$have_libuuid" = "xyes"; then
+   LIBS="$LIBS -luuid"
+   AC_DEFINE([HAVE_LIBUUID], [1], [Define to 1 if libuuid is available.])
+fi
+
+AM_CONDITIONAL([HAVE_LIBUUID], [test "x$have_libuuid" = "xyes"])
+
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
 AC_TYPE_PID_T
