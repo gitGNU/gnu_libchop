@@ -157,7 +157,7 @@ ab_generic_open (chop_stream_t *input, size_t average_size,
     power_of_two = 0x1fff; /* the 13 LSBs, i.e. 8KB */
   else
     {
-      while ((power_of_two << 1) < average_size)
+      while ((power_of_two << 1) <= average_size)
 	power_of_two <<= 1;
 
       power_of_two -= 1;
