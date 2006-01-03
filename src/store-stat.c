@@ -142,32 +142,15 @@ chop_stat_block_store_delete_block (chop_block_store_t *store,
 }
 
 static errcode_t
-chop_stat_block_store_first_key (chop_block_store_t *store,
-				 chop_block_key_t *key)
+chop_stat_block_store_first_block (chop_block_store_t *store,
+				   chop_block_iterator_t *it)
 {
   errcode_t err;
   chop_stat_block_store_t *stat =
     (chop_stat_block_store_t *)store;
 
   if (stat->backend)
-    err = chop_store_first_key (stat->backend, key);
-  else
-    err = CHOP_ERR_NOT_IMPL;
-
-  return err;
-}
-
-static errcode_t
-chop_stat_block_store_next_key (chop_block_store_t *store,
-				const chop_block_key_t *key,
-				chop_block_key_t *next)
-{
-  errcode_t err;
-  chop_stat_block_store_t *stat =
-    (chop_stat_block_store_t *)store;
-
-  if (stat->backend)
-    err = chop_store_next_key (stat->backend, key, next);
+    err = chop_store_first_block (stat->backend, it);
   else
     err = CHOP_ERR_NOT_IMPL;
 
@@ -237,12 +220,12 @@ chop_stat_block_store_open (const char *name,
   if (err)
     return err;
 
+  store->iterator_class = chop_store_iterator_class (backend);
   store->block_exists = chop_stat_block_store_block_exists;
   store->read_block = chop_stat_block_store_read_block;
   store->write_block = chop_stat_block_store_write_block;
   store->delete_block = chop_stat_block_store_delete_block;
-  store->first_key = chop_stat_block_store_first_key;
-  store->next_key = chop_stat_block_store_next_key;
+  store->first_block = chop_stat_block_store_first_block;
   store->close = chop_stat_block_store_close;
   store->sync = chop_stat_block_store_sync;
 

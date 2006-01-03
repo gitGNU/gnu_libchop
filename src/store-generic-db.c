@@ -10,12 +10,15 @@
 # define CONCAT4(_a, _b, _c, _d)  _CONCAT4 (_a, _b, _c, _d)
 #endif
 
+#define DB_BLOCK_ITERATOR_CLASS				\
+  CONCAT4 (chop_, DB_TYPE, _, block_iterator_class)
+
 #define DB_BLOCK_EXISTS_METHOD CONCAT4 (chop_, DB_TYPE, _, block_exists)
 #define DB_READ_BLOCK_METHOD   CONCAT4 (chop_, DB_TYPE, _, read_block)
 #define DB_WRITE_BLOCK_METHOD  CONCAT4 (chop_, DB_TYPE, _, write_block)
 #define DB_DELETE_BLOCK_METHOD CONCAT4 (chop_, DB_TYPE, _, delete_block)
-#define DB_FIRST_KEY_METHOD    CONCAT4 (chop_, DB_TYPE, _, first_key)
-#define DB_NEXT_KEY_METHOD     CONCAT4 (chop_, DB_TYPE, _, next_key)
+#define DB_FIRST_BLOCK_METHOD  CONCAT4 (chop_, DB_TYPE, _, first_block)
+#define DB_NEXT_BLOCK_METHOD   CONCAT4 (chop_, DB_TYPE, _, it_next)
 #define DB_SYNC_METHOD         CONCAT4 (chop_, DB_TYPE, _, sync)
 #define DB_CLOSE_METHOD        CONCAT4 (chop_, DB_TYPE, _, close)
 
@@ -109,8 +112,8 @@ DB_DELETE_BLOCK_METHOD (chop_block_store_t *store,
 }
 
 static errcode_t
-DB_FIRST_KEY_METHOD (chop_block_store_t *store,
-		     chop_block_key_t *key)
+DB_FIRST_BLOCK_METHOD (chop_block_store_t *store,
+		       chop_block_iterator_t *it)
 {
   errcode_t err;
   DB_DATA_TYPE db_key;
@@ -119,8 +122,19 @@ DB_FIRST_KEY_METHOD (chop_block_store_t *store,
   db_key = DB_FIRST_KEY (db->db);
   if (db_key.dptr != NULL)
     {
-      chop_block_key_init (key, db_key.dptr, db_key.dsize,
+      err = chop_object_initialize ((chop_object_t *)it,
+				    &DB_BLOCK_ITERATOR_CLASS);
+      if (err)
+	{
+	  free (db_key.dptr);
+	  return err;
+	}
+
+      chop_block_key_init (&it->key, db_key.dptr, db_key.dsize,
 			   do_free_key, NULL);
+      it->nil = 0;
+      it->store = store;
+      it->next = DB_NEXT_BLOCK_METHOD;
       err = 0;
     }
   else
@@ -130,24 +144,33 @@ DB_FIRST_KEY_METHOD (chop_block_store_t *store,
 }
 
 static errcode_t
-DB_NEXT_KEY_METHOD (chop_block_store_t *store,
-		    const chop_block_key_t *key,
-		    chop_block_key_t *next)
+DB_NEXT_BLOCK_METHOD (chop_block_iterator_t *it)
 {
   errcode_t err;
   DB_DATA_TYPE db_key, db_next_key;
-  DB_STORE_TYPE *db = (DB_STORE_TYPE *)store;
+  DB_STORE_TYPE *db = (DB_STORE_TYPE *)it->store;
 
-  CHOP_KEY_TO_DB (&db_key, key);
+  if (chop_block_iterator_is_nil (it))
+    return CHOP_STORE_END;
+
+  /* GDBM/TDB don't have block iterators, so we use the block key as the
+     iterator.  */
+  CHOP_KEY_TO_DB (&db_key, &it->key);
   db_next_key = DB_NEXT_KEY (db->db, db_key);
+
+  chop_block_key_free (&it->key);
+
   if (db_next_key.dptr != NULL)
     {
-      chop_block_key_init (next, db_next_key.dptr, db_next_key.dsize,
+      chop_block_key_init (&it->key, db_next_key.dptr, db_next_key.dsize,
 			   do_free_key, NULL);
       err = 0;
     }
   else
-    err = CHOP_STORE_END;
+    {
+      err = CHOP_STORE_END;
+      it->nil = 1;
+    }
 
   return (err);
 }

@@ -84,7 +84,8 @@ main (int argc, char *argv[])
   size_t count = 0;
   const chop_class_t *db_store_class;
   chop_block_store_t *store;
-  chop_block_key_t prev_key, key;
+  chop_block_iterator_t *it;
+  int got_one_block = 0;
   chop_buffer_t buffer;
 
   chop_init ();
@@ -130,32 +131,36 @@ main (int argc, char *argv[])
       return 2;
     }
 
-  chop_block_key_init (&key, NULL, 0, NULL, NULL);
-  chop_block_key_init (&prev_key, NULL, 0, NULL, NULL);
+  it = chop_class_alloca_instance (chop_store_iterator_class (store));
+
   chop_buffer_init (&buffer, 4096);
 
   /* Traverse STORE's blocks.  */
-  for (err = chop_store_first_key (store, &key);
+  for (err = chop_store_first_block (store, it);
        err == 0;
-       err = chop_store_next_key (store, &prev_key, &key))
+       err = chop_block_iterator_next (it))
     {
+      const chop_block_key_t *key;
       char hex_key[1024], hex_content[15];
       size_t block_len, key_len;
 
-      if (err)
+      if ((err) || (chop_block_iterator_is_nil (it)))
 	break;
 
-      /* Hexify the key.  */
-      key_len = (chop_block_key_size (&key) * 2 >= sizeof (hex_key))
-	? (sizeof (hex_key) / 2) - 1
-	: chop_block_key_size (&key);
+      got_one_block = 1;
+      key = chop_block_iterator_key (it);
 
-      chop_buffer_to_hex_string (chop_block_key_buffer (&key),
+      /* Hexify the key.  */
+      key_len = (chop_block_key_size (key) * 2 >= sizeof (hex_key))
+	? (sizeof (hex_key) / 2) - 1
+	: chop_block_key_size (key);
+
+      chop_buffer_to_hex_string (chop_block_key_buffer (key),
 				 key_len, hex_key);
 
       /* Read the corresponding block content.  */
       chop_buffer_clear (&buffer);
-      err = chop_store_read_block (store, &key, &buffer, &block_len);
+      err = chop_store_read_block (store, key, &buffer, &block_len);
       assert (!err);
       assert (block_len == chop_buffer_size (&buffer));
 
@@ -169,14 +174,7 @@ main (int argc, char *argv[])
 	       hex_key, chop_buffer_size (&buffer), hex_content,
 	       (block_len < chop_buffer_size (&buffer) ? "..." : ""));
 
-      if (chop_block_key_size (&prev_key))
-	chop_block_key_free (&prev_key);
-
-      prev_key = key;
     }
-
-  if (chop_block_key_size (&key))
-    chop_block_key_free (&key);
 
   if ((err) && (err != CHOP_STORE_END))
     {
@@ -185,7 +183,10 @@ main (int argc, char *argv[])
       exit (3);
     }
 
-  chop_store_close (store);
+  if (got_one_block)
+    chop_object_destroy ((chop_object_t *)it);
+
+  chop_object_destroy ((chop_object_t *)store);
 
   return 0;
 }

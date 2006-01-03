@@ -414,6 +414,12 @@ extern const chop_class_t chop_hash_index_handle_class,
   chop_uuid_block_fetcher_class,
   chop_tree_stream_class;
 
+/* Store-related class definitions.  (FIXME too: this is becoming ugly!) */
+extern const chop_class_t chop_gdbm_block_iterator_class,
+  chop_tdb_block_iterator_class,
+  chop_qdbm_block_iterator_class;
+
+
 /* Include the gperf-generated perfect hash table.  */
 #include "class-lookup.c"
 

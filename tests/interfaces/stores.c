@@ -48,6 +48,7 @@ main (int argc, char *argv[])
       int exists = 0;
       size_t amount = 0;
       chop_block_store_t *store;
+      chop_block_iterator_t *it;
 
       test_stage ("the `%s' class",
 		  chop_class_name ((chop_class_t *)*class));
@@ -100,6 +101,29 @@ main (int argc, char *argv[])
 		   amount, sizeof (random_bytes),
 		   chop_class_name ((chop_class_t *)*class));
 	  exit (5);
+	}
+
+      /* Iterating over blocks (optional).  */
+      if (chop_store_iterator_class (store))
+	{
+	  const chop_block_key_t *key;
+	  const chop_class_t *it_class = chop_store_iterator_class (store);
+	  it = chop_class_alloca_instance (it_class);
+
+	  err = chop_store_first_block (store, it);
+	  test_check_errcode (err, "getting an iterator to the first block");
+	  test_assert (!chop_block_iterator_is_nil (it));
+
+	  key = chop_block_iterator_key (it);
+	  test_assert (key != NULL);
+
+	  test_assert (chop_block_key_equal (key, &random_key));
+
+	  err = chop_block_iterator_next (it);
+	  test_assert (err == CHOP_STORE_END);
+	  test_assert (chop_block_iterator_is_nil (it));
+
+	  chop_object_destroy ((chop_object_t *)it);
 	}
 
       err = chop_store_close (store);

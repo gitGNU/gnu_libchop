@@ -51,6 +51,16 @@ CHOP_DEFINE_RT_CLASS_WITH_METACLASS (tdb_block_store, block_store,
 
 
 
+/* Iterators.  */
+
+CHOP_DECLARE_RT_CLASS (tdb_block_iterator, block_iterator,
+		       /* Nothing to add.  */);
+
+CHOP_DEFINE_RT_CLASS (tdb_block_iterator, block_iterator,
+		      NULL, NULL,
+		      NULL, NULL);
+
+
 static errcode_t chop_tdb_block_exists (chop_block_store_t *,
 					const chop_block_key_t *,
 					int *);
@@ -68,12 +78,10 @@ static errcode_t chop_tdb_write_block (chop_block_store_t *,
 static errcode_t chop_tdb_delete_block (chop_block_store_t *,
 					const chop_block_key_t *);
 
-static errcode_t chop_tdb_first_key (chop_block_store_t *,
-				     chop_block_key_t *);
+static errcode_t chop_tdb_first_block (chop_block_store_t *,
+				       chop_block_iterator_t *);
 
-static errcode_t chop_tdb_next_key (chop_block_store_t *,
-				    const chop_block_key_t *,
-				    chop_block_key_t *);
+static errcode_t chop_tdb_it_next (chop_block_iterator_t *);
 
 static errcode_t chop_tdb_sync (chop_block_store_t *);
 
@@ -121,13 +129,13 @@ chop_tdb_store_open (const char *name,
   chop_object_initialize ((chop_object_t *)store,
 			  (chop_class_t *)&chop_tdb_block_store_class);
   store->db = db;
+  store->block_store.iterator_class = &chop_tdb_block_iterator_class;
 
   store->block_store.block_exists = chop_tdb_block_exists;
   store->block_store.read_block = chop_tdb_read_block;
   store->block_store.write_block = chop_tdb_write_block;
   store->block_store.delete_block = chop_tdb_delete_block;
-  store->block_store.first_key = chop_tdb_first_key;
-  store->block_store.next_key = chop_tdb_next_key;
+  store->block_store.first_block = chop_tdb_first_block;
   store->block_store.sync = chop_tdb_sync;
   store->block_store.close = chop_tdb_close;
 

@@ -9,6 +9,8 @@
 #include <chop/objects.h>
 #include <chop/logs.h>
 
+struct chop_block_iterator;
+
 /* Declare `chop_block_store_t' (represented at run-time by
    CHOP_BLOCK_STORE_CLASS) as inheriting from `chop_object_t'.  */
 CHOP_DECLARE_RT_CLASS (block_store, object,
@@ -27,12 +29,9 @@ CHOP_DECLARE_RT_CLASS (block_store, object,
 		       errcode_t (* delete_block) (struct chop_block_store *,
 						   const chop_block_key_t *);
 
-		       errcode_t (* first_key) (struct chop_block_store *,
-						chop_block_key_t *);
-		       errcode_t (* next_key) (struct chop_block_store *,
-					       const chop_block_key_t *,
-					       chop_block_key_t *);
-
+		       const chop_class_t *iterator_class;
+		       errcode_t (* first_block) (struct chop_block_store *,
+						  struct chop_block_iterator *);
 		       errcode_t (* close) (struct chop_block_store *);
 		       errcode_t (* sync) (struct chop_block_store *););
 
@@ -94,6 +93,52 @@ chop_block_key_to_hex_string (const chop_block_key_t *__key,
 			     chop_block_key_size (__key),
 			     __hex);
 }
+
+/* Return true (non-zero) if keys KEY1 and KEY2 are equal.  */
+static __inline__ int
+chop_block_key_equal (const chop_block_key_t *__key1,
+		      const chop_block_key_t *__key2)
+{
+  return ((chop_block_key_size (__key1) == chop_block_key_size (__key2))
+	  && (!memcmp (chop_block_key_buffer (__key1),
+		       chop_block_key_buffer (__key2),
+		       chop_block_key_size (__key1))));
+}
+
+
+/* Block iterators.  */
+
+CHOP_DECLARE_RT_CLASS (block_iterator, object,
+		       errcode_t (* next) (struct chop_block_iterator *);
+
+		       int nil;
+		       chop_block_store_t *store;
+		       chop_block_key_t key;);
+
+/* Return true (non-zero) if IT is the nil iterator.  */
+static __inline__ int
+chop_block_iterator_is_nil (chop_block_iterator_t *__it)
+{
+  return (__it->nil);
+}
+
+/* Return the key corresponding to the block iterator IT, assuming IT is not
+   nil.  */
+static __inline__ const chop_block_key_t *
+chop_block_iterator_key (const chop_block_iterator_t *__it)
+{
+  return (&__it->key);
+}
+
+/* Update block iterator IT so that it points to the next block.  On success,
+   zero is returned.  If no next block is available, CHOP_STORE_END is
+   returned and IT becomes nil.  */
+static __inline__ errcode_t
+chop_block_iterator_next (chop_block_iterator_t *__it)
+{
+  return __it->next (__it);
+}
+
 
 
 /* Implementations of the block store interface.  */
@@ -270,33 +315,27 @@ chop_store_delete_block (chop_block_store_t *__store,
   return CHOP_ERR_NOT_IMPL;
 }
 
-/* Return in KEY, an uninitialized block key object, the key of the very
-   first object available in STORE.  On success, zero is returned and the
-   user shall eventually call CHOP_BLOCK_KEY_FREE on KEY.  If STORE is empty,
-   CHOP_STORE_END is returned.  If STORE does not implement sequential block
-   access, CHOP_ERR_NOT_IMPL is returned.  */
-static __inline__ errcode_t
-chop_store_first_key (chop_block_store_t *__store,
-		      chop_block_key_t *__key)
+/* Return the block iterator class associated with the class of STORE.  This
+   may be NULL if STORE does not implement sequential access.  */
+static __inline__ const chop_class_t *
+chop_store_iterator_class (const chop_block_store_t *__store)
 {
-  if (__store->first_key)
-    return (__store->first_key (__store, __key));
-
-  return CHOP_ERR_NOT_IMPL;
+  return (__store->iterator_class);
 }
 
-/* Return in NEXT, an uninitialized block key object, the key of the object
-   next to the one index by KEY in STORE.  On success, zero is returned and
-   the user shall eventually call CHOP_BLOCK_KEY_FREE on NEXT.  If STORE is
-   empty, CHOP_STORE_END is returned.  If STORE does not implement sequential
-   block access, CHOP_ERR_NOT_IMPL is returned.  */
+/* Return in IT, an uninitialized block iterator object (IT must point to an
+   area large enough for instances of the iterator class associated to
+   STORE's class), an iterator to the very first object available in STORE.
+   On success, zero is returned and the user shall eventually destroy IT via
+   `chop_object_destroy ()'.  If STORE is empty, CHOP_STORE_END is returned.
+   If STORE does not implement sequential block access, CHOP_ERR_NOT_IMPL is
+   returned.  */
 static __inline__ errcode_t
-chop_store_next_key (chop_block_store_t *__store,
-		     const chop_block_key_t *__key,
-		     chop_block_key_t *__next)
+chop_store_first_block (chop_block_store_t *__store,
+			chop_block_iterator_t *__it)
 {
-  if (__store->next_key)
-    return (__store->next_key (__store, __key, __next));
+  if (__store->first_block)
+    return (__store->first_block (__store, __it));
 
   return CHOP_ERR_NOT_IMPL;
 }

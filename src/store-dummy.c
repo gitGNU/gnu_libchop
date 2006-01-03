@@ -8,7 +8,7 @@
 #include <stdio.h>
 
 
-/* Class definition.  */
+/* Class definitions.  */
 
 CHOP_DECLARE_RT_CLASS (dummy_block_store, block_store,
 		       chop_log_t log;
@@ -30,6 +30,7 @@ dbs_dtor (chop_object_t *object)
 CHOP_DEFINE_RT_CLASS (dummy_block_store, block_store,
 		      NULL, dbs_dtor,
 		      NULL, NULL  /* No serializer/deserializer */);
+
 
 
 
@@ -159,67 +160,36 @@ chop_dummy_block_store_delete_block (chop_block_store_t *store,
 }
 
 static errcode_t
-chop_dummy_block_store_first_key (chop_block_store_t *store,
-				  chop_block_key_t *key)
+chop_dummy_block_store_first_block (chop_block_store_t *store,
+				    chop_block_iterator_t *it)
 {
   errcode_t err;
   char hex_key[1024];
   chop_dummy_block_store_t *dummy =
     (chop_dummy_block_store_t *)store;
 
-  if (!dummy->backend)
-    {
-      chop_block_key_init (key, NULL, 0, NULL, NULL);
-      return CHOP_STORE_END;
-    }
+  if ((!dummy->backend) || (!chop_store_iterator_class (store)))
+    return CHOP_ERR_NOT_IMPL;
 
-  err = chop_store_first_key (dummy->backend, key);
+  err = chop_store_first_block (dummy->backend, it);
   if (err)
     chop_log_printf (&dummy->log,
-		     "dummy: first_key: underlying store returned \"%s\"\n",
+		     "dummy: first_block: underlying store returned \"%s\"\n",
 		     error_message (err));
   else
     {
+      const chop_block_key_t *key;
+
+      key = chop_block_iterator_key (it);
       chop_block_key_to_hex_string (key, hex_key);
       chop_log_printf (&dummy->log,
-		       "dummy: first_key (%s@%p) => 0x%s",
+		       "dummy: first_block (%s@%p) => 0x%s",
 		       store->name, store, hex_key);
     }
 
   return err;
 }
 
-static errcode_t
-chop_dummy_block_store_next_key (chop_block_store_t *store,
-				 const chop_block_key_t *key,
-				 chop_block_key_t *next)
-{
-  errcode_t err;
-  char hex_key[1024];
-  chop_dummy_block_store_t *dummy =
-    (chop_dummy_block_store_t *)store;
-
-  if (!dummy->backend)
-    {
-      chop_block_key_init (next, NULL, 0, NULL, NULL);
-      return CHOP_STORE_END;
-    }
-
-  err = chop_store_next_key (dummy->backend, key, next);
-  if (err)
-    chop_log_printf (&dummy->log,
-		     "dummy: next_key: underlying store returned \"%s\"\n",
-		     error_message (err));
-  else
-    {
-      chop_block_key_to_hex_string (key, hex_key);
-      chop_log_printf (&dummy->log,
-		       "dummy: next_key (%s@%p) => 0x%s",
-		       store->name, store, hex_key);
-    }
-
-  return err;
-}
 
 static errcode_t
 chop_dummy_block_store_sync (chop_block_store_t *store)
@@ -289,12 +259,12 @@ chop_dummy_block_store_open (const char *name,
 /*   chop_log_attach (&dummy->log, 2, 0); */
 
   store->name = strdup (name);
+  store->iterator_class = NULL; /* not supported */
   store->block_exists = chop_dummy_block_store_block_exists;
   store->read_block = chop_dummy_block_store_read_block;
   store->write_block = chop_dummy_block_store_write_block;
   store->delete_block = chop_dummy_block_store_delete_block;
-  store->first_key = chop_dummy_block_store_first_key;
-  store->next_key = chop_dummy_block_store_next_key;
+  store->first_block = chop_dummy_block_store_first_block;
   store->close = chop_dummy_block_store_close;
   store->sync = chop_dummy_block_store_sync;
 
@@ -312,6 +282,10 @@ chop_dummy_proxy_block_store_open (const char *name,
   chop_dummy_block_store_open (name, store);
 
   dummy->backend = backend;
+  if (backend)
+    /* Note: since we do not implement a proxy iterator class here, we are
+       not able to track calls to `chop_block_iterator_next ()'.  */
+    store->iterator_class = chop_store_iterator_class (backend);
 }
 
 chop_log_t *

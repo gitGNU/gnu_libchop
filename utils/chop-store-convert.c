@@ -135,7 +135,7 @@ main (int argc, char *argv[])
   size_t count;
   const chop_file_based_store_class_t *source_class, *dest_class;
   chop_block_store_t *source, *dest;
-  chop_block_key_t prev_key, key;
+  chop_block_iterator_t *it;
   chop_buffer_t buffer;
 
   chop_init ();
@@ -180,25 +180,28 @@ main (int argc, char *argv[])
       return 2;
     }
 
-  chop_block_key_init (&key, NULL, 0, NULL, NULL);
-  chop_block_key_init (&prev_key, NULL, 0, NULL, NULL);
+  it = chop_class_alloca_instance (chop_store_iterator_class (source));
+
   chop_buffer_init (&buffer, 4096);
 
   printf ("converting...\n");
 
   /* Traverse SOURCE's blocks.  */
-  for (err = chop_store_first_key (source, &key), count = 0;
+  for (err = chop_store_first_block (source, it), count = 0;
        err == 0;
-       err = chop_store_next_key (source, &prev_key, &key), count++)
+       err = chop_block_iterator_next (it), count++)
     {
+      const chop_block_key_t *key;
       size_t block_len;
 
-      if (err)
+      if ((err) || (chop_block_iterator_is_nil (it)))
 	break;
+
+      key = chop_block_iterator_key (it);
 
       /* Read the corresponding block content.  */
       chop_buffer_clear (&buffer);
-      err = chop_store_read_block (source, &key, &buffer, &block_len);
+      err = chop_store_read_block (source, key, &buffer, &block_len);
       if (err)
 	{
 	  com_err (argv[0], err, "unexpected, while reading from `%s'",
@@ -208,7 +211,7 @@ main (int argc, char *argv[])
       assert (block_len == chop_buffer_size (&buffer));
 
       /* Write it to DEST.  */
-      err = chop_store_write_block (dest, &key,
+      err = chop_store_write_block (dest, key,
 				    chop_buffer_content (&buffer),
 				    chop_buffer_size (&buffer));
       if (err)
@@ -218,7 +221,7 @@ main (int argc, char *argv[])
 	  goto finish;
 	}
 
-      if (!(count++ % PROGRESS_DISPLAY_MODULO))
+      if (!(count % PROGRESS_DISPLAY_MODULO))
 	{
 	  /* The fancy progress animation!  */
 	  static const char widgets[] = { '/', '-', '|', '-', '\\', '|' };
@@ -227,15 +230,10 @@ main (int argc, char *argv[])
 	  printf ("\b%c", widgets[pos]);
 	  pos = (pos + 1) % sizeof (widgets);
 	}
-
-      if (chop_block_key_size (&prev_key))
-	chop_block_key_free (&prev_key);
-
-      prev_key = key;
     }
 
-  if (chop_block_key_size (&key))
-    chop_block_key_free (&key);
+  if (count > 0)
+    chop_object_destroy ((chop_object_t *)it);
 
   if ((err) && (err != CHOP_STORE_END))
     com_err (argv[0], err, "while traversing `%s' store \"%s\"",

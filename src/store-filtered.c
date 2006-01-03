@@ -118,28 +118,14 @@ chop_filtered_block_store_delete_block (chop_block_store_t *store,
 }
 
 static errcode_t
-chop_filtered_block_store_first_key (chop_block_store_t *store,
-				     chop_block_key_t *key)
+chop_filtered_block_store_first_block (chop_block_store_t *store,
+				       chop_block_iterator_t *it)
 {
   errcode_t err;
   chop_filtered_block_store_t *filtered =
     (chop_filtered_block_store_t *)store;
 
-  err = chop_store_first_key (filtered->backend, key);
-
-  return err;
-}
-
-static errcode_t
-chop_filtered_block_store_next_key (chop_block_store_t *store,
-				    const chop_block_key_t *key,
-				    chop_block_key_t *next)
-{
-  errcode_t err;
-  chop_filtered_block_store_t *filtered =
-    (chop_filtered_block_store_t *)store;
-
-  err = chop_store_next_key (filtered->backend, key, next);
+  err = chop_store_first_block (filtered->backend, it);
 
   return err;
 }
@@ -195,8 +181,7 @@ fbs_ctor (chop_object_t *object, const chop_class_t *class)
   store->read_block = chop_filtered_block_store_read_block;
   store->write_block = chop_filtered_block_store_write_block;
   store->delete_block = chop_filtered_block_store_delete_block;
-  store->first_key = chop_filtered_block_store_first_key;
-  store->next_key = chop_filtered_block_store_next_key;
+  store->first_block = chop_filtered_block_store_first_block;
   store->close = chop_filtered_block_store_close;
   store->sync = chop_filtered_block_store_sync;
 
@@ -220,6 +205,7 @@ chop_filtered_store_open (chop_filter_t *input_filter,
   if (err)
     return err;
 
+  store->iterator_class = chop_store_iterator_class (backend);
   filtered->input_filter = input_filter;
   filtered->output_filter = output_filter;
   filtered->backend = backend;

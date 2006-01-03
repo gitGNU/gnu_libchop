@@ -19,6 +19,7 @@ remote_ctor (chop_object_t *object, const chop_class_t *class)
 
   remote = (chop_remote_block_store_t *)object;
 
+  remote->block_store.iterator_class = NULL;
   remote->rpc_client = NULL;
 
   return chop_log_init ("remote-block-store", &remote->log);
@@ -57,12 +58,10 @@ static errcode_t chop_remote_write_block (struct chop_block_store *,
 static errcode_t chop_remote_delete_block (chop_block_store_t *,
 					   const chop_block_key_t *);
 
-static errcode_t chop_remote_first_key (chop_block_store_t *,
-					chop_block_key_t *);
+static errcode_t chop_remote_first_block (chop_block_store_t *,
+					  chop_block_iterator_t *);
 
-static errcode_t chop_remote_next_key (chop_block_store_t *,
-				       const chop_block_key_t *,
-				       chop_block_key_t *);
+static errcode_t chop_remote_it_next (chop_block_iterator_t *);
 
 static errcode_t chop_remote_close (struct chop_block_store *);
 
@@ -113,8 +112,7 @@ chop_remote_block_store_open (const char *host, const char *protocol,
   store->read_block = chop_remote_read_block;
   store->write_block = chop_remote_write_block;
   store->delete_block = chop_remote_delete_block;
-  store->first_key = chop_remote_first_key;
-  store->next_key = chop_remote_next_key;
+  store->first_block = chop_remote_first_block;
   store->close = chop_remote_close;
   store->sync = chop_remote_sync;
 
@@ -222,19 +220,16 @@ chop_remote_delete_block (chop_block_store_t *store,
 }
 
 static errcode_t
-chop_remote_first_key (chop_block_store_t *store,
-		       chop_block_key_t *key)
+chop_remote_first_block (chop_block_store_t *store,
+			 chop_block_iterator_t *it)
 {
-  chop_block_key_init (key, NULL, 0, NULL, NULL);
+  chop_remote_it_next (it);  /* Shut up the "unused function" warning.  */
   return CHOP_ERR_NOT_IMPL;
 }
 
 static errcode_t
-chop_remote_next_key (chop_block_store_t *store,
-		      const chop_block_key_t *key,
-		      chop_block_key_t *next)
+chop_remote_it_next (chop_block_iterator_t *it)
 {
-  chop_block_key_init (next, NULL, 0, NULL, NULL);
   return CHOP_ERR_NOT_IMPL;
 }
 

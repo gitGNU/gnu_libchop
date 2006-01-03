@@ -15,8 +15,8 @@ store_ctor (chop_object_t *object, const chop_class_t *class)
   store->read_block = NULL;
   store->write_block = NULL;
   store->delete_block = NULL;
-  store->first_key = NULL;
-  store->next_key = NULL;
+  store->iterator_class = NULL;
+  store->first_block = NULL;
   store->close = NULL;
   store->sync = NULL;
 
@@ -37,8 +37,8 @@ store_dtor (chop_object_t *object)
   store->read_block = NULL;
   store->write_block = NULL;
   store->delete_block = NULL;
-  store->first_key = NULL;
-  store->next_key = NULL;
+  store->iterator_class = NULL;
+  store->first_block = NULL;
   store->close = NULL;
   store->sync = NULL;
 }
@@ -64,3 +64,36 @@ chop_file_based_store_open (const chop_file_based_store_class_t *db_class,
   return (db_class->generic_open ((chop_class_t *)db_class, file,
 				  open_flags, mode, store));
 }
+
+
+/* Block iterators.  */
+
+static errcode_t
+bi_ctor (chop_object_t *object, const chop_class_t *class)
+{
+  chop_block_iterator_t *bi = (chop_block_iterator_t *)object;
+
+  bi->nil = 1;
+  bi->store = NULL;
+  bi->next = NULL;
+  chop_block_key_init (&bi->key, NULL, 0, NULL, NULL);
+
+  return 0;
+}
+
+static void
+bi_dtor (chop_object_t *object)
+{
+  chop_block_iterator_t *bi = (chop_block_iterator_t *)object;
+
+  bi->nil = 1;
+  bi->store = NULL;
+  bi->next = NULL;
+  chop_block_key_free (&bi->key);
+}
+
+CHOP_DEFINE_RT_CLASS (block_iterator, object,
+		      bi_ctor, bi_dtor,
+		      NULL, NULL /* No serializer/deserializer */);
+
+
