@@ -31,6 +31,10 @@ if HAVE_TDB
 libchop_la_SOURCES += store-tdb.c
 endif
 
+if HAVE_BDB
+libchop_la_SOURCES += store-bdb.c
+endif
+
 if HAVE_QDBM
 libchop_la_SOURCES += store-qdbm.c
 endif

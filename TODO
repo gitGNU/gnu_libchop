@@ -1,13 +1,9 @@
-* Clean up the store iteration sub-interface.
-
 * Write more documentation.
 
 * Introduce copy constructors (grep the code for `FIXME' and `copy' to
   see why).
 
 * Implement a DBus-based block store.
-
-* Implement a BDB store (faster).
 
 * Implement a bzip2 filter.
 

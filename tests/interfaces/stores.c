@@ -19,6 +19,9 @@ main (int argc, char *argv[])
 #ifdef HAVE_TDB
       &chop_tdb_block_store_class,
 #endif
+#ifdef HAVE_BDB
+      &chop_bdb_block_store_class,
+#endif
 #ifdef HAVE_QDBM
       &chop_qdbm_block_store_class,
 #endif
@@ -125,7 +128,18 @@ main (int argc, char *argv[])
 
 	  chop_object_destroy ((chop_object_t *)it);
 	}
+      else
+	test_stage_intermediate ("(no block iterators)");
 
+      /* Delete.  */
+      err = chop_store_delete_block (store, &random_key);
+      test_assert (!err);
+
+      err = chop_store_block_exists (store, &random_key, &exists);
+      test_assert (!err);
+      test_assert (!exists);
+
+      /* Close.  */
       err = chop_store_close (store);
       if (err)
 	{

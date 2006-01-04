@@ -162,6 +162,7 @@ CHOP_DECLARE_RT_CLASS (file_based_store_class, class,
 extern const chop_class_t chop_dummy_block_store_class;
 extern const chop_file_based_store_class_t chop_gdbm_block_store_class;
 extern const chop_file_based_store_class_t chop_tdb_block_store_class;
+extern const chop_file_based_store_class_t chop_bdb_block_store_class;
 extern const chop_file_based_store_class_t chop_qdbm_block_store_class;
 extern const chop_class_t chop_remote_block_store_class;
 extern const chop_class_t chop_smart_block_store_class;
@@ -207,6 +208,12 @@ extern errcode_t chop_tdb_store_open (const char *name,
 				      int hash_size, int tdb_flags,
 				      int open_flags, mode_t mode,
 				      chop_block_store_t *store);
+
+/* Open a SleepyCat BDB store under file NAME.  */
+extern errcode_t chop_bdb_store_open (const char *name,
+				      int hash_size, int bdb_flags,
+				      int open_flags, mode_t mode,
+				      chop_block_store_t *s);
 
 /* Same as `chop_gdbm_store_open ()' for a QDBM database.  */
 extern errcode_t chop_qdbm_store_open (const char *name, size_t block_size,
