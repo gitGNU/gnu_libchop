@@ -215,6 +215,55 @@ chop_filtered_store_open_alloc (chop_filter_t *input, chop_filter_t *output,
   return err;
 }
 
+
+/* Block iterators.  */
+
+static __inline__ errcode_t
+chop_store_first_block_alloc (chop_block_store_t *store,
+			      chop_block_iterator_t **it)
+{
+  errcode_t err;
+  const chop_class_t *it_class;
+
+  it_class = chop_store_iterator_class (store);
+  if (!it_class)
+    {
+      *it = NULL;
+      return CHOP_ERR_NOT_IMPL;
+    }
+
+  *it = scm_malloc (chop_class_instance_size (it_class));
+
+  err = chop_store_first_block (store, *it);
+  if (err)
+    {
+      free (*it);
+      *it = NULL;
+    }
+
+  return err;
+}
+
+static __inline__ errcode_t
+chop_block_iterator_key_check_non_nil (chop_block_iterator_t *it,
+				       chop_block_key_t *key)
+{
+  const chop_block_key_t *it_key;
+
+  if (chop_block_iterator_is_nil (it))
+    return CHOP_INVALID_ARG;
+
+  it_key = chop_block_iterator_key (it);
+
+  /* KEY will be soon destroyed (in the glue code) so we can safely re-use
+     the data of IT_KEY here.  */
+  chop_block_key_init (key, (char *)chop_block_key_buffer (it_key),
+		       chop_block_key_size (it_key),
+		       NULL, NULL);
+
+  return 0;
+}
+
 
 
 /* Support for writing block stores in Guile Scheme.  */
@@ -233,8 +282,8 @@ CHOP_DECLARE_RT_CLASS_WITH_METACLASS (scheme_block_store, block_store,
 				      SCM write_block;
 				      SCM block_exists;
 				      SCM delete_block;
-				      SCM first_key;
-				      SCM next_key;
+				      SCM first_block;
+				      SCM it_next;
 				      SCM close;
 				      SCM sync;);
 
@@ -345,19 +394,19 @@ scm_store_delete_block (chop_block_store_t *store,
 }
 
 static errcode_t
-scm_store_first_key (chop_block_store_t *store,
-		     chop_block_key_t *key)
+scm_store_first_block (chop_block_store_t *store,
+		       chop_block_iterator_t *it)
 {
   return CHOP_ERR_NOT_IMPL;  /* FIXME */
 }
 
+#if 0
 static errcode_t
-scm_store_next_key (chop_block_store_t *store,
-		    const chop_block_key_t *key,
-		    chop_block_key_t *next)
+scm_store_it_next (chop_block_iterator_t *it)
 {
   return CHOP_ERR_NOT_IMPL;  /* FIXME */
 }
+#endif
 
 static errcode_t
 scm_store_close (chop_block_store_t *store)
@@ -434,8 +483,8 @@ scm_store_mark (chop_object_t *object)
   DO_MARK (read_block);
   DO_MARK (write_block);
   DO_MARK (delete_block);
-  DO_MARK (first_key);
-  DO_MARK (next_key);
+  DO_MARK (first_block);
+  DO_MARK (it_next);
   DO_MARK (close);
 
 #undef DO_MARK
@@ -450,7 +499,7 @@ scm_store_mark (chop_object_t *object)
 static __inline__ SCM
 chop_make_scheme_block_store (SCM read_block, SCM write_block,
 			      SCM block_exists, SCM delete_block,
-			      SCM first_key, SCM next_key,
+			      SCM first_block, SCM it_next,
 			      SCM sync, SCM close)
 {
   SCM s_store = SCM_BOOL_F;
@@ -470,8 +519,9 @@ chop_make_scheme_block_store (SCM read_block, SCM write_block,
   SET_METHOD (read_block);
   SET_METHOD (write_block);
   SET_METHOD (delete_block);
-  SET_METHOD (first_key);
-  SET_METHOD (next_key);
+  SET_METHOD (first_block);
+  /* SET_METHOD (it_next); */
+  store->it_next = SCM_BOOL_F;
   SET_METHOD (close);
   SET_METHOD (sync);
 
@@ -505,6 +555,7 @@ sbs_ctor (chop_object_t *object, const chop_class_t *class)
   chop_scheme_block_store_t *store;
 
   store = (chop_scheme_block_store_t *)object;
+  store->block_store.iterator_class = NULL; /* FIXME: Not implemented.  */
   store->block_store.read_block = NULL;
   store->block_store.write_block = NULL;
   store->block_store.close = NULL;

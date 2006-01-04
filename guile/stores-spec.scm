@@ -36,14 +36,19 @@
   #:export (<chop-store-wrapset>))
 
 
-;; the wrapset itself.
+;;;
+;;; Wrapset.
+;;;
 
 (define-class <chop-store-wrapset> (<gw-guile-wrapset>)
   #:id 'stores
   #:dependencies '(standard core filters))
 
+
 
-;; types
+;;;
+;;; Type wrapping customization.
+;;;
 
 ;; Define block key as a variant of non-writable input buffers.
 (define-class <chop-block-key-type> (<gw-type>))
@@ -134,7 +139,12 @@
   ;; Pass a pointer to the key object rather than the key itself.
   (list "& /* key! */" (var value)))
 
+
 
+;;;
+;;; Include files.
+;;;
+
 (define-method (global-declarations-cg (ws <chop-store-wrapset>))
   (list (next-method)
 	"#include <chop/chop.h>\n#include <chop/stores.h>\n\n"
@@ -146,8 +156,11 @@
 	"#include \"stores-support.c\"\n\n"))
 
 
-
 
+;;;
+;;; Wrapping.
+;;;
+
 (define-method (initialize (ws <chop-store-wrapset>) initargs)
   (format #t "initializing ~a~%" ws)
 
@@ -184,6 +197,11 @@
 			#:name '<store>
 			#:c-type-name "chop_block_store_t *"
 			#:c-const-type-name "const chop_block_store_t *")
+
+  (wrap-as-chop-object! ws
+			#:name '<block-iterator>
+			#:c-type-name "chop_block_iterator_t *"
+			#:c-const-type-name "const chop_block_iterator_t *")
 
   ;; constructors
 
@@ -266,8 +284,8 @@
 				(<raw-scheme-type> write-block-proc)
 				(<raw-scheme-type> block-exists-proc)
 				(<raw-scheme-type> remove-block-proc)
-				(<raw-scheme-type> first-key-proc)
-				(<raw-scheme-type> next-key-proc)
+				(<raw-scheme-type> first-block-proc)
+				(<raw-scheme-type> iterator-next!-proc)
 				(<raw-scheme-type> sync-proc)
 				(<raw-scheme-type> close-proc)))
 
@@ -313,24 +331,12 @@ is @var{key} and return a u8vector representing its content.")
 @var{key}.")
 
   (wrap-function! ws
-		  #:name 'store-first-key
+		  #:name 'store-first-block
 		  #:returns '<errcode>
-		  #:c-name "chop_store_first_key"
-		  #:arguments '((<store> store)
-				((<block-key> out) key))
-		  #:description "Return the first key under which data is
-available in @var{store}.")
-
-  (wrap-function! ws
-		  #:name 'store-next-key
-		  #:returns '<errcode>
-		  #:c-name "chop_store_next_key"
-		  #:arguments '((<store> store)
-				(<block-key> key)
-				((<block-key> out) next-key))
-		  #:description
-"Return the key right after @var{key} under which data is available in
-@var{store}.")
+		  #:c-name "chop_store_first_block_alloc"
+		  #:arguments '(((<store> aggregated) store)
+				((<block-iterator> out) it)) #:description
+"Return a block iterator to the first block available in @var{store}.")
 
   (wrap-function! ws
 		  #:name 'store-sync
@@ -343,6 +349,36 @@ available in @var{store}.")
 		  #:returns '<errcode>
 		  #:c-name "chop_store_close"
 		  #:arguments '((<store> store)))
+
+
+  ;; block iterator methods
+
+  (wrap-function! ws
+		  #:name 'block-iterator-nil?
+		  #:returns 'bool
+		  #:c-name "chop_block_iterator_is_nil"
+		  #:arguments '((<block-iterator> it))
+		  #:description "Return true of block iterator @var{it} is
+nil.")
+
+  (wrap-function! ws
+		  #:name 'block-iterator-key
+		  #:returns '<errcode>
+		  #:c-name "chop_block_iterator_key_check_non_nil"
+		  #:arguments '((<block-iterator> it)
+				((<block-key> out) key))
+		  #:description "Return the key corresponding to iterator
+@var{it}, provided @var{it} is not nil.")
+
+  (wrap-function! ws
+		 #:name 'block-iterator-next!
+		 #:returns '<errcode>
+		 #:c-name "chop_block_iterator_next"
+		 #:arguments '((<block-iterator> it))
+		 #:description "Update block iterator @var{it} so that it
+points to the next block available in the underlying store.  If not other
+block is available, then an exception is raised with value @code{store/end}.")
+
 
 )
 
