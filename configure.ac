@@ -8,6 +8,13 @@ AM_INIT_AUTOMAKE(libchop, 0.0)
 AC_CONFIG_SRCDIR(src/chop.c)
 AC_CONFIG_HEADER(include/chop/chop-config.h)
 
+AC_ARG_ENABLE([guile-bindings],
+	AS_HELP_STRING([--enable-guile-bindings],
+	  [produce Guile bindings (requires Guile and G-Wrap)]),
+	[produce_guile_bindings="$enableval"],
+	[produce_guile_bindings="no"])
+
+
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_LIBTOOL
@@ -131,30 +138,32 @@ else
   AC_MSG_WARN([Class lookup by name will not be compiled in])
 fi
 
-# Check for Guile and G-Wrap
-AC_PATH_PROG([guile], [guile],
-  AC_MSG_WARN([Guile not found.  Not building Guile bindings.]))
+if test "x$produce_guile_bindings" = "xyes"; then
+  # Check for Guile and G-Wrap
+  AC_PATH_PROG([guile], [guile],
+    AC_MSG_WARN([Guile not found.  Not building Guile bindings.]))
 
-if test "x$guile" != "x"; then
-   GUILE_PROGS
-   GUILE_FLAGS
+  if test "x$guile" != "x"; then
+     GUILE_PROGS
+     GUILE_FLAGS
 
-#   AC_CHECK_LIB([guile], [scm_u8vector_elements], [],
-#     AC_MSG_ERROR([You version of Guile doesn't support SRFI-4 vectors.  Upgrade to 1.7.2 or later.]))
+  #   AC_CHECK_LIB([guile], [scm_u8vector_elements], [],
+  #     AC_MSG_ERROR([You version of Guile doesn't support SRFI-4 vectors.  Upgrade to 1.7.2 or later.]))
 
-   AC_PATH_PROG([g_wrap_config], [g-wrap-config],
-     AC_MSG_ERROR([Could not find `g-wrap-config'.  You mush has G-Wrap to produce Guile bindings.]))
+     AC_PATH_PROG([g_wrap_config], [g-wrap-config],
+       AC_MSG_ERROR([Could not find `g-wrap-config'.  You mush has G-Wrap to produce Guile bindings.]))
 
-   AC_MSG_CHECKING([whether G-Wrap's version is 1.9.5+])
-   if $g_wrap_config --version | grep ['1.9.[5-9]'] > /dev/null; then
-     AC_MSG_RESULT([yes])
-   else
-     AC_MSG_RESULT([no])
-     AC_MSG_ERROR([Please, use the right G-Wrap version.])
-   fi
+     AC_MSG_CHECKING([whether G-Wrap's version is 1.9.5+])
+     if $g_wrap_config --version | grep ['1.9.[5-9]'] > /dev/null; then
+       AC_MSG_RESULT([yes])
+     else
+       AC_MSG_RESULT([no])
+       AC_MSG_ERROR([Please, use the right G-Wrap version.])
+     fi
 
-   AC_SUBST(GUILE, $guile)
-   AC_SUBST(G_WRAP_CONFIG, $g_wrap_config)
+     AC_SUBST(GUILE, $guile)
+     AC_SUBST(G_WRAP_CONFIG, $g_wrap_config)
+  fi
 fi
 
 AM_CONDITIONAL(HAVE_GUILE, test "x$guile" != "x")
