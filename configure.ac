@@ -56,15 +56,15 @@ else
    AC_MSG_WARN([`libtdb' not found, won't be used])
 fi
 
-# SleepyCat's Berkeley Data Base (BDB), version 4.3
-AC_CHECK_LIB([db-4.3], [db_create], [have_libbdb=yes], [have_libbdb=no])
+# SleepyCat's Berkeley Data Base (BDB), version 4.4
+AC_CHECK_LIB([db-4.4], [db_create], [have_libbdb=yes], [have_libbdb=no])
 if test "x$have_libbdb" = "xyes"; then
    AC_CHECK_HEADER([db.h], [], [have_libbdb=no])
 fi
 AM_CONDITIONAL([HAVE_BDB], test "x$have_libbdb" = "xyes")
 if test "x$have_libbdb" = "xyes"; then
    AC_DEFINE([HAVE_BDB], 1, [Tells whether SleepyCat's BDB is available.])
-   LIBS="$LIBS -ldb-4.3"
+   LIBS="$LIBS -ldb-4.4"
 else
    AC_MSG_WARN([BDB not found, won't be used])
 fi

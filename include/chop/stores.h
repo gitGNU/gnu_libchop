@@ -209,9 +209,10 @@ extern errcode_t chop_tdb_store_open (const char *name,
 				      int open_flags, mode_t mode,
 				      chop_block_store_t *store);
 
-/* Open a SleepyCat BDB store under file NAME.  */
-extern errcode_t chop_bdb_store_open (const char *name,
-				      int hash_size, int bdb_flags,
+/* Open a SleepyCat BDB store under file NAME.  DB_TYPE should be a BDB
+   database type, e.g., `DB_HASH'.  The other parameters are just
+   as usual. */
+extern errcode_t chop_bdb_store_open (const char *name, int db_type,
 				      int open_flags, mode_t mode,
 				      chop_block_store_t *s);
 

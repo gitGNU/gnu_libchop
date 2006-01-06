@@ -5,13 +5,12 @@
 #include <chop/buffers.h>
 
 #include <stdlib.h>
-#include <db.h>  /* BDB 4.3 */
+#include <db.h>  /* BDB 4.3/4.4 */
 #include <errno.h>
 
 /* `chop_bdb_block_store_t' inherits from `chop_block_store_t'.  */
 CHOP_DECLARE_RT_CLASS_WITH_METACLASS (bdb_block_store, block_store,
 				      file_based_store_class,
-				      DB_ENV *db_env;
 				      DB *db;);
 
 /* A generic open method, common to all file-based block stores.  */
@@ -23,7 +22,7 @@ chop_bdb_generic_open (const chop_class_t *class,
   if ((chop_file_based_store_class_t *)class != &chop_bdb_block_store_class)
     return CHOP_INVALID_ARG;
 
-  return (chop_bdb_store_open (file, 0, 0 /* FIXME: BDB_DEFAULT */,
+  return (chop_bdb_store_open (file, DB_HASH,
 			       open_flags, mode, store));
 }
 
@@ -36,6 +35,178 @@ CHOP_DEFINE_RT_CLASS_WITH_METACLASS (bdb_block_store, block_store,
 				     NULL, NULL, /* No ctor/dtor */
 				     NULL, NULL  /* No serial/deserial */);
 
+
+
+
+/* Iterators.  */
+
+CHOP_DECLARE_RT_CLASS (bdb_block_iterator, block_iterator,
+		       DBC *cursor;);
+
+static errcode_t chop_bdb_it_next (chop_block_iterator_t *);
+
+static errcode_t
+bbi_ctor (chop_object_t *object, const chop_class_t *class)
+{
+  chop_bdb_block_iterator_t *it = (chop_bdb_block_iterator_t *)object;
+
+  it->block_iterator.next = chop_bdb_it_next;
+  it->cursor = NULL;
+
+  return 0;
+}
+
+static void
+bbi_dtor (chop_object_t *object)
+{
+  chop_bdb_block_iterator_t *it = (chop_bdb_block_iterator_t *)object;
+
+  it->block_iterator.next = NULL;
+  if (it->cursor)
+    {
+      it->cursor->c_close (it->cursor);
+      it->cursor = NULL;
+    }
+}
+
+CHOP_DEFINE_RT_CLASS (bdb_block_iterator, block_iterator,
+		      bbi_ctor, bbi_dtor,
+		      NULL, NULL);
+
+
+static void
+do_free (char *ptr, void *thing)
+{
+  free (ptr);
+}
+
+static __inline__ errcode_t
+bdb_cursor_nextify (DBC *cursor, chop_block_key_t *key)
+{
+  int err;
+  char buffer[2048]; /* maybe this could be parameterized */
+  DBT db_key, db_data;
+
+  memset (&db_key, 0, sizeof (db_key));
+  db_key.flags = DB_DBT_MALLOC;
+
+  /* Problem: to actually get a cursor to the next thing, we must fetch the
+     data attached to the current pair, even if we don't want to.  So, in
+     order to minimize use of the heap, we'll first try to get the data in
+     our buffer on the stack.  If that doesn't work, then okay, we'll go for
+     dynamic allocation.  */
+  memset (&db_data, 0, sizeof (db_data));
+  db_data.data = buffer;
+  db_data.ulen = sizeof (buffer);
+  db_data.flags = DB_DBT_USERMEM;
+
+ doit:
+  /* The first time, `DB_NEXT_NODUP' is equivalent to `DB_FIRST'.  */
+  err = cursor->c_get (cursor, &db_key, &db_data, DB_NEXT_NODUP);
+
+  switch (err)
+    {
+    case 0:
+      break;
+
+    case DB_BUFFER_SMALL:
+      if (db_data.flags == DB_DBT_USERMEM)
+	{
+	  /* Crap.  We got the key, but not the data associated to it.  So if
+	     we really want the next call to this function to succeed and
+	     actually return the next element, we need to get the data for
+	     good.  */
+	  free (db_key.data);
+	  memset (&db_key, 0, sizeof (db_key));
+	  db_key.flags = DB_DBT_MALLOC;
+
+	  memset (&db_data, 0, sizeof (db_data));
+	  db_data.flags = DB_DBT_MALLOC;
+
+	  goto doit;
+	}
+      else
+	{
+	  /* Gosh, we failed.  */
+	  if (err == ENOMEM)
+	    return err;
+	  else
+	    return CHOP_STORE_ERROR;
+	}
+      break;
+
+    case DB_NOTFOUND:
+      chop_block_key_free (key);
+      return CHOP_STORE_END;
+
+    default:
+      cursor->c_close (cursor);
+      chop_block_key_free (key);
+      return CHOP_STORE_ERROR;
+    }
+
+  if ((db_data.flags == DB_DBT_MALLOC) && (db_data.data))
+    /* Note: we could actually cache it so that a future call to
+       `read_block_at (IT)' would be faster.  */
+    free (db_data.data);
+
+  if (!err)
+    {
+      chop_block_key_free (key);
+      chop_block_key_init (key, db_key.data, db_key.size, do_free, NULL);
+    }
+
+  return err;
+}
+
+static errcode_t
+chop_bdb_first_block (chop_block_store_t *store,
+		      chop_block_iterator_t *it)
+{
+  int err;
+  chop_bdb_block_store_t *bdb = (chop_bdb_block_store_t *)store;
+  chop_bdb_block_iterator_t *bdb_it = (chop_bdb_block_iterator_t *)it;
+  DBC *cursor;
+
+  err = bdb->db->cursor (bdb->db, NULL, &cursor, 0);
+  if (err)
+    return CHOP_INVALID_ARG;
+
+  err = chop_object_initialize ((chop_object_t *)it,
+				&chop_bdb_block_iterator_class);
+  if (err)
+    {
+      cursor->c_close (cursor);
+      return err;
+    }
+
+  err = bdb_cursor_nextify (cursor, &it->key);
+  if (err)
+    return err;
+
+  bdb_it->block_iterator.nil = 0;
+  bdb_it->cursor = cursor;
+
+  return 0;
+}
+
+static errcode_t
+chop_bdb_it_next (chop_block_iterator_t *it)
+{
+  errcode_t err;
+  chop_bdb_block_iterator_t *bdb_it = (chop_bdb_block_iterator_t *)it;
+
+  if ((chop_block_iterator_is_nil (it)) || (!bdb_it->cursor))
+    return CHOP_STORE_END;
+
+  err = bdb_cursor_nextify (bdb_it->cursor, &it->key);
+  if ((err) && (err != CHOP_STORE_END))
+    bdb_it->cursor = NULL;
+
+  bdb_it->block_iterator.nil = (err == CHOP_STORE_END) ? 1 : 0;
+
+  return err;
+}
 
 
 
@@ -64,14 +235,17 @@ static errcode_t chop_bdb_sync (chop_block_store_t *);
 static errcode_t chop_bdb_close (chop_block_store_t *);
 
 
+/* XXX: We could either make this function further configurable, or provide a
+   `chop_bdb_store_db ()' that would return a pointer to the underlying
+   database.  */
 errcode_t
-chop_bdb_store_open (const char *name,
-		     int hash_size, int bdb_flags,
+chop_bdb_store_open (const char *name, int db_type,
 		     int open_flags, mode_t mode,
 		     chop_block_store_t *s)
 {
   int err;
   int bdb_open_flags = 0;
+  DB *db;
   chop_bdb_block_store_t *store = (chop_bdb_block_store_t *)s;
 
   if (open_flags & O_CREAT)
@@ -86,11 +260,11 @@ chop_bdb_store_open (const char *name,
     return CHOP_STORE_ERROR;
 #endif
 
-  if (db_create (&store->db, NULL, 0))
+  if (db_create (&db, NULL, 0))
     return CHOP_INVALID_ARG;
 
-  err = store->db->open (store->db, NULL, name, NULL /* database */,
-			 DB_HASH /* type */, bdb_open_flags, mode);
+  err = db->open (db, NULL, name, NULL /* database */,
+		  db_type /* e.g., `DB_HASH' */, bdb_open_flags, mode);
   switch (err)
     {
     case 0:
@@ -105,7 +279,17 @@ chop_bdb_store_open (const char *name,
       return CHOP_STORE_ERROR;
     }
 
-  store->block_store.iterator_class = NULL; /* FIXME */
+  err = chop_object_initialize ((chop_object_t *)store,
+				(chop_class_t *)&chop_bdb_block_store_class);
+  if (err)
+    {
+      db->close (db, 0);
+      return err;
+    }
+
+  store->db = db;
+
+  store->block_store.iterator_class = &chop_bdb_block_iterator_class;
   store->block_store.block_exists = chop_bdb_block_exists;
   store->block_store.read_block = chop_bdb_read_block;
   store->block_store.write_block = chop_bdb_write_block;
@@ -229,7 +413,7 @@ chop_bdb_delete_block (chop_block_store_t *store,
   db_key.ulen = db_key.size = chop_block_key_size (key);
   db_key.flags = DB_DBT_USERMEM;
 
-  bdb->db->del (bdb->db, NULL, &db_key, 0);
+  err = bdb->db->del (bdb->db, NULL, &db_key, 0);
   if (err == EINVAL)
     return CHOP_STORE_BLOCK_UNAVAIL;
 
@@ -237,13 +421,6 @@ chop_bdb_delete_block (chop_block_store_t *store,
     return CHOP_STORE_ERROR;
 
   return 0;
-}
-
-static errcode_t
-chop_bdb_first_block (chop_block_store_t *store,
-		      chop_block_iterator_t *it)
-{
-  return CHOP_ERR_NOT_IMPL;
 }
 
 static errcode_t
@@ -286,45 +463,6 @@ chop_bdb_close (chop_block_store_t *store)
   return 0;
 }
 
-
-#if 0 /* Experimental use of `store-generic-db.c'.  */
-/* Define all the macros expected by the generic database-based block store
-   implementation.  */
-
-#define DB_TYPE       bdb
-#define DB_DATA_TYPE  DBT
-
-#define DB_EXISTS(_db, _key)          (0) /* FIXME */
-#define DB_READ(_db, _key, _datap)		\
-  (_db)->get ((_db), NULL, (_key), (_datap), 0)
-#define DB_WRITE(_db, _key, _datap, _flags)	\
-  (_db)->put ((_db), NULL, (_key), (_datap), (_flags))
-#define DB_WRITE_REPLACE_FLAG          (0)
-#define DB_DELETE(_db, _key)			\
-  (_db)->del ((_db), NULL, (_key), 0)
-
-#define DB_SYNC(_db)				\
-  (_db)->sync (_db)
-#define DB_CLOSE(_db)				\
-  (_db)->close (_db)
-
-/* Convert `chop_block_key_t' object CK into BDB key BDBK.  */
-#define CHOP_KEY_TO_DB(_bdbk, _ck)			\
-{							\
-  memset ((_bdbk), 0, sizeof (_bdbk));			\
-  (_bdbk)->data = (char *)chop_block_key_buffer (_ck);	\
-  (_bdbk)->size = chop_block_key_size (_ck);		\
-  (_bdbk)->ulen = chop_block_key_size (_ck);		\
-  (_bdbk)->flags = DB_DBT_USERMEM;			\
-}
-
-/* Note: since `DB_FIRST_KEY' and `DB_NEXT_KEY' are not defined, this will
-   not generate the corresponding methods.  */
-#include "store-generic-db.c"
-
-#endif
-
 
 /* arch-tag: cfe9dad0-ea76-4ac2-bc70-4d6d59404332
  */
-
