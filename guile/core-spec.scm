@@ -160,8 +160,9 @@
 				 (param <gw-value>) error-var)
   (let ((handle-var (string-append (var param) "_handle")))
     (list "\n/* post-call-arg-cg/input-buffer */\n"
+	  "if (scm_u8vector_p (" (scm-var param) ") == SCM_BOOL_T)\n{\n"
 	  "scm_array_handle_release (&" handle-var ");\n"
-	  "scm_gc_unprotect_object (" (scm-var param) ");\n")))
+	  "scm_gc_unprotect_object (" (scm-var param) ");\n}\n")))
 
 (define-method (call-arg-cg (type <chop-input-buffer-type>)
 			    (value <gw-value>))
