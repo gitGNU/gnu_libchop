@@ -1,0 +1,4 @@
+# Generated files.
+precious ^(lib.*\.la|.*\.lo|.*\.o)$
+
+# arch-tag: bd3e3599-c48e-458d-8171-0560baeea4c6

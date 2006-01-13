@@ -1,0 +1,4 @@
+# Executable files.
+precious ^(chop-[a-z-]+)$
+
+# arch-tag: 39c97d7e-d160-4932-badb-d6265949ce34

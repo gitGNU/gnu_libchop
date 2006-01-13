@@ -1,0 +1,4 @@
+# Files generated/installed by Texinfo.
+precious ^(.*\.info|texinfo\.tex)$
+
+# arch-tag: b7c89e49-6048-4c44-a33c-78b82f9b59ac
