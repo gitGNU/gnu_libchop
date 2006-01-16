@@ -87,7 +87,7 @@ chop_zlib_zip_filter_init (int zlib_compression_level, size_t input_size,
 	       (zlib_compression_level >= 0)
 	       ? zlib_compression_level : Z_DEFAULT_COMPRESSION);
 
-  zfilter->zstream.next_in = zfilter->input_buffer;
+  zfilter->zstream.next_in = (unsigned char *)zfilter->input_buffer;
   zfilter->zstream.avail_in = 0;
 
   return 0;

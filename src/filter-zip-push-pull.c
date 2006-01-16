@@ -27,7 +27,7 @@ ZIP_PUSH_METHOD (chop_filter_t *filter,
   zfilter = (ZIP_FILTER_TYPE *)filter;
 
   if (zfilter->zstream.avail_in == 0)
-    zfilter->zstream.next_in = zfilter->input_buffer;
+    zfilter->zstream.next_in = (unsigned char *)zfilter->input_buffer;
 
   *pushed = 0;
   while (size > 0)
@@ -80,7 +80,7 @@ ZIP_PULL_METHOD (chop_filter_t *filter, int flush,
   zfilter = (ZIP_FILTER_TYPE *)filter;
 
   zfilter->zstream.avail_out = size;
-  zfilter->zstream.next_out = buffer;
+  zfilter->zstream.next_out = (unsigned char *)buffer;
   *pulled = 0;
   while (*pulled < size)
     {

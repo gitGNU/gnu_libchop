@@ -782,7 +782,8 @@ static inline errcode_t
 chop_decoded_block_decode_header (decoded_block_t *block)
 {
   char magic[2];
-  const unsigned char *buffer = chop_buffer_content (&block->buffer);
+  const unsigned char *buffer =
+    (unsigned char *)chop_buffer_content (&block->buffer);
   assert (block->is_key_block);
 
   magic[0] = *(buffer++);

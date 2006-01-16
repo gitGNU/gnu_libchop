@@ -86,7 +86,7 @@ chop_zlib_unzip_filter_init (size_t input_size,
 
   inflateInit (&zfilter->zstream);
 
-  zfilter->zstream.next_in = zfilter->input_buffer;
+  zfilter->zstream.next_in = (unsigned char *)zfilter->input_buffer;
   zfilter->zstream.avail_in = 0;
 
   return 0;

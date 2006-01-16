@@ -87,9 +87,9 @@ hih_serialize (const chop_object_t *object, chop_serial_method_t method,
 	assert (!orig_size);
 
 #ifndef BINARY_SERIALIZATION_USES_MAGIC_BYTES
-	chop_buffer_push (buffer, size, sizeof (size));
+	chop_buffer_push (buffer, (char *)size, sizeof (size));
 #else
-	chop_buffer_append (buffer, size, sizeof (size));
+	chop_buffer_append (buffer, (char *)size, sizeof (size));
 #endif
 
 	err = chop_buffer_append (buffer, handle->content, handle->key_size);

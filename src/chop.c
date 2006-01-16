@@ -308,7 +308,7 @@ CHOP_DEFINE_RT_CLASS (class, class,
 const chop_class_t chop_object_class =
   {
     .name = "object",
-    .object { .class = &chop_class_class },
+    .object = { .class = &chop_class_class },
     .parent = NULL,
     .constructor = _object_primitive_init,
     .destructor = _object_primitive_destroy,
@@ -467,7 +467,7 @@ chop_hex_string_to_buffer (const char *hex, size_t size, char *buffer,
 			   const char **end)
 {
 #define tonum(_chr) (((_chr) >= 'a') ? ((_chr) - 'a' + 10) : ((_chr) - '0'))
-  const unsigned char *p, *end_of_buf = hex + size;
+  const unsigned char *p, *end_of_buf = (unsigned char *)hex + size;
 
   if (size & 1)
     /* If SIZE is odd, discard the last character from HEX */
@@ -484,7 +484,7 @@ chop_hex_string_to_buffer (const char *hex, size_t size, char *buffer,
     }
 #undef tonum
 
-  *end = p;
+  *end = (char *)p;
 }
 
 void /* untested */
