@@ -140,7 +140,7 @@ chop_block_fetcher_fetch_alloc_u8vector (chop_block_fetcher_t *block_fetcher,
     *vector = SCM_BOOL_F;
   else
     {
-      char *block = scm_malloc (size);
+      scm_t_uint8 *block = (scm_t_uint8 *)scm_malloc (size);
 
       memcpy (block, chop_buffer_content (&buffer), size);
       *vector = scm_take_u8vector (block, size);

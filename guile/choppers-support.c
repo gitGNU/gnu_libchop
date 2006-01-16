@@ -112,7 +112,7 @@ chop_chopper_read_block_alloc_u8vector (chop_chopper_t *chopper,
   assert (size == chop_buffer_size (&buffer));
   if (size)
     {
-      char *block = scm_malloc (size);
+      unsigned char *block = (unsigned char *)scm_malloc (size);
 
       memcpy (block, chop_buffer_content (&buffer), size);
       *result = scm_take_u8vector (block, size);

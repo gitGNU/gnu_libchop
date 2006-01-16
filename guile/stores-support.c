@@ -175,7 +175,7 @@ chop_store_read_block_alloc_u8vector (chop_block_store_t *store,
     *result = SCM_BOOL_F;
   else
     {
-      char *block = scm_malloc (size);
+      scm_t_uint8 *block = (scm_t_uint8 *)scm_malloc (size);
 
       memcpy (block, chop_buffer_content (&buffer), size);
       *result = scm_take_u8vector (block, size);
@@ -311,13 +311,13 @@ scm_store_read_block (chop_block_store_t *store,
       SCM s_key, s_block, s_store;
 
       s_store = scm_store->this_smob;
-      s_key = scm_take_u8vector (chop_block_key_buffer (key),
+      s_key = scm_take_u8vector ((scm_t_uint8 *)chop_block_key_buffer (key),
 				 chop_block_key_size (key));
       s_block = scm_call_2 (scm_store->read_block, s_store, s_key);
       if (scm_u8vector_p (s_block) == SCM_BOOL_T)
 	{
 	  scm_t_array_handle handle;
-	  const char *block;
+	  const scm_t_uint8 *block;
 	  size_t size;
 	  ssize_t inc;
 
@@ -325,15 +325,15 @@ scm_store_read_block (chop_block_store_t *store,
 	  block = scm_u8vector_elements (s_block, &handle, &size, &inc);
 	  *read = size;
 	  if (inc == 1)
-	    err = chop_buffer_push (buffer, block, size);
+	    err = chop_buffer_push (buffer, (char *)block, size);
 	  else
 	    {
-	      const char *p;
+	      const scm_t_uint8 *p;
 
 	      chop_buffer_clear (buffer);
 	      for (p = block; size; size--, p += inc)
 		{
-		  err = chop_buffer_append (buffer, p, 1);
+		  err = chop_buffer_append (buffer, (char *)p, 1);
 		  if (err)
 		    break;
 		}
@@ -371,8 +371,9 @@ scm_store_write_block (chop_block_store_t *store,
       memcpy (buf_cpy, buffer, size);
 
       s_store = scm_store->this_smob;
-      s_key = scm_take_u8vector (key_cpy, chop_block_key_size (key));
-      s_content = scm_take_u8vector (buf_cpy, size);
+      s_key = scm_take_u8vector ((scm_t_uint8 *)key_cpy,
+				 chop_block_key_size (key));
+      s_content = scm_take_u8vector ((scm_t_uint8 *)buf_cpy, size);
       s_result = scm_call_3 (scm_store->write_block, s_store,
 			     s_key, s_content);
       if (s_result == SCM_BOOL_F)

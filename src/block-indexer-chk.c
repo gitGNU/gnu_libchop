@@ -82,7 +82,7 @@ chk_serialize (const chop_object_t *object, chop_serial_method_t method,
 	size[11] = orig_size & 0xff;  orig_size >>= 8;
 	assert (!orig_size);
 
-	chop_buffer_push (buffer, size, sizeof (size));
+	chop_buffer_push (buffer, (char *)size, sizeof (size));
 
 	err = chop_buffer_append (buffer, handle->key, handle->key_size);
 	if (err)

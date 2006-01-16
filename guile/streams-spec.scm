@@ -104,7 +104,7 @@
 		  #:c-name "chop_stream_read"
 		  #:arguments '(((<stream> caller-owned) stream)
 				(<writable-input-buffer> buffer)
-				((int out) read))
+				((unsigned-int out) read))
 		  #:description "Read from @var{stream}.")
 
   (wrap-function! ws

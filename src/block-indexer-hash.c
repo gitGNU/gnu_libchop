@@ -126,13 +126,13 @@ hih_deserialize (const char *s_buffer, size_t size,
 	  unsigned char *slash;
 	  const unsigned char *end;
 
-	  slash = (unsigned char *)strchr (buffer, '/');
+	  slash = (unsigned char *)strchr ((char *)buffer, '/');
 	  if (!slash)
 	    return CHOP_DESERIAL_CORRUPT_INPUT;
 
 	  /* Read the block ID.  */
 	  assert (slash - buffer <= sizeof (handle->content));
-	  chop_hex_string_to_buffer (buffer, slash - buffer,
+	  chop_hex_string_to_buffer ((char *)buffer, slash - buffer,
 				     handle->content, (const char **)&end);
 	  if (end != slash)
 	    return CHOP_DESERIAL_CORRUPT_INPUT;

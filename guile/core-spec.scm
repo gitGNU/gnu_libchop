@@ -137,7 +137,7 @@
 	  `(gw:error ,error-var type ,(wrapped-var value))
 	  "else { "
 	  "scm_gc_protect_object (" (scm-var value) ");\n"
-	  (var value) " = "
+	  (var value) " = (char *)"
 	  (if writable-buffer?
 	      "scm_u8vector_writable_elements ("
 	      "scm_u8vector_elements (")

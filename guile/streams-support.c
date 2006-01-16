@@ -22,8 +22,8 @@ static chop_stream_t *
 chop_mem_stream_open_alloc (SCM u8vector)
 {
   chop_stream_t *stream = NULL;
-  const char *elements;
-  char *elements_copy;
+  const scm_t_uint8 *elements;
+  scm_t_uint8 *elements_copy;
   scm_t_array_handle handle;
   size_t size;
   ssize_t increment;
@@ -33,14 +33,14 @@ chop_mem_stream_open_alloc (SCM u8vector)
     /* Lazyness... */
     goto end;
 
-  elements_copy = scm_malloc (size);
+  elements_copy = (scm_t_uint8 *)scm_malloc (size);
   memcpy (elements_copy, elements, size);
 
   stream = scm_malloc (chop_class_instance_size (&chop_mem_stream_class));
 
   /* ELEMENTS_COPY will be automatically freed with `free ()' when STREAM is
      closed.  */
-  chop_mem_stream_open (elements_copy, size, free, stream);
+  chop_mem_stream_open ((char *)elements_copy, size, free, stream);
 
  end:
   scm_array_handle_release (&handle);

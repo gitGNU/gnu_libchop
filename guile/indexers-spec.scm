@@ -135,7 +135,7 @@
 		  #:arguments '(((mchars caller-owned) serial)
 				((<index-handle> out)  index)
 				((<block-fetcher> out) bf)
-				((int out) bytes-read)))
+				((unsigned-int out) bytes-read)))
 
 )
 
