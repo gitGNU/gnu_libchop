@@ -174,6 +174,7 @@ chk_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 
     case CHOP_SERIAL_BINARY:
       {
+	const unsigned char *u_buffer = (unsigned char *)buffer;
 	size_t block_size, key_size, block_id_size;
 
 	/* The serialized thing has to contain at least 4 bytes representing
@@ -182,22 +183,22 @@ chk_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 	if (size < BINARY_SERIALIZATION_HEADER_SIZE)
 	  return CHOP_DESERIAL_CORRUPT_INPUT;
 
-	block_size  = buffer[3]; block_size <<= 8;
-	block_size |= buffer[2]; block_size <<= 8;
-	block_size |= buffer[1]; block_size <<= 8;
-	block_size |= buffer[0];
+	block_size  = u_buffer[3]; block_size <<= 8;
+	block_size |= u_buffer[2]; block_size <<= 8;
+	block_size |= u_buffer[1]; block_size <<= 8;
+	block_size |= u_buffer[0];
 	handle->block_size = block_size;
 
-	key_size  = buffer[7]; key_size <<= 8;
-	key_size |= buffer[6]; key_size <<= 8;
-	key_size |= buffer[5]; key_size <<= 8;
-	key_size |= buffer[4];
+	key_size  = u_buffer[7]; key_size <<= 8;
+	key_size |= u_buffer[6]; key_size <<= 8;
+	key_size |= u_buffer[5]; key_size <<= 8;
+	key_size |= u_buffer[4];
 	handle->key_size = key_size;
 
-	block_id_size  = buffer[11]; block_id_size <<= 8;
-	block_id_size |= buffer[10]; block_id_size <<= 8;
-	block_id_size |= buffer[9];  block_id_size <<= 8;
-	block_id_size |= buffer[8];
+	block_id_size  = u_buffer[11]; block_id_size <<= 8;
+	block_id_size |= u_buffer[10]; block_id_size <<= 8;
+	block_id_size |= u_buffer[9];  block_id_size <<= 8;
+	block_id_size |= u_buffer[8];
 	handle->block_id_size = block_id_size;
 
 	if (size - BINARY_SERIALIZATION_HEADER_SIZE < key_size + block_id_size)

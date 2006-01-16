@@ -150,6 +150,15 @@ main (int argc, char *argv[])
 
       test_stage ("indexer #%u", current_indexer - indexers + 1);
 
+      if ((test_debug_mode ())
+	  && (chop_object_is_a ((chop_object_t *)*current_indexer,
+				&chop_tree_indexer_class)))
+	{
+	  chop_log_t *log = chop_tree_indexer_log (*current_indexer);
+	  if (log)
+	    chop_log_attach (log, 2, 0);
+	}
+
       /* Try to index an empty stream: this should result in a
 	 CHOP_INDEXER_EMPTY_SOURCE exception.  */
       test_stage_intermediate ("empty source");
@@ -186,6 +195,16 @@ main (int argc, char *argv[])
 
       /* Fetch the stream.  */
       test_stage_intermediate ("fetching");
+
+      if ((test_debug_mode ())
+	  && (chop_object_is_a ((chop_object_t *)block_fetcher,
+				&chop_hash_block_fetcher_class)))
+	{
+	  chop_log_t *log = chop_hash_block_fetcher_log (block_fetcher);
+	  if (log)
+	    chop_log_attach (log, 2, 0);
+	}
+
       fetched_stream =
 	chop_class_alloca_instance
 	(chop_indexer_stream_class (*current_indexer));

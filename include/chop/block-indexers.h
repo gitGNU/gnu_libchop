@@ -176,6 +176,11 @@ extern const chop_class_t chop_hash_block_indexer_class;
 extern const chop_class_t chop_chk_block_indexer_class;
 extern const chop_class_t chop_uuid_block_indexer_class;
 
+extern const chop_class_t chop_hash_block_fetcher_class;
+extern const chop_class_t chop_chk_block_fetcher_class;
+extern const chop_class_t chop_uuid_block_fetcher_class;
+
+
 /* Initialize INDEXER as a hash block indexer.  INDEXER will use HASH_METHOD
    to compute the identifier of the given blocks and will use that identifier
    when storing the block.  It leaves the block contents unchanged.  This

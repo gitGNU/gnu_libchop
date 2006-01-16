@@ -105,10 +105,12 @@ hih_serialize (const chop_object_t *object, chop_serial_method_t method,
 }
 
 static errcode_t
-hih_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
+hih_deserialize (const char *s_buffer, size_t size,
+		 chop_serial_method_t method,
 		 chop_object_t *object, size_t *bytes_read)
 {
   errcode_t err;
+  const unsigned char *buffer = (unsigned char *)s_buffer;
   chop_hash_index_handle_t *handle =
     (chop_hash_index_handle_t *)object;
 
@@ -121,17 +123,17 @@ hih_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
     {
       case CHOP_SERIAL_ASCII:
 	{
-	  char *slash;
-	  const char *end;
+	  unsigned char *slash;
+	  const unsigned char *end;
 
-	  slash = strchr (buffer, '/');
+	  slash = (unsigned char *)strchr (buffer, '/');
 	  if (!slash)
 	    return CHOP_DESERIAL_CORRUPT_INPUT;
 
 	  /* Read the block ID.  */
 	  assert (slash - buffer <= sizeof (handle->content));
 	  chop_hex_string_to_buffer (buffer, slash - buffer,
-				     handle->content, &end);
+				     handle->content, (const char **)&end);
 	  if (end != slash)
 	    return CHOP_DESERIAL_CORRUPT_INPUT;
 
@@ -141,11 +143,11 @@ hih_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 	  {
 	    /* Read the block size.  */
 	    long int block_size;
-	    const char *start;
+	    const unsigned char *start;
 
 	    start = end;
 
-	    block_size = strtol (start, (char **)&end, 16);
+	    block_size = strtol ((char *)start, (char **)&end, 16);
 	    if (end == start)
 	      err = CHOP_DESERIAL_CORRUPT_INPUT;
 	    else if (block_size < 0)
