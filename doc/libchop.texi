@@ -306,6 +306,8 @@ Let's have a closer look at it.
 @menu
 * Declaring and Defining a Class::  
 * Instantiating an Object::     
+* Cloning an Object::           
+* Testing Objects for Equality::  
 * Serializing and Deserializing an Object::  
 @end menu
 
@@ -344,18 +346,20 @@ CHOP_DECLARE_RT_CLASS (chbouib, object,
 
 @end defmac
 
-@defmac CHOP_DEFINE_RT_CLASS (name, parent_name, ctor, dtor, serial, dserial)
+@defmac CHOP_DEFINE_RT_CLASS (name, parent_name, ctor, dtor, copy, equalp, serial, dserial)
 Once the class named @var{name} has been declared, this macro defines
 it as being a sub-class of the class named @var{parent_name} (this
 must be the same name as the one used in the declaration!), with
 constructor @var{ctor} and destructor @var{dtor} (both are optional),
-and with serializer @var{serial} and deserializer @var{dserial} (both
-are optional too).
+and with copy constructor @var{copy} and equality predicate
+@var{equalp} (both optional too).  Finally, @var{serial} is a pointer
+to a serializer and @var{dserial} and pointer to a deserializer which
+may both be @code{NULL} as well.
 @end defmac
 
 See the @code{<chop/objects.h>} for details.
 
-@node Instantiating an Object, Serializing and Deserializing an Object, Declaring and Defining a Class, Libchop's Object System
+@node Instantiating an Object, Cloning an Object, Declaring and Defining a Class, Libchop's Object System
 @section Instantiating an Object
 
 Constructors, in libchop, do not allocate memory to store objects:
@@ -398,7 +402,44 @@ using @code{chop_object_destroy ()}, regardless of where they are
 stored in memory.
 
 
-@node Serializing and Deserializing an Object,  , Instantiating an Object, Libchop's Object System
+@node Cloning an Object, Testing Objects for Equality, Instantiating an Object, Libchop's Object System
+@section Cloning an Object
+
+@cindex deep copy
+@cindex clone
+Libchop's object system allows @dfn{deep copies} or @dfn{cloning} of
+objects.  Classes, however, may choose to not implement this feature.
+
+@deftypefun errcode_t chop_object_copy (const chop_object_t *source, chop_object_t *dest)
+Clone the object pointed to by @var{source} into @var{dest}.  As
+usual, @var{dest} must point to an (uninitialized) memory area large
+enough to hold an instance of @var{source}'s class.  If @var{source}'s
+class does not implement cloning, then @code{CHOP_ERR_NOT_IMPL} is
+returned and @var{dest} is left untouched.
+@end deftypefun
+
+
+@node Testing Objects for Equality, Serializing and Deserializing an Object, Cloning an Object, Libchop's Object System
+@section Testing Objects for Equality
+
+@cindex equality predicate
+Testing whether two objects are equal or not may be dependant on the
+implementation of their classes.  Classes may implement an
+@dfn{equality predicate} that can be used two compare two
+instances@footnote{This is similar to Scheme's @code{equal?}
+vs. @code{eq?} @inforef{Equivalence predicates, R5RS Equivalence
+Predicates, r5rs}.}.
+
+@deftypefun int chop_object_equal (const chop_object_t *o1, const chop_object_t *o2)
+Return true (non-zero) if objects @var{o1} and @var{o2} are equal.  If
+both objects are instances of the same class but that class does not
+define an equality predicate, they will only be considered equal if
+and only if @code{@var{o1} == @var{o2}}, from a pointer arithmetic
+viewpoint.
+@end deftypefun
+
+
+@node Serializing and Deserializing an Object,  , Testing Objects for Equality, Libchop's Object System
 @section Serializing and Deserializing an Object
 
 @cindex serialization
