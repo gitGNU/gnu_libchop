@@ -69,6 +69,7 @@ iht_dtor (chop_object_t *object)
 
 CHOP_DEFINE_RT_CLASS (tree_indexer, indexer,
 		      iht_ctor, iht_dtor,
+		      NULL, NULL, /* No copy/equalp */
 		      NULL, NULL  /* No serializer/deserializer */);
 
 
@@ -737,6 +738,7 @@ tree_stream_dtor (chop_object_t *object)
 
 CHOP_DEFINE_RT_CLASS (tree_stream, object,
 		      tree_stream_ctor, tree_stream_dtor,
+		      NULL, NULL, /* No copy/equalp */
 		      NULL, NULL  /* No serializer/deserializer */);
 
 

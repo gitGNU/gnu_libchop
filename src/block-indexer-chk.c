@@ -233,6 +233,7 @@ chk_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 
 CHOP_DEFINE_RT_CLASS (chk_index_handle, index_handle,
 		      NULL, NULL,
+		      NULL, NULL,
 		      chk_serialize, chk_deserialize);
 
 
@@ -398,6 +399,7 @@ cbf_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 
 CHOP_DEFINE_RT_CLASS (chk_block_fetcher, block_fetcher,
 		      cbf_ctor, cbf_dtor,
+		      NULL, NULL,
 		      cbf_serialize, cbf_deserialize);
 
 static errcode_t
@@ -668,6 +670,7 @@ cbi_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 
 CHOP_DEFINE_RT_CLASS (chk_block_indexer, block_indexer,
 		      cbi_ctor, cbi_dtor,
+		      NULL, NULL,
 		      cbi_serialize, cbi_deserialize);
 
 /* Make KEY point to a ciphering key of at most KEY_SIZE bytes.  Fill KEY

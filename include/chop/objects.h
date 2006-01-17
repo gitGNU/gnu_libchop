@@ -45,6 +45,12 @@ typedef errcode_t (* chop_constructor_t) (chop_object_t *,
 					  const chop_class_t *);
 typedef void (* chop_destructor_t) (chop_object_t *);
 
+typedef errcode_t (* chop_copy_constructor_t) (const chop_object_t *,
+					       chop_object_t *);
+typedef int (* chop_equality_predicate_t) (const chop_object_t *,
+					   const chop_object_t *);
+
+
 struct chop_object
 {
   const chop_class_t *class;
@@ -63,6 +69,8 @@ struct chop_class
   chop_destructor_t destructor;
   chop_serializer_t serializer;
   chop_deserializer_t deserializer;
+  chop_copy_constructor_t copy;
+  chop_equality_predicate_t equal;
 };
 
 /* The base class object, or the "root object" if you prefer.  */
@@ -104,6 +112,7 @@ chop_ ## _name ## _t;
    FIXME:  We shouldn't declare them as `const': this would allow users to do
    funny things like change the class constructors, etc.  */
 #define CHOP_DEFINE_RT_CLASS(_name, _parent, _cons, _dest,	\
+			     _copy, _equal,			\
 			     _serial, _deserial)		\
      const chop_class_t chop_ ## _name ## _class =		\
        {							\
@@ -112,6 +121,8 @@ chop_ ## _name ## _t;
 	 .parent = &(chop_ ## _parent ## _class),		\
 	 .constructor = _cons,					\
 	 .destructor = _dest,					\
+	 .copy = _copy,						\
+	 .equal = _equal,					\
 	 .serializer = _serial,					\
 	 .deserializer = _deserial,				\
 	 .instance_size = sizeof (chop_ ## _name ## _t),	\
@@ -125,6 +136,7 @@ chop_ ## _name ## _t;
 					    _metaclass,			\
 					    _metaclass_inits,		\
 					    _cons, _dest,		\
+					    _copy, _equal,		\
 					    _serial, _deserial)		\
      const chop_ ## _metaclass ## _t					\
      chop_ ## _name ## _class =						\
@@ -136,6 +148,8 @@ chop_ ## _name ## _t;
 	   .parent = &(chop_ ## _parent ## _class),			\
 	   .constructor = _cons,					\
 	   .destructor = _dest,						\
+	   .copy = _copy,						\
+	   .equal = _equal,						\
 	   .serializer = _serial,					\
 	   .deserializer = _deserial,					\
 	   .instance_size = sizeof (chop_ ## _name ## _t),		\
@@ -310,6 +324,33 @@ chop_object_is_a (const chop_object_t *__object, const chop_class_t *__class)
 {
   return (chop_class_inherits (chop_object_get_class (__object),
 			       __class));
+}
+
+/* Return true (non-zero) if objects O1 and O2 are equal.  */
+static __inline__ int
+chop_object_equal (const chop_object_t *__o1, const chop_object_t *__o2)
+{
+  if (__o1 == __o2)
+    return 1;
+
+  if ((__o1->class != __o2->class)
+      || (!__o1->class->equal))
+    return 0;
+
+  return (__o1->class->equal (__o1, __o2));
+}
+
+/* Make DEST a ``deep copy'' or ``clone'' of SOURCE.  If SOURCE's class does
+   not implement this, `CHOP_ERR_NOT_IMPL' is returned.  */
+static __inline__ errcode_t
+chop_object_copy (const chop_object_t *__source,
+		  chop_object_t *__dest)
+{
+  const chop_class_t *__c = chop_object_get_class (__source);
+  if (!__c->copy)
+    return CHOP_ERR_NOT_IMPL;
+
+  return __c->copy (__source, __dest);
 }
 
 /* Serialize OBJECT according to serialization method METHOD into BUFFER.  If

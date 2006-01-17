@@ -232,6 +232,7 @@ hih_deserialize (const char *s_buffer, size_t size,
 
 CHOP_DEFINE_RT_CLASS (hash_index_handle, index_handle,
 		      NULL, NULL,
+		      NULL, NULL,
 		      hih_serialize, hih_deserialize);
 
 
@@ -294,6 +295,7 @@ hbf_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 
 CHOP_DEFINE_RT_CLASS (hash_block_fetcher, block_fetcher,
 		      hbf_ctor, hbf_dtor,
+		      NULL, NULL,
 		      hbf_serialize, hbf_deserialize);
 
 chop_log_t *
@@ -477,6 +479,7 @@ hbi_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 
 CHOP_DEFINE_RT_CLASS (hash_block_indexer, block_indexer,
 		      hbi_ctor, hbi_dtor,
+		      NULL, NULL,
 		      hbi_serialize, hbi_deserialize);
 
 

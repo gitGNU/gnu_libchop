@@ -7,6 +7,7 @@
 /* Define CHOP_INDEXER_CLASS.  */
 CHOP_DEFINE_RT_CLASS (indexer, object,
 		      NULL, NULL, /* No constructor/destructor */
+		      NULL, NULL, /* No copy/equalp */
 		      NULL, NULL  /* No serializer/deserializer */);
 
 

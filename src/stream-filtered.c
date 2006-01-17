@@ -30,6 +30,7 @@ fs_ctor (chop_object_t *object, const chop_class_t *class)
 
 CHOP_DEFINE_RT_CLASS (filtered_stream, stream,
 		      fs_ctor, NULL, /* the dtor of `stream' calls `close' */
+		      NULL, NULL,
 		      NULL, NULL);
 
 

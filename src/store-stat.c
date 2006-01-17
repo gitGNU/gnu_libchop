@@ -57,6 +57,7 @@ sbs_dtor (chop_object_t *object)
 
 CHOP_DEFINE_RT_CLASS (stat_block_store, block_store,
 		      NULL, sbs_dtor,
+		      NULL, NULL, /* No copy/equalp */
 		      NULL, NULL  /* No serializer/deserializer */);
 
 
@@ -282,6 +283,7 @@ stats_dtor (chop_object_t *object)
 
 CHOP_DEFINE_RT_CLASS (block_store_stats, object,
 		      stats_ctor, stats_dtor,
+		      NULL, NULL,
 		      NULL, NULL);
 
 

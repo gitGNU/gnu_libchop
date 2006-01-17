@@ -33,6 +33,7 @@ chop_index_handle_binary_size (const chop_index_handle_t *__handle)
   return (__handle->size);
 }
 
+
 
 /* Block indexers and fetchers.  */
 

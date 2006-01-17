@@ -23,6 +23,7 @@ CHOP_DEFINE_RT_CLASS_WITH_METACLASS (whole_stream_chopper, chopper,
 				     .generic_open = wsc_generic_open,
 
 				     NULL, NULL, /* No ctor/dtor */
+				     NULL, NULL, /* No copy/equalp */
 				     NULL, NULL  /* No serial/deserial */);
 
 

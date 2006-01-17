@@ -18,6 +18,7 @@ CHOP_DECLARE_RT_CLASS (smart_block_store, block_store,
 
 CHOP_DEFINE_RT_CLASS (smart_block_store, block_store,
 		      NULL, NULL, /* No constructor/destructor */
+		      NULL, NULL, /* No copy/equalp */
 		      NULL, NULL  /* No serializer/deserializer */);
 
 

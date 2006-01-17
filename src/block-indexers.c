@@ -3,13 +3,16 @@
 
 CHOP_DEFINE_RT_CLASS (block_indexer, object,
 		      NULL, NULL,
+		      NULL, NULL,
 		      NULL, NULL);
 
 CHOP_DEFINE_RT_CLASS (block_fetcher, object,
 		      NULL, NULL,
+		      NULL, NULL,
 		      NULL, NULL);
 
 CHOP_DEFINE_RT_CLASS (index_handle, object,
+		      NULL, NULL,
 		      NULL, NULL,
 		      NULL, NULL);
 

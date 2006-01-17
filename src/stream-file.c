@@ -28,6 +28,7 @@ CHOP_DECLARE_RT_CLASS (file_stream, stream,
    so we don't need to define our own destructor.  */
 CHOP_DEFINE_RT_CLASS (file_stream, stream,
 		      NULL, NULL,
+		      NULL, NULL, /* No copy/equalp */
 		      NULL, NULL  /* No serializer/deserializer */);
 
 

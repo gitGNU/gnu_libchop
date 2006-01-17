@@ -23,6 +23,7 @@ filter_ctor (chop_object_t *object, const chop_class_t *class)
 
 CHOP_DEFINE_RT_CLASS (filter, object,
 		      filter_ctor, NULL,
+		      NULL, NULL,
 		      NULL, NULL);
 
 

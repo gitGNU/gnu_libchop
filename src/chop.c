@@ -246,6 +246,8 @@ _class_primitive_init (chop_object_t *object,
   class->parent = NULL;
   class->constructor = NULL;
   class->destructor = NULL;
+  class->copy = NULL;
+  class->equal = NULL;
   class->serializer = NULL;
   class->deserializer = NULL;
 
@@ -303,6 +305,7 @@ _object_primitive_destroy (chop_object_t *object)
 /* The root classes.  */
 CHOP_DEFINE_RT_CLASS (class, class,
 		      _class_primitive_init, _class_primitive_destroy,
+		      NULL, NULL, /* No copy nor equality predicate */
 		      NULL, NULL  /* No serializer/deserializer */);
 
 const chop_class_t chop_object_class =
@@ -312,6 +315,8 @@ const chop_class_t chop_object_class =
     .parent = NULL,
     .constructor = _object_primitive_init,
     .destructor = _object_primitive_destroy,
+    .copy = NULL,
+    .equal = NULL,
     .serializer = NULL,
     .deserializer = NULL,
     .instance_size = sizeof (chop_object_t)

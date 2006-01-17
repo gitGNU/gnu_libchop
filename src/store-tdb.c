@@ -46,6 +46,7 @@ CHOP_DEFINE_RT_CLASS_WITH_METACLASS (tdb_block_store, block_store,
 				     .generic_open = chop_tdb_generic_open,
 
 				     NULL, tdb_dtor,
+				     NULL, NULL, /* No copy/equalp */
 				     NULL, NULL  /* No serial/deserial */);
 
 
@@ -57,6 +58,7 @@ CHOP_DECLARE_RT_CLASS (tdb_block_iterator, block_iterator,
 		       /* Nothing to add.  */);
 
 CHOP_DEFINE_RT_CLASS (tdb_block_iterator, block_iterator,
+		      NULL, NULL,
 		      NULL, NULL,
 		      NULL, NULL);
 

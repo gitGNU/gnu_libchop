@@ -588,5 +588,6 @@ CHOP_DEFINE_RT_CLASS_WITH_METACLASS (scheme_block_store, block_store,
 				     .mark = scm_store_mark,
 
 				     sbs_ctor, sbs_dtor,
+				     NULL, NULL,
 				     NULL, NULL);
 

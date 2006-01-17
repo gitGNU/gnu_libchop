@@ -60,6 +60,7 @@ zlib_unzip_filter_dtor (chop_object_t *object)
 
 CHOP_DEFINE_RT_CLASS (zlib_unzip_filter, filter,
 		      zlib_unzip_filter_ctor, zlib_unzip_filter_dtor,
+		      NULL, NULL,
 		      NULL, NULL);
 
 

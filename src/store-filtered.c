@@ -23,6 +23,7 @@ static errcode_t fbs_ctor (chop_object_t *, const chop_class_t *);
 
 CHOP_DEFINE_RT_CLASS (filtered_block_store, block_store,
 		      fbs_ctor, NULL, /* No constructor/destructor */
+		      NULL, NULL, /* No copy/equalp */
 		      NULL, NULL  /* No serializer/deserializer */);
 
 

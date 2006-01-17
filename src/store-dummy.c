@@ -29,6 +29,7 @@ dbs_dtor (chop_object_t *object)
 
 CHOP_DEFINE_RT_CLASS (dummy_block_store, block_store,
 		      NULL, dbs_dtor,
+		      NULL, NULL,
 		      NULL, NULL  /* No serializer/deserializer */);
 
 

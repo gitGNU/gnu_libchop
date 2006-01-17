@@ -42,6 +42,7 @@ stream_dtor (chop_object_t *object)
 
 CHOP_DEFINE_RT_CLASS (stream, object,
 		      stream_ctor, stream_dtor,
+		      NULL, NULL, /* No copy/equalp */
 		      NULL, NULL  /* No serializer/deserializer */);
 
 

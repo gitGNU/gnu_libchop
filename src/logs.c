@@ -41,6 +41,7 @@ log_dtor (chop_object_t *object)
 
 CHOP_DEFINE_RT_CLASS (log, object,
 		      log_ctor, log_dtor,
+		      NULL, NULL,
 		      NULL, NULL);
 
 

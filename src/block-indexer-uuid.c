@@ -87,6 +87,7 @@ uih_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 
 CHOP_DEFINE_RT_CLASS (uuid_index_handle, index_handle,
 		      NULL, NULL,
+		      NULL, NULL,
 		      uih_serialize, uih_deserialize);
 
 
@@ -149,6 +150,7 @@ ubf_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 
 CHOP_DEFINE_RT_CLASS (uuid_block_fetcher, block_fetcher,
 		      ubf_ctor, ubf_dtor,
+		      NULL, NULL,
 		      ubf_serialize, ubf_deserialize);
 
 chop_log_t *
@@ -283,6 +285,7 @@ ubi_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 
 CHOP_DEFINE_RT_CLASS (uuid_block_indexer, block_indexer,
 		      ubi_ctor, ubi_dtor,
+		      NULL, NULL,
 		      ubi_serialize, ubi_deserialize);
 
 

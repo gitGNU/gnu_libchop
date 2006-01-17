@@ -63,6 +63,7 @@ CHOP_DEFINE_RT_CLASS_WITH_METACLASS (qdbm_block_store, block_store,
 				     .generic_open = chop_qdbm_generic_open,
 
 				     NULL, qdbm_dtor,
+				     NULL, NULL, /* No copy/equalp */
 				     NULL, NULL  /* No serial/deserial */);
 
 
@@ -74,6 +75,7 @@ CHOP_DECLARE_RT_CLASS (qdbm_block_iterator, block_iterator,
 		       /* Nothing to add.  */);
 
 CHOP_DEFINE_RT_CLASS (qdbm_block_iterator, block_iterator,
+		      NULL, NULL,
 		      NULL, NULL,
 		      NULL, NULL);
 

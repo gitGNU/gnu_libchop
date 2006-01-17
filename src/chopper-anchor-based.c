@@ -179,6 +179,7 @@ CHOP_DEFINE_RT_CLASS_WITH_METACLASS (anchor_based_chopper, chopper,
 				     .generic_open = ab_generic_open,
 
 				     ab_ctor, ab_dtor,
+				     NULL, NULL, /* No copy, equalp */
 				     NULL, NULL  /* No serial/deserial */);
 
 

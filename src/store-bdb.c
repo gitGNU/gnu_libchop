@@ -33,6 +33,7 @@ CHOP_DEFINE_RT_CLASS_WITH_METACLASS (bdb_block_store, block_store,
 				     .generic_open = chop_bdb_generic_open,
 
 				     NULL, NULL, /* No ctor/dtor */
+				     NULL, NULL, /* No copy/equalp */
 				     NULL, NULL  /* No serial/deserial */);
 
 
@@ -71,6 +72,7 @@ bbi_dtor (chop_object_t *object)
 
 CHOP_DEFINE_RT_CLASS (bdb_block_iterator, block_iterator,
 		      bbi_ctor, bbi_dtor,
+		      NULL, NULL,
 		      NULL, NULL);
 
 

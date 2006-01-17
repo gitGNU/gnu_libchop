@@ -35,6 +35,7 @@ mem_stream_ctor (chop_object_t *object,
 
 CHOP_DEFINE_RT_CLASS (mem_stream, stream,
 		      mem_stream_ctor, NULL,
+		      NULL, NULL, /* No copy/equalp */
 		      NULL, NULL  /* No serializer/deserializer */);
 
 

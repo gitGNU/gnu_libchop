@@ -37,6 +37,7 @@ remote_dtor (chop_object_t *object)
 
 CHOP_DEFINE_RT_CLASS (remote_block_store, block_store,
 		      remote_ctor, remote_dtor,
+		      NULL, NULL, /* No copy/equalp */
 		      NULL, NULL  /* No serializer/deserializer */);
 
 

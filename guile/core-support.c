@@ -17,6 +17,7 @@
 
 CHOP_DEFINE_RT_CLASS (hybrid_scheme_class, class,
 		      NULL, NULL,  /* No ctor/dtor */
+		      NULL, NULL,  /* No copy/equalp */
 		      NULL, NULL   /* No serial/dserial */);
 
 

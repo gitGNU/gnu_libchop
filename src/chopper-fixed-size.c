@@ -9,12 +9,14 @@
 /* The base `chop_chopper_t' definition.  */
 CHOP_DEFINE_RT_CLASS (chopper, object,
 		      NULL, NULL, /* No ctor/dtor */
+		      NULL, NULL, /* No copy/equalp */
 		      NULL, NULL  /* No serial/deserial */);
 
 
 /* The `chop_chopper_class_t' definition.  */
 CHOP_DEFINE_RT_CLASS (chopper_class, class,
 		      NULL, NULL, /* No ctor/dtor */
+		      NULL, NULL, /* No copy/equalp */
 		      NULL, NULL  /* No serial/deserial */);
 
 
@@ -52,6 +54,7 @@ CHOP_DEFINE_RT_CLASS_WITH_METACLASS (fixed_size_chopper, chopper,
 				     .generic_open = chop_fs_generic_open,
 
 				     fixed_size_chopper_ctor, NULL,
+				     NULL, NULL, /* No copy/equalp */
 				     NULL, NULL  /* No serial/deserial */);
 
 

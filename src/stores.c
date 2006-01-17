@@ -45,10 +45,12 @@ store_dtor (chop_object_t *object)
 
 CHOP_DEFINE_RT_CLASS (block_store, object,
 		      store_ctor, store_dtor,
+		      NULL, NULL, /* No copy/equalp */
 		      NULL, NULL  /* No serializer/deserializer */);
 
 /* The meta-class for all file-based stores, i.e. GDBM, TDB, etc.  */
 CHOP_DEFINE_RT_CLASS (file_based_store_class, class,
+		      NULL, NULL,
 		      NULL, NULL,
 		      NULL, NULL);
 
@@ -94,6 +96,7 @@ bi_dtor (chop_object_t *object)
 
 CHOP_DEFINE_RT_CLASS (block_iterator, object,
 		      bi_ctor, bi_dtor,
+		      NULL, NULL, /* No copy/equalp */
 		      NULL, NULL /* No serializer/deserializer */);
 
 
