@@ -300,6 +300,7 @@
 (define-public (wrap-as-chop-object! ws . args)
   (apply wrap-as-wct! ws
 	 #:allowed-options '(caller-owned callee-owned out aggregated)
+	 #:wcp-equal-predicate "gwrap_chop_object_equal"
 	 #:wcp-free-function "gwrap_chop_object_cleanup"
 	 #:wcp-mark-function "gwrap_chop_object_mark"
 	 args))

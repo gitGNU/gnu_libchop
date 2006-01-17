@@ -22,6 +22,12 @@ CHOP_DEFINE_RT_CLASS (hybrid_scheme_class, class,
 
 
 
+int
+gwrap_chop_object_equal (void *o1, void *o2)
+{
+  return chop_object_equal ((chop_object_t *)o1, (chop_object_t *)o2);
+}
+
 size_t
 gwrap_chop_object_cleanup (void *wcp)
 {

@@ -5,6 +5,7 @@
 #include <chop/block-indexers.h>
 
 #include <stdio.h>
+#include <string.h>
 #include <ctype.h>
 #include <assert.h>
 
@@ -17,6 +18,21 @@ CHOP_DECLARE_RT_CLASS (chk_index_handle, index_handle,
 		       char   key[1024];
 		       size_t block_id_size;
 		       char   block_id[1024];);
+
+static int
+chk_equalp (const chop_object_t *h1, const chop_object_t *h2)
+{
+  chop_chk_index_handle_t *chk1, *chk2;
+
+  chk1 = (chop_chk_index_handle_t *)h1;
+  chk2 = (chop_chk_index_handle_t *)h2;
+
+  return ((chk1->block_size == chk2->block_size)
+	  && (chk1->key_size == chk2->key_size)
+	  && (chk1->block_id_size == chk2->block_id_size)
+	  && (!memcmp (chk1->key, chk2->key, chk1->key_size))
+	  && (!memcmp (chk1->block_id, chk2->block_id, chk1->block_id_size)));
+}
 
 #define BINARY_SERIALIZATION_HEADER_SIZE  12
 
@@ -233,7 +249,7 @@ chk_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 
 CHOP_DEFINE_RT_CLASS (chk_index_handle, index_handle,
 		      NULL, NULL,
-		      NULL, NULL,
+		      NULL, chk_equalp,
 		      chk_serialize, chk_deserialize);
 
 

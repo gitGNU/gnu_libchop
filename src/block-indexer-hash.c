@@ -5,6 +5,7 @@
 #include <chop/block-indexers.h>
 
 #include <stdio.h>
+#include <string.h>
 #include <ctype.h>
 #include <assert.h>
 
@@ -16,6 +17,19 @@ CHOP_DECLARE_RT_CLASS (hash_index_handle, index_handle,
 		       size_t block_size; /* size of the indexed block */
 		       size_t key_size;   /* size of the block key */
 		       char content[1024];/* the block key */);
+
+static int
+hih_equalp (const chop_object_t *h1, const chop_object_t *h2)
+{
+  chop_hash_index_handle_t *hih1, *hih2;
+
+  hih1 = (chop_hash_index_handle_t *)h1;
+  hih2 = (chop_hash_index_handle_t *)h2;
+
+  return ((hih1->block_size == hih2->block_size)
+	  && (hih1->key_size == hih2->key_size)
+	  && (!memcmp (hih1->content, hih2->content, hih1->key_size)));
+}
 
 /* Define this to enable the use of magic bytes in the header of serialized
    `hash_index_handle' objects.  This may help find out the cause of
@@ -232,7 +246,7 @@ hih_deserialize (const char *s_buffer, size_t size,
 
 CHOP_DEFINE_RT_CLASS (hash_index_handle, index_handle,
 		      NULL, NULL,
-		      NULL, NULL,
+		      NULL, hih_equalp,
 		      hih_serialize, hih_deserialize);
 
 

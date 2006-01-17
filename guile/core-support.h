@@ -26,6 +26,9 @@ CHOP_DECLARE_RT_CLASS (hybrid_scheme_class, class,
 /* Initialize G-Wrap/Guile support for `chop_object_t' objects.  */
 extern void gwrap_chop_object_support_init (void);
 
+/* This function calls `chop_object_equal ()' on O1 and O2.  */
+extern int gwrap_chop_object_equal (void *o1, void *o2);
+
 /* The function that destroys WCP, a wrapped `chop_object_t' pointer, by
    calling `chop_object_destroy ()' and then freeing the object itself.  */
 extern size_t gwrap_chop_object_cleanup (void *wcp);

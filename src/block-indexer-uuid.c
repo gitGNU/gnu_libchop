@@ -12,6 +12,7 @@
 #include <uuid/uuid.h>
 
 #include <stdio.h>
+#include <string.h>
 #include <assert.h>
 
 
@@ -24,6 +25,17 @@ CHOP_DECLARE_RT_CLASS (uuid_index_handle, index_handle,
 /* The manual for libuuid specifies that `uuid_generate ()' returns 36 bytes
    (ASCII) plus a trailing zero.  */
 #define CHOP_UUID_SIZE  37
+
+static int
+uih_equalp (const chop_object_t *h1, const chop_object_t *h2)
+{
+  chop_uuid_index_handle_t *uih1, *uih2;
+
+  uih1 = (chop_uuid_index_handle_t *)h1;
+  uih2 = (chop_uuid_index_handle_t *)h2;
+
+  return (!uuid_compare (uih1->uuid, uih2->uuid));
+}
 
 
 static errcode_t
@@ -87,7 +99,7 @@ uih_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 
 CHOP_DEFINE_RT_CLASS (uuid_index_handle, index_handle,
 		      NULL, NULL,
-		      NULL, NULL,
+		      NULL, uih_equalp,
 		      uih_serialize, uih_deserialize);
 
 
