@@ -869,7 +869,7 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
   anchor->first = 0;
   while (1)
     {
-      if (sliding_window_unfull (window))
+      if (CHOP_EXPECT_FALSE (sliding_window_unfull (window)))
 	{
 	  /* There are less that WINDOW_SIZE bytes left in WINDOW so we need
 	     to get some more.  */
@@ -897,7 +897,7 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
 	  chop_log_printf (&anchor->log, "reloaded sliding window, "
 			   "got %u bytes", *window_dest_size);
 
-	  if (err)
+	  if (CHOP_EXPECT_FALSE (err))
 	    {
 	      if (err == CHOP_STREAM_END)
 		/* That's it: stop computing fingerprints.  */
@@ -977,7 +977,7 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
       sliding_window_increment_offset (window);
     }
 
-  if (err == CHOP_STREAM_END)
+  if (CHOP_EXPECT_FALSE (err == CHOP_STREAM_END))
     {
       /* We've reached the end of the input stream.  */
       size_t amount;

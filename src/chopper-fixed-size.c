@@ -120,7 +120,7 @@ chop_fixed_chopper_read_block (chop_chopper_t *chopper,
 			      fixed->block_size - *size, &amount);
       *size += amount;
 
-      if (err)
+      if (CHOP_EXPECT_FALSE (err))
 	{
 	  if (err == CHOP_STREAM_END)
 	    break;

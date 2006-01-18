@@ -13,6 +13,10 @@
 
 # if (__GNUC__ >= 3)
 #  define _CHOP_PURE_FUNC  __attribute__ ((__pure__))
+#  define CHOP_EXPECT      __builtin_expect
+# else
+#  define CHOP_EXPECT(_exp, _r) (_exp)
+#  define _CHOP_PURE_FUNC
 # endif
 
 # define _CHOP_UNUSED __attribute__ ((__unused__))
@@ -21,8 +25,12 @@
 
 # define _CHOP_PURE_FUNC
 # define _CHOP_UNUSED
+# define CHOP_EXPECT(_exp, _r)  (_exp)
 
 #endif
+
+#define CHOP_EXPECT_TRUE(_exp)  (CHOP_EXPECT (_exp, 1))
+#define CHOP_EXPECT_FALSE(_exp) (CHOP_EXPECT (_exp, 0))
 
 #ifdef __cplusplus
 # define _CHOP_BEGIN_DECLS  extern "C" {
