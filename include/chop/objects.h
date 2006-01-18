@@ -341,17 +341,12 @@ chop_object_equal (const chop_object_t *__o1, const chop_object_t *__o2)
 }
 
 /* Make DEST a ``deep copy'' or ``clone'' of SOURCE.  If SOURCE's class does
-   not implement this, `CHOP_ERR_NOT_IMPL' is returned.  */
-static __inline__ errcode_t
-chop_object_copy (const chop_object_t *__source,
-		  chop_object_t *__dest)
-{
-  const chop_class_t *__c = chop_object_get_class (__source);
-  if (!__c->copy)
-    return CHOP_ERR_NOT_IMPL;
-
-  return __c->copy (__source, __dest);
-}
+   not implement this, then a default ``shallow'' copy is used.  Within a
+   copy constructor it is not necessary to call `chop_object_initialize ()'
+   since this is handled by the copy constructors of the parent classes,
+   including that of CHOP_OBJECT_CLASS.  */
+extern errcode_t chop_object_copy (const chop_object_t *source,
+				   chop_object_t *dest);
 
 /* Serialize OBJECT according to serialization method METHOD into BUFFER.  If
    not serializer exists for OBJECT's class, CHOP_ERR_NOT_IMPL is returned.

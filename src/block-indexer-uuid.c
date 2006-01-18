@@ -37,6 +37,18 @@ uih_equalp (const chop_object_t *h1, const chop_object_t *h2)
   return (!uuid_compare (uih1->uuid, uih2->uuid));
 }
 
+static errcode_t
+uih_copy (const chop_object_t *s, chop_object_t *d)
+{
+  chop_uuid_index_handle_t *source, *dest;
+
+  source = (chop_uuid_index_handle_t *)s;
+  dest = (chop_uuid_index_handle_t *)d;
+
+  uuid_copy (dest->uuid, source->uuid);
+
+  return 0;
+}
 
 static errcode_t
 uih_serialize (const chop_object_t *object, chop_serial_method_t method,
@@ -99,7 +111,7 @@ uih_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 
 CHOP_DEFINE_RT_CLASS (uuid_index_handle, index_handle,
 		      NULL, NULL,
-		      NULL, uih_equalp,
+		      uih_copy, uih_equalp,
 		      uih_serialize, uih_deserialize);
 
 

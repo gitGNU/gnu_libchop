@@ -664,6 +664,7 @@ chop_decoded_block_tree_init (decoded_block_tree_t *tree,
 			      chop_block_fetcher_t *fetcher,
 			      chop_log_t *log)
 {
+  errcode_t err;
   const chop_class_t *handle_class =
     chop_object_get_class ((chop_object_t *)handle);
 
@@ -674,9 +675,13 @@ chop_decoded_block_tree_init (decoded_block_tree_t *tree,
   if (!tree->index)
     return ENOMEM;
 
-  /* FIXME:  This is just a ``shallow'' object copy.  We need to implement
-     `chop_object_copy ()'.  */
-  memcpy (tree->index, handle, chop_class_instance_size (handle_class));
+  err = chop_object_copy ((const chop_object_t *)handle,
+			  (chop_object_t *)tree->index);
+  if (err)
+    {
+      free (tree->index);
+      return err;
+    }
 
   /* FIXME:  We'd better copy FETCHER here.  */
   tree->fetcher = fetcher;
@@ -706,6 +711,8 @@ chop_decoded_block_tree_free (decoded_block_tree_t *tree)
     }
 
   tree->top_level = NULL;
+
+  chop_object_destroy ((chop_object_t *)tree->index);
   free (tree->index);
   tree->index = NULL;
 }

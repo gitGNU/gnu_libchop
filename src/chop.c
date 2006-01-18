@@ -281,6 +281,24 @@ _object_primitive_init (chop_object_t *object, const chop_class_t *class)
   return 0;
 }
 
+static errcode_t
+_object_primitive_copy (const chop_object_t *source, chop_object_t *dest)
+{
+  dest->class = source->class;
+
+#ifdef USE_OBJECT_TRACKER
+  {
+    errcode_t err;
+
+    err = chop_track_object (dest);
+    if (err)
+      return err;
+  }
+#endif
+
+  return 0;
+}
+
 /* Destructor of `chop_object_t' objects.  */
 static void
 _object_primitive_destroy (chop_object_t *object)
@@ -315,7 +333,7 @@ const chop_class_t chop_object_class =
     .parent = NULL,
     .constructor = _object_primitive_init,
     .destructor = _object_primitive_destroy,
-    .copy = NULL,
+    .copy = _object_primitive_copy,
     .equal = NULL,
     .serializer = NULL,
     .deserializer = NULL,
@@ -344,7 +362,7 @@ chop_object_initialize (chop_object_t *object,
 	break;
     }
 
-  if (parentcnt)
+  if (CHOP_EXPECT_TRUE (parentcnt))
     {
       for (parent = parents[--parentcnt];
 	   parentcnt >= 0;
@@ -369,6 +387,58 @@ chop_object_initialize (chop_object_t *object,
 
   return err;
 }
+
+errcode_t
+chop_object_copy (const chop_object_t *source, chop_object_t *dest)
+{
+  errcode_t err = 0;
+  int parentcnt = 0;
+  size_t last_size_copied = 0;
+  const chop_class_t *class, *parent, *parents[256];
+
+  class = chop_object_get_class (source);
+
+  for (parent = class->parent;
+       parent != NULL;
+       parent = parent->parent)
+    {
+      parents[parentcnt++] = parent;
+      if (parent->parent == parent)
+	/* The parent of `chop_class_class' is itself.  */
+	break;
+    }
+
+  if (CHOP_EXPECT_TRUE (parentcnt))
+    {
+      for (parent = parents[--parentcnt];
+	   parentcnt >= 0;
+	   parent = parents[--parentcnt])
+	{
+	  if (parent->copy)
+	    {
+	      err = parent->copy (source, dest);
+	      if (err)
+		break;
+
+	      last_size_copied = chop_class_instance_size (parent);
+	    }
+	}
+    }
+
+  if (!err)
+    {
+      if (class->copy)
+	class->copy (source, dest);
+      else
+	/* Shallow copy.  */
+	memcpy ((char *)dest + last_size_copied,
+		(char *)source + last_size_copied,
+		chop_class_instance_size (class) - last_size_copied);
+    }
+
+  return err;
+}
+
 
 void
 chop_object_destroy (chop_object_t *object)

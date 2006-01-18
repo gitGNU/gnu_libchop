@@ -24,6 +24,20 @@ log_ctor (chop_object_t *object, const chop_class_t *class)
   return 0;
 }
 
+static errcode_t
+log_copy (const chop_object_t *s, chop_object_t *d)
+{
+  chop_log_t *source, *dest;
+
+  source = (chop_log_t *)s;
+  dest = (chop_log_t *)d;
+
+  /* XXX: This is quite approximative.  */
+  chop_log_mimic (dest, source, 0);
+
+  return 0;
+}
+
 static void
 log_dtor (chop_object_t *object)
 {
@@ -41,7 +55,7 @@ log_dtor (chop_object_t *object)
 
 CHOP_DEFINE_RT_CLASS (log, object,
 		      log_ctor, log_dtor,
-		      NULL, NULL,
+		      log_copy, NULL,
 		      NULL, NULL);
 
 

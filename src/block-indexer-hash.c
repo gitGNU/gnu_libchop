@@ -244,6 +244,8 @@ hih_deserialize (const char *s_buffer, size_t size,
   return err;
 }
 
+/* Note: the default copy constructor will work fine.  */
+
 CHOP_DEFINE_RT_CLASS (hash_index_handle, index_handle,
 		      NULL, NULL,
 		      NULL, hih_equalp,

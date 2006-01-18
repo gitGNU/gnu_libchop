@@ -280,10 +280,36 @@ stats_dtor (chop_object_t *object)
   chop_block_store_stats_clear (stats);
 }
 
+static errcode_t
+bss_copy (const chop_object_t *src, chop_object_t *dst)
+{
+  const chop_block_store_stats_t *source = (chop_block_store_stats_t *)src;
+  chop_block_store_stats_t *dest = (chop_block_store_stats_t *)dst;
+
+  if (source->name)
+    {
+      dest->name = strdup (source->name);
+      if (!dest->name)
+	return ENOMEM;
+    }
+  else
+    dest->name = NULL;
+
+  dest->blocks_written = source->blocks_written;
+  dest->bytes_written = source->bytes_written;
+  dest->virgin_blocks = source->virgin_blocks;
+  dest->virgin_bytes = source->virgin_bytes;
+  dest->average_block_size = source->average_block_size;
+  dest->min_block_size = source->min_block_size;
+  dest->max_block_size = source->max_block_size;
+
+  return 0;
+}
+
 
 CHOP_DEFINE_RT_CLASS (block_store_stats, object,
 		      stats_ctor, stats_dtor,
-		      NULL, NULL,
+		      bss_copy, NULL,
 		      NULL, NULL);
 
 
