@@ -418,7 +418,7 @@ process_command (const char *argument,
 			THE_STORE (data), THE_STORE (metadata),
 			chopper, indexer);
 
-      chop_stream_close ((chop_stream_t *)stream);
+      chop_object_destroy ((chop_object_t *)stream);
       chop_chopper_close (chopper);
     }
   else if (restore_queried)

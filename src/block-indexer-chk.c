@@ -673,6 +673,7 @@ cbi_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 	indexer->cipher_handle = chop_cipher_open (algo, mode);
 	if (indexer->cipher_handle == CHOP_CIPHER_HANDLE_NIL)
 	  return CHOP_DESERIAL_CORRUPT_INPUT;
+	indexer->owns_cipher_handle = 1;
 
 	indexer->key_hash_method = key_hash_method;
 	indexer->block_id_hash_method = block_id_hash_method;

@@ -743,7 +743,7 @@ tree_stream_dtor (chop_object_t *object)
 
 
 
-CHOP_DEFINE_RT_CLASS (tree_stream, object,
+CHOP_DEFINE_RT_CLASS (tree_stream, stream,
 		      tree_stream_ctor, tree_stream_dtor,
 		      NULL, NULL, /* No copy/equalp */
 		      NULL, NULL  /* No serializer/deserializer */);
