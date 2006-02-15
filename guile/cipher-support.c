@@ -13,8 +13,8 @@ chop_cipher_handle_cleanup (void *wcp)
   cipher = (chop_cipher_handle_t)wcp;
 
 #ifdef DEBUG
-  fprintf (stderr, "%s: freeing cipher @%p [SCM: %p]\n",
-	   __FUNCTION__, cipher, (void *)s_cipher);
+  fprintf (stderr, "%s: freeing cipher @%p\n",
+	   __FUNCTION__, wcp);
 #endif
 
   /* This will actually free the memory pointer to by CIPHER.  */

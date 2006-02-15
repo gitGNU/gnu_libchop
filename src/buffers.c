@@ -14,7 +14,7 @@
 /* Keep at most BUFFER_POOL_MAX_SIZE buffers in the buffer pool, for a total
    of at most BUFFER_POOL_MAX_AVAILABLE bytes.  */
 #define BUFFER_POOL_MAX_SIZE       (20)
-#define BUFFER_POOL_MAX_AVAILABLE  (3000)
+#define BUFFER_POOL_MAX_AVAILABLE  (8192)
 
 static chop_buffer_t buffer_pool[BUFFER_POOL_MAX_SIZE];
 static size_t        buffer_pool_size = 0;      /* Number of buffers in pool */
@@ -34,6 +34,7 @@ find_buffer_in_pool (size_t size, chop_buffer_t *found)
 	{
 	  *found = buffer_pool[buf];
 	  buffer_pool_size--;
+	  buffer_pool_available -= found->real_size;
 	  if (buffer_pool_size > 0)
 	    /* Move the last buffer */
 	    buffer_pool[buf] = buffer_pool[buffer_pool_size];

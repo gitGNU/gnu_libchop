@@ -99,9 +99,11 @@
 				((<index-handle> out) handle)))
 
   (wrap-function! ws
-		  ;; FIXME: For now, BF, etc., are aggregated.  However, this
+		  ;; XXX: For now, BF, etc., are aggregated.  However, this
 		  ;; needs to vanish as soon as we have `chop_object_copy
-		  ;; ()'.
+		  ;; ()'. --- In fact, I'm not so sure about it because it
+		  ;; would change the C API semantics and add gratuitous
+		  ;; overhead to the C user.
 		  #:name 'indexer-fetch-stream
 		  #:c-name "chop_indexer_fetch_stream_alloc"
 		  #:returns '<errcode>
