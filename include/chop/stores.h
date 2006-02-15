@@ -164,7 +164,7 @@ extern const chop_file_based_store_class_t chop_gdbm_block_store_class;
 extern const chop_file_based_store_class_t chop_tdb_block_store_class;
 extern const chop_file_based_store_class_t chop_bdb_block_store_class;
 extern const chop_file_based_store_class_t chop_qdbm_block_store_class;
-extern const chop_class_t chop_sunrpc_remote_block_store_class;
+extern const chop_class_t chop_sunrpc_block_store_class;
 extern const chop_class_t chop_smart_block_store_class;
 
 
@@ -235,8 +235,8 @@ chop_file_based_store_open (const chop_file_based_store_class_t *class,
 /* Open a remote block store located at HOST with protocol PROTOCOL.
    PROTOCOL may be either "udp" or "tcp".  On success return 0.  */
 extern errcode_t
-chop_sunrpc_remote_block_store_open (const char *host, const char *protocol,
-				     chop_block_store_t *store);
+chop_sunrpc_block_store_open (const char *host, const char *protocol,
+			      chop_block_store_t *store);
 
 /* Initialize STORE as a ``smart proxy'' of BACKEND, meaning that STORE will
    only forward `write_block' requests to BACKEND is the block doesn't

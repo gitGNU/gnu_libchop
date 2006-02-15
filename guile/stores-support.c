@@ -131,16 +131,16 @@ chop_tdb_block_store_open_alloc (const char *name, int hash_size,
 }
 
 static __inline__ errcode_t
-chop_sunrpc_remote_block_store_open_alloc (const char *host,
-					   const char *protocol,
-					   chop_block_store_t **store)
+chop_sunrpc_block_store_open_alloc (const char *host,
+				    const char *protocol,
+				    chop_block_store_t **store)
 {
   errcode_t err;
 
   *store =
-    scm_malloc (chop_class_instance_size (&chop_sunrpc_remote_block_store_class));
+    scm_malloc (chop_class_instance_size (&chop_sunrpc_block_store_class));
 
-  err = chop_sunrpc_remote_block_store_open (host, protocol, *store);
+  err = chop_sunrpc_block_store_open (host, protocol, *store);
   if (err)
     {
       free (*store);

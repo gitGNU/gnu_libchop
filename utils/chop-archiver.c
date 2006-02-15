@@ -626,9 +626,9 @@ main (int argc, char *argv[])
 	{
 	  /* Use a remote block store for both data and metadata blocks.  */
 	  store = (chop_block_store_t *)
-	    chop_class_alloca_instance (&chop_sunrpc_remote_block_store_class);
+	    chop_class_alloca_instance (&chop_sunrpc_block_store_class);
 
-	  err = chop_sunrpc_remote_block_store_open (remote_hostname, "tcp",
+	  err = chop_sunrpc_block_store_open (remote_hostname, "tcp",
 					      store);
 	  if (err)
 	    {

@@ -8,16 +8,16 @@
 #include <chop/block_rstore.h>
 
 
-CHOP_DECLARE_RT_CLASS (sunrpc_remote_block_store, block_store,
+CHOP_DECLARE_RT_CLASS (sunrpc_block_store, block_store,
 		       chop_log_t log;
 		       CLIENT *rpc_client;);
 
 static errcode_t
-remote_ctor (chop_object_t *object, const chop_class_t *class)
+sunrpc_ctor (chop_object_t *object, const chop_class_t *class)
 {
-  chop_sunrpc_remote_block_store_t *remote;
+  chop_sunrpc_block_store_t *remote;
 
-  remote = (chop_sunrpc_remote_block_store_t *)object;
+  remote = (chop_sunrpc_block_store_t *)object;
 
   remote->block_store.iterator_class = NULL;
   remote->rpc_client = NULL;
@@ -26,17 +26,17 @@ remote_ctor (chop_object_t *object, const chop_class_t *class)
 }
 
 static void
-remote_dtor (chop_object_t *object)
+sunrpc_dtor (chop_object_t *object)
 {
-  chop_sunrpc_remote_block_store_t *remote;
+  chop_sunrpc_block_store_t *remote;
 
-  remote = (chop_sunrpc_remote_block_store_t *)object;
+  remote = (chop_sunrpc_block_store_t *)object;
 
   chop_object_destroy ((chop_object_t *)&remote->log);
 }
 
-CHOP_DEFINE_RT_CLASS (sunrpc_remote_block_store, block_store,
-		      remote_ctor, remote_dtor,
+CHOP_DEFINE_RT_CLASS (sunrpc_block_store, block_store,
+		      sunrpc_ctor, sunrpc_dtor,
 		      NULL, NULL, /* No copy/equalp */
 		      NULL, NULL  /* No serializer/deserializer */);
 
@@ -70,14 +70,14 @@ static errcode_t chop_sunrpc_sync (struct chop_block_store *);
 
 
 errcode_t
-chop_sunrpc_remote_block_store_open (const char *host, const char *protocol,
+chop_sunrpc_block_store_open (const char *host, const char *protocol,
 				     chop_block_store_t *store)
 {
   static const char generic_hello_arg[] = "libchop's remote block store client";
   CLIENT *rpc_client;
   int *granted;
   char *hello_arg;
-  chop_sunrpc_remote_block_store_t *remote = (chop_sunrpc_remote_block_store_t *)store;
+  chop_sunrpc_block_store_t *remote = (chop_sunrpc_block_store_t *)store;
 
 
   rpc_client = clnt_create (host, BLOCK_STORE_PROGRAM,
@@ -105,7 +105,7 @@ chop_sunrpc_remote_block_store_open (const char *host, const char *protocol,
     }
 
   chop_object_initialize ((chop_object_t *)store,
-			  &chop_sunrpc_remote_block_store_class);
+			  &chop_sunrpc_block_store_class);
 
   remote->rpc_client = rpc_client;
 
@@ -129,7 +129,7 @@ chop_sunrpc_block_exists (chop_block_store_t *store,
   errcode_t err = 0;
   int *ret;
   chop_rblock_key_t rkey;
-  chop_sunrpc_remote_block_store_t *remote = (chop_sunrpc_remote_block_store_t *)store;
+  chop_sunrpc_block_store_t *remote = (chop_sunrpc_block_store_t *)store;
 
   rkey.chop_rblock_key_t_len = chop_block_key_size (key);
   rkey.chop_rblock_key_t_val = (char *)chop_block_key_buffer (key);
@@ -156,7 +156,7 @@ chop_sunrpc_read_block (chop_block_store_t *store,
   errcode_t err;
   block_store_read_block_ret *ret;
   chop_rblock_key_t rkey;
-  chop_sunrpc_remote_block_store_t *remote = (chop_sunrpc_remote_block_store_t *)store;
+  chop_sunrpc_block_store_t *remote = (chop_sunrpc_block_store_t *)store;
 
   rkey.chop_rblock_key_t_len = chop_block_key_size (key);
   rkey.chop_rblock_key_t_val = (char *)chop_block_key_buffer (key);
@@ -191,7 +191,7 @@ chop_sunrpc_write_block (chop_block_store_t *store,
 {
   int *ret;
   block_store_write_block_args args;
-  chop_sunrpc_remote_block_store_t *remote = (chop_sunrpc_remote_block_store_t *)store;
+  chop_sunrpc_block_store_t *remote = (chop_sunrpc_block_store_t *)store;
 
   /* FIXME:  Copy the args?! */
   args.key.chop_rblock_key_t_len = chop_block_key_size (key);
@@ -237,7 +237,7 @@ chop_sunrpc_it_next (chop_block_iterator_t *it)
 static errcode_t
 chop_sunrpc_close (chop_block_store_t *store)
 {
-  chop_sunrpc_remote_block_store_t *remote = (chop_sunrpc_remote_block_store_t *)store;
+  chop_sunrpc_block_store_t *remote = (chop_sunrpc_block_store_t *)store;
 
   if (remote->rpc_client)
     {
@@ -270,7 +270,7 @@ static errcode_t
 chop_sunrpc_sync (chop_block_store_t *store)
 {
   int *ret;
-  chop_sunrpc_remote_block_store_t *remote = (chop_sunrpc_remote_block_store_t *)store;
+  chop_sunrpc_block_store_t *remote = (chop_sunrpc_block_store_t *)store;
 
   ret = sync_0 (NULL, remote->rpc_client);
   if ((!ret) || (*ret))

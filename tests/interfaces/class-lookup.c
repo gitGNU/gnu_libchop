@@ -14,7 +14,7 @@ main (int argc, char *argv[])
   static const char *const class_names[] =
     {
       "stream", "file_stream",
-      "block_store", "gdbm_block_store", "sunrpc_remote_block_store",
+      "block_store", "gdbm_block_store", "sunrpc_block_store",
       "chopper", "fixed_size_chopper",
       "filter", "zlib_zip_filter",
       NULL

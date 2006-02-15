@@ -15,7 +15,7 @@ libchop_la_SOURCES = chop.c chop-errors.c logs.c		\
 		     cipher.c hash.c buffers.c			\
 		     store-dummy.c				\
 		     store-gdbm.c				\
-		     store-sunrpc-remote.c			\
+		     store-sunrpc.c				\
 		     store-filtered.c				\
 		     store-smart.c				\
 		     store-stat.c				\
