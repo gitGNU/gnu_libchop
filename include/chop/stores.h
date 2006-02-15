@@ -165,6 +165,7 @@ extern const chop_file_based_store_class_t chop_tdb_block_store_class;
 extern const chop_file_based_store_class_t chop_bdb_block_store_class;
 extern const chop_file_based_store_class_t chop_qdbm_block_store_class;
 extern const chop_class_t chop_sunrpc_block_store_class;
+extern const chop_class_t chop_dbus_block_store_class;
 extern const chop_class_t chop_smart_block_store_class;
 
 

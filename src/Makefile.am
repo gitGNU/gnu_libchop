@@ -43,6 +43,10 @@ if HAVE_LIBUUID
 libchop_la_SOURCES += block-indexer-uuid.c
 endif
 
+if HAVE_DBUS
+libchop_la_SOURCES += store-dbus.c
+endif
+
 # RPC stubs (for the remote block store)
 rpc_xdr =  block_rstore_xdr.c
 rpc_client_stubs = block_rstore_clnt.c

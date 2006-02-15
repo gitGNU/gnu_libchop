@@ -99,6 +99,20 @@ else
    AC_MSG_WARN([`libqdbm' not found, won't be used])
 fi
    
+# DBus.
+AC_MSG_CHECKING([whether DBus 1 is available])
+if pkg-config dbus-1; then
+   CPPFLAGS="$CPPFLAGS `pkg-config dbus-1 --cflags`"
+   LIBS="$LIBS `pkg-config dbus-1 --libs`"
+   have_dbus_1="yes"
+else
+   have_dbus_1="no"
+fi
+if test "x$have_dbus_1" = "xyes"; then
+   AC_DEFINE([HAVE_DBUS], 1, [Tells whether DBus is available.])
+fi
+AM_CONDITIONAL([HAVE_DBUS], test "x$have_dbus_1" = "xyes")
+AC_MSG_RESULT([$have_dbus_1])
 
 # Checks for header files.
 AC_HEADER_STDC
