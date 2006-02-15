@@ -253,8 +253,8 @@
 				((<store> out) new-tdb-store)))
 
   (wrap-function! ws
-		  #:name 'remote-block-store-open
-		  #:c-name "chop_remote_block_store_open_alloc"
+		  #:name 'sunrpc-remote-block-store-open
+		  #:c-name "chop_sunrpc_remote_block_store_open_alloc"
 		  #:returns '<errcode>
 		  #:arguments '(((mchars caller-owned) host)
 				((mchars caller-owned) protocol)
