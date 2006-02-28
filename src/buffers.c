@@ -12,7 +12,8 @@
 
 #ifdef ENABLE_POOL
 /* Keep at most BUFFER_POOL_MAX_SIZE buffers in the buffer pool, for a total
-   of at most BUFFER_POOL_MAX_AVAILABLE bytes.  */
+   of at most BUFFER_POOL_MAX_AVAILABLE bytes.  That number has to remain
+   small so that `find_buffer_in_pool ()' is fast enough.  */
 #define BUFFER_POOL_MAX_SIZE       (20)
 #define BUFFER_POOL_MAX_AVAILABLE  (8192)
 
@@ -76,8 +77,18 @@ chop_buffer_grow (chop_buffer_t *buffer, size_t size)
   char *larger;
 
 #ifdef ENABLE_POOL
-  if (find_buffer_in_pool (size, buffer))
-    return 0;
+  {
+    chop_buffer_t new;
+    if (find_buffer_in_pool (size, &new))
+      {
+	/* Copy things into the new buffer and return the old one.  */
+	new.size = buffer->size;
+	memcpy (new.buffer, buffer->buffer, buffer->size);
+	chop_buffer_return (buffer);
+	*buffer = new;
+	return 0;
+      }
+  }
 #endif
 
   new_size = (new_size == 0) ? 1 : new_size;
