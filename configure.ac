@@ -111,9 +111,22 @@ fi
 AM_CONDITIONAL([HAVE_DBUS], test "x$have_dbus_1" = "xyes")
 AC_MSG_RESULT([$have_dbus_1])
 
+# Avahi.
+AC_MSG_CHECKING([whether Avahi is available])
+PKG_CHECK_EXISTS([avahi-client], [
+   CPPFLAGS="$CPPFLAGS `$PKG_CONFIG avahi-client --cflags`"
+   LIBS="$LIBS `$PKG_CONFIG avahi-client --libs`"
+   have_avahi="yes"],
+   [have_avahi="no"])
+if test "x$have_avahi" = "xyes"; then
+   AC_DEFINE([HAVE_AVAHI], 1, [Tells whether Avahi is available.])
+fi
+AM_CONDITIONAL([HAVE_AVAHI], test "x$have_avahi" = "xyes")
+AC_MSG_RESULT([$have_avahi])
+
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([stdlib.h obstack.h argp.h gdbm.h gcrypt.h com_err.h zlib.h netinet/in.h lightning.h])
+AC_CHECK_HEADERS([stdlib.h obstack.h argp.h gdbm.h gcrypt.h com_err.h zlib.h netinet/in.h lightning.h pthread.h])
 
 # libuuid (optional)
 AC_CHECK_HEADER([uuid/uuid.h], [have_libuuid=yes], [have_libuuid=no])

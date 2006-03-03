@@ -20,7 +20,16 @@
 #include <errno.h>
 #include <assert.h>
 
+#include <chop/chop-config.h>
 
+#if (defined HAVE_PTHREAD_H) && (defined HAVE_AVAHI)
+# define USE_AVAHI 1
+#endif
+
+#ifdef USE_AVAHI
+# include <pthread.h>
+# include "avahi-server.c"
+#endif
 
 #ifndef SIG_PF
 #define SIG_PF void(*)(int)
@@ -44,6 +53,10 @@ static chop_hash_method_t content_hash_enforced = CHOP_HASH_NONE;
 /* Whether block/key collision checking should turned off.  */
 static int no_collision_check = 0;
 
+#ifdef USE_AVAHI
+/* Whether to publish the service locally using Avahi.  */
+static int no_service_publication = 0;
+#endif
 
 
 /* Return true (non-zero) if KEY is a hash of BUFFER using hash method
@@ -374,6 +387,10 @@ static struct argp_option options[] =
       "Enforce content-hash algorithm ALGO" },
     { "no-collision-check", 'C', 0, 0,
       "Turn off block/key collision checks" },
+#ifdef USE_AVAHI
+    { "no-publication", 'n', 0, 0,
+      "Turn off service publication on the LAN via Avahi" },
+#endif
 
     /* Network.  */
     { "restrict",'R', "HOSTS", 0,
@@ -426,6 +443,12 @@ parse_opt (int key, char *arg, struct argp_state *state)
 	  exit (1);
 	}
       break;
+
+#ifdef USE_AVAHI
+    case 'n':
+      no_service_publication = 1;
+      break;
+#endif
 
     case ARGP_KEY_ARG:
       if (state->arg_num >= 1)
@@ -559,6 +582,21 @@ main (int argc, char *argv[])
     }
 
   transp = register_rpc_handlers ();
+
+#ifdef USE_AVAHI
+  if (!no_service_publication)
+    {
+      pthread_t avahi_thread;
+
+      err = pthread_create (&avahi_thread, NULL, avahi_thread_entry_point,
+			    NULL);
+      if (err)
+	{
+	  com_err (program_name, err, "while starting Avahi thread");
+	  exit (6);
+	}
+    }
+#endif
 
   /* Go ahead.  */
   svc_run ();
