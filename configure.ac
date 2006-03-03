@@ -78,19 +78,17 @@ fi
 
 
 # QDBM, http://qdbm.sf.net/
-if pkg-config qdbm; then
+PKG_CHECK_EXISTS([qdbm], [
    # Looks like it's available.
-   CPPFLAGS="$CPPFLAGS `pkg-config qdbm --cflags`"
-   LIBS="$LIBS `pkg-config qdbm --libs`"
+   CPPFLAGS="$CPPFLAGS `$PKG_CONFIG qdbm --cflags`"
+   LIBS="$LIBS `$PKG_CONFIG qdbm --libs`"
 
    AC_CHECK_LIB([qdbm], [dpopen], [have_libqdbm=yes], [have_libqdbm=no])
    if test "x$have_libqdbm" = "xyes"; then
       AC_CHECK_HEADER([depot.h], [], [have_libqdbm=no])
       AC_CHECK_HEADER([hovel.h], [], [have_libqdbm=no])
-   fi
-else
-   have_libqdbm=no
-fi
+   fi],
+   [have_libqdbm=no])
 
 AM_CONDITIONAL([HAVE_QDBM], test "x$have_libqdbm" = "xyes")
 if test "x$have_libqdbm" = "xyes"; then
@@ -101,13 +99,12 @@ fi
    
 # DBus.
 AC_MSG_CHECKING([whether DBus 1 is available])
-if pkg-config dbus-1; then
-   CPPFLAGS="$CPPFLAGS `pkg-config dbus-1 --cflags`"
-   LIBS="$LIBS `pkg-config dbus-1 --libs`"
-   have_dbus_1="yes"
-else
-   have_dbus_1="no"
-fi
+PKG_CHECK_EXISTS([dbus-1], [
+   CPPFLAGS="$CPPFLAGS `$PKG_CONFIG dbus-1 --cflags`"
+   LIBS="$LIBS `$PKG_CONFIG dbus-1 --libs`"
+   have_dbus_1="yes"],
+   [have_dbus_1="no"])
+
 if test "x$have_dbus_1" = "xyes"; then
    AC_DEFINE([HAVE_DBUS], 1, [Tells whether DBus is available.])
 fi
