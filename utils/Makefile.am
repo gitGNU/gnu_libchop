@@ -4,7 +4,7 @@ bin_PROGRAMS = chop-archiver chop-store-list		\
 	       chop-block-server chop-store-convert
 noinst_PROGRAMS = chop-file
 bin_SCRIPTS = chop-rcs.sh
-EXTRA_DIST = avahi-server.c
+EXTRA_DIST = avahi-publish.c
 
 AM_CPPFLAGS = -I$(srcdir)/src
 LDADD = -L../src -lchop

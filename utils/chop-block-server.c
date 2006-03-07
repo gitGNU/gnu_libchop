@@ -26,11 +26,6 @@
 # define USE_AVAHI 1
 #endif
 
-#ifdef USE_AVAHI
-# include <pthread.h>
-# include "avahi-server.c"
-#endif
-
 #ifndef SIG_PF
 #define SIG_PF void(*)(int)
 #endif
@@ -56,7 +51,43 @@ static int no_collision_check = 0;
 #ifdef USE_AVAHI
 /* Whether to publish the service locally using Avahi.  */
 static int no_service_publication = 0;
+
+/* Service name.  */
+static char *service_name = NULL;
 #endif
+
+
+static void info (const char *, ...)
+#ifdef __GNUC__
+     __attribute__ ((format (printf, 1, 2)))
+#endif
+     ;
+
+#ifdef USE_AVAHI
+# include <pthread.h>
+# include "avahi-publish.c"
+#endif
+
+
+
+/* Output.  */
+
+static void
+info (const char *fmt, ...)
+{
+  va_list args;
+  char *newfmt;
+
+  newfmt = (char *)alloca (strlen (program_name) + strlen (fmt) + 10);
+  strcpy (newfmt, program_name);
+  strcat (newfmt, ": ");
+  strcat (newfmt, fmt);
+  strcat (newfmt, "\n");
+
+  va_start (args, fmt);
+  vfprintf (stderr, newfmt, args);
+  va_end (args);
+}
 
 
 /* Return true (non-zero) if KEY is a hash of BUFFER using hash method
@@ -93,10 +124,10 @@ is_valid_hash_key (const chop_block_key_t *key,
       chop_buffer_to_hex_string (chop_block_key_buffer (&key),		\
 				 chop_block_key_size (&key),		\
 				 hex_key);				\
-      fprintf (stderr, "%s: %s: key %s: "				\
-	       "violating %s content-hashing, rejected\n",		\
-	       program_name, __FUNCTION__,				\
-	       hex_key, chop_hash_method_name (content_hash_enforced));	\
+      info ("%s: key %s: "						\
+	    "violating %s content-hashing, rejected",			\
+	    __FUNCTION__,						\
+	    hex_key, chop_hash_method_name (content_hash_enforced));	\
       result = -1;							\
       return &result;							\
     }
@@ -170,8 +201,7 @@ handle_write_block (block_store_write_block_args *argp, struct svc_req *req)
 	      chop_buffer_to_hex_string (chop_block_key_buffer (&key),
 					 chop_block_key_size (&key),
 					 hex_key);
-	      fprintf (stderr, "%s: key %s: collising detected (and rejected)\n",
-		       program_name, hex_key);
+	      info ("key %s: collising detected (and rejected)", hex_key);
 	      result = -3;
 	    }
 	  else
@@ -311,8 +341,7 @@ register_rpc_handlers (void)
     proto = IPPROTO_UDP;
   else
     {
-      fprintf (stderr, "%s: %s: unknown protocol\n",
-	       program_name, protocol_name);
+      info ("%s: unknown protocol", protocol_name);
       exit (1);
     }
 
@@ -324,16 +353,14 @@ register_rpc_handlers (void)
     transp = svcudp_create (RPC_ANYSOCK);
   if (transp == NULL)
     {
-      fprintf (stderr, "%s: cannot create RPC service\n",
-	       program_name);
+      info ("cannot create RPC service");
       exit (1);
     }
 
   if (!svc_register (transp, BLOCK_STORE_PROGRAM, BLOCK_STORE_VERSION,
 		     chop_block_server_process_request, proto))
     {
-      fprintf (stderr, "%s: unable to register tcp\n",
-	       program_name);
+      info ("unable to register tcp");
       exit (1);
     }
 
@@ -390,6 +417,8 @@ static struct argp_option options[] =
 #ifdef USE_AVAHI
     { "no-publication", 'n', 0, 0,
       "Turn off service publication on the LAN via Avahi" },
+    { "service-name", 's', "NAME", 0,
+      "Choose NAME as the service name to be published" },
 #endif
 
     /* Network.  */
@@ -438,8 +467,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
     case 'H':
       if (chop_hash_method_lookup (arg, &content_hash_enforced))
 	{
-	  fprintf (stderr, "%s: %s: unknown hash method name\n",
-		   program_name, arg);
+	  info ("%s: unknown hash method name", arg);
 	  exit (1);
 	}
       break;
@@ -447,6 +475,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
 #ifdef USE_AVAHI
     case 'n':
       no_service_publication = 1;
+      break;
+    case 's':
+      service_name = avahi_strdup (arg);
       break;
 #endif
 
@@ -506,16 +537,14 @@ main (int argc, char *argv[])
 	chop_class_lookup (file_based_store_class_name);
       if (!db_store_class)
 	{
-	  fprintf (stderr, "%s: class `%s' not found\n",
-		   argv[0], file_based_store_class_name);
+	  info ("class `%s' not found", file_based_store_class_name);
 	  exit (1);
 	}
       if (chop_object_get_class ((chop_object_t *)db_store_class)
 	  != &chop_file_based_store_class_class)
 	{
-	  fprintf (stderr,
-		   "%s: class `%s' is not a file-based store class\n",
-		   argv[0], file_based_store_class_name);
+	  info ("class `%s' is not a file-based store class",
+		file_based_store_class_name);
 	  exit (1);
 	}
 #else

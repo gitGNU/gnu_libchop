@@ -1,9 +1,9 @@
+/* Publication of service information on the LAN using multicast, thanks to
+   Avahi.  */
+
 #ifndef USE_AVAHI
 # error "This file must be included from `chop-block-server.c'."
 #endif
-
-/* This file publishes service information on the LAN using multicast, thanks
-   to Avahi.  */
 
 /* Based on the `client-publish-service.c' example from Avahi.  */
 
@@ -16,12 +16,14 @@
 #include <avahi-common/error.h>
 #include <avahi-common/timeval.h>
 
-#define SERVICE_TYPE "_sunrpc-block-server._tcp"
-#define SERVICE_NAME "block-server"
+#include <unistd.h>  /* `gethostname' */
+#include <stdio.h>   /* `cuserid' */
+
+#define CHOP_AVAHI_SERVICE_TYPE "_block-server._tcp"
+
 
 static AvahiEntryGroup *group = NULL;
 static AvahiSimplePoll *simple_poll = NULL;
-static char *service_name = NULL;
 
 static void create_services (AvahiClient *c);
 
@@ -37,8 +39,7 @@ entry_group_callback (AvahiEntryGroup *g, AvahiEntryGroupState state,
     {
     case AVAHI_ENTRY_GROUP_ESTABLISHED:
       /* The entry group has been established successfully */
-      fprintf (stderr, "Service `%s' successfully established.\n",
-	       service_name);
+      info ("service `%s' successfully established", service_name);
       break;
 
     case AVAHI_ENTRY_GROUP_COLLISION:
@@ -50,11 +51,11 @@ entry_group_callback (AvahiEntryGroup *g, AvahiEntryGroupState state,
 	avahi_free (service_name);
 	service_name = n;
 
-	fprintf (stderr, "Service name collision, renaming service to `%s'\n",
-		 service_name);
+	info ("service name collision, renaming service to `%s'",
+	      service_name);
 
 	/* And recreate the services */
-	create_services (avahi_entry_group_get_client(g));
+	create_services (avahi_entry_group_get_client (g));
 	break;
       }
 
@@ -74,6 +75,8 @@ static void
 create_services (AvahiClient *c)
 {
   int ret;
+  const char *hash_name;
+  char *txt_hash;
 
   assert(c);
 
@@ -81,33 +84,61 @@ create_services (AvahiClient *c)
   if (!group)
     if (!(group = avahi_entry_group_new (c, entry_group_callback, NULL)))
       {
-	fprintf (stderr, "avahi_entry_group_new() failed: %s\n",
-		 avahi_strerror(avahi_client_errno(c)));
+	info ("avahi_entry_group_new() failed: %s",
+	      avahi_strerror (avahi_client_errno (c)));
 	goto fail;
       }
 
-  service_name = avahi_strdup (SERVICE_NAME);
-  fprintf(stderr, "adding service `%s'\n", service_name);
+  if (!service_name)
+    {
+      /* Choose a service name of the form `user@host'.  */
+      char *name, *at, *host;
+      size_t total_size;
+
+      total_size = L_cuserid + 1024 + 2;
+      name = (char *)alloca (total_size);
+      cuserid (name);
+      at = name + strlen (name);
+      host = at + 1;
+
+      *at = '@';
+
+      if (gethostname (host, total_size -1 - ((size_t)(host - name))))
+	strcpy  (host, "anonymous-block-server");
+      else
+	/* Just to make sure...  */
+	name[total_size - 1] = '\0';
+
+      service_name = avahi_strdup (name);
+    }
+
+  info ("adding service `%s'", service_name);
+
+  /* Prepare `TXT' properties.  */
+  hash_name = (content_hash_enforced == CHOP_HASH_NONE)
+    ? "none" : chop_hash_method_name (content_hash_enforced);
+  txt_hash = (char *)alloca (strlen ("hash=") + strlen (hash_name) + 1);
+  strcpy (txt_hash, "hash=");
+  strcat (txt_hash, hash_name);
 
   /* Add the service.  */
   ret = avahi_entry_group_add_service (group, AVAHI_IF_UNSPEC,
 				       AVAHI_PROTO_UNSPEC, 0, service_name,
-				       SERVICE_TYPE, NULL,
+				       CHOP_AVAHI_SERVICE_TYPE, NULL,
 				       NULL /* local host */,
 				       111 /* port: SunRPC */,
 
 				       /* `TXT' information.  */
-				       "implementation=" PACKAGE_NAME,
-				       "version=" PACKAGE_STRING,
-
-				       /* TODO/FIXME: Add hash information,
-					  etc.  */
+				       "implementation=" PACKAGE_STRING,
+				       "protocol=SunRPC",
+				       "version=" "0" /* RPC interface */,
+				       txt_hash,
 
 				       NULL);
   if (ret)
     {
-      fprintf (stderr, "failed to add `"SERVICE_TYPE"' service: %s\n",
-	       avahi_strerror(ret));
+      info ("failed to add `"CHOP_AVAHI_SERVICE_TYPE"' service: %s",
+	    avahi_strerror (ret));
       goto fail;
     }
 
@@ -115,17 +146,16 @@ create_services (AvahiClient *c)
   /* Tell the server to register the service */
   if ((ret = avahi_entry_group_commit(group)) < 0)
     {
-      fprintf (stderr, "failed to commit entry_group: %s\n",
-	       avahi_strerror (ret));
+      info ("failed to commit entry_group: %s", avahi_strerror (ret));
       goto fail;
     }
 
-  fprintf (stderr, "registered service of type `"SERVICE_TYPE"'\n");
+  info ("registered service of type `"CHOP_AVAHI_SERVICE_TYPE"'");
 
   return;
 
  fail:
-  avahi_simple_poll_quit(simple_poll);
+  avahi_simple_poll_quit (simple_poll);
 }
 
 static void
@@ -156,8 +186,7 @@ client_callback (AvahiClient *c, AvahiClientState state, void *userdata)
 
     case AVAHI_CLIENT_FAILURE:
 
-      fprintf (stderr, "client failure: %s\n",
-	       avahi_strerror (avahi_client_errno (c)));
+      info ("client failure: %s", avahi_strerror (avahi_client_errno (c)));
       avahi_simple_poll_quit (simple_poll);
 
       break;
@@ -178,7 +207,7 @@ avahi_thread_entry_point (void *unused)
   /* Allocate main loop object */
   if (!(simple_poll = avahi_simple_poll_new ()))
     {
-      fprintf(stderr, "Failed to create simple poll object.\n");
+      info ("failed to create simple poll object");
       goto fail;
     }
 
@@ -189,7 +218,7 @@ avahi_thread_entry_point (void *unused)
   /* Check wether creating the client object succeeded */
   if (!client)
     {
-      fprintf(stderr, "Failed to create client: %s\n", avahi_strerror (error));
+      info ("failed to create client: %s", avahi_strerror (error));
       goto fail;
     }
 
