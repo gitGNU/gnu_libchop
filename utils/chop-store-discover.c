@@ -1,0 +1,201 @@
+/* Discover block stores on the network.  */
+
+#include <chop/chop.h>
+#include <chop/stores.h>
+#include <chop/store-browsers.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+#include <argp.h>
+
+const char *argp_program_version = "chop-store-discover 0.0";
+const char *argp_program_bug_address = "<ludovic.courtes@laas.fr>";
+
+static char doc[] =
+"chop-store-discover -- discover keyed block stores over the network\
+\v\
+This program looks for keyed block stores available over the network, \
+for instance using the service discovery facilities provided by Avahi.  \
+The output contains 4 columns: the service name, its IP address and port \
+number (separated by `:'), its block naming scheme \
+specification in terms of a hash function, as well as the name of \
+the class that implements it on the client side.";
+
+static struct argp_option options[] =
+  {
+    { "debug",   'd', 0, 0,
+      "Produce debugging output" },
+    { "timeout", 't', "TIMEOUT", 0,
+      "Wait for at most TIMEOUT msecs" },
+    { "discoveries", 'D', "N", 0,
+      "Quit after at least N discoveries" },
+    { "hash-method", 'H', "HASH", 0,
+      "Only look for stores that support block naming according to hash "
+      "method HASH" },
+    { 0, 0, 0, 0, 0 }
+  };
+
+static char args_doc[] = "FILE";
+
+
+/* Configuration.  */
+
+static char *program_name = NULL;
+
+/* Whether to output debugging info.  */
+static int debug = 0;
+
+/* Whether to use some timeout and if so how much.  */
+static int use_timeout = 0;
+static unsigned timeout = 0;
+
+/* Minimal number of discoveries.  */
+static unsigned min_discoveries = 0;
+
+/* Specific hash method we're interested in.  */
+static chop_hash_method_t hash_method = CHOP_HASH_NONE;
+
+
+
+/* Parse a single option. */
+static error_t
+parse_opt (int key, char *arg, struct argp_state *state)
+{
+  errcode_t err;
+
+  switch (key)
+    {
+    case 'd':
+      debug = 1;
+      break;
+
+    case 't':
+      use_timeout = 1;
+      timeout = atoi (arg);
+      break;
+
+    case 'D':
+      min_discoveries = atoi (arg);
+      break;
+
+    case 'H':
+      if (chop_hash_method_lookup (arg, &hash_method))
+	{
+	  com_err (program_name, err, "%s: unknown hash method", arg);
+	  exit (1);
+	}
+      break;
+
+    case ARGP_KEY_ARG:
+      if (state->arg_num > 0)
+	/* Too many arguments. */
+	argp_usage (state);
+
+      break;
+
+    case ARGP_KEY_END:
+      break;
+
+    default:
+      return ARGP_ERR_UNKNOWN;
+    }
+
+  return 0;
+}
+
+/* Argp argument parsing.  */
+static struct argp argp = { options, parse_opt, args_doc, doc };
+
+
+/* Store discovery/removal handlers.  */
+
+static int
+handle_discovery (chop_store_browser_t *browser,
+		  const char *service_name,
+		  const char *host,
+		  unsigned port,
+		  chop_hash_method_spec_t spec,
+		  const chop_class_t *client,
+		  void *userdata)
+{
+  if ((hash_method == CHOP_HASH_NONE)
+      || (chop_hash_method_compatible (spec, hash_method)))
+    {
+      static unsigned discoveries = 0;
+
+      printf ("%s\t%s:%u\t%s\t%s\n",
+	      service_name, host, port,
+	      chop_hash_method_spec_to_string (spec),
+	      client ? chop_class_name (client) : "unknown");
+
+      if ((min_discoveries > 0)
+	  && (++discoveries >= min_discoveries))
+	/* Exit the main event loop.  */
+	return 1;
+    }
+
+  return 0;
+}
+
+static int
+handle_removal (chop_store_browser_t *browser,
+		const char *service_name,
+		void *userdata)
+{
+  fprintf (stderr, "service `%s' disappeared\n", service_name);
+  return 0;
+}
+
+
+
+int
+main (int argc, char *argv[])
+{
+  errcode_t err;
+  chop_store_browser_t *browser;
+
+  program_name = argv[0];
+
+  chop_init ();
+
+  /* Parse arguments.  */
+  argp_parse (&argp, argc, argv, 0, 0, 0);
+
+  browser = chop_class_alloca_instance (&chop_avahi_store_browser_class);
+  err = chop_avahi_store_browser_open (handle_discovery, NULL,
+				       handle_removal, NULL,
+				       browser);
+  if (err)
+    {
+      com_err (argv[0], err, "while initializing Avahi store browser");
+      exit (1);
+    }
+
+  if (debug)
+    {
+      chop_log_t *log;
+
+      log = chop_avahi_store_browser_log (browser);
+      assert (log);
+      chop_log_attach (log, 2, 0);
+    }
+
+  if (use_timeout)
+    err = chop_store_browser_iterate (browser, timeout);
+  else
+    err = chop_store_browser_loop (browser);
+
+  if (err)
+    {
+      com_err (argv[0], err, "while browsing stores");
+      exit (2);
+    }
+
+  chop_object_destroy ((chop_object_t *)browser);
+
+  return err;
+}
+
+/* arch-tag: 7af3b074-87f0-417b-9a84-dac18462a030
+ */
