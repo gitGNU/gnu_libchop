@@ -324,6 +324,8 @@ asb_iterate (chop_store_browser_t *browser, unsigned timeout)
 
     case 1:
       /* A quit request was scheduled.  */
+      chop_log_printf (&avahi->log, "iterate: a quit request was "
+		       "scheduled");
       break;
 
     default:
@@ -347,6 +349,8 @@ asb_loop (chop_store_browser_t *browser)
 
     case 1:
       /* A quit request was scheduled.  */
+      chop_log_printf (&avahi->log, "loop: a quit request was "
+		       "scheduled");
       break;
 
     default:
