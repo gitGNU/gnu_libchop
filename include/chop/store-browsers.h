@@ -121,10 +121,15 @@ extern errcode_t chop_store_browser_loop (chop_store_browser_t *browser);
 
 extern const chop_class_t chop_avahi_store_browser_class;
 
+/* Return a browser that looks for block stores in domain DOMAIN (a FQDN,
+   e.g., `.local', or `.laas.fr.') and invokes DISCOVERY upon new service
+   discoveries and REMOVAL upon disappearance of a service.  DOMAIN may be
+   NULL in which case it defaults to the local domain.  */
 extern errcode_t
-chop_avahi_store_browser_open (chop_store_browser_discovery_handler_t discovery,
+chop_avahi_store_browser_open (const char *domain,
+			       chop_store_browser_discovery_handler_t discovery,
 			       void *discovery_data,
-			       chop_store_browser_removal_handler_t handler,
+			       chop_store_browser_removal_handler_t removal,
 			       void *removal_data,
 			       chop_store_browser_t *browser);
 

@@ -30,6 +30,9 @@ static struct argp_option options[] =
       "Wait for at most TIMEOUT msecs" },
     { "discoveries", 'D', "N", 0,
       "Quit after at least N discoveries" },
+    { "domain", 'o', "DOMAIN", 0,
+      "Look for block stores within domain DOMAIN, a FQDN (e.g., `.local' "
+      "or `.laas.fr.')" },
     { "hash-method", 'H', "HASH", 0,
       "Only look for stores that support block naming according to hash "
       "method HASH" },
@@ -56,6 +59,8 @@ static unsigned min_discoveries = 0;
 /* Specific hash method we're interested in.  */
 static chop_hash_method_t hash_method = CHOP_HASH_NONE;
 
+/* Domain where to search for block stores.  */
+static char *domain_name = NULL;
 
 
 /* Parse a single option. */
@@ -85,6 +90,10 @@ parse_opt (int key, char *arg, struct argp_state *state)
 	  com_err (program_name, err, "%s: unknown hash method", arg);
 	  exit (1);
 	}
+      break;
+
+    case 'o':
+      domain_name = strdup (arg);
       break;
 
     case ARGP_KEY_ARG:
@@ -163,7 +172,8 @@ main (int argc, char *argv[])
   argp_parse (&argp, argc, argv, 0, 0, 0);
 
   browser = chop_class_alloca_instance (&chop_avahi_store_browser_class);
-  err = chop_avahi_store_browser_open (handle_discovery, NULL,
+  err = chop_avahi_store_browser_open (domain_name,
+				       handle_discovery, NULL,
 				       handle_removal, NULL,
 				       browser);
   if (err)

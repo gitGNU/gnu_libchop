@@ -39,6 +39,10 @@ asb_ctor (chop_object_t *object, const chop_class_t *class)
 #ifdef HAVE_AVAHI
   chop_avahi_store_browser_t *avahi = (chop_avahi_store_browser_t *)object;
 
+  avahi->simple_poll = NULL;
+  avahi->client = NULL;
+  avahi->sb = NULL;
+
   return (chop_log_init ("avahi-store-browser", &avahi->log));
 #else
   return CHOP_ERR_NOT_IMPL;
@@ -354,7 +358,8 @@ asb_loop (chop_store_browser_t *browser)
 
 
 errcode_t
-chop_avahi_store_browser_open (chop_store_browser_discovery_handler_t discovery,
+chop_avahi_store_browser_open (const char *domain,
+			       chop_store_browser_discovery_handler_t discovery,
 			       void *discovery_data,
 			       chop_store_browser_removal_handler_t removal,
 			       void *removal_data,
@@ -397,7 +402,7 @@ chop_avahi_store_browser_open (chop_store_browser_discovery_handler_t discovery,
   avahi->sb = avahi_service_browser_new (avahi->client, AVAHI_IF_UNSPEC,
 					 AVAHI_PROTO_UNSPEC,
 					 "_block-server._tcp",
-					 NULL,
+					 domain,
 					 0, /* AVAHI_LOOKUP_USE_MULTICAST, */
 					 browse_callback,
 					 avahi);
@@ -413,17 +418,9 @@ chop_avahi_store_browser_open (chop_store_browser_discovery_handler_t discovery,
 
  fail:
 
-  /* Cleanup things */
-  if (avahi->sb)
-    avahi_service_browser_free (avahi->sb);
-
-  if (avahi->client)
-    avahi_client_free (avahi->client);
-
-  if (avahi->simple_poll)
-    avahi_simple_poll_free (avahi->simple_poll);
-
+  /* Cleanup things.  */
   chop_object_destroy ((chop_object_t *)avahi);
+
   return ret;
 
  leave:
@@ -441,9 +438,10 @@ chop_avahi_store_browser_open (chop_store_browser_discovery_handler_t discovery,
 #else /* !HAVE_AVAHI */
 
 errcode_t
-chop_avahi_store_browser_open (chop_store_discovery_handler_t discovery,
+chop_avahi_store_browser_open (const char *domain,
+			       chop_store_browser_discovery_handler_t d,
 			       void *discovery_data,
-			       chop_store_removal_handler_t handler,
+			       chop_store_browser_removal_handler_t r,
 			       void *removal_data,
 			       chop_store_browser_t *browser)
 {

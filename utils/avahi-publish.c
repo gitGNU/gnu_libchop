@@ -18,6 +18,7 @@
 
 #include <unistd.h>  /* `gethostname' */
 #include <stdio.h>   /* `cuserid' */
+#include <assert.h>
 
 #define CHOP_AVAHI_SERVICE_TYPE "_block-server._tcp"
 
@@ -67,7 +68,11 @@ entry_group_callback (AvahiEntryGroup *g, AvahiEntryGroupState state,
 
     case AVAHI_ENTRY_GROUP_UNCOMMITED:
     case AVAHI_ENTRY_GROUP_REGISTERING:
-      ;
+      break;
+
+    default:
+      info ("unknown Avahi state (%i)", (int)state);
+      break;
     }
 }
 
@@ -92,8 +97,10 @@ create_services (AvahiClient *c)
   if (!service_name)
     {
       /* Choose a service name of the form `user@host'.  */
-      char *name, *at, *host;
+      char *name, *host;
       size_t total_size;
+#ifdef HAVE_CUSERID
+      char *at;
 
       total_size = L_cuserid + 1024 + 2;
       name = (char *)alloca (total_size);
@@ -102,6 +109,10 @@ create_services (AvahiClient *c)
       host = at + 1;
 
       *at = '@';
+#else
+      host = name = (char *)alloca (1024);
+      total_size = 1024;
+#endif
 
       if (gethostname (host, total_size -1 - ((size_t)(host - name))))
 	strcpy  (host, "anonymous-block-server");

@@ -148,6 +148,7 @@ AC_TYPE_SIZE_T
 
 # Checks for library functions.
 AC_FUNC_MALLOC
+AC_CHECK_FUNCS([cuserid])
 
 # Checkpoint the cache
 AC_CACHE_SAVE
