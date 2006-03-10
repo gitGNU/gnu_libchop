@@ -130,6 +130,7 @@ AC_MSG_RESULT([$have_avahi])
 
 # Checks for header files.
 AC_HEADER_STDC
+AC_HEADER_TIME
 AC_CHECK_HEADERS([stdlib.h obstack.h argp.h gdbm.h gcrypt.h com_err.h zlib.h netinet/in.h lightning.h pthread.h])
 
 # libuuid (optional)

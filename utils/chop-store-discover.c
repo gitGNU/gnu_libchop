@@ -9,6 +9,18 @@
 #include <assert.h>
 #include <argp.h>
 
+#if TIME_WITH_SYS_TIME
+# include <sys/time.h>
+# include <time.h>
+#else
+# if HAVE_SYS_TIME_H
+#  include <sys/time.h>
+# else
+#  include <time.h>
+# endif
+#endif
+
+
 const char *argp_program_version = "chop-store-discover 0.0";
 const char *argp_program_bug_address = "<ludovic.courtes@laas.fr>";
 
@@ -178,7 +190,7 @@ main (int argc, char *argv[])
 				       browser);
   if (err)
     {
-      com_err (argv[0], err, "while initializing Avahi store browser");
+      com_err (program_name, err, "while initializing Avahi store browser");
       exit (1);
     }
 
@@ -192,13 +204,44 @@ main (int argc, char *argv[])
     }
 
   if (use_timeout)
-    err = chop_store_browser_iterate (browser, timeout);
+    {
+      /* Iterate until we run out of time.  */
+      unsigned remaining = timeout;
+
+      /* FIXME: Move this loop to `libchop-store-browsers'.  */
+      while (remaining)
+	{
+	  unsigned long elapsed;
+	  struct timeval before, after;
+
+	  if (gettimeofday (&before, NULL))
+	    {
+	      com_err (program_name, errno, "gettimeofday");
+	      exit (2);
+	    }
+	  err = chop_store_browser_iterate (browser, timeout);
+	  if (gettimeofday (&after, NULL))
+	    {
+	      com_err (program_name, errno, "gettimeofday");
+	      exit (2);
+	    }
+
+	  elapsed = (after.tv_sec - before.tv_sec) * 1000;
+	  if (elapsed)
+	    elapsed += (1e3 - (before.tv_usec / 1000))
+	      + (after.tv_usec / 1000);
+	  else
+	    elapsed += (after.tv_usec - before.tv_usec) / 1000;
+
+	  remaining = (remaining > elapsed) ? (remaining - elapsed) : 0;
+	}
+    }
   else
     err = chop_store_browser_loop (browser);
 
   if (err)
     {
-      com_err (argv[0], err, "while browsing stores");
+      com_err (program_name, err, "while browsing stores");
       exit (2);
     }
 
