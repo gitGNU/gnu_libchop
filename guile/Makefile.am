@@ -25,7 +25,7 @@ libguile_chop_la_SOURCES += choppers.c cipher.c core.c hash.c	\
 
 libguile_chop_store_browsers_la_SOURCES = store-browsers.c
 libguile_chop_store_browsers_la_LIBADD =		\
-    -L$(top_srcdir)/src -lchop-store-browser -lguile-chop
+    -L$(top_srcdir)/src -lchop-store-browsers -lguile-chop
 
 support_c_files = block-indexers-support.c	\
 		  choppers-support.c		\

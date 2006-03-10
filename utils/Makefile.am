@@ -7,10 +7,11 @@ noinst_PROGRAMS = chop-file
 bin_SCRIPTS = chop-rcs.sh
 EXTRA_DIST = avahi-publish.c
 
-AM_CPPFLAGS = -I$(srcdir)/src
-LDADD = -L../src -lchop
-chop_block_server_LDADD = $(LDADD) -lchop-block-server
-chop_store_discover_LDADD = $(LDADD) -lchop-store-browser
-
-AM_CPPFLAGS += -I../include
+AM_CPPFLAGS = -I../include
 AM_CFLAGS = -O0 -g -Wall -fno-strict-aliasing
+
+AM_CPPFLAGS += -I$(srcdir)/src
+LDADD = -L../src -lchop
+chop_block_server_LDADD = -lchop-block-server -lchop $(AVAHI_LIBS) $(LDADD)
+chop_block_server_CPPFLAGS = $(AM_CPPFLAGS) $(AVAHI_CPPFLAGS)
+chop_store_discover_LDADD = -lchop-store-browsers $(LDADD)

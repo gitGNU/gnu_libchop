@@ -3,11 +3,11 @@ EXTRA_DIST = filter-zip-push-pull.c store-generic-db.c \
              extract-classes.sh gcrypt-enum-mapping.h
 
 lib_LTLIBRARIES = libchop.la libchop-block-server.la \
-                  libchop-store-browser.la
+                  libchop-store-browsers.la
 
 libchop_la_LDFLAGS = -version-info 0:0:0
 libchop_block_server_la_LDFLAGS = -version-info 0:0:0
-libchop_store_browser_la_LDFLAGS = -version-info 0:0:0
+libchop_store_browsers_la_LDFLAGS = -version-info 0:0:0
 
 libchop_la_SOURCES = chop.c chop-errors.c logs.c		\
 		     chopper-fixed-size.c			\
@@ -64,15 +64,15 @@ libchop_block_server_la_SOURCES = store-server.c $(rpc_xdr)
 libchop_block_server_la_LIBS = -lchop
 
 # Convenience library for service discovery.
-libchop_store_browser_la_SOURCES = store-browsers.c		\
-				   store-browser-avahi.c
-libchop_store_browser_la_LIBS = -lchop
+libchop_store_browsers_la_SOURCES = store-browsers.c		\
+				    store-browser-avahi.c
+libchop_store_browsers_la_LIBADD = $(AVAHI_LIBS) -lchop $(AM_LIBS)
+libchop_store_browsers_la_CPPFLAGS = $(AVAHI_CPPFLAGS) $(AM_CPPFLAGS)
 
 AM_CPPFLAGS = -I../include -D_GNU_SOURCE=1
 AM_CFLAGS = -O0 -g -Winline -Wall -fno-strict-aliasing
 
-COMPILE_ET = compile_et
-RPCGEN = rpcgen
+
 
 chop-errors.c chop-errors.h: chop-errors.et
 	$(COMPILE_ET) $^ && mv chop-errors.h $(top_srcdir)/include/chop

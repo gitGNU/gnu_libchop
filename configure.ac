@@ -27,10 +27,14 @@ AC_SUBST([RPCGEN], [$rpcgen])
 # Checkpoint the cache
 AC_CACHE_SAVE
 
-AC_CHECK_PROG([has_compile_et], [compile_et], [yes], [no])
-if test "x$compile_et" = "xno"; then
-  AC_MSG_ERROR([Could not find `compile_et'.  Please, install `libcom_err'])
-fi
+# libcom_err2.
+AC_PATH_PROG([compile_et], [compile_et],
+  [AC_MSG_ERROR([Could not find `compile_et'.  Please, install `libcom_err'])])
+AC_SUBST([COMPILE_ET], [$compile_et])
+PKG_CHECK_EXISTS([com_err],
+  [CPPFLAGS="$CPPFLAGS `$PKG_CONFIG com_err --cflags`"
+   LIBS="$LIBS `$PKG_CONFIG com_err --libs`"],
+  [AC_MSG_ERROR([`libcom_err' is not available.  Please, install it first.])])
 
 # Checks for libraries.
 AM_PATH_LIBGCRYPT([1.2.0], [has_libgcrypt=yes], [has_libgcrypt=no])
@@ -43,8 +47,6 @@ fi
 
 AC_CHECK_LIB([c], [vasprintf], [],
   [AC_MSG_ERROR([`vasprintf' not found.  Are you using the GNU libc?])])
-AC_CHECK_LIB([com_err], [com_err], [],
-  [AC_MSG_ERROR([`libcom_err' not found.  Please, install it first, ok?!])])
 AC_CHECK_LIB([gdbm], [gdbm_open], [],
   [AC_MSG_ERROR([`libgdbm' not found.  Come on, install it first.])])
 AC_CHECK_LIB([z], [deflate], [],
@@ -114,12 +116,14 @@ AC_MSG_RESULT([$have_dbus_1])
 # Avahi.
 AC_MSG_CHECKING([whether Avahi is available])
 PKG_CHECK_EXISTS([avahi-client], [
-   CPPFLAGS="$CPPFLAGS `$PKG_CONFIG avahi-client --cflags`"
-   LIBS="$LIBS `$PKG_CONFIG avahi-client --libs`"
+   AVAHI_CPPFLAGS="$CPPFLAGS `$PKG_CONFIG avahi-client --cflags`"
+   AVAHI_LIBS="$LIBS `$PKG_CONFIG avahi-client --libs`"
    have_avahi="yes"],
    [have_avahi="no"])
 if test "x$have_avahi" = "xyes"; then
    AC_DEFINE([HAVE_AVAHI], 1, [Tells whether Avahi is available.])
+   AC_SUBST([AVAHI_CPPFLAGS])
+   AC_SUBST([AVAHI_LIBS])
 fi
 AM_CONDITIONAL([HAVE_AVAHI], test "x$have_avahi" = "xyes")
 AC_MSG_RESULT([$have_avahi])
