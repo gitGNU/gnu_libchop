@@ -239,6 +239,15 @@ extern errcode_t
 chop_sunrpc_block_store_open (const char *host, const char *protocol,
 			      chop_block_store_t *store);
 
+/* EXPERIMENTAL!
+
+   Initialize STORE as a D-BUS-based remote block store located at
+   DBUS_ADDRESS.  DBUS_ADDRESS must be a D-BUS address string, such as
+   `tcp:host=localhost,port=7777'.  */
+extern errcode_t
+chop_dbus_block_store_open (const char *dbus_address,
+			    chop_block_store_t *store);
+
 /* Initialize STORE as a ``smart proxy'' of BACKEND, meaning that STORE will
    only forward `write_block' requests to BACKEND is the block doesn't
    already exist in BACKEND.  This is particularly useful as a proxy to

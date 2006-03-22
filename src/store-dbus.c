@@ -22,7 +22,8 @@
 
 CHOP_DECLARE_RT_CLASS (dbus_block_store, block_store,
 		       chop_log_t log;
-		       DBusConnection *connection;)
+		       DBusConnection *connection;
+		       char *object_path;)
 
 static errcode_t
 dbus_ctor (chop_object_t *object, const chop_class_t *class)
@@ -31,6 +32,7 @@ dbus_ctor (chop_object_t *object, const chop_class_t *class)
 
   remote = (chop_dbus_block_store_t *)object;
   remote->connection = NULL;
+  remote->object_path = NULL;
 
   return chop_log_init ("remote-block-store", &remote->log);
 }
@@ -40,9 +42,19 @@ dbus_dtor (chop_object_t *object)
 {
   chop_dbus_block_store_t *remote;
 
-  dbus_connection_close (remote->connection);
-  dbus_connection_unref (remote->connection);
-  remote->connection = NULL;
+  if (remote->connection)
+    {
+      dbus_connection_close (remote->connection);
+      dbus_connection_unref (remote->connection);
+      remote->connection = NULL;
+    }
+
+  if (remote->object_path)
+    {
+      free (remote->object_path);
+      remote->object_path = NULL;
+    }
+
   chop_object_destroy ((chop_object_t *)&remote->log);
 }
 
@@ -80,27 +92,105 @@ static errcode_t chop_dbus_close (struct chop_block_store *);
 static errcode_t chop_dbus_sync (struct chop_block_store *);
 
 
+static errcode_t
+invoke_new_client_method (DBusConnection *connection, char **path,
+			  chop_log_t *log)
+{
+  errcode_t err = 0;
+  DBusError derr;
+  DBusMessage *call = NULL, *reply = NULL;
+  DBusMessageIter iter;
+  const char *path_buf = NULL;
+  static char valid_sig[] = { DBUS_TYPE_OBJECT_PATH, DBUS_TYPE_INVALID };
+
+  *path = NULL;
+  call = dbus_message_new_method_call (NULL, "/constructor",
+				       CHOP_DBUS_BLOCK_STORE_INTERFACE,
+				       "NewClient");
+  if (!call)
+    {
+      err = ENOMEM;
+      goto finish;
+    }
+
+  dbus_error_init (&derr);
+  reply = dbus_connection_send_with_reply_and_block (connection, call,
+						     -1, &derr);
+  if ((!reply) || (dbus_error_is_set (&derr)))
+    {
+      chop_log_printf (log, "`NewClient' invocation failed: %s: %s (%p)",
+		       derr.name, derr.message, reply);
+      err = CHOP_INVALID_ARG;
+      goto finish;
+    }
+
+  if ((dbus_message_get_type (reply) != DBUS_MESSAGE_TYPE_METHOD_RETURN)
+      || (!dbus_message_has_signature (reply, valid_sig)))
+    {
+      err = CHOP_INVALID_ARG;
+      goto finish;
+    }
+
+  chop_log_printf (log, "got valid `NewClient' reply");
+
+  if (!dbus_message_iter_init (reply, &iter))
+    {
+      chop_log_printf (log, "empty `NewClient' reply message");
+      err = CHOP_INVALID_ARG;
+      goto finish;
+    }
+  chop_log_printf (log, "iter type: %i",
+		   dbus_message_iter_get_arg_type (&iter));
+
+  dbus_message_iter_get_basic (&iter, &path_buf);
+  if (path_buf)
+    {
+      chop_log_printf (log, "got object path `%s'", path_buf);
+      *path = strdup (path_buf);
+      if (!*path)
+	err = ENOMEM;
+    }
+  else
+    {
+      chop_log_printf (log, "failed to retrieve object path");
+      err = CHOP_INVALID_ARG;
+    }
+
+ finish:
+  if (call)
+    dbus_message_unref (call);
+  if (reply)
+    dbus_message_unref (reply);
+
+  return err;
+}
+
 errcode_t
-chop_dbus_block_store_open (const char *host,
+chop_dbus_block_store_open (const char *d_address,
 			    chop_block_store_t *store)
 {
   errcode_t err;
-  char *d_address;
   DBusError d_err;
   DBusConnection *connection;
   chop_dbus_block_store_t *remote = (chop_dbus_block_store_t *)store;
 
-  dbus_error_init (&d_err);
-
-  d_address = alloca (strlen (host) + 5);
-  strcpy (d_address, "tcp:");
-  strcat (d_address, host);
-
-  connection = dbus_connection_open (d_address, &d_err);
   err = chop_object_initialize ((chop_object_t *)store,
 				&chop_dbus_block_store_class);
+  if (err)
+    return err;
 
-  /* FIXME: Invoke some `hello-world' method there.  */
+  /* XXX: debugging */
+  chop_log_attach (&remote->log, 2, 0);
+
+  dbus_error_init (&d_err);
+
+  connection = dbus_connection_open (d_address, &d_err);
+  if ((!connection) || (dbus_error_is_set (&d_err)))
+    {
+      fprintf (stderr, "DBus error: %s: %s\n",
+	       d_err.name, d_err.message);
+      return CHOP_INVALID_ARG;
+    }
 
   remote->connection = connection;
 
@@ -111,6 +201,14 @@ chop_dbus_block_store_open (const char *host,
   store->first_block = chop_dbus_first_it;
   store->close = chop_dbus_close;
   store->sync = chop_dbus_sync;
+
+  err = invoke_new_client_method (connection, &remote->object_path,
+				  &remote->log);
+  if (err)
+    {
+      chop_object_destroy ((chop_object_t *)store);
+      return err;
+    }
 
   return err;
 }
@@ -130,9 +228,9 @@ chop_dbus_block_exists (chop_block_store_t *store,
   *exists = 0;
 
   call = dbus_message_new_method_call (NULL,
-				       CHOP_DBUS_BLOCK_STORE_PATH,
+				       remote->object_path,
 				       CHOP_DBUS_BLOCK_STORE_INTERFACE,
-				       "block-exists?");
+				       "BlockExists");
   if (!call)
     return ENOMEM;
 
@@ -154,7 +252,7 @@ chop_dbus_block_exists (chop_block_store_t *store,
     {
       if (dbus_error_is_set (&derr))
 	{
-	  fprintf (stderr, "DBus error: %s\n", derr.message);
+	  chop_log_printf (&remote->log, "DBus error: %s\n", derr.message);
 	  dbus_error_free (&derr);
 	  err = CHOP_STORE_ERROR;
 	}
@@ -201,9 +299,9 @@ chop_dbus_read_block (chop_block_store_t *store,
   DBusMessage *call, *reply;
 
   call = dbus_message_new_method_call (NULL,
-				       CHOP_DBUS_BLOCK_STORE_PATH,
+				       remote->object_path,
 				       CHOP_DBUS_BLOCK_STORE_INTERFACE,
-				       "read-block");
+				       "ReadBlock");
   if (!call)
     return ENOMEM;
 
@@ -226,7 +324,7 @@ chop_dbus_read_block (chop_block_store_t *store,
     {
       if (dbus_error_is_set (&derr))
 	{
-	  fprintf (stderr, "DBus error: %s\n", derr.message);
+	  chop_log_printf (&remote->log , "DBus error: %s\n", derr.message);
 	  dbus_error_free (&derr);
 	  err = CHOP_STORE_ERROR;
 	}
@@ -274,23 +372,26 @@ chop_dbus_write_block (chop_block_store_t *store,
 		       const char *buffer, size_t size)
 {
   errcode_t err;
+  const char *key_buffer;
   chop_dbus_block_store_t *remote = (chop_dbus_block_store_t *)store;
   DBusError derr;
 
   DBusMessage *call, *reply;
 
   call = dbus_message_new_method_call (NULL,
-				       CHOP_DBUS_BLOCK_STORE_PATH,
+				       remote->object_path,
 				       CHOP_DBUS_BLOCK_STORE_INTERFACE,
-				       "write-block");
+				       "WriteBlock");
   if (!call)
     return ENOMEM;
 
-  if (!dbus_message_append_args (call, DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
-				 chop_block_key_buffer (key),
-				 chop_block_key_size (key),
+  key_buffer = chop_block_key_buffer (key);
+  if (!dbus_message_append_args (call,
 				 DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
-				 buffer, size))
+				 &key_buffer, chop_block_key_size (key),
+				 DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
+				 &buffer, size,
+				 DBUS_TYPE_INVALID))
     {
       err = ENOMEM;
       goto finish;
@@ -300,43 +401,44 @@ chop_dbus_write_block (chop_block_store_t *store,
   reply = dbus_connection_send_with_reply_and_block (remote->connection, call,
 						     -1, &derr);
 
-  if (!reply)
-    err = ENOMEM;
+  if ((!reply) || (dbus_error_is_set (&derr)))
+    {
+      chop_log_printf (&remote->log,
+		       "DBus error: %s: %s\n", derr.name, derr.message);
+      if (dbus_error_has_name (&derr, DBUS_ERROR_UNKNOWN_METHOD))
+	err = CHOP_ERR_NOT_IMPL;
+      else
+	err = CHOP_STORE_ERROR;
+
+      dbus_error_free (&derr);
+    }
   else
     {
-      if (dbus_error_is_set (&derr))
-	{
-	  fprintf (stderr, "DBus error: %s\n", derr.message);
-	  dbus_error_free (&derr);
-	  err = CHOP_STORE_ERROR;
-	}
+      if (dbus_message_get_type (reply) != DBUS_MESSAGE_TYPE_METHOD_RETURN)
+	err = CHOP_STORE_ERROR;
       else
 	{
-	  if (dbus_message_get_type (reply) != DBUS_MESSAGE_TYPE_METHOD_RETURN)
-	    err = CHOP_STORE_ERROR;
+	  static const char good_sig[] =
+	    { DBUS_TYPE_BOOLEAN, DBUS_TYPE_INVALID };
+	  if (!dbus_message_has_signature (reply, good_sig))
+	    err = CHOP_INVALID_ARG;
 	  else
 	    {
-	      static const char good_sig[] =
-		{ DBUS_TYPE_BOOLEAN, DBUS_TYPE_INVALID };
-	      if (!dbus_message_has_signature (reply, good_sig))
-		err = CHOP_INVALID_ARG;
-	      else
-		{
-		  DBusMessageIter it;
-		  dbus_bool_t success;
+	      DBusMessageIter it;
+	      dbus_bool_t success;
 
-		  dbus_message_iter_init (reply, &it);
-		  dbus_message_iter_get_basic (&it, &success);
+	      dbus_message_iter_init (reply, &it);
+	      dbus_message_iter_get_basic (&it, &success);
 
-		  /* XXX: We could have better error handling here.  And we
-		     could use DBus' error messages for that.  */
-		  err = success ? 0 : CHOP_STORE_ERROR;
-		}
+	      /* XXX: We could have better error handling here.  And we
+		 could use DBus' error messages for that.  */
+	      err = success ? 0 : CHOP_STORE_ERROR;
 	    }
 	}
-
-      dbus_message_unref (reply);
     }
+
+  if (reply)
+    dbus_message_unref (reply);
 
  finish:
   dbus_message_unref (call);

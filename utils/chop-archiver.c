@@ -81,6 +81,11 @@ static int show_stats = 0;
 /* The remote block store host name or NULL.  */
 static char *remote_hostname = NULL;
 
+#ifdef HAVE_DBUS
+/* Whether to use D-BUS or SunRPC.  */
+static int use_dbus = 0;
+#endif
+
 
 #ifdef HAVE_GPERF
 static char *file_based_store_class_name = "gdbm_block_store";
@@ -122,6 +127,12 @@ static struct argp_option options[] =
       "Use BI-CLASS as the block-indexer class.  This implies `-I'." },
     { "block-indexer", 'I', "BI", 0,
       "Deserialize BI as an instance of BI-CLASS and use it." },
+#endif
+
+#ifdef HAVE_DBUS
+    { "dbus", 'D', 0, 0,
+      "Use the D-BUS rather than the SunRPC client interface. "
+      "[experimental]" },
 #endif
 
     /* The main functions.  */
@@ -579,6 +590,11 @@ parse_opt (int key, char *arg, struct argp_state *state)
       block_indexer_ascii = arg;
       break;
 #endif
+#ifdef HAVE_DBUS
+    case 'D':
+      use_dbus = 1;
+      break;
+#endif
     default:
       return ARGP_ERR_UNKNOWN;
     }
@@ -625,11 +641,26 @@ main (int argc, char *argv[])
       if (remote_hostname)
 	{
 	  /* Use a remote block store for both data and metadata blocks.  */
-	  store = (chop_block_store_t *)
-	    chop_class_alloca_instance (&chop_sunrpc_block_store_class);
+#ifdef HAVE_DBUS
+	  /* FIXME: We should do a generic thing the the file-based store
+	     metaclass.  */
+	  if (use_dbus)
+	    {
+	      store = (chop_block_store_t *)
+		chop_class_alloca_instance (&chop_dbus_block_store_class);
 
-	  err = chop_sunrpc_block_store_open (remote_hostname, "tcp",
-					      store);
+	      err = chop_dbus_block_store_open (remote_hostname, store);
+	    }
+	  else
+#endif
+	    {
+	      store = (chop_block_store_t *)
+		chop_class_alloca_instance (&chop_sunrpc_block_store_class);
+
+	      err = chop_sunrpc_block_store_open (remote_hostname, "tcp",
+						  store);
+	    }
+
 	  if (err)
 	    {
 	      com_err (program_name, err,
