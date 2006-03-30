@@ -68,25 +68,125 @@ static errcode_t chop_sunrpc_close (struct chop_block_store *);
 
 static errcode_t chop_sunrpc_sync (struct chop_block_store *);
 
+
+/* Helper functions.  */
 
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+
+
+/* Fill add with the actual Internet corresponding to host HOST and port
+   PORT.  */
+static int
+get_host_inet_address (const char *host, unsigned port,
+		       struct sockaddr_in *addr)
+{
+  struct hostent *he;
+  socklen_t addr_len;
+
+  do
+    {
+      /* FIXME: We should use the reentrant version where available.  */
+      he = gethostbyname (host);
+    }
+  while ((!he) && (h_errno == TRY_AGAIN));
+
+  if (!he)
+    return -1;
+
+  if ((he->h_addrtype != AF_INET) ||
+      (he->h_length != sizeof (struct in_addr)))
+    /* XXX: We don't support IPv6 currently.  */
+    return -1;
+
+  addr_len = he->h_length;
+  addr->sin_family = AF_INET;
+  addr->sin_port = htons (port);
+
+  addr->sin_addr = *(struct in_addr *)he->h_addr;
+
+  return 0;
+}
+
+#if 0
+/* Connect to the host whose Internet address is ADDR, using PROTO (either
+   `IPPROTO_UDP' or `IPPROTO_TCP').  */
+static int
+connect_to_host (const struct sockaddr_in *addr, long proto)
+{
+  int sock = -1;
+
+  sock = socket (PF_INET,
+		 (proto == IPPROTO_TCP) ? SOCK_STREAM : SOCK_DGRAM,
+		 0);
+  if (sock < 0)
+    goto fail;
+
+  if (proto == IPPROTO_TCP)
+    {
+      if (connect (sock, (struct sockaddr *)&addr, sizeof (addr)))
+	goto fail;
+    }
+
+  return sock;
+
+ fail:
+  if (sock >= 0)
+    close (sock);
+
+  return -1;
+}
+#endif
+
+
 errcode_t
-chop_sunrpc_block_store_open (const char *host, const char *protocol,
-				     chop_block_store_t *store)
+chop_sunrpc_block_store_open (const char *host, unsigned port,
+			      const char *protocol,
+			      chop_block_store_t *store)
 {
   static const char generic_hello_arg[] = "libchop's remote block store client";
+  long proto;
   CLIENT *rpc_client;
   int *granted;
   char *hello_arg;
+  int connection = -1;
+  struct sockaddr_in addr;
   chop_sunrpc_block_store_t *remote = (chop_sunrpc_block_store_t *)store;
 
 
-  rpc_client = clnt_create (host, BLOCK_STORE_PROGRAM,
-			    BLOCK_STORE_VERSION,
-			    protocol);
+  if (!strcasecmp (protocol, "tcp"))
+    proto = IPPROTO_TCP;
+  else if (!strcasecmp (protocol, "udp"))
+    proto = IPPROTO_UDP;
+  else
+    return CHOP_INVALID_ARG;
+
+  if (get_host_inet_address (host, port, &addr))
+    return CHOP_INVALID_ARG; /* FIXME: Too vague */
+
+  if (proto == IPPROTO_TCP)
+    rpc_client = clnttcp_create (&addr, BLOCK_STORE_PROGRAM,
+				 BLOCK_STORE_VERSION,
+				 &connection, 0, 0);
+  else
+    {
+      /* XXX: We might want to make UDP wait time configurable.  */
+      struct timeval wait_time;
+
+      wait_time.tv_usec = 1000;
+      wait_time.tv_sec = 0;
+      rpc_client = clntudp_create (&addr, BLOCK_STORE_PROGRAM,
+				   BLOCK_STORE_VERSION,
+				   wait_time,
+				   &connection);
+    }
+
+
   if (!rpc_client)
     {
       clnt_pcreateerror (host);  /* FIXME */
-      return -1;
+      return CHOP_STORE_ERROR;
     }
 
   hello_arg = (char *)generic_hello_arg;
@@ -101,7 +201,7 @@ chop_sunrpc_block_store_open (const char *host, const char *protocol,
 
       clnt_destroy (rpc_client);
       remote->rpc_client = NULL;
-      return -1;
+      return CHOP_STORE_ERROR;
     }
 
   chop_object_initialize ((chop_object_t *)store,

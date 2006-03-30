@@ -81,6 +81,12 @@ static int show_stats = 0;
 /* The remote block store host name or NULL.  */
 static char *remote_hostname = NULL;
 
+/* Protocol name.  */
+static char *protocol_name = "tcp";
+
+/* Remote host port.  */
+static unsigned long int service_port = 0;
+
 #ifdef HAVE_DBUS
 /* Whether to use D-BUS or SunRPC.  */
 static int use_dbus = 0;
@@ -117,7 +123,11 @@ static struct argp_option options[] =
       "data when writing (resp. reading) to (resp. from) the archive" },
     { "remote",  'R', "HOST", 0,
       "Use the remote block store located at HOST (using TCP) for both "
-      "data and meta-data blocks" },
+      "data and meta-data blocks; HOST may contain `:' followed by a port "
+      "number" },
+    { "protocol", 'p', "PROTO", 0,
+      "Use PROTO (either \"tcp\" or \"udp\") when communicating with "
+      "the remote store" },
 #ifdef HAVE_GPERF
     { "store",   'S', "CLASS", 0,
       "Use CLASS as the underlying file-based block store" },
@@ -574,8 +584,31 @@ parse_opt (int key, char *arg, struct argp_state *state)
       use_zlib_block_filters = 1;
       break;
     case 'R':
-      remote_hostname = arg;
+      {
+	char *colon;
+
+	colon = strchr (arg, ':');
+	if (colon)
+	  {
+	    char *end;
+	    service_port = strtoul (colon + 1, &end, 10);
+	    if (end == colon + 1)
+	      {
+		fprintf (stderr, "%s: %s: invalid port\n", program_name,
+			 colon + 1);
+		exit (1);
+	      }
+
+	    *colon = '\0';
+	  }
+
+	remote_hostname = arg;
+      }
       break;
+    case 'p':
+      protocol_name = arg;
+      break;
+
 #ifdef HAVE_GPERF
     case 'S':
       file_based_store_class_name = arg;
@@ -657,7 +690,9 @@ main (int argc, char *argv[])
 	      store = (chop_block_store_t *)
 		chop_class_alloca_instance (&chop_sunrpc_block_store_class);
 
-	      err = chop_sunrpc_block_store_open (remote_hostname, "tcp",
+	      err = chop_sunrpc_block_store_open (remote_hostname,
+						  service_port,
+						  protocol_name,
 						  store);
 	    }
 
