@@ -20,7 +20,10 @@
 #include <stdio.h>   /* `cuserid' */
 #include <assert.h>
 
-#define CHOP_AVAHI_SERVICE_TYPE "_block-server._tcp"
+
+/* The base service type name.  This must be augmented with either `._tcp' or
+   `._udp'.  */
+#define CHOP_AVAHI_SERVICE_BASE_TYPE "_block-server"
 
 
 static AvahiEntryGroup *group = NULL;
@@ -82,6 +85,7 @@ create_services (AvahiClient *c)
   int ret;
   const char *hash_name;
   char *txt_hash;
+  char *service_type;
 
   assert(c);
 
@@ -125,6 +129,11 @@ create_services (AvahiClient *c)
 
   info ("adding service `%s'", service_name);
 
+  /* Construct the service type name.  */
+  service_type = (char *)alloca (strlen (CHOP_AVAHI_SERVICE_BASE_TYPE) + 6);
+  strcpy (service_type, CHOP_AVAHI_SERVICE_BASE_TYPE);
+  strcat (service_type, (protocol_type == IPPROTO_TCP) ? "._tcp" : "._udp");
+
   /* Prepare `TXT' properties.  */
   hash_name = (content_hash_enforced == CHOP_HASH_NONE)
     ? "none" : chop_hash_method_name (content_hash_enforced);
@@ -135,9 +144,10 @@ create_services (AvahiClient *c)
   /* Add the service.  */
   ret = avahi_entry_group_add_service (group, AVAHI_IF_UNSPEC,
 				       AVAHI_PROTO_UNSPEC, 0, service_name,
-				       CHOP_AVAHI_SERVICE_TYPE, NULL,
+				       service_type,
+				       NULL,
 				       NULL /* local host */,
-				       111 /* port: SunRPC */,
+				       service_port /* port */,
 
 				       /* `TXT' information.  */
 				       "implementation=" PACKAGE_STRING,
@@ -148,7 +158,7 @@ create_services (AvahiClient *c)
 				       NULL);
   if (ret)
     {
-      info ("failed to add `"CHOP_AVAHI_SERVICE_TYPE"' service: %s",
+      info ("failed to add `%s' service: %s", service_type,
 	    avahi_strerror (ret));
       goto fail;
     }
@@ -161,7 +171,7 @@ create_services (AvahiClient *c)
       goto fail;
     }
 
-  info ("registered service of type `"CHOP_AVAHI_SERVICE_TYPE"'");
+  info ("registered service of type `%s'", service_type);
 
   return;
 

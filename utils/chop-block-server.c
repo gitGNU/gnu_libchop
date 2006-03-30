@@ -16,6 +16,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/poll.h>
+#include <netdb.h>
 
 #include <errno.h>
 #include <assert.h>
@@ -39,14 +40,20 @@ static chop_block_store_t *local_store = NULL;
 /* The local store file name.  */
 static char *local_store_file_name = NULL;
 
-/* The protocol underlying SunRPC.  */
-static char *protocol_name = "tcp";
+/* The protocol underlying SunRPC: UDP or TCP.  */
+static long protocol_type = IPPROTO_TCP;
 
 /* The name of the content hash algorithm enforced (if any).  */
 static chop_hash_method_t content_hash_enforced = CHOP_HASH_NONE;
 
 /* Whether block/key collision checking should turned off.  */
 static int no_collision_check = 0;
+
+/* Address we should bind to and listen from.  */
+static char *binding_address = NULL;
+
+/* Port the service is to be attached to.  */
+static unsigned service_port = 0;
 
 #ifdef USE_AVAHI
 /* Whether to publish the service locally using Avahi.  */
@@ -321,10 +328,77 @@ open_db_store (const chop_file_based_store_class_t *class,
 
 /* RPC initialization.  */
 
+
+/* Bind to ADDRESS on port PORT and listen there.  Return the corresponding
+   socket or -1 on failure.  */
+static int
+listen_there (const char *address, unsigned port, int socket_type)
+{
+  int sock = -1;
+  struct hostent *he;
+  struct sockaddr_in addr;
+  socklen_t addr_len;
+
+  do
+    {
+      he = gethostbyname (binding_address);
+    }
+  while ((!he) && (h_errno == TRY_AGAIN));
+
+  if (!he)
+    {
+      info ("gethostbyname: %s", strerror (errno));
+      goto fail;
+    }
+
+  /* XXX: We don't support IPv6 currently.  */
+  assert (he->h_addrtype == AF_INET);
+  assert (he->h_length == sizeof (struct in_addr));
+
+  addr_len = he->h_length;
+  addr.sin_family = AF_INET;
+  addr.sin_port = htons (service_port);
+
+  addr.sin_addr = *(struct in_addr *)he->h_addr;
+
+  sock = socket (he->h_addrtype, socket_type, 0);
+  if (sock < 0)
+    {
+      info ("socket: %s", strerror (errno));
+      goto fail;
+    }
+
+  if (bind (sock, (struct sockaddr *)&addr, sizeof (addr)))
+    {
+      info ("bind: %s", strerror (errno));
+      goto fail;
+    }
+
+  if (socket_type == SOCK_STREAM)
+    {
+      if (listen (sock, 0))
+	{
+	  info ("listen: %s", strerror (errno));
+	  goto fail;
+	}
+    }
+
+  return sock;
+
+ fail:
+  if (sock >= 0)
+    close (sock);
+
+  return -1;
+}
+
 static SVCXPRT *
 register_rpc_handlers (void)
 {
-  long proto;
+  /* By default, we'll let `svcXXX_create ()' choose whatever port to listen
+     from and whatever address to bind to.  */
+  int listening_sock = RPC_ANYSOCK;
+  long proto = protocol_type;
   SVCXPRT *transp;
 
   /* Register the handlers themselves.  */
@@ -335,32 +409,45 @@ register_rpc_handlers (void)
   chop_block_server_sync_handler = handle_sync;
   chop_block_server_close_handler = handle_close;
 
-  if (!strcasecmp (protocol_name, "tcp"))
-    proto = IPPROTO_TCP;
-  else if (!strcasecmp (protocol_name, "udp"))
-    proto = IPPROTO_UDP;
-  else
+  if ((binding_address != NULL) || (service_port != 0))
     {
-      info ("%s: unknown protocol", protocol_name);
-      exit (1);
+      if (!binding_address)
+	binding_address = "127.0.0.1";
+
+      listening_sock = listen_there (binding_address, service_port,
+				     (proto == IPPROTO_UDP)
+				     ? SOCK_DGRAM : SOCK_STREAM);
+      if (listening_sock < 0)
+	{
+	  info ("failed to bind and listen on %s:%u",
+		binding_address, service_port);
+	  exit (1);
+	}
     }
 
-  pmap_unset (BLOCK_STORE_PROGRAM, BLOCK_STORE_VERSION);
+/*   pmap_unset (BLOCK_STORE_PROGRAM, BLOCK_STORE_VERSION); */
 
   if (proto == IPPROTO_TCP)
-    transp = svctcp_create (RPC_ANYSOCK, 0, 0);
+    transp = svctcp_create (listening_sock, 0, 0);
   else
-    transp = svcudp_create (RPC_ANYSOCK);
+    transp = svcudp_create (listening_sock);
+
   if (transp == NULL)
     {
       info ("cannot create RPC service");
       exit (1);
     }
 
+  if (!service_port)
+    /* Update the service port so that the service publication via Avahi gets
+       it right.  */
+    service_port = transp->xp_port;
+
   if (!svc_register (transp, BLOCK_STORE_PROGRAM, BLOCK_STORE_VERSION,
-		     chop_block_server_process_request, proto))
+		     chop_block_server_process_request,
+		     0 /* don't register with portmap */))
     {
-      info ("unable to register tcp");
+      info ("unable to register service");
       exit (1);
     }
 
@@ -426,6 +513,10 @@ static struct argp_option options[] =
       "Restrict access to HOSTS, a comma-separated list of hostnames." },
     { "protocol",'P', "PROTO", 0,
       "Serve RPCs over PROTO, either \"tcp\" or \"udp\"" },
+    { "port", 'p', "PORT", 0,
+      "Run the service on port PORT" },
+    { "address", 'a', "ADDRESS", 0,
+      "Bind to the address (and port) specified by ADDRESS" },
 
     { 0, 0, 0, 0, 0 }
   };
@@ -452,7 +543,24 @@ parse_opt (int key, char *arg, struct argp_state *state)
       break;
 
     case 'P':
-      protocol_name = arg;
+      if (!strcasecmp (arg, "tcp"))
+	protocol_type = IPPROTO_TCP;
+      else if (!strcasecmp (arg, "udp"))
+	protocol_type = IPPROTO_UDP;
+      else
+	{
+	  info ("%s: unknown protocol", arg);
+	  exit (1);
+	}
+
+      break;
+
+    case 'a':
+      binding_address = arg;
+      break;
+
+    case 'p':
+      service_port = atoi (arg);
       break;
 
 #ifdef HAVE_GPERF
