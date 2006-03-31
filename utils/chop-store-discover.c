@@ -79,7 +79,7 @@ static char *domain_name = NULL;
 static error_t
 parse_opt (int key, char *arg, struct argp_state *state)
 {
-  errcode_t err;
+  errcode_t err = 0;
 
   switch (key)
     {

@@ -23,6 +23,11 @@
 #endif
 
 
+/* Service type name.  This should match what `chop-block-server.c' uses.  */
+#define CHOP_AVAHI_SERVICE_BASE_TYPE "_block-server"
+#define CHOP_AVAHI_SERVICE_TYPE_TCP  CHOP_AVAHI_SERVICE_BASE_TYPE "._tcp"
+#define CHOP_AVAHI_SERVICE_TYPE_UDP  CHOP_AVAHI_SERVICE_BASE_TYPE "._udp"
+
 
 CHOP_DECLARE_RT_CLASS (avahi_store_browser, store_browser,
 		       chop_log_t           log;
@@ -405,7 +410,7 @@ chop_avahi_store_browser_open (const char *domain,
   /* Create the service browser */
   avahi->sb = avahi_service_browser_new (avahi->client, AVAHI_IF_UNSPEC,
 					 AVAHI_PROTO_UNSPEC,
-					 "_block-server._tcp",
+					 CHOP_AVAHI_SERVICE_TYPE_TCP,
 					 domain,
 					 0, /* AVAHI_LOOKUP_USE_MULTICAST, */
 					 browse_callback,
