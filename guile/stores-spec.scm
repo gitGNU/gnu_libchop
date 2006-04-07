@@ -257,6 +257,7 @@
 		  #:c-name "chop_sunrpc_block_store_open_alloc"
 		  #:returns '<errcode>
 		  #:arguments '(((mchars caller-owned) host)
+				(unsigned-int port)
 				((mchars caller-owned) protocol)
 				((<store> out) new-store)))
 
