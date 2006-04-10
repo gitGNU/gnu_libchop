@@ -829,7 +829,8 @@ main (int argc, char *argv[])
       raw_metastore = metastore;
 
       store = chop_class_alloca_instance (&chop_stat_block_store_class);
-      err = chop_stat_block_store_open ("data-store", raw_store, 1,
+      err = chop_stat_block_store_open ("data-store", raw_store,
+					CHOP_PROXY_EVENTUALLY_DESTROY,
 					store);
       if (!err)
 	{
@@ -837,7 +838,8 @@ main (int argc, char *argv[])
 	    chop_class_alloca_instance (&chop_stat_block_store_class);
 	  err = chop_stat_block_store_open ("meta-data-store", raw_metastore,
 					    (raw_store != raw_metastore)
-					    ? 1 : 0,
+					    ? CHOP_PROXY_EVENTUALLY_DESTROY
+					    : CHOP_PROXY_LEAVE_AS_IS,
 					    metastore);
 	}
 
@@ -877,7 +879,7 @@ main (int argc, char *argv[])
 	  chop_block_store_stats_display (stats, &log);
 	}
 
-      chop_log_close (&log);
+      chop_object_destroy ((chop_object_t *)&log);
     }
 
 
@@ -897,6 +899,7 @@ main (int argc, char *argv[])
       com_err (argv[0], err, "while closing output block store");
       exit (7);
     }
+  chop_object_destroy ((chop_object_t *)store);
 
   if (store != metastore)
     {
@@ -906,6 +909,7 @@ main (int argc, char *argv[])
 	  com_err (argv[0], err, "while closing output meta-data block store");
 	  exit (7);
 	}
+      chop_object_destroy ((chop_object_t *)metastore);
     }
 
   return 0;
