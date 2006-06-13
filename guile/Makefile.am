@@ -40,7 +40,8 @@ support_c_files = block-indexers-support.c	\
 		  streams-support.c
 
 
-EXTRA_DIST = $(binding_specs) $(support_c_files) README
+TESTS = testsuite.scm
+EXTRA_DIST = $(binding_specs) $(support_c_files) README $(TESTS)
 CLEANFILES = $(built_c_files) $(built_scm_files)
 
 

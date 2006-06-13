@@ -35,7 +35,7 @@ chop_zlib_unzip_filter_init_alloc (size_t input_size,
   errcode_t err;
 
   *filter =
-    scm_malloc (chop_class_instance_size (&chop_zlib_zip_filter_class));
+    scm_malloc (chop_class_instance_size (&chop_zlib_unzip_filter_class));
 
   err = chop_zlib_unzip_filter_init (input_size, *filter);
   if (err)

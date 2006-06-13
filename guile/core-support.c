@@ -38,8 +38,8 @@ gwrap_chop_object_cleanup (void *wcp)
   object = (chop_object_t *)wcp;
 
 #ifdef DEBUG
-  fprintf (stderr, "%s: freeing object @%p [SCM: %p]\n",
-	   __FUNCTION__, object, (void *)wcp);
+  fprintf (stderr, "%s: freeing object @%p\n",
+	   __FUNCTION__, object);
 #endif
 
   class = chop_object_get_class (object);
