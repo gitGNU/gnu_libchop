@@ -47,6 +47,7 @@ Mandatory dependencies:
 
   libcom_err
   GNU libgcrypt 1.2
+  Sun/ONC RPC framework (part of the GNU C Library)
 
 Optional dependencies:
 
@@ -55,12 +56,13 @@ Optional dependencies:
   SleepyCat's Berkeley DB (BDB) 4.4 (4.3 should work too)
   zlib
   libbz2
+  GNUtls 1.4.1 (or compatible --- recommended)
 
 If you want to build the Guile bindings of libchop (you don't have to),
 then you'll need the following:
 
   GNU Guile 1.7+
-  G-Wrap 1.9.6+  
+  G-Wrap 1.9.6+ (see `guile/README')
 
 And that's it.
 

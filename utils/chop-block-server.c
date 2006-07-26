@@ -22,6 +22,10 @@
 #include <assert.h>
 
 #include <chop/chop-config.h>
+#ifdef HAVE_GNUTLS
+# include <gnutls/gnutls.h>
+# include <chop/sunrpc-tls.h>
+#endif
 
 #if (defined HAVE_PTHREAD_H) && (defined HAVE_AVAHI)
 # define USE_AVAHI 1
@@ -42,6 +46,11 @@ static char *local_store_file_name = NULL;
 
 /* The protocol underlying SunRPC: UDP or TCP.  */
 static long protocol_type = IPPROTO_TCP;
+
+#ifdef HAVE_GNUTLS
+/* Whether to use RPC over TLS.  */
+static int use_tls = 0;
+#endif
 
 /* The name of the content hash algorithm enforced (if any).  */
 static chop_hash_method_t content_hash_enforced = CHOP_HASH_NONE;
@@ -208,7 +217,7 @@ handle_write_block (block_store_write_block_args *argp, struct svc_req *req)
 	      chop_buffer_to_hex_string (chop_block_key_buffer (&key),
 					 chop_block_key_size (&key),
 					 hex_key);
-	      info ("key %s: collising detected (and rejected)", hex_key);
+	      info ("key %s: collision detected (and rejected)", hex_key);
 	      result = -3;
 	    }
 	  else
@@ -392,6 +401,69 @@ listen_there (const char *address, unsigned port, int socket_type)
   return -1;
 }
 
+
+#ifdef HAVE_GNUTLS
+
+/* TLS static parameters (i.e., re-used accross connections).  */
+static gnutls_anon_server_credentials_t server_anoncred;
+static gnutls_dh_params_t               server_dh_params;
+#define DH_BITS 1024
+
+static int
+make_tls_session (gnutls_session *session, void *closure)
+{
+  /* Need to enable anonymous KX specifically. */
+  static const int kx_prio[] = { GNUTLS_KX_ANON_DH, 0 };
+
+  /* We pretty much always want message authentication.  */
+  static const int mac_prio[] =
+    { GNUTLS_MAC_SHA1, GNUTLS_MAC_RMD160, GNUTLS_MAC_MD5, 0 };
+
+  /* Often, we won't need encryption at all because the data being stored is
+     already encrypted.  However, there is no anonymous authentication
+     ciphersuite that supports `NULL' encryption.  */
+  static const int cipher_prio[] =
+    { GNUTLS_CIPHER_NULL, GNUTLS_CIPHER_ARCFOUR_128,
+      GNUTLS_CIPHER_AES_128_CBC, GNUTLS_CIPHER_AES_256_CBC, 0 };
+
+  /* Likewise, we will rarely need compression.  */
+  static const int compression_prio[] =
+    { GNUTLS_COMP_NULL, GNUTLS_COMP_DEFLATE, 0 };
+
+  int err;
+
+  err = gnutls_init (session, GNUTLS_SERVER);
+  if (err)
+    return -1;
+
+  gnutls_set_default_priority (*session);
+  gnutls_kx_set_priority (*session, kx_prio);
+  gnutls_mac_set_priority (*session, mac_prio);
+  gnutls_cipher_set_priority (*session, cipher_prio);
+  gnutls_compression_set_priority (*session, compression_prio);
+
+  gnutls_credentials_set (*session, GNUTLS_CRD_ANON, server_anoncred);
+  gnutls_dh_set_prime_bits (*session, DH_BITS);
+
+  return 0;
+}
+
+static void
+initialize_tls_parameters (void)
+{
+  /* Generate Diffie Hellman parameters - for use with DHE kx
+     algorithms. These should be discarded and regenerated once a day, once a
+     week or once a month. Depending on the security requirements.  */
+  gnutls_dh_params_init (&server_dh_params);
+  gnutls_dh_params_generate2 (server_dh_params, DH_BITS);
+
+  gnutls_anon_allocate_server_credentials (&server_anoncred);
+  gnutls_anon_set_server_dh_params (server_anoncred, server_dh_params);
+}
+
+#endif /* HAVE_GNUTLS */
+
+
 static SVCXPRT *
 register_rpc_handlers (void)
 {
@@ -427,6 +499,17 @@ register_rpc_handlers (void)
 
 /*   pmap_unset (BLOCK_STORE_PROGRAM, BLOCK_STORE_VERSION); */
 
+#ifdef HAVE_GNUTLS
+  if (use_tls)
+    {
+      svctls_init_if_needed ();
+
+      initialize_tls_parameters ();
+      transp = svctls_create (make_tls_session, NULL,
+			      listening_sock, 0, 0);
+    }
+  else
+#endif
   if (proto == IPPROTO_TCP)
     transp = svctcp_create (listening_sock, 0, 0);
   else
@@ -517,6 +600,10 @@ static struct argp_option options[] =
       "Run the service on port PORT" },
     { "address", 'a', "ADDRESS", 0,
       "Bind to the address (and port) specified by ADDRESS" },
+#ifdef HAVE_GNUTLS
+    { "tls", 't', 0, 0,
+      "Use RPCs over TLS (recommended)" },
+#endif
 
     { 0, 0, 0, 0, 0 }
   };
@@ -554,6 +641,12 @@ parse_opt (int key, char *arg, struct argp_state *state)
 	}
 
       break;
+
+#ifdef HAVE_GNUTLS
+    case 't':
+      use_tls = 1;
+      break;
+#endif
 
     case 'a':
       binding_address = arg;

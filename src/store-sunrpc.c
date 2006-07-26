@@ -7,6 +7,13 @@
 
 #include <chop/block_rstore.h>
 
+#include <chop/chop-config.h>
+#ifdef HAVE_GNUTLS
+# include <chop/sunrpc-tls.h>
+#endif
+
+#include <errno.h>
+
 
 CHOP_DECLARE_RT_CLASS (sunrpc_block_store, block_store,
 		       chop_log_t log;
@@ -109,7 +116,7 @@ get_host_inet_address (const char *host, unsigned port,
   return 0;
 }
 
-#if 0
+#ifdef HAVE_GNUTLS
 /* Connect to the host whose Internet address is ADDR, using PROTO (either
    `IPPROTO_UDP' or `IPPROTO_TCP').  */
 static int
@@ -125,7 +132,7 @@ connect_to_host (const struct sockaddr_in *addr, long proto)
 
   if (proto == IPPROTO_TCP)
     {
-      if (connect (sock, (struct sockaddr *)&addr, sizeof (addr)))
+      if (connect (sock, (struct sockaddr *)addr, sizeof (*addr)))
 	goto fail;
     }
 
@@ -140,12 +147,85 @@ connect_to_host (const struct sockaddr_in *addr, long proto)
 #endif
 
 
+#ifdef HAVE_GNUTLS
+
+/* Create a TLS session for communication over ENDPOINT.  On success, SESSION
+   is initialized and zero is returned.  */
+static errcode_t
+create_tls_session (gnutls_session_t *session, int endpoint)
+{
+  /* Need to enable anonymous KX specifically. */
+  static const int kx_prio[] = { GNUTLS_KX_ANON_DH, 0 };
+
+  /* We pretty much always want message authentication.  */
+  static const int mac_prio[] =
+    { GNUTLS_MAC_SHA1, GNUTLS_MAC_RMD160, GNUTLS_MAC_MD5, 0 };
+
+  /* Often, we won't need encryption at all because the data being stored is
+     already encrypted.  However, there is no anonymous authentication
+     ciphersuite that supports `NULL' encryption.  */
+  static const int cipher_prio[] =
+    { GNUTLS_CIPHER_NULL, GNUTLS_CIPHER_ARCFOUR_128,
+      GNUTLS_CIPHER_AES_128_CBC, 0 };
+
+  /* Likewise, we will rarely need compression.  */
+  static const int compression_prio[] =
+    { GNUTLS_COMP_NULL, GNUTLS_COMP_DEFLATE, 0 };
+
+
+  int err;
+  gnutls_anon_client_credentials_t anoncred;
+
+  clnttls_init_if_needed ();
+
+  err = gnutls_init (session, GNUTLS_CLIENT);
+  if (err)
+    {
+      gnutls_perror (err);
+      return CHOP_INVALID_ARG;
+    }
+
+  gnutls_transport_set_ptr (*session, (gnutls_transport_ptr_t)endpoint);
+
+  gnutls_set_default_priority (*session);
+  gnutls_kx_set_priority (*session, kx_prio);
+  gnutls_mac_set_priority (*session, mac_prio);
+  gnutls_cipher_set_priority (*session, cipher_prio);
+  gnutls_compression_set_priority (*session, compression_prio);
+
+  gnutls_anon_allocate_client_credentials (&anoncred);
+  gnutls_credentials_set (*session, GNUTLS_CRD_ANON, &anoncred);
+
+  err = gnutls_handshake (*session);
+  if (err < 0)
+    {
+      fprintf (stderr, "rpc/tls: client-side handshake failed: %s\n",
+	       gnutls_strerror (err));
+
+      gnutls_deinit (*session);
+      return CHOP_INVALID_ARG;
+    }
+
+#if 0
+  fprintf (stderr, "rpc/tls client: MAC=`%s' cipher=`%s' compr=`%s'\n",
+	   gnutls_mac_get_name (gnutls_mac_get (*session)),
+	   gnutls_cipher_get_name (gnutls_cipher_get (*session)),
+	   gnutls_compression_get_name (gnutls_compression_get (*session)));
+#endif
+
+  return 0;
+}
+#endif
+
 errcode_t
 chop_sunrpc_block_store_open (const char *host, unsigned port,
 			      const char *protocol,
 			      chop_block_store_t *store)
 {
   static const char generic_hello_arg[] = "libchop's remote block store client";
+#ifdef HAVE_GNUTLS
+  int use_tls = 0;
+#endif
   long proto;
   CLIENT *rpc_client;
   int *granted;
@@ -159,12 +239,40 @@ chop_sunrpc_block_store_open (const char *host, unsigned port,
     proto = IPPROTO_TCP;
   else if (!strcasecmp (protocol, "udp"))
     proto = IPPROTO_UDP;
+#ifdef HAVE_GNUTLS
+  else if (!strcasecmp (protocol, "tls/tcp"))
+    use_tls = 1, proto = IPPROTO_TCP;
+#endif
   else
     return CHOP_INVALID_ARG;
 
   if (get_host_inet_address (host, port, &addr))
     return CHOP_INVALID_ARG; /* FIXME: Too vague */
 
+#ifdef HAVE_GNUTLS
+  if (use_tls)
+    {
+      int endpoint;
+      errcode_t err;
+      gnutls_session_t session;
+
+      endpoint = connect_to_host (&addr, proto);
+      if (endpoint < 0)
+	return errno;
+
+      err = create_tls_session (&session, endpoint);
+      if (err)
+	{
+	  close (endpoint);
+	  return err;
+	}
+
+      rpc_client = clnttls_create (session, BLOCK_STORE_PROGRAM,
+				   BLOCK_STORE_VERSION,
+				   0, 0);
+    }
+  else
+#endif
   if (proto == IPPROTO_TCP)
     rpc_client = clnttcp_create (&addr, BLOCK_STORE_PROGRAM,
 				 BLOCK_STORE_VERSION,
