@@ -95,25 +95,30 @@ chop_indexer_stream_class (const chop_indexer_t *__indexer)
 /* Convenience method for user interfaces.  */
 
 /* Deserialize BUFFER, a SIZE-byte buffer containing an ASCII string, and
-   return the block fetcher class it represents in FETCHER_CLASS and the
-   corresponding index handle class in HANDLE_CLASS.  On success, also set
-   BYTES_READ to the amount of bytes read starting from BUFFER, and return
-   zero.  The user may then process with stage 2 of the deserialization by
-   (i) allocating instances of FETCHER_CLASS and HANDLE_CLASS and (ii) start
-   stage 2 at BUFFER + BYTES_READ.  */
+   return the indexer class it represents in INDEXER_CLASS, the block fetcher
+   class it represents in FETCHER_CLASS and the corresponding index handle
+   class in HANDLE_CLASS.  On success, also set BYTES_READ to the amount of
+   bytes read starting from BUFFER, and return zero.  The user may then
+   process with stage 2 of the deserialization by (i) allocating instances of
+   INDEXER_CLASS, FETCHER_CLASS and HANDLE_CLASS and (ii) start stage 2 at
+   BUFFER + BYTES_READ.  */
 errcode_t
 chop_ascii_deserialize_index_tuple_s1 (const char *buffer, size_t size,
+				       const chop_class_t **indexer_class,
 				       const chop_class_t **fetcher_class,
 				       const chop_class_t **handle_class,
 				       size_t *bytes_read);
 
 /* Perform stage 2 of an index tuple deserialization, i.e. read BUFFER and
-   deserialize an instance of FETCHER_CLASS into FETCHER and an instance of
-   INDEX_CLASS into INDEX (see above).  */
+   deserialize an instance of INDEXER_CLASS into INDEXER, an instance of
+   FETCHER_CLASS into FETCHER and an instance of INDEX_CLASS into INDEX (see
+   above).  */
 errcode_t
 chop_ascii_deserialize_index_tuple_s2 (const char *buffer, size_t size,
+				       const chop_class_t *indexer_class,
 				       const chop_class_t *fetcher_class,
 				       const chop_class_t *index_class,
+				       chop_indexer_t *indexer,
 				       chop_block_fetcher_t *fetcher,
 				       chop_index_handle_t *index,
 				       size_t *bytes_read);
@@ -123,6 +128,7 @@ chop_ascii_deserialize_index_tuple_s2 (const char *buffer, size_t size,
    INDEX.  */
 extern errcode_t
 chop_ascii_serialize_index_tuple (const chop_index_handle_t *index,
+				  const chop_indexer_t *indexer,
 				  const chop_block_indexer_t *block_indexer,
 				  chop_buffer_t *buffer);
 

@@ -32,7 +32,9 @@ exec ${GUILE-guile} --debug -L module -l $0 -c "(apply $main (cdr (command-line)
 	     (chop store-stats)
 	     (chop choppers)
 	     (chop block-indexers)
-	     (chop indexers))
+	     (chop indexers)
+
+             (srfi srfi-11))  ;; `let-values'
 
 ;;; Author:  Ludovic Courtès
 ;;;
@@ -110,6 +112,16 @@ exec ${GUILE-guile} --debug -L module -l $0 -c "(apply $main (cdr (command-line)
   (chk-block-indexer-open
    (cipher-open 'cipher-algo/blowfish 'cipher-mode/ecb)
    'hash-method/sha1 'hash-method/sha1))
+
+(define (t-tuple-deserialization)
+  (let ((tuple "tree_indexer:chk_block_fetcher:chk_index_handle:64:blowfish,ecb:b518771f907d75c54b8c604c6f25070c,0105338239a6e950db0234ff2d917dc6/112"))
+    (let-values (((handle indexer fetcher bytes-read)
+                  (ascii-deserialize-index-tuple tuple)))
+      (if (and ;;(indexer? indexer) (block-fetcher? fetcher)
+               ;;(index-handle? handle)
+               (equal? bytes-read (string-length tuple)))
+          #t
+          (error "tuple deserialization failed")))))
 
 (define (t-stat-store)
   (let ((s (stat-block-store-open "closing-stat-proxy"
@@ -206,6 +218,7 @@ exec ${GUILE-guile} --debug -L module -l $0 -c "(apply $main (cdr (command-line)
  		  (unit-test hash)
  		  (unit-test cipher)
  		  (unit-test cipher+)
+                  (unit-test tuple-deserialization)
  		  (unit-test stat-store)
  		  (unit-test complex1)
  		  (unit-test complex2)

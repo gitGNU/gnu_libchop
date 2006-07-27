@@ -127,6 +127,7 @@
 		  #:returns '<errcode>
 		  #:c-name "chop_ascii_serialize_index_tuple_alloc"
 		  #:arguments '((<index-handle> index)
+                                (<indexer> i)
 				(<block-indexer> bi)
 				((mchars caller-owned out) serial)))
 
@@ -136,6 +137,7 @@
 		  #:c-name "chop_ascii_deserialize_index_tuple_alloc"
 		  #:arguments '(((mchars caller-owned) serial)
 				((<index-handle> out)  index)
+                                ((<indexer> out)       indexer)
 				((<block-fetcher> out) bf)
 				((unsigned-int out) bytes-read)))
 
