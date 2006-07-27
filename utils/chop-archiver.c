@@ -665,7 +665,7 @@ main (int argc, char *argv[])
 				indexer);
   if (err)
     {
-      com_err (program_name, err, "failed to open tree-hash indexer");
+      com_err (program_name, err, "while opening tree-hash indexer");
       exit (2);
     }
 
@@ -699,7 +699,7 @@ main (int argc, char *argv[])
 	  if (err)
 	    {
 	      com_err (program_name, err,
-		       "failed to open remote block store");
+		       "while opening remote block store");
 	      exit (3);
 	    }
 
