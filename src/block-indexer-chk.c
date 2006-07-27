@@ -130,6 +130,10 @@ chk_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
   if (err)
     return err;
 
+  /* Help Valgrind keep cool.  */
+  memset (handle->block_id, 0, sizeof (handle->block_id));
+  memset (handle->key, 0, sizeof (handle->key));
+
   switch (method)
     {
       case CHOP_SERIAL_ASCII:
@@ -742,9 +746,15 @@ chk_index_block (chop_block_indexer_t *indexer,
   /* Getting ready.  */
   chk_indexer = (chop_chk_block_indexer_t *)indexer;
   cipher_handle = chk_indexer->cipher_handle;
-  chop_object_initialize ((chop_object_t *)handle,
-			  &chop_chk_index_handle_class);
+  err = chop_object_initialize ((chop_object_t *)handle,
+				&chop_chk_index_handle_class);
+  if (err)
+    return err;
+
   chk_handle = (chop_chk_index_handle_t *)handle;
+  memset (chk_handle->block_id, 0, sizeof (chk_handle->block_id));
+  memset (chk_handle->key, 0, sizeof (chk_handle->key));
+
   algo = chop_cipher_algorithm (cipher_handle);
 
   /* Encrypt the block using its hash as a key.  */
