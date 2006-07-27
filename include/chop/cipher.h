@@ -108,6 +108,9 @@ extern errcode_t chop_cipher_set_key (chop_cipher_handle_t handle,
 extern errcode_t chop_cipher_set_iv (chop_cipher_handle_t handle,
 				     const void *iv, size_t iv_size);
 
+/* Reset the handle to the state after open.  */
+extern void chop_cipher_reset (chop_cipher_handle_t handle);
+
 extern errcode_t chop_cipher_encrypt (chop_cipher_handle_t cipher,
 				      char *out, size_t out_size,
 				      const char *in, size_t in_size);

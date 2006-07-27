@@ -12,6 +12,10 @@
 
 #define STORE_FILE_NAME  ",,t-block-indexers-store.db"
 
+#define BLOCKS_TO_INDEX 10
+#define BLOCK_SIZE      7567
+
+
 
 int
 main (int argc, char *argv[])
@@ -25,15 +29,20 @@ main (int argc, char *argv[])
   chop_cipher_handle_t cipher_handle;
   chop_buffer_t buffer;
 
-  static char random_data[24567];
+  static long int random_data[BLOCKS_TO_INDEX][BLOCK_SIZE];
 
   test_init (argv[0]);
   test_init_random_seed ();
 
   {
-    char *p;
-    for (p = random_data; p < random_data + sizeof (random_data); p++)
-      *p = random () % 256;
+    long int *p;
+    unsigned i;
+
+    for (i = 0; i < BLOCKS_TO_INDEX; i++)
+      for (p = random_data[i];
+	   p < &random_data[i][BLOCK_SIZE];
+	   p++)
+	*p = random ();
   }
 
   err = chop_init ();
@@ -85,7 +94,7 @@ main (int argc, char *argv[])
   block_indexers[block_indexer_count] = NULL;
 
   /* Go! */
-  err = chop_buffer_init (&buffer, sizeof (random_data));
+  err = chop_buffer_init (&buffer, sizeof (random_data[0]));
   test_check_errcode (err, "initializing buffer");
 
   for (bi_it = block_indexers;
@@ -93,38 +102,45 @@ main (int argc, char *argv[])
        bi_it++)
     {
       const chop_class_t *class;
-      chop_index_handle_t *index;
+      chop_index_handle_t *index[BLOCKS_TO_INDEX];
       chop_block_fetcher_t *fetcher;
-      size_t fetched_bytes;
+      size_t fetched_bytes, i;
 
       class = chop_object_get_class ((chop_object_t *)*bi_it);
       test_stage ("class `%s'", chop_class_name (class));
 
       test_stage_intermediate ("indexing");
-      index = chop_block_indexer_alloca_index_handle (*bi_it);
-      err = chop_block_indexer_index (*bi_it, store,
-				      random_data, sizeof (random_data),
-				      index);
-      test_check_errcode (err, "indexing block");
-      test_assert (chop_object_is_a ((chop_object_t *)index,
-				     &chop_index_handle_class));
+      for (i = 0; i < BLOCKS_TO_INDEX; i++)
+	{
+	  index[i] = chop_block_indexer_alloca_index_handle (*bi_it);
+	  err = chop_block_indexer_index (*bi_it, store,
+					  (char *)random_data[i],
+					  sizeof (random_data[i]),
+					  index[i]);
+	  test_check_errcode (err, "indexing block");
+	  test_assert (chop_object_is_a ((chop_object_t *)index[i],
+					 &chop_index_handle_class));
+	}
 
       test_stage_intermediate ("fetching");
       fetcher = chop_block_indexer_alloca_fetcher (*bi_it);
       err = chop_block_indexer_initialize_fetcher (*bi_it, fetcher);
       test_check_errcode (err, "initializing block fetcher");
 
-      chop_buffer_clear (&buffer);
-      err = chop_block_fetcher_fetch (fetcher, index, store, &buffer,
-				      &fetched_bytes);
-      test_check_errcode (err, "fetching block");
-      test_assert (fetched_bytes == sizeof (random_data));
-      test_assert (fetched_bytes == chop_buffer_size (&buffer));
-      test_assert (!memcmp (random_data, chop_buffer_content (&buffer),
-			    sizeof (random_data)));
+      for (i = 0; i < BLOCKS_TO_INDEX; i++)
+	{
+	  chop_buffer_clear (&buffer);
+	  err = chop_block_fetcher_fetch (fetcher, index[i], store, &buffer,
+					  &fetched_bytes);
+	  test_check_errcode (err, "fetching block");
+	  test_assert (fetched_bytes == sizeof (random_data[i]));
+	  test_assert (fetched_bytes == chop_buffer_size (&buffer));
+	  test_assert (!memcmp (random_data[i], chop_buffer_content (&buffer),
+				sizeof (random_data[i])));
 
+	  chop_object_destroy ((chop_object_t *)index[i]);
+	}
 
-      chop_object_destroy ((chop_object_t *)index);
       chop_object_destroy ((chop_object_t *)fetcher);
       chop_object_destroy ((chop_object_t *)*bi_it);
 

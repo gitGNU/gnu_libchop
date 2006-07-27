@@ -194,6 +194,12 @@ chop_cipher_set_iv (chop_cipher_handle_t handle,
   return (gerr ? CHOP_OUT_OF_RANGE_ARG : 0);
 }
 
+void
+chop_cipher_reset (chop_cipher_handle_t handle)
+{
+  (void)gcry_cipher_reset (handle->gcry_handle);
+}
+
 
 #if 0
 /* Try to limit the overhead for the other functions...  */

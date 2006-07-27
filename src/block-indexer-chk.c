@@ -484,15 +484,12 @@ chk_block_fetch (chop_block_fetcher_t *block_fetcher,
 	  return CHOP_BLOCK_FETCHER_ERROR;
 	}
 
+      chop_cipher_reset (fetcher->cipher_handle);
+
       /* Provide exactly the right key size.  */
       err = chop_cipher_set_key (fetcher->cipher_handle,
 				 handle->key, handle->key_size);
-#if 0
-      if (!err)
-	err = chop_cipher_set_iv (cipher_handle, zero_vector,
-				  chop_cipher_algo_block_size
-				  (chop_cipher_algorithm (cipher_handle)));
-#endif
+
 
       if (!err)
 	{
@@ -628,6 +625,9 @@ cbi_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
     {
     case CHOP_SERIAL_ASCII:
       {
+	/* The user-visible serialization format is as follows:
+	   CIPHER,CIPHER-MODE,KEY-HASH,BLOCK-ID-HASH.  So, for instance, the
+	   following is a valid combination: "blowfish,cbc,sha1,sha1".  */
 	const char *end;
 	char *comma;
 	char *algo_name, *mode_name, *key_hash_name, *block_id_hash_name;
@@ -771,6 +771,8 @@ chk_index_block (chop_block_indexer_t *indexer,
   cipher_make_suitable_key (chk_handle->key, cipher_key_size,
 			    hash_key, hash_key_size);
 
+  chop_cipher_reset (cipher_handle);
+
   /* Provide exactly the right key size.  */
   err = chop_cipher_set_key (cipher_handle, chk_handle->key,
 			     cipher_key_size);
@@ -783,12 +785,6 @@ chk_index_block (chop_block_indexer_t *indexer,
       err = chop_cipher_set_key (cipher_handle, chk_handle->key,
 				 cipher_key_size);
     }
-
-#if 0
-  if (!err)
-    err = chop_cipher_set_iv (cipher_handle, zero_vector,
-			      block_size);
-#endif
 
   if (!err)
     err = chop_cipher_encrypt (cipher_handle,
