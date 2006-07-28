@@ -58,6 +58,10 @@ handle_input_fault (chop_filter_t *filter, size_t how_much, void *data)
 	assert (pushed == read);
     }
 
+  if (err == CHOP_STREAM_END)
+    /* Comply with the filter interface.  */
+    err = CHOP_FILTER_UNHANDLED_FAULT;
+
   return err;
 }
 
@@ -75,7 +79,7 @@ filtered_stream_read (chop_stream_t *raw_stream,
   *read = 0;
   err = chop_filter_pull (stream->filter, stream->flushing,
 			  buffer, howmuch, read);
-  if ((err) && (!stream->flushing))
+  if ((err == CHOP_FILTER_EMPTY) && (!stream->flushing))
     {
       size_t some_more;
 

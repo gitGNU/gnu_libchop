@@ -91,6 +91,42 @@ test_filter (chop_filter_t *filter,
 }
 
 
+/* Non-nominal test case.  */
+
+static errcode_t
+badly_handle_input_fault (chop_filter_t *filter, size_t how_much, void *data)
+{
+  /* Raise a non-filter related exception.  This may happen, for instance,
+     when a filtered-stream is layed on top of an indexer retrieval
+     stream.  */
+  return CHOP_INDEXER_ERROR;
+}
+
+static int
+test_filter_non_nominal (chop_filter_t *filter)
+{
+  errcode_t err;
+  char buf[1234];
+  size_t pulled;
+  const chop_class_t *filter_class;
+
+  filter_class = chop_object_get_class ((chop_object_t *)filter);
+  test_stage ("input filter `%s' (non-nominal)",
+	      chop_class_name (filter_class));
+
+  chop_filter_set_input_fault_handler (filter, badly_handle_input_fault,
+				       NULL);
+
+  err = chop_filter_pull (filter, 0, buf, sizeof (buf), &pulled);
+
+  /* FILTER should not hide the exception raised by its input fault
+     handler.  */
+  test_stage_result (err == CHOP_INDEXER_ERROR);
+
+  return (err == CHOP_INDEXER_ERROR);
+}
+
+
 int
 main (int argc, char *argv[])
 {
@@ -123,6 +159,23 @@ main (int argc, char *argv[])
   /* The following assertions are specific to the zip/unzip filters.  */
   test_assert (unzipped_size == sizeof (input));
   test_assert (!memcmp (unzipped_output, input, sizeof (input)));
+
+  chop_object_destroy ((chop_object_t *)zip_filter);
+  chop_object_destroy ((chop_object_t *)unzip_filter);
+
+  /* Test the non-nominal situation.  */
+  err = chop_zlib_unzip_filter_init (0, unzip_filter);
+  test_check_errcode (err, "initializing zlib unzip filter");
+  err = chop_zlib_zip_filter_init (-1, 0, zip_filter);
+  test_check_errcode (err, "initializing zlib zip filter");
+
+  if (!test_filter_non_nominal (zip_filter))
+    return -1;
+  if (!test_filter_non_nominal (unzip_filter))
+    return -1;
+
+  chop_object_destroy ((chop_object_t *)zip_filter);
+  chop_object_destroy ((chop_object_t *)unzip_filter);
 
   return 0;
 }
