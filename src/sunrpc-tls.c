@@ -129,14 +129,18 @@ static const struct xp_ops svctls_rendezvous_op =
 static int svc_readtls (char*, char *, int);
 static int svc_writetls (char *, char *, int);
 static SVCXPRT *makefd_xprt (svctls_session_initializer_t, void *,
-			     int, u_int, u_int);
+			     int, u_int, u_int, gnutls_session_t *);
 
 struct tcp_rendezvous
   {				/* kept in xprt->xp_p1 */
     u_int sendsize;
     u_int recvsize;
+
     svctls_session_initializer_t initializer;
     void *initializer_data;
+
+    svctls_authorizer_t authorizer;
+    void *authorizer_data;
   };
 
 struct tcp_conn
@@ -157,6 +161,7 @@ svctls_init_if_needed (void)
 
 SVCXPRT *
 svctls_create (svctls_session_initializer_t initializer, void *init_data,
+	       svctls_authorizer_t authorizer, void *auth_data,
 	       int sock,
 	       u_int sendsize, u_int recvsize)
 {
@@ -182,6 +187,8 @@ svctls_create (svctls_session_initializer_t initializer, void *init_data,
   r->recvsize = recvsize;
   r->initializer = initializer;
   r->initializer_data = init_data;
+  r->authorizer = authorizer;
+  r->authorizer_data = auth_data;
 
   xprt->xp_p1 = (caddr_t) r;
   xprt->xp_p2 = (caddr_t) SVCTLS_TYPE_RENDEZVOUS;
@@ -198,15 +205,15 @@ svctls_create (svctls_session_initializer_t initializer, void *init_data,
 static SVCXPRT *
 makefd_xprt (svctls_session_initializer_t initializer, void *init_data,
 	     int fd,
-	     u_int sendsize, u_int recvsize)
+	     u_int sendsize, u_int recvsize,
+	     gnutls_session_t *session)
 {
   int err;
   SVCXPRT *xprt;
   struct tcp_conn *cd;
-  gnutls_session session;
 
   /* Invoke the user-provided TLS session maker.  */
-  if (initializer (&session, init_data))
+  if (initializer (session, init_data))
     {
       (void)fputs ("svc_tls: makefd_xprt: TLS session initializer failed\n",
 		   stderr);
@@ -227,10 +234,10 @@ makefd_xprt (svctls_session_initializer_t initializer, void *init_data,
       return NULL;
     }
   cd->strm_stat = XPRT_IDLE;
-  cd->session = session;
+  cd->session = *session;
 
-  gnutls_transport_set_ptr (session, (gnutls_transport_ptr_t)fd);
-  err = gnutls_handshake (session);
+  gnutls_transport_set_ptr (*session, (gnutls_transport_ptr_t)fd);
+  err = gnutls_handshake (*session);
   if (err)
     {
       fprintf (stderr, "svc_tls: server-side TLS handshake failed: %s\n",
@@ -238,7 +245,7 @@ makefd_xprt (svctls_session_initializer_t initializer, void *init_data,
 
       free (cd);
       free (xprt);
-      gnutls_deinit (session);
+      gnutls_deinit (*session);
       close (fd);
 
       return NULL;
@@ -266,6 +273,7 @@ rendezvous_request (SVCXPRT *xprt, struct rpc_msg *errmsg)
   struct tcp_rendezvous *r;
   struct sockaddr_in addr;
   socklen_t len;
+  gnutls_session_t session;
 
   r = (struct tcp_rendezvous *) xprt->xp_p1;
 again:
@@ -280,11 +288,26 @@ again:
    * make a new transporter (re-uses xprt)
    */
   xprt = makefd_xprt (r->initializer, r->initializer_data,
-		      sock, r->sendsize, r->recvsize);
+		      sock, r->sendsize, r->recvsize,
+		      &session);
   if (xprt)
     {
       memcpy (&xprt->xp_raddr, &addr, sizeof (addr));
       xprt->xp_addrlen = len;
+
+      if (r->authorizer)
+	{
+	  /* Perform an application-level authorization.  */
+	  int authorized;
+
+	  authorized = r->authorizer (session, r->authorizer_data);
+	  if (!authorized)
+	    {
+	      /* Authorization denied.  */
+	      svc_destroy (xprt);
+	      xprt = NULL;
+	    }
+	}
     }
 
   return FALSE;		/* there is never an rpc msg to be processed */

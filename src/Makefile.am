@@ -55,7 +55,7 @@ endif
 
 if HAVE_GNUTLS
 libchop_la_SOURCES += sunrpc-tls.c
-libchop_la_LDFLAGS += $(LIBGNUTLS_LIBS)
+libchop_la_LDFLAGS += $(LIBGNUTLS_LIBS) $(LIBGNUTLS_EXTRA_LIBS)
 else
 EXTRA_DIST += sunrpc-tls.c
 endif
@@ -88,7 +88,7 @@ AM_CPPFLAGS = -I../include -D_GNU_SOURCE=1
 AM_CFLAGS = -O0 -g -Winline -Wall -fno-strict-aliasing
 
 if HAVE_GNUTLS
-AM_CFLAGS += $(LIBGNUTLS_CFLAGS)
+AM_CFLAGS += $(LIBGNUTLS_CFLAGS) $(LIBGNUTLS_EXTRA_CFLAGS)
 endif
 
 

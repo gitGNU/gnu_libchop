@@ -101,8 +101,11 @@ fi
 
 # GNUtls (recommended).
 AM_PATH_LIBGNUTLS([1.4.1], [have_gnutls=yes], [have_gnutls=no])
-AM_CONDITIONAL([HAVE_GNUTLS], test "x$have_gnutls" = "xyes")
-if test "x$have_gnutls" = "xyes"; then
+AM_PATH_LIBGNUTLS_EXTRA([1.4.1], [have_gnutls_extra=yes],
+				 [have_gnutls_extra=no])
+AM_CONDITIONAL([HAVE_GNUTLS],
+  test "x$have_gnutls" = "xyes" && test "x$have_gnutls_extra" = "xyes")
+if test "x$have_gnutls" = "xyes" && test "x$have_gnutls_extra" = "xyes"; then
    AC_DEFINE([HAVE_GNUTLS], 1, [Tells whether GNUtls is available.])
 fi
 

@@ -235,12 +235,23 @@ chop_file_based_store_open (const chop_file_based_store_class_t *class,
 
 /* Open a remote block store located at HOST on port PORT with protocol
    PROTOCOL.  If PORT is zero, then the remote portmap service is consulted
-   to find out the relevant port number.  PROTOCOL may be either "udp" or
-   "tcp".  On success return 0.  */
+   to find out the relevant port number.  PROTOCOL may be either "udp", "tcp"
+   or "tls/tcp" (TLS over TPC, with anonymous authentication).  On success
+   return 0.  */
 extern errcode_t
 chop_sunrpc_block_store_open (const char *host, unsigned port,
 			      const char *protocol,
 			      chop_block_store_t *store);
+
+/* Open a remote block store using TLS over TPC.  If PUBKEY_FILE and
+   PRIVKEY_FILE are non-null, then they are assumed to contain resp. an
+   OpenPGP public key and an OpenPGP private key which are to be used during
+   the TLS authentication; otherwise, anonymous authentication is used.  */
+extern errcode_t
+chop_sunrpc_tls_block_store_open (const char *host, unsigned port,
+				  const char *pubkey_file,
+				  const char *privkey_file,
+				  chop_block_store_t *store);
 
 /* EXPERIMENTAL!
 

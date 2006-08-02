@@ -14,7 +14,8 @@
 extern "C" {
 #endif
 
-typedef int (* svctls_session_initializer_t) (gnutls_session *, void *);
+typedef int (* svctls_session_initializer_t) (gnutls_session_t *, void *);
+typedef int (* svctls_authorizer_t) (gnutls_session_t, void *);
 
 /* Initialize server-side RPC/TLS code.  */
 extern void svctls_init_if_needed (void);
@@ -29,6 +30,8 @@ extern void clnttls_init_if_needed (void);
    failure, it should return non-zero.  */
 extern SVCXPRT *svctls_create (svctls_session_initializer_t make_session,
 			       void *init_data,
+			       svctls_authorizer_t authorizer,
+			       void *auth_data,
 			       int sock,
 			       u_int sendsize, u_int recvsize);
 

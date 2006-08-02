@@ -87,6 +87,14 @@ static char *protocol_name = "tcp";
 /* Remote host port.  */
 static unsigned long int service_port = 0;
 
+#ifdef HAVE_GNUTLS
+/* OpenPGP key pair for OpenPGP authentication.  */
+static char *tls_openpgp_pubkey_file = NULL;
+static char *tls_openpgp_privkey_file = NULL;
+#define tls_use_openpgp_authentication				\
+  ((tls_openpgp_privkey_file) && (tls_openpgp_pubkey_file))
+#endif
+
 #ifdef HAVE_DBUS
 /* Whether to use D-BUS or SunRPC.  */
 static int use_dbus = 0;
@@ -134,6 +142,14 @@ static struct argp_option options[] =
 #endif
       "\"tcp\" or \"udp\") when communicating with "
       "the remote store" },
+#ifdef HAVE_GNUTLS
+    { "openpgp-pubkey", 'o', "PUBKEY-FILE", 0,
+      "Use PUBKEY-FILE as the OpenPGP key to be used during TLS "
+      "authentication" },
+    { "openpgp-privkey", 'O', "PRIVKEY-FILE", 0,
+      "Use PRIVKEY-FILE as the OpenPGP key to be used during TLS "
+      "authentication" },
+#endif
 #ifdef HAVE_GPERF
     { "store",   'S', "CLASS", 0,
       "Use CLASS as the underlying file-based block store" },
@@ -671,6 +687,15 @@ parse_opt (int key, char *arg, struct argp_state *state)
       protocol_name = arg;
       break;
 
+#ifdef HAVE_GNUTLS
+    case 'o':
+      tls_openpgp_pubkey_file = arg;
+      break;
+    case 'O':
+      tls_openpgp_privkey_file = arg;
+      break;
+#endif
+
 #ifdef HAVE_GPERF
     case 'S':
       file_based_store_class_name = arg;
@@ -748,6 +773,14 @@ main (int argc, char *argv[])
 	      store = (chop_block_store_t *)
 		chop_class_alloca_instance (&chop_sunrpc_block_store_class);
 
+#ifdef HAVE_GNUTLS
+	      if (tls_use_openpgp_authentication)
+		err = chop_sunrpc_tls_block_store_open
+		  (remote_hostname, service_port,
+		   tls_openpgp_pubkey_file, tls_openpgp_privkey_file,
+		   store);
+	      else
+#endif
 	      err = chop_sunrpc_block_store_open (remote_hostname,
 						  service_port,
 						  protocol_name,
