@@ -19,7 +19,7 @@ AC_ARG_ENABLE([guile-bindings],
 AC_PROG_CC
 AC_PROG_LIBTOOL
 
-# `rpcgen' is actually not a strict requirement.
+# `rpcgen' (recommended)
 AC_PATH_PROG([rpcgen], [rpcgen],
   [AC_MSG_ERROR([`rpcgen' not found.  This is normally part of the GNU libc.])])
 AC_SUBST([RPCGEN], [$rpcgen])
@@ -98,8 +98,18 @@ if test "x$have_libqdbm" = "xyes"; then
 else
    AC_MSG_WARN([`libqdbm' not found, won't be used])
 fi
-   
-# DBus.
+
+# GNUtls (recommended).
+AM_PATH_LIBGNUTLS([1.4.1], [have_gnutls=yes], [have_gnutls=no])
+AM_PATH_LIBGNUTLS_EXTRA([1.4.1], [have_gnutls_extra=yes],
+				 [have_gnutls_extra=no])
+AM_CONDITIONAL([HAVE_GNUTLS],
+  test "x$have_gnutls" = "xyes" && test "x$have_gnutls_extra" = "xyes")
+if test "x$have_gnutls" = "xyes" && test "x$have_gnutls_extra" = "xyes"; then
+   AC_DEFINE([HAVE_GNUTLS], 1, [Tells whether GNUtls is available.])
+fi
+
+# DBus (optional and experimental!).
 AC_MSG_CHECKING([whether DBus 1 is available])
 PKG_CHECK_EXISTS([dbus-1], [
    CPPFLAGS="$CPPFLAGS `$PKG_CONFIG dbus-1 --cflags`"

@@ -82,8 +82,12 @@ entry_group_callback (AvahiEntryGroup *g, AvahiEntryGroupState state,
 static void
 create_services (AvahiClient *c)
 {
+  static const char txt_tls_yes[] = "tls=yes";
+  static const char txt_tls_no[] = "tls=no";
+
   int ret;
   const char *hash_name;
+  const char *txt_tls;
   char *txt_hash;
   char *service_type;
 
@@ -141,6 +145,12 @@ create_services (AvahiClient *c)
   strcpy (txt_hash, "hash=");
   strcat (txt_hash, hash_name);
 
+#ifdef HAVE_GNUTLS
+  txt_tls = (use_tls) ? txt_tls_yes : txt_tls_no;
+#else
+  txt_tls = txt_tls_no;
+#endif
+
   /* Add the service.  */
   ret = avahi_entry_group_add_service (group, AVAHI_IF_UNSPEC,
 				       AVAHI_PROTO_UNSPEC, 0, service_name,
@@ -154,6 +164,7 @@ create_services (AvahiClient *c)
 				       "protocol=SunRPC",
 				       "version=" "0" /* RPC interface */,
 				       txt_hash,
+				       txt_tls,
 
 				       NULL);
   if (ret)

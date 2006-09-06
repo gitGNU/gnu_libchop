@@ -22,6 +22,12 @@
 #include <assert.h>
 
 #include <chop/chop-config.h>
+#ifdef HAVE_GNUTLS
+# include <gnutls/gnutls.h>
+# include <gnutls/extra.h>
+
+# include <chop/sunrpc-tls.h>
+#endif
 
 #if (defined HAVE_PTHREAD_H) && (defined HAVE_AVAHI)
 # define USE_AVAHI 1
@@ -42,6 +48,18 @@ static char *local_store_file_name = NULL;
 
 /* The protocol underlying SunRPC: UDP or TCP.  */
 static long protocol_type = IPPROTO_TCP;
+
+#ifdef HAVE_GNUTLS
+/* Whether to use RPC over TLS.  */
+static int use_tls = 0;
+
+/* An OpenPGP key pair for OpenPGP-based authentication.  */
+static char *tls_openpgp_pubkey_file = NULL;
+static char *tls_openpgp_privkey_file = NULL;
+#define tls_use_openpgp_authentication				\
+  ((tls_openpgp_pubkey_file) && (tls_openpgp_privkey_file))
+
+#endif
 
 /* The name of the content hash algorithm enforced (if any).  */
 static chop_hash_method_t content_hash_enforced = CHOP_HASH_NONE;
@@ -208,7 +226,7 @@ handle_write_block (block_store_write_block_args *argp, struct svc_req *req)
 	      chop_buffer_to_hex_string (chop_block_key_buffer (&key),
 					 chop_block_key_size (&key),
 					 hex_key);
-	      info ("key %s: collising detected (and rejected)", hex_key);
+	      info ("key %s: collision detected (and rejected)", hex_key);
 	      result = -3;
 	    }
 	  else
@@ -392,6 +410,134 @@ listen_there (const char *address, unsigned port, int socket_type)
   return -1;
 }
 
+
+
+#ifdef HAVE_GNUTLS
+
+/* TLS static parameters (i.e., re-used accross connections).  */
+
+/* Anonymous authentication.  */
+static gnutls_anon_server_credentials_t server_anoncred;
+static gnutls_dh_params_t               server_dh_params;
+#define DH_BITS 1024
+
+/* OpenPGP authentication.  */
+static gnutls_certificate_credentials_t server_certcred;
+static gnutls_rsa_params_t              server_rsa_params;
+
+static int
+make_tls_session (gnutls_session *session, void *closure)
+{
+  /* We pretty much always want message authentication.  */
+  static const int mac_prio[] =
+    { GNUTLS_MAC_SHA1, GNUTLS_MAC_RMD160, GNUTLS_MAC_MD5, 0 };
+
+  /* Often, we won't need encryption at all because the data being stored is
+     already encrypted.  However, there is no anonymous authentication
+     ciphersuite that supports `NULL' encryption.  */
+  static const int cipher_prio[] =
+    { GNUTLS_CIPHER_NULL, GNUTLS_CIPHER_ARCFOUR_128,
+      GNUTLS_CIPHER_AES_128_CBC, GNUTLS_CIPHER_AES_256_CBC, 0 };
+
+  /* Likewise, we will rarely need compression.  */
+  static const int compression_prio[] =
+    { GNUTLS_COMP_NULL, GNUTLS_COMP_DEFLATE, 0 };
+
+  int err;
+
+  info ("preparing new TLS session for incoming connection");
+  err = gnutls_init (session, GNUTLS_SERVER);
+  if (err)
+    return -1;
+
+  gnutls_set_default_priority (*session);
+
+  if (tls_use_openpgp_authentication)
+    {
+      /* OpenPGP authentication.  */
+      static const int kx_prio[] =
+	{ GNUTLS_KX_RSA, GNUTLS_KX_RSA_EXPORT, GNUTLS_KX_DHE_RSA, 0 };
+
+      gnutls_certificate_set_dh_params (server_certcred, server_dh_params);
+      gnutls_certificate_set_rsa_export_params (server_certcred,
+						server_rsa_params);
+      gnutls_credentials_set (*session, GNUTLS_CRD_CERTIFICATE,
+			      server_certcred);
+
+      gnutls_kx_set_priority (*session, kx_prio);
+    }
+  else
+    {
+      /* Anonymous authentication.  */
+      static const int kx_prio[] = { GNUTLS_KX_ANON_DH, 0 };
+
+      gnutls_credentials_set (*session, GNUTLS_CRD_ANON, server_anoncred);
+      gnutls_kx_set_priority (*session, kx_prio);
+    }
+
+  gnutls_mac_set_priority (*session, mac_prio);
+  gnutls_cipher_set_priority (*session, cipher_prio);
+  gnutls_compression_set_priority (*session, compression_prio);
+
+  gnutls_dh_set_prime_bits (*session, DH_BITS);
+
+  return 0;
+}
+
+static void
+initialize_tls_parameters (void)
+{
+  /* Generate Diffie Hellman parameters - for use with DHE kx
+     algorithms. These should be discarded and regenerated once a day, once a
+     week or once a month. Depending on the security requirements.  */
+  gnutls_dh_params_init (&server_dh_params);
+  gnutls_dh_params_generate2 (server_dh_params, DH_BITS);
+
+  gnutls_anon_allocate_server_credentials (&server_anoncred);
+  gnutls_anon_set_server_dh_params (server_anoncred, server_dh_params);
+
+  if (tls_use_openpgp_authentication)
+    {
+      int err;
+
+      err = gnutls_global_init_extra ();
+      if (err)
+	{
+	  info ("failed to initialize GNUtls extra: %s",
+		gnutls_strerror (err));
+	  exit (1);
+	}
+
+      err = gnutls_certificate_allocate_credentials (&server_certcred);
+      if (err)
+	{
+	  info ("failed to allocate certificate credentials: %s",
+		gnutls_strerror (err));
+	  exit (1);
+	}
+
+      err = gnutls_certificate_set_openpgp_key_file (server_certcred,
+						     tls_openpgp_pubkey_file,
+						     tls_openpgp_privkey_file);
+      if (err)
+	{
+	  info ("failed to use OpenPGP key pair: %s", gnutls_strerror (err));
+	  exit (1);
+	}
+
+      gnutls_rsa_params_init (&server_rsa_params);
+      gnutls_rsa_params_generate2 (server_rsa_params, DH_BITS);
+
+      info ("using TLS OpenPGP authentication");
+    }
+  else
+    info ("using TLS anonymous authentication");
+
+}
+
+#endif /* HAVE_GNUTLS */
+
+
 static SVCXPRT *
 register_rpc_handlers (void)
 {
@@ -427,6 +573,18 @@ register_rpc_handlers (void)
 
 /*   pmap_unset (BLOCK_STORE_PROGRAM, BLOCK_STORE_VERSION); */
 
+#ifdef HAVE_GNUTLS
+  if (use_tls)
+    {
+      svctls_init_if_needed ();
+
+      initialize_tls_parameters ();
+      transp = svctls_create (make_tls_session, NULL,
+			      NULL, NULL,
+			      listening_sock, 0, 0);
+    }
+  else
+#endif
   if (proto == IPPROTO_TCP)
     transp = svctcp_create (listening_sock, 0, 0);
   else
@@ -517,6 +675,14 @@ static struct argp_option options[] =
       "Run the service on port PORT" },
     { "address", 'a', "ADDRESS", 0,
       "Bind to the address (and port) specified by ADDRESS" },
+#ifdef HAVE_GNUTLS
+    { "tls", 't', 0, 0,
+      "Use RPCs over TLS (recommended)" },
+    { "openpgp-pubkey", 'o', "PUBKEY-FILE", 0,
+      "Use the OpenPGP public key from PUBKEY-FILE for authentication." },
+    { "openpgp-privkey", 'O', "PRIVKEY-FILE", 0,
+      "Use the OpenPGP private key from PRIVKEY-FILE for authentication." },
+#endif
 
     { 0, 0, 0, 0, 0 }
   };
@@ -554,6 +720,18 @@ parse_opt (int key, char *arg, struct argp_state *state)
 	}
 
       break;
+
+#ifdef HAVE_GNUTLS
+    case 't':
+      use_tls = 1;
+      break;
+    case 'o':
+      use_tls = 1, tls_openpgp_pubkey_file = arg;
+      break;
+    case 'O':
+      use_tls = 1, tls_openpgp_privkey_file = arg;
+      break;
+#endif
 
     case 'a':
       binding_address = arg;
@@ -736,6 +914,7 @@ main (int argc, char *argv[])
 #endif
 
   /* Go ahead.  */
+  info ("server is up and running");
   svc_run ();
 
   /* Never reached.  */

@@ -87,6 +87,14 @@ static char *protocol_name = "tcp";
 /* Remote host port.  */
 static unsigned long int service_port = 0;
 
+#ifdef HAVE_GNUTLS
+/* OpenPGP key pair for OpenPGP authentication.  */
+static char *tls_openpgp_pubkey_file = NULL;
+static char *tls_openpgp_privkey_file = NULL;
+#define tls_use_openpgp_authentication				\
+  ((tls_openpgp_privkey_file) && (tls_openpgp_pubkey_file))
+#endif
+
 #ifdef HAVE_DBUS
 /* Whether to use D-BUS or SunRPC.  */
 static int use_dbus = 0;
@@ -96,6 +104,8 @@ static int use_dbus = 0;
 #ifdef HAVE_GPERF
 static char *file_based_store_class_name = "gdbm_block_store";
 static char *chopper_class_name = "fixed_size_chopper";
+static char *indexer_class_name = "tree_indexer";
+static char *indexer_ascii = "64"; /* 100 keys per block */
 static char *block_indexer_class_name = "hash_block_indexer";
 static char *block_indexer_ascii = "SHA1";
 #endif
@@ -126,13 +136,29 @@ static struct argp_option options[] =
       "data and meta-data blocks; HOST may contain `:' followed by a port "
       "number" },
     { "protocol", 'p', "PROTO", 0,
-      "Use PROTO (either \"tcp\" or \"udp\") when communicating with "
+      "Use PROTO (one of "
+#ifdef HAVE_GNUTLS
+      "\"tls/tcp\", "
+#endif
+      "\"tcp\" or \"udp\") when communicating with "
       "the remote store" },
+#ifdef HAVE_GNUTLS
+    { "openpgp-pubkey", 'o', "PUBKEY-FILE", 0,
+      "Use PUBKEY-FILE as the OpenPGP key to be used during TLS "
+      "authentication" },
+    { "openpgp-privkey", 'O', "PRIVKEY-FILE", 0,
+      "Use PRIVKEY-FILE as the OpenPGP key to be used during TLS "
+      "authentication" },
+#endif
 #ifdef HAVE_GPERF
     { "store",   'S', "CLASS", 0,
       "Use CLASS as the underlying file-based block store" },
     { "chopper", 'C', "CHOPPER", 0,
       "Use CHOPPER as the input stream chopper" },
+    { "indexer-class", 'k', "I-CLASS", 0,
+      "Use I-CLASS as the indexer class.  This implies `-K'." },
+    { "indexer", 'K', "I", 0,
+      "Deserialize I as an instance of I-CLASS and use it." },
     { "block-indexer-class", 'i', "BI-CLASS", 0,
       "Use BI-CLASS as the block-indexer class.  This implies `-I'." },
     { "block-indexer", 'I', "BI", 0,
@@ -237,7 +263,7 @@ do_archive (chop_stream_t *stream, chop_block_store_t *data_store,
   if (err)
     exit (12);
 
-  err = chop_ascii_serialize_index_tuple (handle, block_indexer,
+  err = chop_ascii_serialize_index_tuple (handle, indexer, block_indexer,
 					  &buffer);
   if (err)
     {
@@ -267,9 +293,10 @@ do_archive (chop_stream_t *stream, chop_block_store_t *data_store,
 /* Retrieve data pointed to by HANDLE from DATA_STORE and METADATA_STORE
    using INDEXER and display it.  */
 errcode_t
-do_retrieve (chop_index_handle_t *handle, chop_block_fetcher_t *fetcher,
+do_retrieve (chop_index_handle_t *handle,
+	     chop_indexer_t *indexer, chop_block_fetcher_t *fetcher,
 	     chop_block_store_t *data_store,
-	     chop_block_store_t *metadata_store, chop_indexer_t *indexer)
+	     chop_block_store_t *metadata_store)
 {
   errcode_t err;
   chop_stream_t *stream;
@@ -333,15 +360,25 @@ do_retrieve (chop_index_handle_t *handle, chop_block_fetcher_t *fetcher,
   return 0;
 }
 
+static void
+log_indexer (chop_indexer_t *indexer)
+{
+  chop_log_t *indexer_log = NULL;
+
+  indexer_log = chop_tree_indexer_log (indexer);
+  if (indexer_log)
+    /* Attach the indexer log to stderr.  */
+    chop_log_attach (indexer_log, 2, 0);
+}
+
 static errcode_t
 process_command (const char *argument,
 		 chop_block_store_t *data_store,
-		 chop_block_store_t *metadata_store,
-		 chop_indexer_t *indexer,
-		 chop_log_t *indexer_log)
+		 chop_block_store_t *metadata_store)
 {
   errcode_t err;
   chop_block_store_t *data_proxy, *metadata_proxy;
+  chop_indexer_t *indexer;
 
   if (verbose)
     {
@@ -353,9 +390,6 @@ process_command (const char *argument,
       chop_dummy_proxy_block_store_open ("data", data_store, data_proxy);
       chop_dummy_proxy_block_store_open ("meta-data", metadata_store,
 					 metadata_proxy);
-
-      /* Attach the indexer log to stderr.  */
-      chop_log_attach (indexer_log, 2, 0);
     }
   else
     data_proxy = metadata_proxy = NULL;
@@ -365,8 +399,10 @@ process_command (const char *argument,
   if (archive_queried)
     {
       chop_stream_t *stream;
+      const chop_class_t *indexer_class;
       chop_chopper_class_t *chopper_class;
       chop_chopper_t *chopper;
+      size_t bytes_read;
 
       stream = chop_class_alloca_instance (&chop_file_stream_class);
       err = chop_file_stream_open (argument, stream);
@@ -405,6 +441,40 @@ process_command (const char *argument,
 	}
 
 #ifdef HAVE_GPERF
+      indexer_class = chop_class_lookup (indexer_class_name);
+      if (!indexer_class)
+	{
+	  fprintf (stderr, "%s: class `%s' not found\n",
+		   program_name, indexer_class_name);
+	  exit (1);
+	}
+
+      if (!chop_class_inherits (indexer_class, &chop_indexer_class))
+	{
+	  fprintf (stderr, "%s: class `%s' is not an indexer class\n",
+		   program_name, indexer_class_name);
+	  exit (1);
+	}
+#else
+      indexer_class = &chop_tree_indexer_class;
+#endif
+
+      indexer = chop_class_alloca_instance (indexer_class);
+      err = chop_object_deserialize ((chop_object_t *)indexer,
+				     indexer_class, CHOP_SERIAL_ASCII,
+				     indexer_ascii, strlen (indexer_ascii),
+				     &bytes_read);
+      if (err)
+	{
+	  com_err (program_name, err, "while deserializing `%s' instance",
+		   indexer_class_name);
+	  exit (1);
+	}
+
+      if (verbose)
+	log_indexer (indexer);
+
+#ifdef HAVE_GPERF
       chopper_class =
 	(chop_chopper_class_t *)chop_class_lookup (chopper_class_name);
       if (!chopper_class)
@@ -440,17 +510,20 @@ process_command (const char *argument,
 			chopper, indexer);
 
       chop_object_destroy ((chop_object_t *)stream);
-      chop_chopper_close (chopper);
+      chop_object_destroy ((chop_object_t *)indexer);
+      chop_object_destroy ((chop_object_t *)chopper);
     }
   else if (restore_queried)
     {
       size_t arg_len, bytes_read;
+      chop_indexer_t *indexer;
       chop_index_handle_t *handle;
       chop_block_fetcher_t *fetcher;
-      const chop_class_t *fetcher_class, *handle_class;
+      const chop_class_t *indexer_class, *fetcher_class, *handle_class;
 
       arg_len = strlen (argument) + 1;
       err = chop_ascii_deserialize_index_tuple_s1 (argument, arg_len,
+						   &indexer_class,
 						   &fetcher_class,
 						   &handle_class,
 						   &bytes_read);
@@ -461,14 +534,16 @@ process_command (const char *argument,
 	  return err;
 	}
 
+      indexer = chop_class_alloca_instance (indexer_class);
       fetcher = chop_class_alloca_instance (fetcher_class);
       handle = chop_class_alloca_instance (handle_class);
 
       err = chop_ascii_deserialize_index_tuple_s2 (argument + bytes_read,
 						   arg_len - bytes_read,
+						   indexer_class,
 						   fetcher_class,
 						   handle_class,
-						   fetcher, handle,
+						   indexer, fetcher, handle,
 						   &bytes_read);
       if (err)
 	{
@@ -483,13 +558,16 @@ process_command (const char *argument,
 
 	  if (fetcher_log)
 	    chop_log_attach (fetcher_log, 2, 0);
+
+	  log_indexer (indexer);
 	}
 
-      err = do_retrieve (handle, fetcher,
-			 THE_STORE (data), THE_STORE (metadata), indexer);
+      err = do_retrieve (handle, indexer, fetcher,
+			 THE_STORE (data), THE_STORE (metadata));
 
       chop_object_destroy ((chop_object_t *)handle);
       chop_object_destroy ((chop_object_t *)fetcher);
+      chop_object_destroy ((chop_object_t *)indexer);
     }
 #undef THE_STORE
   else
@@ -609,12 +687,27 @@ parse_opt (int key, char *arg, struct argp_state *state)
       protocol_name = arg;
       break;
 
+#ifdef HAVE_GNUTLS
+    case 'o':
+      tls_openpgp_pubkey_file = arg;
+      break;
+    case 'O':
+      tls_openpgp_privkey_file = arg;
+      break;
+#endif
+
 #ifdef HAVE_GPERF
     case 'S':
       file_based_store_class_name = arg;
       break;
     case 'C':
       chopper_class_name = arg;
+      break;
+    case 'k':
+      indexer_class_name = arg;
+      break;
+    case 'K':
+      indexer_ascii = arg;
       break;
     case 'i':
       block_indexer_class_name = arg;
@@ -644,7 +737,6 @@ main (int argc, char *argv[])
 {
   errcode_t err;
   chop_block_store_t *store, *metastore;
-  chop_indexer_t *indexer;
   chop_filter_t *input_filter = NULL, *output_filter = NULL;
   chop_cipher_handle_t cipher_handle = CHOP_CIPHER_HANDLE_NIL;
 
@@ -658,15 +750,6 @@ main (int argc, char *argv[])
     {
       com_err (argv[0], err, "while initializing libchop");
       return 1;
-    }
-
-  indexer = chop_class_alloca_instance (&chop_tree_indexer_class);
-  err = chop_tree_indexer_open (100 /* keys per block */,
-				indexer);
-  if (err)
-    {
-      com_err (program_name, err, "failed to open tree-hash indexer");
-      exit (2);
     }
 
   if (!debugging)
@@ -690,6 +773,14 @@ main (int argc, char *argv[])
 	      store = (chop_block_store_t *)
 		chop_class_alloca_instance (&chop_sunrpc_block_store_class);
 
+#ifdef HAVE_GNUTLS
+	      if (tls_use_openpgp_authentication)
+		err = chop_sunrpc_tls_block_store_open
+		  (remote_hostname, service_port,
+		   tls_openpgp_pubkey_file, tls_openpgp_privkey_file,
+		   store);
+	      else
+#endif
 	      err = chop_sunrpc_block_store_open (remote_hostname,
 						  service_port,
 						  protocol_name,
@@ -699,7 +790,7 @@ main (int argc, char *argv[])
 	  if (err)
 	    {
 	      com_err (program_name, err,
-		       "failed to open remote block store");
+		       "while opening remote block store");
 	      exit (3);
 	    }
 
@@ -829,7 +920,8 @@ main (int argc, char *argv[])
       raw_metastore = metastore;
 
       store = chop_class_alloca_instance (&chop_stat_block_store_class);
-      err = chop_stat_block_store_open ("data-store", raw_store, 1,
+      err = chop_stat_block_store_open ("data-store", raw_store,
+					CHOP_PROXY_EVENTUALLY_DESTROY,
 					store);
       if (!err)
 	{
@@ -837,7 +929,8 @@ main (int argc, char *argv[])
 	    chop_class_alloca_instance (&chop_stat_block_store_class);
 	  err = chop_stat_block_store_open ("meta-data-store", raw_metastore,
 					    (raw_store != raw_metastore)
-					    ? 1 : 0,
+					    ? CHOP_PROXY_EVENTUALLY_DESTROY
+					    : CHOP_PROXY_LEAVE_AS_IS,
 					    metastore);
 	}
 
@@ -849,8 +942,7 @@ main (int argc, char *argv[])
     }
 
   /* */
-  err = process_command (option_argument, store, metastore,
-			 indexer, chop_tree_indexer_log (indexer));
+  err = process_command (option_argument, store, metastore);
 
   if ((archive_queried) && (show_stats))
     {
@@ -877,13 +969,12 @@ main (int argc, char *argv[])
 	  chop_block_store_stats_display (stats, &log);
 	}
 
-      chop_log_close (&log);
+      chop_object_destroy ((chop_object_t *)&log);
     }
 
 
   /* Destroy everything.  */
 
-  chop_object_destroy ((chop_object_t *)indexer);
   if (cipher_handle != CHOP_CIPHER_HANDLE_NIL)
     chop_cipher_close (cipher_handle);
   if (input_filter)
@@ -897,6 +988,7 @@ main (int argc, char *argv[])
       com_err (argv[0], err, "while closing output block store");
       exit (7);
     }
+  chop_object_destroy ((chop_object_t *)store);
 
   if (store != metastore)
     {
@@ -906,6 +998,7 @@ main (int argc, char *argv[])
 	  com_err (argv[0], err, "while closing output meta-data block store");
 	  exit (7);
 	}
+      chop_object_destroy ((chop_object_t *)metastore);
     }
 
   return 0;

@@ -74,7 +74,7 @@ ZIP_PULL_METHOD (chop_filter_t *filter, int flush,
 		 char *buffer, size_t size, size_t *pulled)
 {
   int zret = ZIP_OK;
-  errcode_t err;
+  errcode_t err = 0;
   ZIP_FILTER_TYPE *zfilter;
 
   zfilter = (ZIP_FILTER_TYPE *)filter;
@@ -124,7 +124,8 @@ ZIP_PULL_METHOD (chop_filter_t *filter, int flush,
 	{
 	  /* This only makes sense when decompressing a stream.  */
 	  chop_log_printf (&filter->log, "pull: input stream corrupted");
-	  return CHOP_FILTER_ERROR;
+	  err = CHOP_FILTER_ERROR;
+	  break;
 	}
 
       *pulled = size - zfilter->zstream.avail_out;
@@ -152,12 +153,18 @@ ZIP_PULL_METHOD (chop_filter_t *filter, int flush,
 	}
 
       if (ZIP_CANT_PRODUCE_MORE (&zfilter->zstream, zret))
-	/* BUFFER is not filled yet but producing more output would require a
-	   larger buffer.  This can happen when compressing a file.  */
-	return 0;
+	{
+	  /* BUFFER is not filled yet but producing more output would require
+	     a larger buffer.  This can happen when compressing a file.  */
+	  err = 0;
+	  break;
+	}
     }
 
-  return (*pulled ? 0 : err);
+  if (err == CHOP_FILTER_EMPTY)
+    return (*pulled ? 0 : err);
+
+  return err;
 }
 
 #undef ZIP_PUSH_METHOD

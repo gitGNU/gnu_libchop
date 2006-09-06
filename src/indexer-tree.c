@@ -38,11 +38,26 @@ CHOP_DECLARE_RT_CLASS (tree_indexer, indexer,
 		       /* Hash method and message digest size (in bytes) */
 		       size_t             indexes_per_block;
 
-		       /* Cipher handle */
-		       chop_cipher_handle_t cipher_handle;
-
 		       /* For debugging purposes */
 		       chop_log_t         log;);
+
+static errcode_t
+chop_tree_index_blocks (chop_indexer_t *indexer,
+			chop_chopper_t *input,
+			chop_block_indexer_t *block_indexer,
+			chop_block_store_t *output,
+			chop_block_store_t *metadata,
+			chop_index_handle_t *handle);
+
+static errcode_t
+chop_tree_fetch_stream (struct chop_indexer *,
+			const chop_index_handle_t *,
+			chop_block_fetcher_t *,
+			chop_block_store_t *,
+			chop_block_store_t *,
+			chop_stream_t *);
+
+extern const chop_class_t chop_tree_stream_class;
 
 static errcode_t
 iht_ctor (chop_object_t *object, const chop_class_t *class)
@@ -50,8 +65,11 @@ iht_ctor (chop_object_t *object, const chop_class_t *class)
   chop_tree_indexer_t *htree;
 
   htree = (chop_tree_indexer_t *)object;
+  htree->indexer.index_blocks = chop_tree_index_blocks;
+  htree->indexer.fetch_stream = chop_tree_fetch_stream;
+  htree->indexer.stream_class = &chop_tree_stream_class;
+
   htree->indexes_per_block = 0;
-  htree->cipher_handle = CHOP_CIPHER_HANDLE_NIL;
 
   return chop_log_init ("hash-tree-indexer", &htree->log);
 }
@@ -63,14 +81,76 @@ iht_dtor (chop_object_t *object)
 
   htree = (chop_tree_indexer_t *)object;
   htree->indexes_per_block = 0;
-  htree->cipher_handle = CHOP_CIPHER_HANDLE_NIL;
   chop_object_destroy ((chop_object_t *)&htree->log);
+}
+
+static errcode_t
+iht_serialize (const chop_object_t *object, chop_serial_method_t method,
+	       chop_buffer_t *buffer)
+{
+  errcode_t err = 0;
+  chop_tree_indexer_t *ti = (chop_tree_indexer_t *)object;
+
+  switch (method)
+    {
+    case CHOP_SERIAL_ASCII:
+      {
+	char buf[50];
+
+	snprintf (buf, sizeof (buf), "%x", ti->indexes_per_block);
+	err = chop_buffer_push (buffer, buf, strlen (buf) + 1);
+
+	break;
+      }
+
+    default:
+      err = CHOP_ERR_NOT_IMPL;
+    }
+
+  return 0;
+}
+
+static errcode_t
+iht_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
+		 chop_object_t *object, size_t *bytes_read)
+{
+  errcode_t err;
+  chop_tree_indexer_t *ti = (chop_tree_indexer_t *)object;
+
+  switch (method)
+    {
+    case CHOP_SERIAL_ASCII:
+      {
+	char *end;
+	unsigned long int indices_per_block;
+
+	indices_per_block = strtoul (buffer, &end, 16);
+	if (end == buffer)
+	  return CHOP_DESERIAL_CORRUPT_INPUT;
+
+	err = chop_object_initialize ((chop_object_t *)ti,
+				      &chop_tree_indexer_class);
+	if (err)
+	  return err;
+
+	ti->indexes_per_block = indices_per_block;
+	*bytes_read = end - buffer;
+
+	break;
+      }
+
+    default:
+      *bytes_read = 0;
+      return CHOP_ERR_NOT_IMPL;
+    }
+
+  return 0;
 }
 
 CHOP_DEFINE_RT_CLASS (tree_indexer, indexer,
 		      iht_ctor, iht_dtor,
 		      NULL, NULL, /* No copy/equalp */
-		      NULL, NULL  /* No serializer/deserializer */);
+		      iht_serialize, iht_deserialize);
 
 
 
@@ -459,22 +539,6 @@ chop_block_tree_free (key_block_tree_t *tree)
 /* Implementation of the indexer interface.  */
 
 
-static errcode_t
-chop_tree_index_blocks (chop_indexer_t *indexer,
-			     chop_chopper_t *input,
-			     chop_block_indexer_t *block_indexer,
-			     chop_block_store_t *output,
-			     chop_block_store_t *metadata,
-			     chop_index_handle_t *handle);
-
-static errcode_t
-chop_tree_fetch_stream (struct chop_indexer *,
-			     const chop_index_handle_t *,
-			     chop_block_fetcher_t *,
-			     chop_block_store_t *,
-			     chop_block_store_t *,
-			     chop_stream_t *);
-
 static errcode_t tree_stream_read (chop_stream_t *, char *,
 					size_t, size_t *);
 
@@ -487,16 +551,15 @@ errcode_t
 chop_tree_indexer_open (size_t indexes_per_block,
 			chop_indexer_t *indexer)
 {
+  errcode_t err;
   chop_tree_indexer_t *htree;
 
-  chop_object_initialize ((chop_object_t *)indexer,
-			  &chop_tree_indexer_class);
+  err = chop_object_initialize ((chop_object_t *)indexer,
+				&chop_tree_indexer_class);
+  if (err)
+    return err;
 
   htree = (chop_tree_indexer_t *)indexer;
-
-  htree->indexer.index_blocks = chop_tree_index_blocks;
-  htree->indexer.fetch_stream = chop_tree_fetch_stream;
-  htree->indexer.stream_class = &chop_tree_stream_class;
 
   htree->indexes_per_block = indexes_per_block;
 
@@ -794,6 +857,12 @@ chop_decoded_block_decode_header (decoded_block_t *block)
   const unsigned char *buffer =
     (unsigned char *)chop_buffer_content (&block->buffer);
   assert (block->is_key_block);
+
+  if (chop_buffer_size (&block->buffer) < KEY_BLOCK_HEADER_SIZE)
+    {
+      chop_log_printf (block->log, "meta-data block is too small");
+      return CHOP_INDEXER_ERROR;
+    }
 
   magic[0] = *(buffer++);
   magic[1] = *(buffer++);

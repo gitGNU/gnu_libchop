@@ -51,7 +51,10 @@ chop_stat_block_store_stats_alloc (chop_block_store_t *store)
   err = chop_object_copy ((const chop_object_t *)stats,
 			  (chop_object_t *)result);
   if (err)
-    return NULL;
+    {
+      free (result);
+      return NULL;
+    }
 
   return result;
 }
