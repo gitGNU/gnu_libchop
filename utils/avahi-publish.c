@@ -35,7 +35,9 @@ static void
 entry_group_callback (AvahiEntryGroup *g, AvahiEntryGroupState state,
 		      void *userdata)
 {
-  assert (g == group);
+  /* The callback may be called before GROUP is set.  */
+  if (group != NULL)
+    assert (g == group);
 
   /* Called whenever the entry group state changes */
 
@@ -82,7 +84,9 @@ entry_group_callback (AvahiEntryGroup *g, AvahiEntryGroupState state,
 static void
 create_services (AvahiClient *c)
 {
+#ifdef HAVE_GNUTLS
   static const char txt_tls_yes[] = "tls=yes";
+#endif
   static const char txt_tls_no[] = "tls=no";
 
   int ret;
