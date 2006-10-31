@@ -11,9 +11,16 @@ AM_CPPFLAGS = -I../include
 AM_CFLAGS = -O0 -g -Wall -fno-strict-aliasing
 
 AM_CPPFLAGS += -I$(srcdir)/src
-LDADD = -L../src -lchop
+LDADD = -L$(top_builddir)/src -lchop
 chop_block_server_LDADD = -lchop-block-server -lchop $(AVAHI_LIBS) $(LDADD)
 chop_block_server_CPPFLAGS = $(AM_CPPFLAGS) $(AVAHI_CPPFLAGS)
+
+if HAVE_GNUTLS
+bin_PROGRAMS += chop-openpgp-tool
+
+chop_openpgp_tool_LDADD = $(LIBGNUTLS_LIBS) $(LIBGNUTLS_EXTRA_LIBS) \
+			  -L$(top_builddir)/src -lchop
+endif
 
 if HAVE_DBUS
 # The experimental D-BUS-based block server.
