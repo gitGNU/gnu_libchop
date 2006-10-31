@@ -53,6 +53,28 @@
 /* The awful hack.  */
 static int gnutls_initialized = 0;
 
+
+
+#ifdef DEBUG_TLS
+extern int _gnutls_log_level;
+extern void (* _gnutls_log_func) (int, const char *);
+
+static void
+log_gnutls (int level, const char *str)
+{
+  fprintf (stderr, "gnutls(%i): %s\n", level, str);
+}
+
+# define ENABLE_GNUTLS_LOGGING()		\
+        _gnutls_log_level = 3;			\
+        _gnutls_log_func = log_gnutls;
+
+#else /* !DEBUG_TLS */
+
+# define ENABLE_GNUTLS_LOGGING()     do { } while (0)
+
+#endif /* !DEBUG_TLS */
+
 #define ENSURE_GNUTLS_INITIALIZED()		\
 do						\
   {						\
@@ -60,6 +82,7 @@ do						\
       {						\
 	gnutls_initialized = 1;			\
 	gnutls_global_init ();			\
+        ENABLE_GNUTLS_LOGGING ();		\
       }						\
   }						\
 while (0)
@@ -170,6 +193,10 @@ svctls_create (svctls_session_initializer_t initializer, void *init_data,
 
   ENSURE_GNUTLS_INITIALIZED ();
 
+  if (sock == RPC_ANYSOCK)
+    /* FIXME: Handle this.  */
+    abort ();
+
   xprt = (SVCXPRT *) malloc (sizeof (SVCXPRT));
   r = (struct tcp_rendezvous *) malloc (sizeof (*r));
   if ((r == NULL) || (xprt == NULL))
@@ -196,6 +223,8 @@ svctls_create (svctls_session_initializer_t initializer, void *init_data,
   xprt->xp_ops = &svctls_rendezvous_op;
   xprt->xp_port = 0; /* unknown */
   xprt->xp_sock = sock;
+  xprt->xp_addrlen = 0;
+  memset (&xprt->xp_raddr, 0, sizeof (xprt->xp_raddr));
   xprt_register (xprt);
 
   return xprt;
@@ -257,10 +286,11 @@ makefd_xprt (svctls_session_initializer_t initializer, void *init_data,
   xprt->xp_p2 = (caddr_t) SVCTLS_TYPE_CONNECTION;
   xprt->xp_p1 = (caddr_t) cd;
   xprt->xp_verf.oa_base = cd->verf_body;
-  xprt->xp_addrlen = 0;
   xprt->xp_ops = &svctls_op;	/* truly deals with calls */
   xprt->xp_port = 0;		/* this is a connection, not a rendezvouser */
   xprt->xp_sock = fd;
+  xprt->xp_addrlen = 0;
+  memset (&xprt->xp_raddr, 0, sizeof (xprt->xp_raddr));
   xprt_register (xprt);
 
   return xprt;
