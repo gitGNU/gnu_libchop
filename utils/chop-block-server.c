@@ -455,16 +455,21 @@ make_tls_session (gnutls_session *session, void *closure)
   if (tls_use_openpgp_authentication)
     {
       /* OpenPGP authentication.  */
+      static const int cert_type_priority[2] = { GNUTLS_CRT_OPENPGP, 0 };
       static const int kx_prio[] =
-	{ GNUTLS_KX_RSA, GNUTLS_KX_RSA_EXPORT, GNUTLS_KX_DHE_RSA, 0 };
+	{ GNUTLS_KX_RSA, GNUTLS_KX_RSA_EXPORT, GNUTLS_KX_DHE_RSA,
+	  GNUTLS_KX_DHE_DSS, 0 };
 
-      gnutls_certificate_set_dh_params (server_certcred, server_dh_params);
-      gnutls_certificate_set_rsa_export_params (server_certcred,
-						server_rsa_params);
+      /* Require OpenPGP authentication.  */
+      gnutls_certificate_type_set_priority (*session, cert_type_priority);
+
       gnutls_credentials_set (*session, GNUTLS_CRD_CERTIFICATE,
 			      server_certcred);
 
       gnutls_kx_set_priority (*session, kx_prio);
+
+      /* Request client certificate if any.  */
+      gnutls_certificate_server_set_request (*session, GNUTLS_CERT_REQUEST);
     }
   else
     {
@@ -475,8 +480,8 @@ make_tls_session (gnutls_session *session, void *closure)
       gnutls_kx_set_priority (*session, kx_prio);
     }
 
-  gnutls_mac_set_priority (*session, mac_prio);
-  gnutls_cipher_set_priority (*session, cipher_prio);
+/*   gnutls_mac_set_priority (*session, mac_prio); */
+/*   gnutls_cipher_set_priority (*session, cipher_prio); */
   gnutls_compression_set_priority (*session, compression_prio);
 
   gnutls_dh_set_prime_bits (*session, DH_BITS);
@@ -487,6 +492,9 @@ make_tls_session (gnutls_session *session, void *closure)
 static void
 initialize_tls_parameters (void)
 {
+  info ("initializing TLS key exchange parameters "
+	"(this may take a while)...");
+
   /* Generate Diffie Hellman parameters - for use with DHE kx
      algorithms. These should be discarded and regenerated once a day, once a
      week or once a month. Depending on the security requirements.  */
@@ -526,7 +534,17 @@ initialize_tls_parameters (void)
 	}
 
       gnutls_rsa_params_init (&server_rsa_params);
-      gnutls_rsa_params_generate2 (server_rsa_params, DH_BITS);
+      err = gnutls_rsa_params_generate2 (server_rsa_params, DH_BITS);
+      if (err)
+	{
+	  info ("failed to generate RSA parameters: %s",
+		gnutls_strerror (err));
+	  exit (1);
+	}
+
+      gnutls_certificate_set_dh_params (server_certcred, server_dh_params);
+      gnutls_certificate_set_rsa_export_params (server_certcred,
+						server_rsa_params);
 
       info ("using TLS OpenPGP authentication");
     }

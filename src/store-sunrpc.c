@@ -194,8 +194,10 @@ create_tls_session (gnutls_session_t *session, int endpoint,
   if (pubkey_file && privkey_file)
     {
       /* OpenPGP authentication.  */
+      static const int cert_type_priority[2] = { GNUTLS_CRT_OPENPGP, 0 };
       static const int kx_prio[] =
-	{ GNUTLS_KX_RSA, GNUTLS_KX_RSA_EXPORT, GNUTLS_KX_DHE_RSA, 0 };
+	{ GNUTLS_KX_RSA, GNUTLS_KX_RSA_EXPORT, GNUTLS_KX_DHE_RSA,
+	  GNUTLS_KX_DHE_DSS, 0 };
 
       gnutls_certificate_credentials_t certcred;
       gnutls_rsa_params_t rsa_params;
@@ -207,6 +209,9 @@ create_tls_session (gnutls_session_t *session, int endpoint,
       err = gnutls_certificate_allocate_credentials (&certcred);
       if (err)
 	goto failed;
+
+      /* Require OpenPGP authentication.  */
+      gnutls_certificate_type_set_priority (*session, cert_type_priority);
 
       gnutls_rsa_params_init (&rsa_params);
       gnutls_rsa_params_generate2 (rsa_params, 1024);
