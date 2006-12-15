@@ -13,6 +13,12 @@ AM_CFLAGS = -O0 -g -Wall -fno-strict-aliasing
 AM_CPPFLAGS += -I$(srcdir)/src
 LDADD = -L$(top_builddir)/src -lchop
 
+
+chop_archiver_SOURCES = chop-archiver.c
+if HAVE_GNUTLS
+chop_archiver_SOURCES += gnutls-helper.c
+endif
+
 chop_block_server_SOURCES = chop-block-server.c
 if HAVE_GNUTLS
 chop_block_server_SOURCES += gnutls-helper.c
