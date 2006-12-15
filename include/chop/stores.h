@@ -246,12 +246,18 @@ chop_sunrpc_block_store_open (const char *host, unsigned port,
 /* Open a remote block store using TLS over TPC.  If PUBKEY_FILE and
    PRIVKEY_FILE are non-null, then they are assumed to contain resp. an
    OpenPGP public key and an OpenPGP private key which are to be used during
-   the TLS authentication; otherwise, anonymous authentication is used.  */
+   the TLS authentication; otherwise, anonymous authentication is used.
+
+   This function is provided for pure convenience.  On each call, it will
+   generate Diffie-Hellman and possibly RSA parameters which can take a lot
+   of time.  Therefore, for real applications, one may prefer to use
+   `chop_sunrpc_tls_block_store_open ()' instead and re-use DH/RSA parameters
+   previously stored in a file, for example.  */
 extern errcode_t
-chop_sunrpc_tls_block_store_open (const char *host, unsigned port,
-				  const char *pubkey_file,
-				  const char *privkey_file,
-				  chop_block_store_t *store);
+chop_sunrpc_tls_block_store_simple_open (const char *host, unsigned port,
+					 const char *pubkey_file,
+					 const char *privkey_file,
+					 chop_block_store_t *store);
 
 /* EXPERIMENTAL!
 
