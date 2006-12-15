@@ -27,6 +27,8 @@
 # include <gnutls/extra.h>
 
 # include <chop/sunrpc-tls.h>
+
+# include "gnutls-helper.h"
 #endif
 
 #if (defined HAVE_PTHREAD_H) && (defined HAVE_AVAHI)
@@ -38,7 +40,14 @@
 #endif
 
 /* The program name.  */
-static char *program_name = NULL;
+char *program_name = NULL;
+
+/* Name of the directory for configuration files under `$HOME'.  */
+#define CONFIG_DIRECTORY ".chop-block-server"
+
+/* Configuration file names.  */
+#define CONFIG_TLS_RSA_PARAMS  "tls-rsa-params"
+#define CONFIG_TLS_DH_PARAMS   "tls-dh-params"
 
 /* The local block store being proxied.  */
 static chop_block_store_t *local_store = NULL;
@@ -492,22 +501,19 @@ make_tls_session (gnutls_session *session, void *closure)
 static void
 initialize_tls_parameters (void)
 {
-  info ("initializing TLS key exchange parameters "
-	"(this may take a while)...");
+  errcode_t err;
 
-  /* Generate Diffie Hellman parameters - for use with DHE kx
-     algorithms. These should be discarded and regenerated once a day, once a
-     week or once a month. Depending on the security requirements.  */
-  gnutls_dh_params_init (&server_dh_params);
-  gnutls_dh_params_generate2 (server_dh_params, DH_BITS);
+  err = chop_tls_initialize_dh_params (&server_dh_params,
+				       CONFIG_DIRECTORY,
+				       CONFIG_TLS_DH_PARAMS);
+  if (err)
+    exit (1);
 
   gnutls_anon_allocate_server_credentials (&server_anoncred);
   gnutls_anon_set_server_dh_params (server_anoncred, server_dh_params);
 
   if (tls_use_openpgp_authentication)
     {
-      int err;
-
       err = gnutls_global_init_extra ();
       if (err)
 	{
@@ -533,14 +539,11 @@ initialize_tls_parameters (void)
 	  exit (1);
 	}
 
-      gnutls_rsa_params_init (&server_rsa_params);
-      err = gnutls_rsa_params_generate2 (server_rsa_params, DH_BITS);
+      err = chop_tls_initialize_rsa_params (&server_rsa_params,
+					    CONFIG_DIRECTORY,
+					    CONFIG_TLS_RSA_PARAMS);
       if (err)
-	{
-	  info ("failed to generate RSA parameters: %s",
-		gnutls_strerror (err));
-	  exit (1);
-	}
+	exit (1);
 
       gnutls_certificate_set_dh_params (server_certcred, server_dh_params);
       gnutls_certificate_set_rsa_export_params (server_certcred,
