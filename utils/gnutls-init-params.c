@@ -37,21 +37,28 @@ INITIALIZE_PARAMS (PARAMS_KIND) (PARAMS_T *params,
 	  export = (unsigned char *) alloca (export_size);
 	  err = PARAMS_EXPORT (*params, GNUTLS_X509_FMT_PEM,
 			       export, &export_size);
-	  if (!err)
+	  if ((!err) || (err != GNUTLS_E_SHORT_MEMORY_BUFFER))
 	    break;
 
 	  export_size *= 2;
 	}
 
-      err = open_config_file (config_dir, filename,
-			      O_WRONLY | O_CREAT, &file);
       if (err)
-	com_err (program_name, err, "while creating config file \"%s\"",
-		 filename);
+	fprintf (stderr, "%s: error while exporting TLS `"
+		 TOSTRING (PARAMS_KIND) "' parameters: %s\n",
+		 program_name, gnutls_strerror (err));
       else
 	{
-	  dump_to_file (file, (char *) export, export_size);
-	  close (file);
+	  err = open_config_file (config_dir, filename,
+				  O_WRONLY | O_CREAT, &file);
+	  if (err)
+	    com_err (program_name, err, "while creating config file \"%s\"",
+		     filename);
+	  else
+	    {
+	      dump_to_file (file, (char *) export, export_size);
+	      close (file);
+	    }
 	}
     }
   else
