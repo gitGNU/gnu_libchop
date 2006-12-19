@@ -572,6 +572,11 @@ tls_authorizer (gnutls_session_t session, void *unused)
   char fpr[4096], fpr_ascii[8193];
   size_t fpr_len = 0;
 
+  if (!tls_use_openpgp_authentication)
+    /* When using anonymous authentication, authorize anyone to use the
+       service.  */
+    return 1;
+
   peer_cert = gnutls_certificate_get_peers (session, &peer_cert_len);
   if (!peer_cert)
     return 0;

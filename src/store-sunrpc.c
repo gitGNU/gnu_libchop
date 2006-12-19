@@ -413,7 +413,21 @@ chop_sunrpc_block_store_open (const char *host, unsigned port,
 			      const char *protocol,
 			      chop_block_store_t *store)
 {
-  return sunrpc_block_store_open (host, port, protocol, NULL, NULL, store);
+#ifdef HAVE_GNUTLS
+  chop_tls_params_t tls_params;
+
+  tls_params.privkey_file = NULL;
+  tls_params.pubkey_file  = NULL;
+#endif
+
+  return sunrpc_block_store_open (host, port, protocol,
+#ifdef HAVE_GNUTLS
+				  make_default_tls_session,
+				  (void *) &tls_params,
+#else
+				  NULL, NULL,
+#endif
+				  store);
 }
 
 errcode_t
