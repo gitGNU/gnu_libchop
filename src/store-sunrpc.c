@@ -10,6 +10,7 @@
 #include <chop/chop-config.h>
 #ifdef HAVE_GNUTLS
 # include <chop/sunrpc-tls.h>
+# include <chop/store-sunrpc-tls.h>
 
 # include <gnutls/gnutls.h>
 # include <gnutls/extra.h>
@@ -152,12 +153,19 @@ connect_to_host (const struct sockaddr_in *addr, long proto)
 
 #ifdef HAVE_GNUTLS
 
+/* A structure holding typical TLS parameters.  */
+typedef struct
+{
+  const char *pubkey_file;
+  const char *privkey_file;
+} chop_tls_params_t;
+
+
 /* Create a TLS session for communication over ENDPOINT.  On success, SESSION
    is initialized and zero is returned.  */
 static errcode_t
-create_tls_session (gnutls_session_t *session, int endpoint,
-		    const char *pubkey_file,
-		    const char *privkey_file)
+make_default_tls_session (gnutls_session_t session,
+			  void *params)
 {
   /* We pretty much always want message authentication.  */
   static const int mac_prio[] =
@@ -176,26 +184,18 @@ create_tls_session (gnutls_session_t *session, int endpoint,
 
 
   errcode_t err = 0;
+  chop_tls_params_t *tls_params = (chop_tls_params_t *)params;
 
-  clnttls_init_if_needed ();
+  gnutls_set_default_priority (session);
+  gnutls_compression_set_priority (session, compression_prio);
 
-  err = gnutls_init (session, GNUTLS_CLIENT);
-  if (err)
-    {
-      gnutls_perror (err);
-      return CHOP_INVALID_ARG;
-    }
-
-  gnutls_transport_set_ptr (*session, (gnutls_transport_ptr_t)endpoint);
-
-  gnutls_set_default_priority (*session);
-  gnutls_compression_set_priority (*session, compression_prio);
-
-  if (pubkey_file && privkey_file)
+  if (tls_params->pubkey_file && tls_params->privkey_file)
     {
       /* OpenPGP authentication.  */
+      static const int cert_type_priority[2] = { GNUTLS_CRT_OPENPGP, 0 };
       static const int kx_prio[] =
-	{ GNUTLS_KX_RSA, GNUTLS_KX_RSA_EXPORT, GNUTLS_KX_DHE_RSA, 0 };
+	{ GNUTLS_KX_RSA, GNUTLS_KX_RSA_EXPORT, GNUTLS_KX_DHE_RSA,
+	  GNUTLS_KX_DHE_DSS, 0 };
 
       gnutls_certificate_credentials_t certcred;
       gnutls_rsa_params_t rsa_params;
@@ -208,13 +208,17 @@ create_tls_session (gnutls_session_t *session, int endpoint,
       if (err)
 	goto failed;
 
+      /* Require OpenPGP authentication.  */
+      gnutls_certificate_type_set_priority (session, cert_type_priority);
+
       gnutls_rsa_params_init (&rsa_params);
       gnutls_rsa_params_generate2 (rsa_params, 1024);
       gnutls_certificate_set_rsa_export_params (certcred, rsa_params);
 
-      err = gnutls_certificate_set_openpgp_key_file (certcred,
-						     pubkey_file,
-						     privkey_file);
+      err =
+	gnutls_certificate_set_openpgp_key_file (certcred,
+						 tls_params->pubkey_file,
+						 tls_params->privkey_file);
       if (err)
 	{
 	  gnutls_perror (err);
@@ -222,7 +226,7 @@ create_tls_session (gnutls_session_t *session, int endpoint,
 	  goto failed;
 	}
 
-      err = gnutls_credentials_set (*session, GNUTLS_CRD_CERTIFICATE,
+      err = gnutls_credentials_set (session, GNUTLS_CRD_CERTIFICATE,
 				    certcred);
       if (err)
 	{
@@ -230,7 +234,7 @@ create_tls_session (gnutls_session_t *session, int endpoint,
 	  goto failed;
 	}
 
-      gnutls_kx_set_priority (*session, kx_prio);
+      gnutls_kx_set_priority (session, kx_prio);
     }
   else
     {
@@ -239,35 +243,17 @@ create_tls_session (gnutls_session_t *session, int endpoint,
       gnutls_anon_client_credentials_t anoncred;
 
       gnutls_anon_allocate_client_credentials (&anoncred);
-      gnutls_credentials_set (*session, GNUTLS_CRD_ANON, &anoncred);
-      gnutls_kx_set_priority (*session, kx_prio);
+      gnutls_credentials_set (session, GNUTLS_CRD_ANON, &anoncred);
+      gnutls_kx_set_priority (session, kx_prio);
     }
 
 
-  gnutls_mac_set_priority (*session, mac_prio);
-  gnutls_cipher_set_priority (*session, cipher_prio);
-
-  err = gnutls_handshake (*session);
-  if (err < 0)
-    {
-      fprintf (stderr, "rpc/tls: client-side handshake failed: %s\n",
-	       gnutls_strerror (err));
-
-      gnutls_deinit (*session);
-      return CHOP_INVALID_ARG;
-    }
-
-#if 0
-  fprintf (stderr, "rpc/tls client: MAC=`%s' cipher=`%s' compr=`%s'\n",
-	   gnutls_mac_get_name (gnutls_mac_get (*session)),
-	   gnutls_cipher_get_name (gnutls_cipher_get (*session)),
-	   gnutls_compression_get_name (gnutls_compression_get (*session)));
-#endif
+  gnutls_mac_set_priority (session, mac_prio);
+  gnutls_cipher_set_priority (session, cipher_prio);
 
   return 0;
 
  failed:
-  gnutls_deinit (*session);
 
   return CHOP_INVALID_ARG;
 }
@@ -276,7 +262,12 @@ create_tls_session (gnutls_session_t *session, int endpoint,
 static errcode_t
 sunrpc_block_store_open (const char *host, unsigned port,
 			 const char *protocol,
-			 const char *pubkey_file, const char *privkey_file,
+#ifdef HAVE_GNUTLS
+			 chop_tls_session_initializer_t init_session,
+			 void *closure,
+#else
+			 void *unused1, void *unused2,
+#endif
 			 chop_block_store_t *store)
 {
   static const char generic_hello_arg[] = "libchop's remote block store client";
@@ -291,27 +282,19 @@ sunrpc_block_store_open (const char *host, unsigned port,
   struct sockaddr_in addr;
   chop_sunrpc_block_store_t *remote = (chop_sunrpc_block_store_t *)store;
 
-  if (pubkey_file && privkey_file)
-    {
+  if (!strcasecmp (protocol, "tcp"))
+    proto = IPPROTO_TCP;
+  else if (!strcasecmp (protocol, "udp"))
+    proto = IPPROTO_UDP;
+  else if (!strcasecmp (protocol, "tls/tcp"))
 #ifdef HAVE_GNUTLS
-      use_tls = 1, proto = IPPROTO_TCP;
+    use_tls = 1, proto = IPPROTO_TCP;
 #else
-      return CHOP_ERR_NOT_IMPL;
+    return CHOP_ERR_NOT_IMPL;
 #endif
-    }
   else
-    {
-      if (!strcasecmp (protocol, "tcp"))
-	proto = IPPROTO_TCP;
-      else if (!strcasecmp (protocol, "udp"))
-	proto = IPPROTO_UDP;
-#ifdef HAVE_GNUTLS
-      else if (!strcasecmp (protocol, "tls/tcp"))
-	use_tls = 1, proto = IPPROTO_TCP;
-#endif
-      else
-	return CHOP_INVALID_ARG;
-    }
+    return CHOP_INVALID_ARG;
+
 
   if (get_host_inet_address (host, port, &addr))
     return CHOP_INVALID_ARG; /* FIXME: Too vague */
@@ -327,13 +310,42 @@ sunrpc_block_store_open (const char *host, unsigned port,
       if (endpoint < 0)
 	return errno;
 
-      err = create_tls_session (&session, endpoint,
-				pubkey_file, privkey_file);
+      clnttls_init_if_needed ();
+
+      err = gnutls_init (&session, GNUTLS_CLIENT);
       if (err)
 	{
+	  gnutls_perror (err);
+	  return CHOP_INVALID_ARG;
+	}
+
+      gnutls_transport_set_ptr (session, (gnutls_transport_ptr_t)endpoint);
+
+      /* Invoke the user-provided session initializer.  */
+      err = init_session (session, closure);
+      if (err)
+	{
+	  gnutls_deinit (session);
 	  close (endpoint);
 	  return err;
 	}
+
+      err = gnutls_handshake (session);
+      if (err < 0)
+	{
+	  fprintf (stderr, "rpc/tls: client-side handshake failed: %s\n",
+		   gnutls_strerror (err));
+
+	  gnutls_deinit (session);
+	  return CHOP_INVALID_ARG;
+	}
+
+#if 0
+      fprintf (stderr, "rpc/tls client: MAC=`%s' cipher=`%s' compr=`%s'\n",
+	       gnutls_mac_get_name (gnutls_mac_get (session)),
+	       gnutls_cipher_get_name (gnutls_cipher_get (session)),
+	       gnutls_compression_get_name (gnutls_compression_get (session)));
+#endif
 
       rpc_client = clnttls_create (session, BLOCK_STORE_PROGRAM,
 				   BLOCK_STORE_VERSION,
@@ -401,22 +413,69 @@ chop_sunrpc_block_store_open (const char *host, unsigned port,
 			      const char *protocol,
 			      chop_block_store_t *store)
 {
-  return sunrpc_block_store_open (host, port, protocol, NULL, NULL, store);
+#ifdef HAVE_GNUTLS
+  chop_tls_params_t tls_params;
+
+  tls_params.privkey_file = NULL;
+  tls_params.pubkey_file  = NULL;
+#endif
+
+  return sunrpc_block_store_open (host, port, protocol,
+#ifdef HAVE_GNUTLS
+				  make_default_tls_session,
+				  (void *) &tls_params,
+#else
+				  NULL, NULL,
+#endif
+				  store);
 }
 
 errcode_t
-chop_sunrpc_tls_block_store_open (const char *host, unsigned port,
-				  const char *pubkey_file,
-				  const char *privkey_file,
-				  chop_block_store_t *store)
+chop_sunrpc_tls_block_store_simple_open (const char *host, unsigned port,
+					 const char *pubkey_file,
+					 const char *privkey_file,
+					 chop_block_store_t *store)
 {
 #ifdef HAVE_GNUTLS
+  chop_tls_params_t tls_params;
+
+  tls_params.privkey_file = privkey_file;
+  tls_params.pubkey_file  = pubkey_file;
+
   return sunrpc_block_store_open (host, port, "tls/tcp",
-				  pubkey_file, privkey_file, store);
+				  make_default_tls_session,
+				  (void *) &tls_params,
+				  store);
 #else
   return CHOP_ERR_NOT_IMPL;
 #endif
 }
+
+#ifdef HAVE_GNUTLS
+
+errcode_t
+chop_sunrpc_tls_block_store_open (const char *host, unsigned port,
+				  chop_tls_session_initializer_t init,
+				  void *closure,
+				  chop_block_store_t *store)
+{
+  return sunrpc_block_store_open (host, port, "tls/tcp",
+				  init, closure, store);
+}
+
+#else
+
+/* For binary compatibility.  */
+errcode_t
+chop_sunrpc_tls_block_store_open (const char *host, unsigned port,
+				  void *unused1, void *unused2,
+				  chop_block_store_t *store)
+{
+  return CHOP_ERR_NOT_IMPL;
+}
+
+#endif
+
 
 
 static errcode_t

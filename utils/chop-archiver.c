@@ -9,6 +9,14 @@
 
 #include <chop/chop-config.h>
 
+#ifdef HAVE_GNUTLS
+# include <gnutls/gnutls.h>
+# include <gnutls/extra.h>
+
+# include <chop/store-sunrpc-tls.h>
+# include "gnutls-helper.h"
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <alloca.h>
@@ -46,8 +54,15 @@ goes for `--cipher'.";
 
 const char *program_name = NULL;
 
-#define DB_DATA_FILE_BASE       ".chop-archiver/archive-data"
-#define DB_META_DATA_FILE_BASE  ".chop-archiver/archive-meta-data"
+/* Name of the directory for configuration files under `$HOME'.  */
+#define CONFIG_DIRECTORY ".chop-archiver"
+
+/* Configuration file names.  */
+#define CONFIG_TLS_DH_PARAMS   "tls-dh-params"
+#define CONFIG_TLS_RSA_PARAMS  "tls-rsa-params"
+
+#define DB_DATA_FILE_BASE       CONFIG_DIRECTORY "/archive-data"
+#define DB_META_DATA_FILE_BASE  CONFIG_DIRECTORY "/archive-meta-data"
 
 
 /* Whether archival or retrieval is to be performed.  */
@@ -179,6 +194,33 @@ static struct argp_option options[] =
 
     { 0, 0, 0, 0, 0 }
   };
+
+
+
+/* Helper functions.  */
+
+static void info (const char *, ...)
+#ifdef __GNUC__
+     __attribute__ ((format (printf, 1, 2)))
+#endif
+     ;
+
+static void
+info (const char *fmt, ...)
+{
+  va_list args;
+  char *newfmt;
+
+  newfmt = (char *)alloca (strlen (program_name) + strlen (fmt) + 10);
+  strcpy (newfmt, program_name);
+  strcat (newfmt, ": ");
+  strcat (newfmt, fmt);
+  strcat (newfmt, "\n");
+
+  va_start (args, fmt);
+  vfprintf (stderr, newfmt, args);
+  va_end (args);
+}
 
 
 
@@ -626,6 +668,176 @@ open_db_store (const chop_file_based_store_class_t *class,
 }
 
 
+/* GnuTLS stuff.  */
+
+#ifdef HAVE_GNUTLS
+
+/* TLS parameters.  */
+
+/* Anonymous authentication.  */
+static gnutls_anon_client_credentials_t client_anoncred;
+
+/* OpenPGP authentication.  */
+static gnutls_certificate_credentials_t client_certcred;
+static gnutls_dh_params_t               client_dh_params;
+static gnutls_rsa_params_t              client_rsa_params;
+
+
+/* Initialize TLS parameters, retrieving them from disk when available.  */
+static void
+initialize_tls_parameters (void)
+{
+  errcode_t err;
+
+  err = gnutls_global_init ();
+  if (err)
+    {
+      info ("failed to initialize GNUtls: %s",
+	    gnutls_strerror (err));
+      exit (1);
+    }
+
+  err = gnutls_anon_allocate_client_credentials (&client_anoncred);
+  if (err)
+    {
+      info ("failed to allocate client anonymous credentials: %s",
+	    gnutls_strerror (err));
+      exit (1);
+    }
+
+  if (tls_use_openpgp_authentication)
+    {
+      err = gnutls_global_init_extra ();
+      if (err)
+	{
+	  info ("failed to initialize GNUtls extra: %s",
+		gnutls_strerror (err));
+	  exit (1);
+	}
+
+      err = chop_tls_initialize_dh_params (&client_dh_params,
+					   CONFIG_DIRECTORY,
+					   CONFIG_TLS_DH_PARAMS);
+      if (err)
+	exit (1);
+
+      err = gnutls_certificate_allocate_credentials (&client_certcred);
+      if (err)
+	{
+	  info ("failed to allocate certificate credentials: %s",
+		gnutls_strerror (err));
+	  exit (1);
+	}
+
+      err = gnutls_certificate_set_openpgp_key_file (client_certcred,
+						     tls_openpgp_pubkey_file,
+						     tls_openpgp_privkey_file);
+      if (err)
+	{
+	  info ("failed to use OpenPGP key pair: %s", gnutls_strerror (err));
+	  exit (1);
+	}
+
+      err = chop_tls_initialize_rsa_params (&client_rsa_params,
+					    CONFIG_DIRECTORY,
+					    CONFIG_TLS_RSA_PARAMS);
+      if (err)
+	exit (1);
+
+      gnutls_certificate_set_dh_params (client_certcred, client_dh_params);
+      gnutls_certificate_set_rsa_export_params (client_certcred,
+						client_rsa_params);
+
+      info ("using TLS OpenPGP authentication");
+    }
+  else
+    info ("using TLS anonymous authentication");
+
+}
+
+
+/* Initialize SESSION, using the previously initialized DH/RSA
+   parameters.  */
+static errcode_t
+initialize_tls_session (gnutls_session_t session, void *unused)
+{
+  /* We pretty much always want message authentication.  */
+  static const int mac_prio[] =
+    { GNUTLS_MAC_SHA1, GNUTLS_MAC_RMD160, GNUTLS_MAC_MD5, 0 };
+
+  /* Often, we won't need encryption at all because the data being stored is
+     already encrypted.  However, there is no anonymous authentication
+     ciphersuite that supports `NULL' encryption.  */
+  static const int cipher_prio[] =
+    { GNUTLS_CIPHER_NULL, GNUTLS_CIPHER_ARCFOUR_128,
+      GNUTLS_CIPHER_AES_128_CBC, GNUTLS_CIPHER_AES_256_CBC, 0 };
+
+  /* Likewise, we will rarely need compression.  */
+  static const int compression_prio[] =
+    { GNUTLS_COMP_NULL, GNUTLS_COMP_DEFLATE, 0 };
+
+
+  errcode_t err = 0;
+
+  gnutls_set_default_priority (session);
+  gnutls_compression_set_priority (session, compression_prio);
+
+  if (tls_openpgp_pubkey_file && tls_openpgp_privkey_file)
+    {
+      /* OpenPGP authentication.  */
+      static const int cert_type_priority[2] = { GNUTLS_CRT_OPENPGP, 0 };
+      static const int kx_prio[] =
+	{ GNUTLS_KX_RSA, GNUTLS_KX_RSA_EXPORT, GNUTLS_KX_DHE_RSA,
+	  GNUTLS_KX_DHE_DSS, 0 };
+
+      /* Require OpenPGP authentication.  */
+      gnutls_certificate_type_set_priority (session, cert_type_priority);
+
+      gnutls_certificate_set_rsa_export_params (client_certcred,
+						client_rsa_params);
+
+      err =
+	gnutls_certificate_set_openpgp_key_file (client_certcred,
+						 tls_openpgp_pubkey_file,
+						 tls_openpgp_privkey_file);
+      if (err)
+	{
+	  gnutls_perror (err);
+	  goto failed;
+	}
+
+      err = gnutls_credentials_set (session, GNUTLS_CRD_CERTIFICATE,
+				    client_certcred);
+      if (err)
+	goto failed;
+
+      gnutls_kx_set_priority (session, kx_prio);
+    }
+  else
+    {
+      /* Anonymous authentication.  */
+      static const int kx_prio[] = { GNUTLS_KX_ANON_DH, 0 };
+
+      gnutls_credentials_set (session, GNUTLS_CRD_ANON,
+			      &client_anoncred);
+      gnutls_kx_set_priority (session, kx_prio);
+    }
+
+
+  gnutls_mac_set_priority (session, mac_prio);
+  gnutls_cipher_set_priority (session, cipher_prio);
+
+  return 0;
+
+ failed:
+
+  return CHOP_INVALID_ARG;
+}
+
+#endif /* HAVE_GNUTLS */
+
+
+
 /* Parse a single option. */
 static error_t
 parse_opt (int key, char *arg, struct argp_state *state)
@@ -774,10 +986,12 @@ main (int argc, char *argv[])
 		chop_class_alloca_instance (&chop_sunrpc_block_store_class);
 
 #ifdef HAVE_GNUTLS
+	      initialize_tls_parameters ();
+
 	      if (tls_use_openpgp_authentication)
 		err = chop_sunrpc_tls_block_store_open
 		  (remote_hostname, service_port,
-		   tls_openpgp_pubkey_file, tls_openpgp_privkey_file,
+		   initialize_tls_session, NULL,
 		   store);
 	      else
 #endif

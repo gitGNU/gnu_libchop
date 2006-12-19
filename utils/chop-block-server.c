@@ -25,8 +25,11 @@
 #ifdef HAVE_GNUTLS
 # include <gnutls/gnutls.h>
 # include <gnutls/extra.h>
+# include <gnutls/openpgp.h>
 
 # include <chop/sunrpc-tls.h>
+
+# include "gnutls-helper.h"
 #endif
 
 #if (defined HAVE_PTHREAD_H) && (defined HAVE_AVAHI)
@@ -38,7 +41,17 @@
 #endif
 
 /* The program name.  */
-static char *program_name = NULL;
+char *program_name = NULL;
+
+/* Whether to be verbose */
+static int verbose = 0;
+
+/* Name of the directory for configuration files under `$HOME'.  */
+#define CONFIG_DIRECTORY ".chop-block-server"
+
+/* Configuration file names.  */
+#define CONFIG_TLS_RSA_PARAMS  "tls-rsa-params"
+#define CONFIG_TLS_DH_PARAMS   "tls-dh-params"
 
 /* The local block store being proxied.  */
 static chop_block_store_t *local_store = NULL;
@@ -455,16 +468,21 @@ make_tls_session (gnutls_session *session, void *closure)
   if (tls_use_openpgp_authentication)
     {
       /* OpenPGP authentication.  */
+      static const int cert_type_priority[2] = { GNUTLS_CRT_OPENPGP, 0 };
       static const int kx_prio[] =
-	{ GNUTLS_KX_RSA, GNUTLS_KX_RSA_EXPORT, GNUTLS_KX_DHE_RSA, 0 };
+	{ GNUTLS_KX_RSA, GNUTLS_KX_RSA_EXPORT, GNUTLS_KX_DHE_RSA,
+	  GNUTLS_KX_DHE_DSS, 0 };
 
-      gnutls_certificate_set_dh_params (server_certcred, server_dh_params);
-      gnutls_certificate_set_rsa_export_params (server_certcred,
-						server_rsa_params);
+      /* Require OpenPGP authentication.  */
+      gnutls_certificate_type_set_priority (*session, cert_type_priority);
+
       gnutls_credentials_set (*session, GNUTLS_CRD_CERTIFICATE,
 			      server_certcred);
 
       gnutls_kx_set_priority (*session, kx_prio);
+
+      /* Request client certificate if any.  */
+      gnutls_certificate_server_set_request (*session, GNUTLS_CERT_REQUEST);
     }
   else
     {
@@ -487,19 +505,19 @@ make_tls_session (gnutls_session *session, void *closure)
 static void
 initialize_tls_parameters (void)
 {
-  /* Generate Diffie Hellman parameters - for use with DHE kx
-     algorithms. These should be discarded and regenerated once a day, once a
-     week or once a month. Depending on the security requirements.  */
-  gnutls_dh_params_init (&server_dh_params);
-  gnutls_dh_params_generate2 (server_dh_params, DH_BITS);
+  errcode_t err;
+
+  err = chop_tls_initialize_dh_params (&server_dh_params,
+				       CONFIG_DIRECTORY,
+				       CONFIG_TLS_DH_PARAMS);
+  if (err)
+    exit (1);
 
   gnutls_anon_allocate_server_credentials (&server_anoncred);
   gnutls_anon_set_server_dh_params (server_anoncred, server_dh_params);
 
   if (tls_use_openpgp_authentication)
     {
-      int err;
-
       err = gnutls_global_init_extra ();
       if (err)
 	{
@@ -525,14 +543,101 @@ initialize_tls_parameters (void)
 	  exit (1);
 	}
 
-      gnutls_rsa_params_init (&server_rsa_params);
-      gnutls_rsa_params_generate2 (server_rsa_params, DH_BITS);
+      err = chop_tls_initialize_rsa_params (&server_rsa_params,
+					    CONFIG_DIRECTORY,
+					    CONFIG_TLS_RSA_PARAMS);
+      if (err)
+	exit (1);
+
+      gnutls_certificate_set_dh_params (server_certcred, server_dh_params);
+      gnutls_certificate_set_rsa_export_params (server_certcred,
+						server_rsa_params);
 
       info ("using TLS OpenPGP authentication");
     }
   else
     info ("using TLS anonymous authentication");
 
+}
+
+/* Decide whether or not to continue SESSION, based on who the peer is.
+   Return non-zero if authorization is granted, zero otherwise.  */
+static int
+tls_authorizer (gnutls_session_t session, void *unused)
+{
+  int err;
+  const gnutls_datum_t *peer_cert;
+  unsigned int peer_cert_len;
+  gnutls_openpgp_key_t peer_key;
+  char fpr[4096], fpr_ascii[8193];
+  size_t fpr_len = 0;
+
+  if (!tls_use_openpgp_authentication)
+    /* When using anonymous authentication, authorize anyone to use the
+       service.  */
+    return 1;
+
+  peer_cert = gnutls_certificate_get_peers (session, &peer_cert_len);
+  if (!peer_cert)
+    return 0;
+
+  assert (peer_cert_len == 1);
+
+  err = gnutls_openpgp_key_init (&peer_key);
+  if (err)
+    goto failed;
+
+  err = gnutls_openpgp_key_import (peer_key, peer_cert,
+				   GNUTLS_OPENPGP_FMT_RAW);
+  if (err)
+    goto handle_error;
+
+  if (verbose)
+    {
+      /* Show cipher suite.  */
+      const char *csuite;
+      char name[2048];
+      size_t name_len;
+      gnutls_kx_algorithm_t kx = gnutls_kx_get (session);
+      gnutls_cipher_algorithm_t cipher = gnutls_cipher_get (session);
+      gnutls_mac_algorithm_t mac = gnutls_mac_get (session);
+
+      csuite = gnutls_cipher_suite_get_name (kx, cipher, mac);
+      assert (csuite != NULL);
+
+      info ("cipher suite: %s", csuite);
+
+      /* Show the peer's name.  */
+      name_len = sizeof (name);
+      err = gnutls_openpgp_key_get_name (peer_key, 0, name, &name_len);
+      if (!err)
+	info ("peer key first name: %s", name);
+    }
+
+  /* Show the peer's key fingerprint.  */
+  err = gnutls_openpgp_key_get_fingerprint (peer_key, fpr, &fpr_len);
+  if (err)
+    goto handle_error;
+
+  chop_buffer_to_hex_string (fpr, fpr_len, fpr_ascii);
+  info ("peer key fingerprint: %s", fpr_ascii);
+
+  gnutls_openpgp_key_deinit (peer_key);
+
+  /* FIXME: No actual attempt is made to verity whether the peer is
+     authorized to use the service.  Eventually, we'd like to verify in a
+     keyring whether the peer is trusted/authorized, etc.  */
+
+  return 1;
+
+ handle_error:
+  info ("in %s: GNUtls error: %s", __FUNCTION__,
+	gnutls_strerror (err));
+  gnutls_openpgp_key_deinit (peer_key);
+
+ failed:
+
+  return 0;
 }
 
 #endif /* HAVE_GNUTLS */
@@ -580,7 +685,7 @@ register_rpc_handlers (void)
 
       initialize_tls_parameters ();
       transp = svctls_create (make_tls_session, NULL,
-			      NULL, NULL,
+			      tls_authorizer, NULL,
 			      listening_sock, 0, 0);
     }
   else
@@ -630,9 +735,6 @@ static char args_doc[] = "LOCAL-BLOCK-STORE";
 
 /* Use the dummy store for debugging purposes.  */
 static int debugging = 0;
-
-/* Whether to be verbose */
-static int verbose = 0;
 
 /* Whether to use the zlib filters.  */
 static int use_zlib_filters = 0;

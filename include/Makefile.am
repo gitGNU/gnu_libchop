@@ -18,9 +18,9 @@ nobase_include_HEADERS = chop/block-indexers.h	\
 			 chop/streams.h
 
 if HAVE_GNUTLS
-nobase_include_HEADERS += chop/sunrpc-tls.h
+nobase_include_HEADERS += chop/sunrpc-tls.h chop/store-sunrpc-tls.h
 else
-nobase_noinst_HEADERS   = chop/sunrpc-tls.h
+nobase_noinst_HEADERS   = chop/sunrpc-tls.h chop/store-sunrpc-tls.h
 endif
 
 # Built in `src/'.
