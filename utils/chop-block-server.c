@@ -25,6 +25,7 @@
 #ifdef HAVE_GNUTLS
 # include <gnutls/gnutls.h>
 # include <gnutls/extra.h>
+# include <gnutls/openpgp.h>
 
 # include <chop/sunrpc-tls.h>
 
@@ -41,6 +42,9 @@
 
 /* The program name.  */
 char *program_name = NULL;
+
+/* Whether to be verbose */
+static int verbose = 0;
 
 /* Name of the directory for configuration files under `$HOME'.  */
 #define CONFIG_DIRECTORY ".chop-block-server"
@@ -489,8 +493,8 @@ make_tls_session (gnutls_session *session, void *closure)
       gnutls_kx_set_priority (*session, kx_prio);
     }
 
-/*   gnutls_mac_set_priority (*session, mac_prio); */
-/*   gnutls_cipher_set_priority (*session, cipher_prio); */
+  gnutls_mac_set_priority (*session, mac_prio);
+  gnutls_cipher_set_priority (*session, cipher_prio);
   gnutls_compression_set_priority (*session, compression_prio);
 
   gnutls_dh_set_prime_bits (*session, DH_BITS);
@@ -556,6 +560,81 @@ initialize_tls_parameters (void)
 
 }
 
+/* Decide whether or not to continue SESSION, based on who the peer is.
+   Return non-zero if authorization is granted, zero otherwise.  */
+static int
+tls_authorizer (gnutls_session_t session, void *unused)
+{
+  int err;
+  const gnutls_datum_t *peer_cert;
+  unsigned int peer_cert_len;
+  gnutls_openpgp_key_t peer_key;
+  char fpr[4096], fpr_ascii[8193];
+  size_t fpr_len = 0;
+
+  peer_cert = gnutls_certificate_get_peers (session, &peer_cert_len);
+  if (!peer_cert)
+    return 0;
+
+  assert (peer_cert_len == 1);
+
+  err = gnutls_openpgp_key_init (&peer_key);
+  if (err)
+    goto failed;
+
+  err = gnutls_openpgp_key_import (peer_key, peer_cert,
+				   GNUTLS_OPENPGP_FMT_RAW);
+  if (err)
+    goto handle_error;
+
+  if (verbose)
+    {
+      /* Show cipher suite.  */
+      const char *csuite;
+      char name[2048];
+      size_t name_len;
+      gnutls_kx_algorithm_t kx = gnutls_kx_get (session);
+      gnutls_cipher_algorithm_t cipher = gnutls_cipher_get (session);
+      gnutls_mac_algorithm_t mac = gnutls_mac_get (session);
+
+      csuite = gnutls_cipher_suite_get_name (kx, cipher, mac);
+      assert (csuite != NULL);
+
+      info ("cipher suite: %s", csuite);
+
+      /* Show the peer's name.  */
+      name_len = sizeof (name);
+      err = gnutls_openpgp_key_get_name (peer_key, 0, name, &name_len);
+      if (!err)
+	info ("peer key first name: %s", name);
+    }
+
+  /* Show the peer's key fingerprint.  */
+  err = gnutls_openpgp_key_get_fingerprint (peer_key, fpr, &fpr_len);
+  if (err)
+    goto handle_error;
+
+  chop_buffer_to_hex_string (fpr, fpr_len, fpr_ascii);
+  info ("peer key fingerprint: %s", fpr_ascii);
+
+  gnutls_openpgp_key_deinit (peer_key);
+
+  /* FIXME: No actual attempt is made to verity whether the peer is
+     authorized to use the service.  Eventually, we'd like to verify in a
+     keyring whether the peer is trusted/authorized, etc.  */
+
+  return 1;
+
+ handle_error:
+  info ("in %s: GNUtls error: %s", __FUNCTION__,
+	gnutls_strerror (err));
+  gnutls_openpgp_key_deinit (peer_key);
+
+ failed:
+
+  return 0;
+}
+
 #endif /* HAVE_GNUTLS */
 
 
@@ -601,7 +680,7 @@ register_rpc_handlers (void)
 
       initialize_tls_parameters ();
       transp = svctls_create (make_tls_session, NULL,
-			      NULL, NULL,
+			      tls_authorizer, NULL,
 			      listening_sock, 0, 0);
     }
   else
@@ -651,9 +730,6 @@ static char args_doc[] = "LOCAL-BLOCK-STORE";
 
 /* Use the dummy store for debugging purposes.  */
 static int debugging = 0;
-
-/* Whether to be verbose */
-static int verbose = 0;
 
 /* Whether to use the zlib filters.  */
 static int use_zlib_filters = 0;
