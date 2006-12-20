@@ -43,6 +43,10 @@ extern CLIENT *clnttls_create (gnutls_session_t session,
 			       u_int sendsz, u_int recvsz);
 
 
+/* On success, zero is returned and *SESSION contains the GnuTLS session
+   attached to XPRT.  Otherwise, an error is returned.  */
+extern int svctls_getsession (SVCXPRT *xprt, gnutls_session_t *session);
+
 
 #ifdef __cplusplus
 }

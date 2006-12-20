@@ -179,6 +179,21 @@ struct tcp_conn
   };
 
 
+int
+svctls_getsession (SVCXPRT *xprt, gnutls_session_t *session)
+{
+  int err = EINVAL;
+
+  if ((svctls_type_t)xprt->xp_p2 == SVCTLS_TYPE_CONNECTION)
+    {
+      struct tcp_conn *cd = (struct tcp_conn *) xprt->xp_p1;
+      *session = cd->session;
+      err = 0;
+    }
+
+  return err;
+}
+
 void
 svctls_init_if_needed (void)
 {
