@@ -46,6 +46,9 @@
 #include <errno.h>
 #include <stdlib.h>
 
+#include <sys/types.h>
+#include <netinet/in.h>
+
 #include <gnutls/gnutls.h>
 
 #include <chop/sunrpc-tls.h>
@@ -190,12 +193,41 @@ svctls_create (svctls_session_initializer_t initializer, void *init_data,
 {
   SVCXPRT *xprt;
   struct tcp_rendezvous *r;
+  int made_sock = 0;
+  struct sockaddr_in addr;
+  socklen_t addr_len = sizeof (addr);
+
 
   ENSURE_GNUTLS_INITIALIZED ();
 
   if (sock == RPC_ANYSOCK)
-    /* FIXME: Handle this.  */
-    abort ();
+    {
+      if ((sock = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
+	{
+	  perror ("svctls_create: TCP socket creation problem");
+	  return (SVCXPRT *) NULL;
+	}
+
+      made_sock = 1;
+
+      bzero ((char *) &addr, sizeof (addr));
+      addr.sin_family = AF_INET;
+      if (bindresvport (sock, &addr))
+	{
+	  addr.sin_port = 0;
+	  (void) bind (sock, (struct sockaddr *) &addr, addr_len);
+	}
+    }
+
+  if ((getsockname (sock, (struct sockaddr *) &addr, &addr_len) != 0) ||
+      (listen (sock, SOMAXCONN) != 0))
+    {
+      perror ("svctls_create: cannot getsockname or listen");
+      if (made_sock)
+	(void) close (sock);
+
+      return (SVCXPRT *) NULL;
+    }
 
   xprt = (SVCXPRT *) malloc (sizeof (SVCXPRT));
   r = (struct tcp_rendezvous *) malloc (sizeof (*r));
@@ -206,6 +238,8 @@ svctls_create (svctls_session_initializer_t initializer, void *init_data,
 	free (xprt);
       if (r)
 	free (r);
+      if (made_sock)
+	(void) close (sock);
 
       return NULL;
     }
@@ -220,8 +254,8 @@ svctls_create (svctls_session_initializer_t initializer, void *init_data,
   xprt->xp_p1 = (caddr_t) r;
   xprt->xp_p2 = (caddr_t) SVCTLS_TYPE_RENDEZVOUS;
   xprt->xp_verf = _null_auth;
-  xprt->xp_ops = &svctls_rendezvous_op;
-  xprt->xp_port = 0; /* unknown */
+  xprt->xp_ops  = &svctls_rendezvous_op;
+  xprt->xp_port = ntohs (addr.sin_port);
   xprt->xp_sock = sock;
   xprt->xp_addrlen = 0;
   memset (&xprt->xp_raddr, 0, sizeof (xprt->xp_raddr));
