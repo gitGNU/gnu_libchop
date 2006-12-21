@@ -155,6 +155,7 @@ static const struct xp_ops svctls_rendezvous_op =
 static int svc_readtls (char*, char *, int);
 static int svc_writetls (char *, char *, int);
 static SVCXPRT *makefd_xprt (svctls_session_initializer_t, void *,
+			     svctls_session_finalizer_t, void *,
 			     int, u_int, u_int, gnutls_session_t *);
 
 struct tcp_rendezvous
@@ -167,6 +168,9 @@ struct tcp_rendezvous
 
     svctls_authorizer_t authorizer;
     void *authorizer_data;
+
+    svctls_session_finalizer_t finalizer;
+    void *finalizer_data;
   };
 
 struct tcp_conn
@@ -176,6 +180,9 @@ struct tcp_conn
     XDR xdrs;
     char verf_body[MAX_AUTH_BYTES];
     gnutls_session_t session;
+
+    svctls_session_finalizer_t finalizer;
+    void *finalizer_data;
   };
 
 
@@ -202,6 +209,7 @@ svctls_init_if_needed (void)
 
 SVCXPRT *
 svctls_create (svctls_session_initializer_t initializer, void *init_data,
+	       svctls_session_finalizer_t finalizer, void *fin_data,
 	       svctls_authorizer_t authorizer, void *auth_data,
 	       int sock,
 	       u_int sendsize, u_int recvsize)
@@ -265,6 +273,8 @@ svctls_create (svctls_session_initializer_t initializer, void *init_data,
   r->initializer_data = init_data;
   r->authorizer = authorizer;
   r->authorizer_data = auth_data;
+  r->finalizer = finalizer;
+  r->finalizer_data = fin_data;
 
   xprt->xp_p1 = (caddr_t) r;
   xprt->xp_p2 = (caddr_t) SVCTLS_TYPE_RENDEZVOUS;
@@ -279,9 +289,22 @@ svctls_create (svctls_session_initializer_t initializer, void *init_data,
   return xprt;
 }
 
+static void
+svctls_finalize_connection (struct tcp_conn *cd)
+{
+  if (cd->finalizer)
+    cd->finalizer (cd->session, cd->finalizer_data);
+  else
+    gnutls_deinit (cd->session);
+
+  XDR_DESTROY (&(cd->xdrs));
+
+  free (cd);
+}
 
 static SVCXPRT *
 makefd_xprt (svctls_session_initializer_t initializer, void *init_data,
+	     svctls_session_finalizer_t finalizer, void *fin_data,
 	     int fd,
 	     u_int sendsize, u_int recvsize,
 	     gnutls_session_t *session)
@@ -306,13 +329,18 @@ makefd_xprt (svctls_session_initializer_t initializer, void *init_data,
 
       if (xprt)
 	free (xprt);
-      if (xprt)
+      if (cd)
 	free (cd);
 
       return NULL;
     }
   cd->strm_stat = XPRT_IDLE;
   cd->session = *session;
+  cd->finalizer = finalizer;
+  cd->finalizer_data = fin_data;
+
+  xdrrec_create (&(cd->xdrs), sendsize, recvsize,
+		 (caddr_t) xprt, svc_readtls, svc_writetls);
 
   gnutls_transport_set_ptr (*session, (gnutls_transport_ptr_t)fd);
   err = gnutls_handshake (*session);
@@ -321,17 +349,14 @@ makefd_xprt (svctls_session_initializer_t initializer, void *init_data,
       fprintf (stderr, "svc_tls: server-side TLS handshake failed: %s\n",
 	       gnutls_strerror (err));
 
-      free (cd);
+      svctls_finalize_connection (cd);
       free (xprt);
-      gnutls_deinit (*session);
       close (fd);
 
       return NULL;
     }
   /* printf ("server-side TLS handshake succeeded\n"); */
 
-  xdrrec_create (&(cd->xdrs), sendsize, recvsize,
-		 (caddr_t) xprt, svc_readtls, svc_writetls);
   xprt->xp_p2 = (caddr_t) SVCTLS_TYPE_CONNECTION;
   xprt->xp_p1 = (caddr_t) cd;
   xprt->xp_verf.oa_base = cd->verf_body;
@@ -367,6 +392,7 @@ again:
    * make a new transporter (re-uses xprt)
    */
   xprt = makefd_xprt (r->initializer, r->initializer_data,
+		      r->finalizer, r->finalizer_data,
 		      sock, r->sendsize, r->recvsize,
 		      &session);
   if (xprt)
@@ -418,10 +444,7 @@ svctls_destroy (SVCXPRT *xprt)
       /* an actual connection socket */
       struct tcp_conn *cd = (struct tcp_conn *) xprt->xp_p1;
 
-      gnutls_deinit (cd->session);
-      XDR_DESTROY (&(cd->xdrs));
-
-      free (cd);
+      svctls_finalize_connection (cd);
     }
 
   free (xprt);
