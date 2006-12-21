@@ -30,7 +30,7 @@
 
 #include <argp.h>
 
-const char *argp_program_version = "chop-archiver 0.1";
+const char *argp_program_version = "chop-archiver " PACKAGE_VERSION;
 const char *argp_program_bug_address = "<ludovic.courtes@laas.fr>";
 
 static char doc[] =
@@ -208,18 +208,21 @@ static void info (const char *, ...)
 static void
 info (const char *fmt, ...)
 {
-  va_list args;
-  char *newfmt;
+  if (verbose)
+    {
+      va_list args;
+      char *newfmt;
 
-  newfmt = (char *)alloca (strlen (program_name) + strlen (fmt) + 10);
-  strcpy (newfmt, program_name);
-  strcat (newfmt, ": ");
-  strcat (newfmt, fmt);
-  strcat (newfmt, "\n");
+      newfmt = (char *) alloca (strlen (program_name) + strlen (fmt) + 10);
+      strcpy (newfmt, program_name);
+      strcat (newfmt, ": ");
+      strcat (newfmt, fmt);
+      strcat (newfmt, "\n");
 
-  va_start (args, fmt);
-  vfprintf (stderr, newfmt, args);
-  va_end (args);
+      va_start (args, fmt);
+      vfprintf (stderr, newfmt, args);
+      va_end (args);
+    }
 }
 
 
@@ -750,9 +753,6 @@ initialize_tls_parameters (void)
 
       info ("using TLS OpenPGP authentication");
     }
-  else
-    info ("using TLS anonymous authentication");
-
 }
 
 
