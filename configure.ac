@@ -1,12 +1,15 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ(2.59)
+AC_PREREQ(2.61)
 AC_INIT(libchop, 0.0, ludovic.courtes@laas.fr)
+AC_CONFIG_AUX_DIR(build-aux)
+
 AM_INIT_AUTOMAKE(libchop, 0.0)
 
 AC_CONFIG_SRCDIR(src/chop.c)
 AC_CONFIG_HEADER(include/chop/chop-config.h)
+AC_CONFIG_MACRO_DIR(m4)
 
 AC_ARG_ENABLE([guile-bindings],
 	AS_HELP_STRING([--enable-guile-bindings],
@@ -14,9 +17,16 @@ AC_ARG_ENABLE([guile-bindings],
 	[produce_guile_bindings="$enableval"],
 	[produce_guile_bindings="no"])
 
+AC_ARG_WITH([dbus],
+	AS_HELP_STRING([--with-dbus],
+	  [Use D-BUS client/servers (experimental)]),
+	[use_dbus="$withval"],
+	[use_dbus="no"])
+
 
 # Checks for programs.
 AC_PROG_CC
+AM_PROG_CC_C_O
 AC_PROG_LIBTOOL
 
 # `rpcgen' (recommended)
@@ -110,18 +120,22 @@ if test "x$have_gnutls" = "xyes" && test "x$have_gnutls_extra" = "xyes"; then
 fi
 
 # DBus (optional and experimental!).
-AC_MSG_CHECKING([whether DBus 1 is available])
-PKG_CHECK_EXISTS([dbus-1], [
-   CPPFLAGS="$CPPFLAGS `$PKG_CONFIG dbus-1 --cflags`"
-   LIBS="$LIBS `$PKG_CONFIG dbus-1 --libs`"
-   have_dbus_1="yes"],
-   [have_dbus_1="no"])
+if test "x$use_dbus" = "xyes"; then
+   AC_MSG_CHECKING([whether DBus 1 is available])
+   PKG_CHECK_EXISTS([dbus-1], [
+      CPPFLAGS="$CPPFLAGS `$PKG_CONFIG dbus-1 --cflags`"
+      LIBS="$LIBS `$PKG_CONFIG dbus-1 --libs`"
+      have_dbus_1="yes"],
+      [have_dbus_1="no"])
 
-if test "x$have_dbus_1" = "xyes"; then
-   AC_DEFINE([HAVE_DBUS], 1, [Tells whether DBus is available.])
+   if test "x$have_dbus_1" = "xyes"; then
+      AC_DEFINE([HAVE_DBUS], 1, [Tells whether DBus is available.])
+   fi
+   AC_MSG_RESULT([$have_dbus_1])
 fi
-AM_CONDITIONAL([HAVE_DBUS], test "x$have_dbus_1" = "xyes")
-AC_MSG_RESULT([$have_dbus_1])
+AM_CONDITIONAL([HAVE_DBUS],
+  test "x$use_dbus" = "xyes" && test "x$have_dbus_1" = "xyes")
+
 
 # Avahi.
 AC_MSG_CHECKING([whether Avahi is available])
