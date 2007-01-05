@@ -1,9 +1,13 @@
 GUILE = @GUILE@
 G_WRAP_CONFIG = @G_WRAP_CONFIG@
 
-SETGWPATH = "(set! %load-path (cons \"/usr/local/share/guile/site\" %load-path))"
 lib_LTLIBRARIES = libguile-chop.la libguile-chop-store-browsers.la
 
+# Suffix of the Guile module directory.
+module_suffix = modules/chop
+
+# Installation directory for Guile modules.
+chop_moduledir = $(GUILE_SITE)/chop
 
 binding_specs = choppers-spec.scm cipher-spec.scm core-spec.scm		\
 		hash-spec.scm indexers-spec.scm stores-spec.scm		\
@@ -12,7 +16,10 @@ binding_specs = choppers-spec.scm cipher-spec.scm core-spec.scm		\
 		store-browsers-spec.scm
 
 built_c_files = $(binding_specs:%-spec.scm=%.c)
-built_scm_files = $(binding_specs:%-spec.scm=%.scm)
+built_scm_files =							\
+  $(addprefix $(module_suffix)/, $(binding_specs:%-spec.scm=%.scm))
+
+nodist_chop_module_DATA = $(built_scm_files)
 
 libguile_chop_la_SOURCES = core-support.c
 
@@ -23,9 +30,11 @@ libguile_chop_la_SOURCES += choppers.c cipher.c core.c hash.c	\
 			    logs.c store-stats.c filters.c	\
 			    block-indexers.c
 
+libguile_chop_la_LIBADD = -L$(top_builddir)/src -lchop
+
 libguile_chop_store_browsers_la_SOURCES = store-browsers.c
 libguile_chop_store_browsers_la_LIBADD =		\
-    -L$(top_srcdir)/src -lchop-store-browsers -lguile-chop
+    -L$(top_builddir)/src -lchop-store-browsers -lguile-chop
 
 support_c_files = block-indexers-support.c	\
 		  choppers-support.c		\
@@ -40,7 +49,6 @@ support_c_files = block-indexers-support.c	\
 		  streams-support.c
 
 
-TESTS = testsuite.scm
 EXTRA_DIST = $(binding_specs) $(support_c_files) README $(TESTS)
 CLEANFILES = $(built_c_files) $(built_scm_files)
 
@@ -52,10 +60,22 @@ LIBS = $(shell $(G_WRAP_CONFIG) --c-link-args guile) -L../src -lchop
 ## FIXME:  This fixes a g-wrap-config deficiency here.
 AM_CPPFLAGS += -I/usr/local/include
 
-%.c %.scm: %-spec.scm
-	$(GUILE) $(GUILE_FLAGS) -c  \
-	  ${SETGWPATH}" \
-          (set! %load-path (cons \".\" %load-path)) \
-	  (use-modules (g-wrap)) \
-	  (use-modules ($(<:%.scm=%))) \
-	  (generate-wrapset 'guile '$(<:%-spec.scm=%) \"$(<:%-spec.scm=%)\")"
+%.c $(module_suffix)/%.scm: %-spec.scm
+	spec_name="$(basename $(<:%-spec.scm=%))" &&			\
+	echo "* generating bindings for \`$$spec_name'..." &&		\
+	$(GUILE) $(GUILE_FLAGS) -L $(srcdir) -c				\
+	  "(use-modules (g-wrap))					\
+	   (use-modules ($$spec_name-spec))				\
+	   (generate-wrapset 'guile '$$spec_name \"$$spec_name\")"	\
+	&& mkdir -p $(module_suffix)					\
+	&& mv "$$spec_name.scm" $(module_suffix)
+
+
+#
+# Test suite.
+#
+
+TESTS = testsuite.scm
+TESTS_ENVIRONMENT = GUILE=$(builddir)/pre-inst-guile
+
+check_SCRIPTS = testsuite.scm

@@ -200,6 +200,7 @@ if test "x$produce_guile_bindings" = "xyes"; then
   if test "x$guile" != "x"; then
      GUILE_PROGS
      GUILE_FLAGS
+     GUILE_SITE_DIR
 
   #   AC_CHECK_LIB([guile], [scm_u8vector_elements], [],
   #     AC_MSG_ERROR([You version of Guile doesn't support SRFI-4 vectors.  Upgrade to 1.7.2 or later.]))
@@ -207,12 +208,19 @@ if test "x$produce_guile_bindings" = "xyes"; then
      AC_PATH_PROG([g_wrap_config], [g-wrap-config],
        AC_MSG_ERROR([Could not find `g-wrap-config'.  You mush has G-Wrap to produce Guile bindings.]))
 
-     AC_MSG_CHECKING([whether G-Wrap's version is 1.9.5+])
-     if $g_wrap_config --version | grep ['1.9.[5-9]'] > /dev/null; then
+     AC_MSG_CHECKING([whether G-Wrap's version is 1.9.7+])
+     if "$g_wrap_config" --version | grep ['1.9.[7-9]'] > /dev/null; then
        AC_MSG_RESULT([yes])
      else
        AC_MSG_RESULT([no])
        AC_MSG_ERROR([Please, use the right G-Wrap version.])
+     fi
+
+     # Make sure G-Wrap is usable, i.e., its modules are in
+     # `$GUILE_LOAD_PATH' or some such.
+     GUILE_MODULE_AVAILABLE([have_g_wrap_module], [(g-wrap)])
+     if test "x$have_g_wrap_module" = "xno"; then
+	AC_MSG_ERROR([Module `(g-wrap)' is not in Guile's load path.])
      fi
 
      AC_SUBST(GUILE, $guile)
@@ -223,6 +231,7 @@ fi
 AM_CONDITIONAL(HAVE_GUILE, test "x$guile" != "x")
 
 AC_CONFIG_FILES([Makefile
+		 guile/pre-inst-guile
                  include/Makefile
                  src/Makefile
 		 utils/Makefile
@@ -232,5 +241,7 @@ AC_CONFIG_FILES([Makefile
 		 tests/features/Makefile
 		 guile/Makefile
 		 doc/Makefile])
+
+AC_CONFIG_COMMANDS([pre-inst-guile-exec], [chmod +x guile/pre-inst-guile])
 
 AC_OUTPUT
