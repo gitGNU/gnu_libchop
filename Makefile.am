@@ -1,4 +1,4 @@
-SUBDIRS = src utils include doc
+SUBDIRS = src rpc utils include doc
 
 if HAVE_GUILE
 SUBDIRS += guile

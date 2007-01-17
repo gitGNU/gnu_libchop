@@ -14,6 +14,7 @@ nobase_include_HEADERS = chop/block-indexers.h	\
 			 chop/logs.h		\
 			 chop/objects.h		\
 			 chop/store-stats.h	\
+			 chop/store-browsers.h	\
 			 chop/stores.h		\
 			 chop/streams.h
 

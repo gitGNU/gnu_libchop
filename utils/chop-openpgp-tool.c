@@ -309,7 +309,7 @@ main (int argc, char *argv[])
   cerr = chop_init ();
   if (cerr)
     {
-      com_err (argv[0], err, "while initializing libchop");
+      com_err (argv[0], cerr, "while initializing libchop");
       return 1;
     }
 

@@ -234,6 +234,7 @@ AC_CONFIG_FILES([Makefile
 		 guile/pre-inst-guile
                  include/Makefile
                  src/Makefile
+		 rpc/Makefile
 		 utils/Makefile
 		 tests/Makefile
 		 tests/include/Makefile

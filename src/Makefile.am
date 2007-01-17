@@ -1,6 +1,6 @@
-BUILT_SOURCES = chop-errors.c
-EXTRA_DIST = filter-zip-push-pull.c store-generic-db.c \
-             extract-classes.sh gcrypt-enum-mapping.h
+EXTRA_DIST = filter-zip-push-pull.c store-generic-db.c	\
+             extract-classes.sh gcrypt-enum-mapping.h	\
+	     chop-errors.et
 
 lib_LTLIBRARIES = libchop.la libchop-block-server.la \
                   libchop-store-browsers.la
@@ -71,7 +71,7 @@ rpc_server_stubs = block_rstore_svc.c
 rpc_headers = $(top_srcdir)/include/chop/block_rstore.h	\
               $(top_srcdir)/rpc/block_rstore.h
 libchop_la_SOURCES += $(rpc_client_stubs) $(rpc_xdr)
-BUILT_SOURCES += $(rpc_client_stubs) $(rpc_server_stubs)	\
+BUILT_SOURCES  = $(rpc_client_stubs) $(rpc_server_stubs)	\
 		 $(rpc_xdr) $(rpc_headers)
 
 # The convenience library for block store RPC servers.
@@ -94,7 +94,9 @@ endif
 
 
 chop-errors.c chop-errors.h: chop-errors.et
-	$(COMPILE_ET) $^ && mv chop-errors.h $(top_srcdir)/include/chop
+	$(COMPILE_ET) $^ &&				\
+	touch chop-errors.[ch] &&			\
+	mv chop-errors.h $(top_srcdir)/include/chop
 
 block_rstore_clnt.c: $(top_srcdir)/rpc/block_rstore.x \
 		     $(top_srcdir)/rpc/block_rstore.h
