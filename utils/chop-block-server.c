@@ -682,7 +682,10 @@ tls_authorizer (gnutls_session_t session, void *unused)
 
   peer_cert = gnutls_certificate_get_peers (session, &peer_cert_len);
   if (!peer_cert)
-    return 0;
+    {
+      info ("client doesn't have an OpenPGP certificate, rejected");
+      return 0;
+    }
 
   assert (peer_cert_len == 1);
 
@@ -1060,6 +1063,7 @@ main (int argc, char *argv[])
 	chop_class_alloca_instance (&chop_dummy_block_store_class);
 
       chop_dummy_block_store_open ("data", local_store);
+      chop_log_attach (chop_dummy_block_store_log (local_store), 2, 0);
     }
 
   if (use_zlib_filters)
