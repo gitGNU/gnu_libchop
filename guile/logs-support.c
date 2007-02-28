@@ -8,13 +8,20 @@
 
 static __inline__ void
 chop_log_attach_to_port (chop_log_t *log, SCM port)
+#define FUNC_NAME "log-attach-to-port"
 {
   int fd;
 
-  scm_fsync (port);
+  /* XXX: This doesn't work with on-file ports. */
+  SCM_VALIDATE_OPFPORT (2, port);
+
+  /* Not all file output ports are syncable (e.g., stdout is not) so let's
+     avoid it.  */
+  /* scm_fsync (port); */
   fd = scm_to_int (scm_fileno (port));
   chop_log_attach (log, fd, 0);
 }
+#undef FUNC_NAME
 
 
 static void

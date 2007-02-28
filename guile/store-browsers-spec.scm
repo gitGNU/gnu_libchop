@@ -18,6 +18,7 @@
 
 (define-module (store-browsers-spec)
   #:use-module (core-spec)
+  #:use-module (logs-spec)
 
   #:use-module (oop goops)
   #:use-module (srfi srfi-1)
@@ -41,7 +42,7 @@
 
 (define-class <chop-store-browser-wrapset> (<gw-guile-wrapset>)
   #:id 'store-browsers
-  #:dependencies '(standard core))
+  #:dependencies '(standard core logs))
 
 
 
@@ -89,6 +90,11 @@
 				(scm                           removal-proc)
 				((<store-browser> out)         browser)))
 
+  (wrap-function! ws
+                  #:name 'avahi-store-browser-log
+                  #:c-name "chop_scm_avahi_store_browser_log"
+                  #:returns '<log>
+                  #:arguments '((<store-browser>  avahi-browser)))
 
 
   ;; methods

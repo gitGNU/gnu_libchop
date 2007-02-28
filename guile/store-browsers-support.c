@@ -34,7 +34,8 @@ ssb_discovery_trampoline (chop_store_browser_t *browser,
 		       scm_from_locale_string (service_name),
 		       scm_from_locale_string (host),
 		       scm_from_uint (port));
-  if (scm_is_true (result))
+  if (scm_is_false (result))
+    /* Issue a quit request.  */
     return 1;
 
   return 0;
@@ -51,7 +52,8 @@ ssb_removal_trampoline (chop_store_browser_t *browser,
   scm = (chop_scheme_store_browser_t *)userdata;
   result = scm_call_1 (scm->removal_proc,
 		       scm_from_locale_string (service_name));
-  if (scm_is_true (result))
+  if (scm_is_false (result))
+    /* Issue a quit request.  */
     return 1;
 
   return 0;
@@ -133,6 +135,20 @@ chop_avahi_store_browser_open_alloc (const char *domain,
   scm->removal_proc = removal;
 
   return err;
+}
+
+static chop_log_t *
+chop_scm_avahi_store_browser_log (const chop_store_browser_t *browser)
+{
+  chop_scheme_store_browser_t *scm;
+
+  if (!chop_object_is_a ((chop_object_t *) browser,
+			 (chop_class_t *) &chop_scheme_store_browser_class))
+    return NULL;
+
+  scm = (chop_scheme_store_browser_t *) browser;
+
+  return (chop_avahi_store_browser_log (scm->backend));
 }
 
 
