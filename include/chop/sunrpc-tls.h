@@ -15,6 +15,7 @@ extern "C" {
 #endif
 
 typedef int (* svctls_session_initializer_t) (gnutls_session_t *, void *);
+typedef void (* svctls_session_finalizer_t) (gnutls_session_t, void *);
 typedef int (* svctls_authorizer_t) (gnutls_session_t, void *);
 
 /* Initialize server-side RPC/TLS code.  */
@@ -27,9 +28,14 @@ extern void clnttls_init_if_needed (void);
 /* Create a handle to a RPC/TLS server listening on SOCK.  Whenever a new
    connection is accepted, MAKE_SESSION is invoked an passed INIT_DATA; on
    success, it should return 0 and a new session ready for handshaking; on
-   failure, it should return non-zero.  */
+   failure, it should return non-zero.  If non-NULL, FINALIZER may be invoked
+   anytime a session is to be finalized.  It should at least invoke
+   `gnutls_deinit ()' on the given session.  It can be invoked just after a
+   handshake failure (i.e., before the session has actually been used).  */
 extern SVCXPRT *svctls_create (svctls_session_initializer_t make_session,
 			       void *init_data,
+			       svctls_session_finalizer_t finalizer,
+			       void *finalizer_data,
 			       svctls_authorizer_t authorizer,
 			       void *auth_data,
 			       int sock,
@@ -42,6 +48,10 @@ extern CLIENT *clnttls_create (gnutls_session_t session,
 			       u_long prog, u_long vers,
 			       u_int sendsz, u_int recvsz);
 
+
+/* On success, zero is returned and *SESSION contains the GnuTLS session
+   attached to XPRT.  Otherwise, an error is returned.  */
+extern int svctls_getsession (SVCXPRT *xprt, gnutls_session_t *session);
 
 
 #ifdef __cplusplus

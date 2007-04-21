@@ -14,6 +14,8 @@ chop_read_hash_method_spec (const char *str)
 {
   chop_hash_method_spec_t spec;
 
+  spec.method = CHOP_HASH_NONE;
+
   if (!str)
     spec.spec_type = CHOP_HASH_SPEC_NONE;
   else

@@ -1,12 +1,15 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ(2.59)
+AC_PREREQ(2.61)
 AC_INIT(libchop, 0.0, ludovic.courtes@laas.fr)
+AC_CONFIG_AUX_DIR(build-aux)
+
 AM_INIT_AUTOMAKE(libchop, 0.0)
 
 AC_CONFIG_SRCDIR(src/chop.c)
 AC_CONFIG_HEADER(include/chop/chop-config.h)
+AC_CONFIG_MACRO_DIR(m4)
 
 AC_ARG_ENABLE([guile-bindings],
 	AS_HELP_STRING([--enable-guile-bindings],
@@ -14,9 +17,16 @@ AC_ARG_ENABLE([guile-bindings],
 	[produce_guile_bindings="$enableval"],
 	[produce_guile_bindings="no"])
 
+AC_ARG_WITH([dbus],
+	AS_HELP_STRING([--with-dbus],
+	  [Use D-BUS client/servers (experimental)]),
+	[use_dbus="$withval"],
+	[use_dbus="no"])
+
 
 # Checks for programs.
 AC_PROG_CC
+AM_PROG_CC_C_O
 AC_PROG_LIBTOOL
 
 # `rpcgen' (recommended)
@@ -110,18 +120,22 @@ if test "x$have_gnutls" = "xyes" && test "x$have_gnutls_extra" = "xyes"; then
 fi
 
 # DBus (optional and experimental!).
-AC_MSG_CHECKING([whether DBus 1 is available])
-PKG_CHECK_EXISTS([dbus-1], [
-   CPPFLAGS="$CPPFLAGS `$PKG_CONFIG dbus-1 --cflags`"
-   LIBS="$LIBS `$PKG_CONFIG dbus-1 --libs`"
-   have_dbus_1="yes"],
-   [have_dbus_1="no"])
+if test "x$use_dbus" = "xyes"; then
+   AC_MSG_CHECKING([whether DBus 1 is available])
+   PKG_CHECK_EXISTS([dbus-1], [
+      CPPFLAGS="$CPPFLAGS `$PKG_CONFIG dbus-1 --cflags`"
+      LIBS="$LIBS `$PKG_CONFIG dbus-1 --libs`"
+      have_dbus_1="yes"],
+      [have_dbus_1="no"])
 
-if test "x$have_dbus_1" = "xyes"; then
-   AC_DEFINE([HAVE_DBUS], 1, [Tells whether DBus is available.])
+   if test "x$have_dbus_1" = "xyes"; then
+      AC_DEFINE([HAVE_DBUS], 1, [Tells whether DBus is available.])
+   fi
+   AC_MSG_RESULT([$have_dbus_1])
 fi
-AM_CONDITIONAL([HAVE_DBUS], test "x$have_dbus_1" = "xyes")
-AC_MSG_RESULT([$have_dbus_1])
+AM_CONDITIONAL([HAVE_DBUS],
+  test "x$use_dbus" = "xyes" && test "x$have_dbus_1" = "xyes")
+
 
 # Avahi.
 AC_MSG_CHECKING([whether Avahi is available])
@@ -186,6 +200,7 @@ if test "x$produce_guile_bindings" = "xyes"; then
   if test "x$guile" != "x"; then
      GUILE_PROGS
      GUILE_FLAGS
+     GUILE_SITE_DIR
 
   #   AC_CHECK_LIB([guile], [scm_u8vector_elements], [],
   #     AC_MSG_ERROR([You version of Guile doesn't support SRFI-4 vectors.  Upgrade to 1.7.2 or later.]))
@@ -193,12 +208,19 @@ if test "x$produce_guile_bindings" = "xyes"; then
      AC_PATH_PROG([g_wrap_config], [g-wrap-config],
        AC_MSG_ERROR([Could not find `g-wrap-config'.  You mush has G-Wrap to produce Guile bindings.]))
 
-     AC_MSG_CHECKING([whether G-Wrap's version is 1.9.5+])
-     if $g_wrap_config --version | grep ['1.9.[5-9]'] > /dev/null; then
+     AC_MSG_CHECKING([whether G-Wrap's version is 1.9.7+])
+     if "$g_wrap_config" --version | grep ['1.9.[7-9]'] > /dev/null; then
        AC_MSG_RESULT([yes])
      else
        AC_MSG_RESULT([no])
        AC_MSG_ERROR([Please, use the right G-Wrap version.])
+     fi
+
+     # Make sure G-Wrap is usable, i.e., its modules are in
+     # `$GUILE_LOAD_PATH' or some such.
+     GUILE_MODULE_AVAILABLE([have_g_wrap_module], [(g-wrap)])
+     if test "x$have_g_wrap_module" = "xno"; then
+	AC_MSG_ERROR([Module `(g-wrap)' is not in Guile's load path.])
      fi
 
      AC_SUBST(GUILE, $guile)
@@ -209,8 +231,10 @@ fi
 AM_CONDITIONAL(HAVE_GUILE, test "x$guile" != "x")
 
 AC_CONFIG_FILES([Makefile
+		 guile/pre-inst-guile
                  include/Makefile
                  src/Makefile
+		 rpc/Makefile
 		 utils/Makefile
 		 tests/Makefile
 		 tests/include/Makefile
@@ -218,5 +242,7 @@ AC_CONFIG_FILES([Makefile
 		 tests/features/Makefile
 		 guile/Makefile
 		 doc/Makefile])
+
+AC_CONFIG_COMMANDS([pre-inst-guile-exec], [chmod +x guile/pre-inst-guile])
 
 AC_OUTPUT

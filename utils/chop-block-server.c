@@ -8,6 +8,7 @@
 #include <chop/filters.h>
 #include <chop/block-server.h>
 
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <rpc/pmap_clnt.h>
@@ -17,6 +18,7 @@
 #include <netinet/in.h>
 #include <sys/poll.h>
 #include <netdb.h>
+#include <arpa/inet.h>
 
 #include <errno.h>
 #include <assert.h>
@@ -173,10 +175,65 @@ is_valid_hash_key (const chop_block_key_t *key,
 
 /* The RPC handlers.  */
 
+static inline void
+display_request_info (const char *name, struct svc_req *req)
+{
+  if (verbose)
+    {
+      struct sockaddr_in *caller;
+      unsigned long ip_as_int;
+      char caller_ip[200];
+      SVCXPRT *xprt = req->rq_xprt;
+
+      caller = svc_getcaller (xprt);
+      assert (caller != NULL);
+
+      ip_as_int = ntohl (caller->sin_addr.s_addr);
+      snprintf (caller_ip, sizeof (caller_ip), "%lu.%lu.%lu.%lu",
+		(ip_as_int & 0xff000000UL) >> 24,
+		(ip_as_int & 0x00ff0000UL) >> 16,
+		(ip_as_int & 0x0000ff00UL) >>  8,
+		(ip_as_int & 0x000000ffUL));
+
+#ifdef HAVE_GNUTLS
+      {
+	int err;
+	unsigned char caller_key_id[8], caller_key_id_ascii[17];
+	gnutls_openpgp_key_t peer_key;
+	gnutls_session_t session;
+
+	err = svctls_getsession (req->rq_xprt, &session);
+	if (!err)
+	  {
+	    peer_key = gnutls_session_get_ptr (session);
+
+	    /* Show the peer's key fingerprint.  */
+	    err = gnutls_openpgp_key_get_id (peer_key, caller_key_id);
+	    if (err)
+	      strcpy ((char *) caller_key_id_ascii, "???");
+	    else
+	      chop_buffer_to_hex_string ((char *) caller_key_id,
+					 sizeof (caller_key_id),
+					 (char *) caller_key_id_ascii);
+	  }
+	else
+	  strcpy ((char *) caller_key_id_ascii, "???");
+
+	info ("request `%s' from peer ID %s (IP %s)",
+	      name, caller_key_id_ascii, caller_ip);
+      }
+#else
+      info ("request `%s' from IP %s", name, caller_ip);
+#endif
+    }
+}
+
 static int *
 handle_say_hello (char **argp, struct svc_req *req)
 {
   static int result = 1;
+
+  display_request_info ("say_hello", req);
 
   return &result;
 }
@@ -188,6 +245,8 @@ handle_block_exists (chop_rblock_key_t *argp, struct svc_req *req)
   errcode_t err;
   int exists;
   chop_block_key_t key;
+
+  display_request_info ("block_exists", req);
 
   chop_block_key_init (&key, argp->chop_rblock_key_t_val,
 		       argp->chop_rblock_key_t_len, NULL, NULL);
@@ -206,6 +265,8 @@ handle_write_block (block_store_write_block_args *argp, struct svc_req *req)
   static int result;
   errcode_t err;
   chop_block_key_t key;
+
+  display_request_info ("write_block", req);
 
   chop_block_key_init (&key, argp->key.chop_rblock_key_t_val,
 		       argp->key.chop_rblock_key_t_len, NULL, NULL);
@@ -275,6 +336,8 @@ handle_read_block (chop_rblock_key_t *argp, struct svc_req *req)
   chop_block_key_t key;
   chop_buffer_t buffer;
 
+  display_request_info ("read_block", req);
+
 #define DO_FAIL(_ret)					\
   do							\
   {							\
@@ -319,6 +382,8 @@ handle_sync (void *unused, struct svc_req *req)
   static int result;
   errcode_t err;
 
+  display_request_info ("sync", req);
+
   err = chop_store_sync (local_store);
   result = err ? -1 : 0;
 
@@ -330,6 +395,8 @@ handle_close (void *unused, struct svc_req *req)
 {
   static int result = 0;
   errcode_t err;
+
+  display_request_info ("close", req);
 
   /* Never actually close the local store.  */
   err = chop_store_sync (local_store);
@@ -503,6 +570,42 @@ make_tls_session (gnutls_session *session, void *closure)
 }
 
 static void
+finalize_tls_session (gnutls_session_t session, void *closure)
+{
+  if (tls_use_openpgp_authentication)
+    {
+      int err;
+      unsigned char caller_key_id[8], caller_key_id_ascii[17];
+      gnutls_openpgp_key_t peer_key;
+
+      peer_key = gnutls_session_get_ptr (session);
+
+      if (peer_key != NULL)
+	{
+	  /* Show the peer's key fingerprint.  */
+	  err = gnutls_openpgp_key_get_id (peer_key, caller_key_id);
+	  if (err)
+	    strcpy ((char *) caller_key_id_ascii, "???");
+	  else
+	    chop_buffer_to_hex_string ((char *) caller_key_id,
+				       sizeof (caller_key_id),
+				       (char *) caller_key_id_ascii);
+
+	  /* Finalize the previously imported key.  */
+	  gnutls_openpgp_key_deinit (peer_key);
+	}
+      else
+	strcpy ((char *) caller_key_id_ascii, "???");
+
+      info ("finalizing session for peer ID %s", caller_key_id_ascii);
+    }
+  else
+    info ("finalizing session");
+
+  gnutls_deinit (session);
+}
+
+static void
 initialize_tls_parameters (void)
 {
   errcode_t err;
@@ -579,7 +682,10 @@ tls_authorizer (gnutls_session_t session, void *unused)
 
   peer_cert = gnutls_certificate_get_peers (session, &peer_cert_len);
   if (!peer_cert)
-    return 0;
+    {
+      info ("client doesn't have an OpenPGP certificate, rejected");
+      return 0;
+    }
 
   assert (peer_cert_len == 1);
 
@@ -591,6 +697,9 @@ tls_authorizer (gnutls_session_t session, void *unused)
 				   GNUTLS_OPENPGP_FMT_RAW);
   if (err)
     goto handle_error;
+
+  /* Store the native key object for future reference.  */
+  gnutls_session_set_ptr (session, peer_key);
 
   if (verbose)
     {
@@ -622,8 +731,6 @@ tls_authorizer (gnutls_session_t session, void *unused)
   chop_buffer_to_hex_string (fpr, fpr_len, fpr_ascii);
   info ("peer key fingerprint: %s", fpr_ascii);
 
-  gnutls_openpgp_key_deinit (peer_key);
-
   /* FIXME: No actual attempt is made to verity whether the peer is
      authorized to use the service.  Eventually, we'd like to verify in a
      keyring whether the peer is trusted/authorized, etc.  */
@@ -633,6 +740,7 @@ tls_authorizer (gnutls_session_t session, void *unused)
  handle_error:
   info ("in %s: GNUtls error: %s", __FUNCTION__,
 	gnutls_strerror (err));
+  gnutls_session_set_ptr (session, NULL);
   gnutls_openpgp_key_deinit (peer_key);
 
  failed:
@@ -685,6 +793,7 @@ register_rpc_handlers (void)
 
       initialize_tls_parameters ();
       transp = svctls_create (make_tls_session, NULL,
+			      finalize_tls_session, NULL,
 			      tls_authorizer, NULL,
 			      listening_sock, 0, 0);
     }
@@ -722,14 +831,14 @@ register_rpc_handlers (void)
 
 #include <argp.h>
 
-const char *argp_program_version = "chop-block-server 0.1";
+const char *argp_program_version = "chop-block-server " PACKAGE_VERSION;
 const char *argp_program_bug_address = "<ludovic.courtes@laas.fr>";
 
 static const char doc[] =
 "chop-block-server -- serves block store RPCs\
 \v\
 This program serves block store RPCs by proxying LOCAL-BLOCK-STORE, a local \
-(file-based) block store.";
+file-based block store.";
 
 static char args_doc[] = "LOCAL-BLOCK-STORE";
 
@@ -954,6 +1063,7 @@ main (int argc, char *argv[])
 	chop_class_alloca_instance (&chop_dummy_block_store_class);
 
       chop_dummy_block_store_open ("data", local_store);
+      chop_log_attach (chop_dummy_block_store_log (local_store), 2, 0);
     }
 
   if (use_zlib_filters)

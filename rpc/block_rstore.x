@@ -1,8 +1,11 @@
 /* It really looks like -*- C -*- .  */
 
+/* Sun/ONC RPC interface definition for the remote block store.  */
 
-typedef char chop_rblock_key_t<>;
-typedef char chop_rblock_content_t<>;
+
+/* Variable-size octet arrays for block keys and block contents.  */
+typedef opaque chop_rblock_key_t<>;
+typedef opaque chop_rblock_content_t<>;
 
 struct block_store_write_block_args
 {

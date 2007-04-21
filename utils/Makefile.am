@@ -4,8 +4,9 @@ bin_PROGRAMS = chop-archiver chop-store-list		\
 	       chop-block-server chop-store-convert	\
 	       chop-store-discover
 noinst_PROGRAMS = chop-file
-bin_SCRIPTS = chop-rcs.sh
-EXTRA_DIST = avahi-publish.c gnutls-init-params.c
+dist_bin_SCRIPTS = chop-rcs.sh
+EXTRA_DIST = avahi-publish.c gnutls-init-params.c	\
+	     gnutls-helper.h
 
 AM_CPPFLAGS = -I../include
 AM_CFLAGS = -O0 -g -Wall -fno-strict-aliasing
@@ -17,6 +18,8 @@ LDADD = -L$(top_builddir)/src -lchop
 chop_archiver_SOURCES = chop-archiver.c
 if HAVE_GNUTLS
 chop_archiver_SOURCES += gnutls-helper.c
+else
+EXTRA_DIST += gnutls-helper.c
 endif
 
 chop_block_server_SOURCES = chop-block-server.c

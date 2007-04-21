@@ -192,8 +192,10 @@ resolve_callback (AvahiServiceResolver *r,
 	      {
 		if (!strcmp (value, "SunRPC"))
 		  client_class = &chop_sunrpc_block_store_class;
+#ifdef HAVE_DBUS
 		else if (!strcmp (value, "DBus"))
 		  client_class = &chop_dbus_block_store_class;
+#endif
 		avahi_free (value);
 	      }
 	  }

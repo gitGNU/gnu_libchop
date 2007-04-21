@@ -2,6 +2,7 @@
    useful in debugging ciphersuite negotiation issues.  */
 
 #include <chop/chop.h>
+#include <chop/chop-config.h>
 
 #include <gnutls/gnutls.h>
 #include <gnutls/extra.h>
@@ -19,8 +20,8 @@
 #include <argp.h>
 
 
-const char *argp_program_version = "chop-openpgp-tool 0";
-const char *argp_program_bug_address = "<ludovic.courtes@laas.fr>";
+const char *argp_program_version = "chop-openpgp-tool " PACKAGE_VERSION;
+const char *argp_program_bug_address = PACKAGE_BUGREPORT;
 
 static char doc[] =
 "chop-openpgp-tool -- display information about OpenPGP keys\n";
@@ -34,6 +35,8 @@ static struct argp_option options[] =
     { "openpgp-privkey", 'O', "PRIVKEY-FILE", 0,
       "Use PRIVKEY-FILE as the OpenPGP key to be used during TLS "
       "authentication" },
+    { "raw", 'r', NULL, 0,
+      "Import keys in \"raw\" binary format rather than ASCII-armored" },
 
     /* What should be displayed.  */
     { "all", 'a', NULL, 0,
@@ -55,6 +58,7 @@ static int verbose = 0;
 /* OpenPGP key pair for OpenPGP authentication.  */
 static char *openpgp_pubkey_file = NULL;
 static char *openpgp_privkey_file = NULL;
+static gnutls_openpgp_key_fmt_t openpgp_key_format = GNUTLS_OPENPGP_FMT_BASE64;
 
 /* What to show.  */
 static int show_all = 0;
@@ -79,6 +83,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
       break;
     case 'O':
       openpgp_privkey_file = arg;
+      break;
+    case 'r':
+      openpgp_key_format = GNUTLS_OPENPGP_FMT_RAW;
       break;
     case 'a':
       show_all = 1;
@@ -155,7 +162,8 @@ static int
 import_openpgp_keys (const char *pubkey_file,
 		     gnutls_openpgp_key_t pubkey,
 		     const char *privkey_file,
-		     gnutls_openpgp_privkey_t privkey)
+		     gnutls_openpgp_privkey_t privkey,
+		     gnutls_openpgp_key_fmt_t format)
 {
   int err;
   gnutls_datum_t key_content = { NULL, 0 };
@@ -164,25 +172,27 @@ import_openpgp_keys (const char *pubkey_file,
   if (err)
     goto failed;
 
-  err = gnutls_openpgp_key_import (pubkey, &key_content,
-				   GNUTLS_OPENPGP_FMT_BASE64);
+  err = gnutls_openpgp_key_import (pubkey, &key_content, format);
   if (err)
     goto failed;
 
   unload_file (&key_content);
 
-  err = load_file (privkey_file, &key_content);
-  if (err)
-    goto failed;
+  if (privkey_file)
+    {
+      err = load_file (privkey_file, &key_content);
+      if (err)
+	goto failed;
 
-  err = gnutls_openpgp_privkey_import (privkey, &key_content,
-				       GNUTLS_OPENPGP_FMT_BASE64,
-				       "" /* FIXME: password */,
-				       0 /* flags? */);
-  if (err)
-    goto failed;
+      err = gnutls_openpgp_privkey_import (privkey, &key_content,
+					   format,
+					   "" /* FIXME: password */,
+					   0 /* flags? */);
+      if (err)
+	goto failed;
 
-  unload_file (&key_content);
+      unload_file (&key_content);
+    }
 
   return 0;
 
@@ -236,19 +246,29 @@ show_key_fingerprint (gnutls_openpgp_key_t key)
 }
 
 static int
-show_key_pk_algorithm (gnutls_openpgp_key_t pubkey,
-		       gnutls_openpgp_privkey_t privkey)
+show_pubkey_pk_algorithm (gnutls_openpgp_key_t pubkey)
 {
-  gnutls_pk_algorithm_t pub_algo, priv_algo;
-  unsigned int pub_bits, priv_bits;
+  gnutls_pk_algorithm_t algo;
+  unsigned int bits;
 
-  pub_algo = gnutls_openpgp_key_get_pk_algorithm (pubkey, &pub_bits);
-  priv_algo = gnutls_openpgp_privkey_get_pk_algorithm (privkey, &priv_bits);
+  algo = gnutls_openpgp_key_get_pk_algorithm (pubkey, &bits);
 
-  printf ("pubkey PK algorithm:\t%s\t%u bits\n"
-	  "privkey PK algorithm:\t%s\t%u bits\n",
-	  gnutls_pk_algorithm_get_name (pub_algo), pub_bits,
-	  gnutls_pk_algorithm_get_name (priv_algo), priv_bits);
+  printf ("pubkey PK algorithm:\t%s\t%u bits\n",
+	  gnutls_pk_algorithm_get_name (algo), bits);
+
+  return 0;
+}
+
+static int
+show_privkey_pk_algorithm (gnutls_openpgp_privkey_t pubkey)
+{
+  gnutls_pk_algorithm_t algo;
+  unsigned int bits;
+
+  algo = gnutls_openpgp_privkey_get_pk_algorithm (pubkey, &bits);
+
+  printf ("privkey PK algorithm:\t%s\t%u bits\n",
+	  gnutls_pk_algorithm_get_name (algo), bits);
 
   return 0;
 }
@@ -299,29 +319,19 @@ main (int argc, char *argv[])
   /* Parse arguments.  */
   argp_parse (&argp, argc, argv, 0, 0, 0);
 
-  if ((!openpgp_pubkey_file) || (!openpgp_privkey_file))
+  if (!openpgp_pubkey_file)
     {
-      fprintf (stderr, "You must specify a public and private key, with "
-	       "`-o' and `-O'.\n");
+      fprintf (stderr, "You must specify at least a public key "
+	       "certificate, with `-o'.\n");
       return 1;
     }
 
   cerr = chop_init ();
   if (cerr)
     {
-      com_err (argv[0], err, "while initializing libchop");
+      com_err (argv[0], cerr, "while initializing libchop");
       return 1;
     }
-
-#if 0 /* debugging */
-  printf ("PID: %i\n", getpid ());
-  {
-    char buf[123];
-    printf ("hit ENTER\n");
-    gets (buf);
-  }
-  printf ("starting\n");
-#endif
 
   err = gnutls_global_init ();
   handle_error (err, "initializing GnuTLS");
@@ -334,7 +344,8 @@ main (int argc, char *argv[])
   handle_error (err, "initializing private key");
 
   err = import_openpgp_keys (openpgp_pubkey_file, pubkey,
-			     openpgp_privkey_file, privkey);
+			     openpgp_privkey_file, privkey,
+			     openpgp_key_format);
   handle_error (err, "importing keys");
 
   if (show_all || show_id)
@@ -357,8 +368,14 @@ main (int argc, char *argv[])
 
   if (show_all || show_pk_algorithm)
     {
-      err = show_key_pk_algorithm (pubkey, privkey);
-      handle_error (err, "retrieving key PK algorithm");
+      err = show_pubkey_pk_algorithm (pubkey);
+      handle_error (err, "retrieving public key PK algorithm");
+
+      if (openpgp_privkey_file)
+	{
+	  err = show_privkey_pk_algorithm (privkey);
+	  handle_error (err, "retrieving private key PK algorithm");
+	}
     }
 
   gnutls_openpgp_key_deinit (pubkey);

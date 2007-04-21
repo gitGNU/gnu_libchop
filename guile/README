@@ -2,8 +2,17 @@ Guile bindings for libchop
 ==========================
 
 This directory contains the G-Wrap specifications used to generate Guile
-(Scheme) bindings for libchop.  However, G-Wrap is constantly in flux,
-so a few notes are necessary here.
+(Scheme) bindings for libchop.  Those bindings should build fine with
+G-Wrap 1.9.7 (released Nov. 2006) and Guile 1.8.x.
+
+Detailed notes about G-Wrap features or bug fixes relied on are given
+below, although they are most likely useless to anyone using G-Wrap
+1.9.7.
+
+
+
+Detailed Notes About Older G-Wrap
+---------------------------------
 
 First, the version that was originally used is G-Wrap 1.9.5 (and
 1.9.6).  However, future versions introduce a slight architectural
@@ -41,7 +50,7 @@ References
 
 [2] http://people.debian.org/~rotty/arch/rotty@debian.org--2005/
     and
-    http://www.laas.fr/~lcourtes/software/lcourtes@laas.fr--2004-libre
+    http://www.laas.fr/~lcourtes/software/arch-2004/
     respectively.
 
 ;;; arch-tag: d74735d0-9856-4b44-b056-872c6bd5a994
