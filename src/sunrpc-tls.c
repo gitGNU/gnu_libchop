@@ -631,6 +631,7 @@ clnttls_create (gnutls_session_t session, u_long prog, u_long vers,
 
   /* We're assuming SESSION denotes a client session.  */
   ct->ct_session = session;
+  ct->ct_closeit = TRUE;
 
 
   /*
@@ -917,8 +918,8 @@ clnt_readtls (char *ctptr, char *buf, int len)
 {
   struct ct_data *ct = (struct ct_data *)ctptr;
   /* FIXME: We don't honor timeouts!  */
-  int milliseconds = (ct->ct_wait.tv_sec * 1000) +
-    (ct->ct_wait.tv_usec / 1000);
+/*   int milliseconds = (ct->ct_wait.tv_sec * 1000) + */
+/*     (ct->ct_wait.tv_usec / 1000); */
 
   len = readtls (ct->ct_session, buf, len);
   switch (len)
