@@ -1,7 +1,8 @@
 GUILE = @GUILE@
 G_WRAP_CONFIG = @G_WRAP_CONFIG@
 
-lib_LTLIBRARIES = libguile-chop.la libguile-chop-store-browsers.la
+lib_LTLIBRARIES = libguile-chop.la libguile-chop-store-browsers.la	\
+		  libguile-chop-block-server.la
 
 # Suffix of the Guile module directory.
 module_suffix = modules/chop
@@ -13,7 +14,7 @@ binding_specs = choppers-spec.scm cipher-spec.scm core-spec.scm		\
 		hash-spec.scm indexers-spec.scm stores-spec.scm		\
 		streams-spec.scm logs-spec.scm store-stats-spec.scm	\
 		filters-spec.scm block-indexers-spec.scm		\
-		store-browsers-spec.scm
+		store-browsers-spec.scm block-server-spec.scm
 
 built_c_files = $(binding_specs:%-spec.scm=%.c)
 built_scm_files =							\
@@ -36,6 +37,10 @@ libguile_chop_store_browsers_la_SOURCES = store-browsers.c
 libguile_chop_store_browsers_la_LIBADD =		\
     -L$(top_builddir)/src -lchop-store-browsers -lguile-chop
 
+libguile_chop_block_server_la_SOURCES = block-server.c
+libguile_chop_block_server_la_LIBADD =			\
+    -L$(top_builddir)/src -lchop-block-server -lguile-chop
+
 support_c_files = block-indexers-support.c	\
 		  choppers-support.c		\
 		  cipher-support.c		\
@@ -46,7 +51,8 @@ support_c_files = block-indexers-support.c	\
 		  store-browsers-support.c	\
 		  store-stats-support.c		\
 		  stores-support.c		\
-		  streams-support.c
+		  streams-support.c		\
+		  block-server-support.c
 
 
 EXTRA_DIST = $(binding_specs) $(support_c_files) README $(TESTS)
