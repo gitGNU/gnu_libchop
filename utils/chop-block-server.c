@@ -105,7 +105,6 @@ static void info (const char *, ...)
 
 #ifdef USE_AVAHI
 # include <pthread.h>
-# include "avahi-publish.c"
 #endif
 
 
@@ -826,6 +825,7 @@ register_rpc_handlers (void)
   return transp;
 }
 
+
 
 /* Option parsing.  */
 
@@ -974,7 +974,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
       no_service_publication = 1;
       break;
     case 's':
-      service_name = avahi_strdup (arg);
+      service_name = strdup (arg);
       break;
 #endif
 
@@ -1002,6 +1002,100 @@ parse_opt (int key, char *arg, struct argp_state *state)
 
 /* Argp argument parsing.  */
 static struct argp argp = { options, parse_opt, args_doc, doc };
+
+
+#ifdef HAVE_AVAHI
+/* Service publication.  */
+
+static void *
+publishing_thread_entry_point (void *pub)
+{
+  chop_store_publisher_loop ((chop_store_publisher_t *) pub);
+
+  free (pub);
+
+  return NULL;
+}
+
+static errcode_t
+publish_service (void)
+{
+  errcode_t err;
+  chop_hash_method_spec_t hash_spec;
+  chop_store_publisher_t *publisher;
+
+  publisher = (chop_store_publisher_t *)
+    malloc (chop_class_instance_size (&chop_avahi_store_publisher_class));
+
+  if (!publisher)
+    return ENOMEM;
+
+  if (!service_name)
+    {
+      /* Choose a service name of the form `user@host'.  */
+      char *name, *host;
+      size_t total_size;
+#ifdef HAVE_CUSERID
+      char *at;
+
+      total_size = L_cuserid + 1024 + 2;
+      name = (char *)alloca (total_size);
+      cuserid (name);
+      at = name + strlen (name);
+      host = at + 1;
+
+      *at = '@';
+#else
+      host = name = (char *)alloca (1024);
+      total_size = 1024;
+#endif
+
+      if (gethostname (host, total_size -1 - ((size_t)(host - name))))
+	strcpy  (host, "anonymous-block-server");
+      else
+	/* Just to make sure...  */
+	name[total_size - 1] = '\0';
+
+      service_name = strdup (name);
+    }
+
+  hash_spec.method = content_hash_enforced;
+  if (content_hash_enforced != CHOP_HASH_NONE)
+    hash_spec.spec_type = CHOP_HASH_SPEC_SPECIFIED;
+  else
+    hash_spec.spec_type = CHOP_HASH_SPEC_ANY;
+
+  err = chop_avahi_store_publisher_open (service_name, NULL /* host */,
+					 service_port, hash_spec,
+#ifdef HAVE_GNUTLS
+					 use_tls,
+					 /* FIXME: Publish the fingerprint */
+					 NULL, 0,
+#else
+					 0, NULL, 0,
+#endif /* HAVE_GNUTLS */
+					 publisher);
+  if (!err)
+    {
+      /* Spawn a publishing thread.  */
+      pthread_t publishing_thread;
+
+      if (debugging)
+	chop_log_attach (chop_avahi_store_publisher_log (publisher),
+			 2, 0);
+
+      err = pthread_create (&publishing_thread, NULL,
+			    publishing_thread_entry_point,
+			    publisher);
+      if (!err)
+	info ("publishing service `%s'", service_name);
+    }
+
+
+  return err;
+}
+
+#endif /* HAVE_AVAHI */
 
 
 /* The program.  */
@@ -1113,13 +1207,10 @@ main (int argc, char *argv[])
 #ifdef USE_AVAHI
   if (!no_service_publication)
     {
-      pthread_t avahi_thread;
-
-      err = pthread_create (&avahi_thread, NULL, avahi_thread_entry_point,
-			    NULL);
+      err = publish_service ();
       if (err)
 	{
-	  com_err (program_name, err, "while starting Avahi thread");
+	  com_err (program_name, err, "while trying to publish service");
 	  exit (6);
 	}
     }

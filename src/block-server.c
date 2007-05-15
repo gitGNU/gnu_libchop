@@ -4,7 +4,7 @@
 #include <rpc/svc.h>
 #include <chop/block-server.h>
 
-#include "../rpc/block_rstore.h"
+#include "block_rstore.h"
 
 
 CHOP_RPC_HANDLER (int, char *,
@@ -53,3 +53,69 @@ chop_block_server_wait_for_requests (SVCXPRT *transport,
 }
 #endif
 
+
+/* Service publishers.  */
+
+static errcode_t
+publisher_ctor (chop_object_t *object,
+		const chop_class_t *class)
+{
+  chop_store_publisher_t *publisher;
+
+  publisher = (chop_store_publisher_t *) object;
+
+  publisher->service_name = publisher->host = NULL;
+  publisher->port = 0;
+  publisher->hash_spec.spec_type = CHOP_HASH_SPEC_NONE;
+  publisher->hash_spec.method = CHOP_HASH_NONE;
+  publisher->use_tls = 0;
+  publisher->openpgp_fingerprint = NULL;
+  publisher->openpgp_fingerprint_size = 0;
+
+  return 0;
+}
+
+static void
+publisher_dtor (chop_object_t *object)
+{
+  chop_store_publisher_t *publisher;
+
+  publisher = (chop_store_publisher_t *) object;
+
+#define FREE_FIELD(f)				\
+  if (publisher-> f != NULL)			\
+    free (publisher-> f), publisher-> f = NULL;
+
+  FREE_FIELD (service_name);
+  FREE_FIELD (host);
+  FREE_FIELD (openpgp_fingerprint);
+
+#undef FREE_FIELD
+
+  publisher->openpgp_fingerprint_size = publisher->port = 0;
+}
+
+CHOP_DEFINE_RT_CLASS (store_publisher, object,
+		      publisher_ctor, publisher_dtor,
+		      NULL, NULL, /* copy/equal */
+		      NULL, NULL  /* serial/deserial */);
+
+
+errcode_t
+chop_store_publisher_iterate (chop_store_publisher_t *publisher,
+			      unsigned timeout)
+{
+  if (publisher->iterate)
+    return publisher->iterate (publisher, timeout);
+
+  return CHOP_ERR_NOT_IMPL;
+}
+
+errcode_t
+chop_store_publisher_loop (chop_store_publisher_t *publisher)
+{
+  if (publisher->loop)
+    return publisher->loop (publisher);
+
+  return CHOP_ERR_NOT_IMPL;
+}

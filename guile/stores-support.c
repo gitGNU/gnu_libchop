@@ -150,6 +150,29 @@ chop_sunrpc_block_store_open_alloc (const char *host, unsigned port,
   return err;
 }
 
+static __inline__ errcode_t
+chop_sunrpc_tls_block_store_simple_open_alloc (const char *host,
+					       unsigned port,
+					       const char *pubkey_file,
+					       const char *privkey_file,
+					       chop_block_store_t **store)
+{
+  errcode_t err;
+
+  *store =
+    scm_malloc (chop_class_instance_size (&chop_sunrpc_block_store_class));
+
+  err = chop_sunrpc_tls_block_store_simple_open (host, port,
+						 pubkey_file, privkey_file,
+						 *store);
+  if (err)
+    {
+      free (*store);
+      *store = NULL;
+    }
+
+  return err;
+}
 
 static __inline__ errcode_t
 chop_store_read_block_alloc_u8vector (chop_block_store_t *store,
