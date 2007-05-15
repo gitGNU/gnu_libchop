@@ -77,13 +77,13 @@ BUILT_SOURCES  = $(rpc_client_stubs) $(rpc_server_stubs)	\
 		 $(rpc_xdr) $(rpc_headers)
 
 # The convenience library for block store RPC servers.
-libchop_block_server_la_SOURCES = block-server.c $(rpc_xdr)
-libchop_block_server_la_LIBS = -lchop $(AM_LIBS)
-libchop_block_server_la_CPPFLAGS = $(AM_CPPFLAGS)
+libchop_block_server_la_SOURCES   = block-server.c $(rpc_xdr)
+libchop_block_server_la_LIBADD    = -lchop $(AM_LIBS)
+libchop_block_server_la_CPPFLAGS  = $(AM_CPPFLAGS)
 
 if HAVE_AVAHI
 libchop_block_server_la_SOURCES  += store-publisher-avahi.c
-libchop_block_server_la_LIBS     += $(AVAHI_LIBS)
+libchop_block_server_la_LIBADD   += $(AVAHI_LIBS)
 libchop_block_server_la_CPPFLAGS += $(AVAHI_CPPFLAGS)
 else
 EXTRA_DIST += store-publisher-avahi.c
@@ -97,8 +97,8 @@ libchop_store_browsers_la_LIBADD = $(AVAHI_LIBS) -lchop $(AM_LIBS)
 libchop_store_browsers_la_CPPFLAGS = $(AVAHI_CPPFLAGS) $(AM_CPPFLAGS)
 endif
 
-AM_CPPFLAGS = -I../include -D_GNU_SOURCE=1
-AM_CFLAGS = -O0 -g -Winline -Wall -fno-strict-aliasing
+AM_CPPFLAGS = -I$(top_srcdir)/include -D_GNU_SOURCE=1
+AM_CFLAGS   = -Winline -Wall -fno-strict-aliasing
 
 if HAVE_GNUTLS
 AM_CFLAGS += $(LIBGNUTLS_CFLAGS) $(LIBGNUTLS_EXTRA_CFLAGS)
