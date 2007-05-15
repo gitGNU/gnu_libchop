@@ -151,10 +151,11 @@ chop_sunrpc_block_store_open_alloc (const char *host, unsigned port,
 }
 
 static __inline__ errcode_t
-chop_sunrpc_tls_block_store_open_alloc (const char *host, unsigned port,
-					const char *pubkey_file,
-					const char *privkey_file,
-					chop_block_store_t **store)
+chop_sunrpc_tls_block_store_simple_open_alloc (const char *host,
+					       unsigned port,
+					       const char *pubkey_file,
+					       const char *privkey_file,
+					       chop_block_store_t **store)
 {
   errcode_t err;
 

@@ -262,8 +262,8 @@
 				((<store> out) new-store)))
 
   (wrap-function! ws
-                  #:name 'sunrpc/tls-block-store-open
-                  #:c-name "chop_sunrpc_tls_block_store_open_alloc"
+                  #:name 'sunrpc/tls-block-store-simple-open
+                  #:c-name "chop_sunrpc_tls_block_store_simple_open_alloc"
                   #:returns '<errcode>
                   #:arguments '(((mchars caller-owned) host)
                                 (unsigned-int port)
