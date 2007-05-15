@@ -14,7 +14,6 @@
 # include <gnutls/extra.h>
 
 # include <chop/store-sunrpc-tls.h>
-# include "gnutls-helper.h"
 #endif
 
 #include <stdio.h>
@@ -56,10 +55,6 @@ const char *program_name = NULL;
 
 /* Name of the directory for configuration files under `$HOME'.  */
 #define CONFIG_DIRECTORY ".chop-archiver"
-
-/* Configuration file names.  */
-#define CONFIG_TLS_DH_PARAMS   "tls-dh-params"
-#define CONFIG_TLS_RSA_PARAMS  "tls-rsa-params"
 
 #define DB_DATA_FILE_BASE       CONFIG_DIRECTORY "/archive-data"
 #define DB_META_DATA_FILE_BASE  CONFIG_DIRECTORY "/archive-meta-data"
@@ -682,8 +677,6 @@ static gnutls_anon_client_credentials_t client_anoncred;
 
 /* OpenPGP authentication.  */
 static gnutls_certificate_credentials_t client_certcred;
-static gnutls_dh_params_t               client_dh_params;
-static gnutls_rsa_params_t              client_rsa_params;
 
 
 /* Initialize TLS parameters, retrieving them from disk when available.  */
@@ -718,12 +711,6 @@ initialize_tls_parameters (void)
 	  exit (1);
 	}
 
-      err = chop_tls_initialize_dh_params (&client_dh_params,
-					   CONFIG_DIRECTORY,
-					   CONFIG_TLS_DH_PARAMS);
-      if (err)
-	exit (1);
-
       err = gnutls_certificate_allocate_credentials (&client_certcred);
       if (err)
 	{
@@ -740,16 +727,6 @@ initialize_tls_parameters (void)
 	  info ("failed to use OpenPGP key pair: %s", gnutls_strerror (err));
 	  exit (1);
 	}
-
-      err = chop_tls_initialize_rsa_params (&client_rsa_params,
-					    CONFIG_DIRECTORY,
-					    CONFIG_TLS_RSA_PARAMS);
-      if (err)
-	exit (1);
-
-      gnutls_certificate_set_dh_params (client_certcred, client_dh_params);
-      gnutls_certificate_set_rsa_export_params (client_certcred,
-						client_rsa_params);
 
       info ("using TLS OpenPGP authentication");
     }
@@ -792,9 +769,6 @@ initialize_tls_session (gnutls_session_t session, void *unused)
 
       /* Require OpenPGP authentication.  */
       gnutls_certificate_type_set_priority (session, cert_type_priority);
-
-      gnutls_certificate_set_rsa_export_params (client_certcred,
-						client_rsa_params);
 
       err =
 	gnutls_certificate_set_openpgp_key_file (client_certcred,
