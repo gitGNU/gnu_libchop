@@ -77,7 +77,7 @@ BUILT_SOURCES  = $(rpc_client_stubs) $(rpc_server_stubs)	\
 		 $(rpc_xdr) $(rpc_headers)
 
 # The convenience library for block store RPC servers.
-libchop_block_server_la_SOURCES = store-server.c $(rpc_xdr)
+libchop_block_server_la_SOURCES = block-server.c $(rpc_xdr)
 libchop_block_server_la_LIBS = -lchop $(AM_LIBS)
 libchop_block_server_la_CPPFLAGS = $(AM_CPPFLAGS)
 
