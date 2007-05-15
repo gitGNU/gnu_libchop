@@ -198,7 +198,6 @@ make_default_tls_session (gnutls_session_t session,
 	  GNUTLS_KX_DHE_DSS, 0 };
 
       gnutls_certificate_credentials_t certcred;
-      gnutls_rsa_params_t rsa_params;
 
       err = gnutls_global_init_extra ();
       if (err)
@@ -210,10 +209,6 @@ make_default_tls_session (gnutls_session_t session,
 
       /* Require OpenPGP authentication.  */
       gnutls_certificate_type_set_priority (session, cert_type_priority);
-
-      gnutls_rsa_params_init (&rsa_params);
-      gnutls_rsa_params_generate2 (rsa_params, 1024);
-      gnutls_certificate_set_rsa_export_params (certcred, rsa_params);
 
       err =
 	gnutls_certificate_set_openpgp_key_file (certcred,
