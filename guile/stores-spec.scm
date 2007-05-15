@@ -1,4 +1,4 @@
-;;;; Copyright (C) 2005 Ludovic Courtès
+;;;; Copyright (C) 2005, 2007 Ludovic Courtès
 ;;;;
 ;;;; This program is free software; you can redistribute it and/or
 ;;;; modify it under the terms of the GNU Lesser General Public
@@ -260,6 +260,16 @@
 				(unsigned-int port)
 				((mchars caller-owned) protocol)
 				((<store> out) new-store)))
+
+  (wrap-function! ws
+                  #:name 'sunrpc/tls-block-store-open
+                  #:c-name "chop_sunrpc_tls_block_store_open_alloc"
+                  #:returns '<errcode>
+                  #:arguments '(((mchars caller-owned) host)
+                                (unsigned-int port)
+                                ((mchars caller-owned) pubkey-file)
+                                ((mchars caller-owned) privkey-file)
+                                ((<store> out) new-store)))
 
   (wrap-function! ws
 		  #:name 'filtered-store-open
