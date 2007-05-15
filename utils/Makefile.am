@@ -5,8 +5,7 @@ bin_PROGRAMS = chop-archiver chop-store-list		\
 	       chop-store-discover
 noinst_PROGRAMS = chop-file
 dist_bin_SCRIPTS = chop-rcs.sh
-EXTRA_DIST = avahi-publish.c gnutls-init-params.c	\
-	     gnutls-helper.h
+EXTRA_DIST = gnutls-init-params.c gnutls-helper.h
 
 AM_CPPFLAGS = -I../include
 AM_CFLAGS = -O0 -g -Wall -fno-strict-aliasing
