@@ -65,11 +65,13 @@ libchop_la_SOURCES += store-dbus.c
 endif
 
 # RPC stubs (for the remote block store)
-rpc_xdr =  block_rstore_xdr.c
+rpc_interface    = $(top_srcdir)/rpc/block_rstore.x
+rpc_xdr          = block_rstore_xdr.c
 rpc_client_stubs = block_rstore_clnt.c
 rpc_server_stubs = block_rstore_svc.c
-rpc_headers = $(top_srcdir)/include/chop/block_rstore.h	\
-              $(top_srcdir)/rpc/block_rstore.h
+rpc_headers      = block_rstore.h \
+  $(top_srcdir)/include/chop/block_rstore.h
+
 libchop_la_SOURCES += $(rpc_client_stubs) $(rpc_xdr)
 BUILT_SOURCES  = $(rpc_client_stubs) $(rpc_server_stubs)	\
 		 $(rpc_xdr) $(rpc_headers)
@@ -98,24 +100,23 @@ chop-errors.c chop-errors.h: chop-errors.et
 	touch chop-errors.[ch] &&			\
 	mv chop-errors.h $(top_srcdir)/include/chop
 
-block_rstore_clnt.c: $(top_srcdir)/rpc/block_rstore.x \
-		     $(top_srcdir)/rpc/block_rstore.h
-	$(RPCGEN) -l $< > $@
+block_rstore_clnt.c: block_rstore.h
+	echo "#include \"block_rstore.h\"" > $@ &&	\
+	$(RPCGEN) -l < $(rpc_interface) >> $@
 
-block_rstore_xdr.c:  $(top_srcdir)/rpc/block_rstore.x \
-		     $(top_srcdir)/rpc/block_rstore.h
-	$(RPCGEN) -c $< > $@
+block_rstore_xdr.c:  block_rstore.h
+	echo "#include \"block_rstore.h\"" > $@ &&	\
+	$(RPCGEN) -c < $(rpc_interface) >> $@
 
-block_rstore_svc.c:  $(top_srcdir)/rpc/block_rstore.x \
-		     $(top_srcdir)/rpc/block_rstore.h
-	$(RPCGEN) -m $< > $@
+block_rstore_svc.c:  block_rstore.h
+	echo "#include \"block_rstore.h\"" > $@ &&	\
+	$(RPCGEN) -m < $(rpc_interface) >> $@
 
-$(top_srcdir)/include/chop/block_rstore.h: $(top_srcdir)/rpc/block_rstore.x
-	$(RPCGEN) -h $^ > $@
+$(top_srcdir)/include/chop/block_rstore.h: block_rstore.h
+	-cp $< $@
 
-# We need this one too cause the stub includes it.
-$(top_srcdir)/rpc/block_rstore.h: $(top_srcdir)/rpc/block_rstore.x
-	$(RPCGEN) -h $^ > $@
+block_rstore.h: $(rpc_interface)
+	$(RPCGEN) -h < $^ > $@
 
 if HAVE_GPERF
 

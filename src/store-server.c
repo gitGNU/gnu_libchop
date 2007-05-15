@@ -4,7 +4,7 @@
 #include <rpc/svc.h>
 #include <chop/block-server.h>
 
-#include "../rpc/block_rstore.h"
+#include "block_rstore.h"
 
 
 CHOP_RPC_HANDLER (int, char *,
