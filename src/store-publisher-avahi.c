@@ -115,7 +115,7 @@ create_services (AvahiClient *c, chop_avahi_store_publisher_t *avahi)
   int ret;
   const char *hash_name;
   const char *txt_tls;
-  char *txt_hash;
+  char *txt_hash, *txt_openpgp;
   char *service_type;
 
   /* If this is the first time we're called, let's create a new entry group */
@@ -146,6 +146,22 @@ create_services (AvahiClient *c, chop_avahi_store_publisher_t *avahi)
 
   txt_tls = (avahi->store_publisher.use_tls) ? txt_tls_yes : txt_tls_no;
 
+  if ((avahi->store_publisher.openpgp_fingerprint != NULL)
+      && (avahi->store_publisher.openpgp_fingerprint_size != 0))
+    {
+      const char *fpr = avahi->store_publisher.openpgp_fingerprint;
+      size_t fpr_size = avahi->store_publisher.openpgp_fingerprint_size;
+
+      txt_openpgp =
+	(char *) alloca (fpr_size * 2
+			 + sizeof ("openpgp-fingerprint=") + 1);
+      strcpy (txt_openpgp, "openpgp-fingerprint=");
+      chop_buffer_to_hex_string (fpr, fpr_size,
+				 &txt_openpgp[strlen (txt_openpgp)]);
+    }
+  else
+    txt_openpgp = NULL;
+
   /* Add the service.  */
   ret = avahi_entry_group_add_service (avahi->group, AVAHI_IF_UNSPEC,
 				       AVAHI_PROTO_UNSPEC, 0,
@@ -161,6 +177,7 @@ create_services (AvahiClient *c, chop_avahi_store_publisher_t *avahi)
 				       "version=" "0" /* RPC interface */,
 				       txt_hash,
 				       txt_tls,
+				       txt_openpgp,
 
 				       NULL);
   if (ret)
