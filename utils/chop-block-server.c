@@ -1080,7 +1080,7 @@ publish_service (void)
       /* Spawn a publishing thread.  */
       pthread_t publishing_thread;
 
-      if (debugging)
+      if (verbose)
 	chop_log_attach (chop_avahi_store_publisher_log (publisher),
 			 2, 0);
 
