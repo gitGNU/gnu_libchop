@@ -7,11 +7,10 @@ noinst_PROGRAMS = chop-file
 dist_bin_SCRIPTS = chop-rcs.sh
 EXTRA_DIST = gnutls-init-params.c gnutls-helper.h
 
-AM_CPPFLAGS = -I$(top_srcdir)include -I$(top_srcdir)/lib	\
-	      -I$(top_builddir)/lib
+AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include	\
+	      -I$(top_srcdir)/lib     -I$(top_builddir)/lib
 AM_CFLAGS = -O0 -g -Wall -fno-strict-aliasing
 
-AM_CPPFLAGS += -I$(srcdir)/src
 LDADD = -L$(top_builddir)/src -lchop -L$(top_builddir)/lib -lgnu
 
 
