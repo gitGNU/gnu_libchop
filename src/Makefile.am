@@ -143,3 +143,5 @@ class-lookup.c: $(libchop_la_SOURCES)
 	$(GPERF) -t -C -N chop_lookup_class_entry > $@
 
 endif
+
+CLEANFILES = $(BUILT_SOURCES)

@@ -11,3 +11,6 @@ AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_srcdir)/tests/include	\
 AM_CFLAGS = -Wall -g
 LDADD = -L$(top_builddir)/src -lchop		\
 	-L$(top_builddir)/lib -lgnu
+
+distclean-local:
+	rm -f ,,t-*.db
