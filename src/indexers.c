@@ -1,3 +1,5 @@
+#include <alloca.h>
+
 #include <chop/chop.h>
 #include <chop/block-indexers.h>
 #include <chop/indexers.h>

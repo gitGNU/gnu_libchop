@@ -6,6 +6,8 @@ endif
 
 TESTS = $(check_PROGRAMS)
 
-AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_srcdir)/tests/include
+AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_srcdir)/tests/include	\
+	      -I$(top_srcdir)/lib -I$(top_builddir)/lib
 AM_CFLAGS = -Wall -g
-LDADD = -L$(top_srcdir)/src -lchop
+LDADD = -L$(top_builddir)/src -lchop		\
+	-L$(top_builddir)/lib -lgnu

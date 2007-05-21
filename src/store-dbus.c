@@ -1,5 +1,7 @@
 /* A remote, DBus-based, block store.  */
 
+#include <alloca.h>
+
 #include <chop/chop.h>
 #include <chop/stores.h>
 #include <chop/objects.h>

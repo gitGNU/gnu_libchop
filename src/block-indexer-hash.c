@@ -1,6 +1,8 @@
 /* Content-based addressing, also sometimes referred to as
    ``compare-by-hash''.  */
 
+#include <alloca.h>
+
 #include <chop/chop.h>
 #include <chop/block-indexers.h>
 

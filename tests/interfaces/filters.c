@@ -2,6 +2,8 @@
    It does not attempt to check whether the filter's output corresponds to
    its input.  */
 
+#include <alloca.h>
+
 #include <chop/chop.h>
 #include <chop/filters.h>
 

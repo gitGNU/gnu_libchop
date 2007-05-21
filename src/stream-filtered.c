@@ -1,3 +1,5 @@
+#include <alloca.h>
+
 #include <chop/chop.h>
 #include <chop/streams.h>
 #include <chop/filters.h>

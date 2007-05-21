@@ -1,3 +1,5 @@
+#include <alloca.h>
+
 #include <chop/logs.h>
 
 #include <unistd.h>

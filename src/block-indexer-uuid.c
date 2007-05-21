@@ -6,6 +6,8 @@
    have the single-instance storage property since every block automatically
    gets assigned a new ID.  */
 
+#include <alloca.h>
+
 #include <chop/chop.h>
 #include <chop/block-indexers.h>
 

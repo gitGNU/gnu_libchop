@@ -7,6 +7,8 @@
    both input sequences are compared and those found for the reference input
    sequence are expected to be found in the modified input sequence too.  */
 
+#include <alloca.h>
+
 #include <chop/chop.h>
 #include <chop/choppers.h>
 

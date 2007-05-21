@@ -5,6 +5,8 @@
    configuration (there aren't so many of them).  The test also exercises the
    deserialization API a bit.  */
 
+#include <alloca.h>
+
 #include <chop/chop.h>
 #include <chop/streams.h>
 #include <chop/choppers.h>

@@ -1,6 +1,8 @@
 /* Stack a memory stream, a zip-filtered stream, and an unzip-filtered
    stream, and make sure the output yielded is the same as the input.  */
 
+#include <alloca.h>
+
 #include <chop/chop.h>
 #include <chop/streams.h>
 #include <chop/filters.h>

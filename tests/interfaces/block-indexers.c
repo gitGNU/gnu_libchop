@@ -1,6 +1,8 @@
 /* arch-tag: c2125401-5b69-4d59-980e-5e60d307de2e
  */
 
+#include <alloca.h>
+
 #include <chop/chop.h>
 #include <chop/block-indexers.h>
 #include <chop/chop-config.h>

@@ -1,5 +1,7 @@
 /* The TDB store */
 
+#include <alloca.h>
+
 #include <chop/chop.h>
 #include <chop/stores.h>
 #include <chop/buffers.h>

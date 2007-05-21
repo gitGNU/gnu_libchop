@@ -1,3 +1,5 @@
+#include <alloca.h>
+
 #include "gnutls-helper.h"
 
 #include <stdlib.h>

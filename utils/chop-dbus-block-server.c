@@ -4,6 +4,8 @@
    experimental.  Rather use the SunRPC-based server for the real thing.  */
 
 
+#include <alloca.h>
+
 #include <chop/chop.h>
 #include <chop/stores.h>
 

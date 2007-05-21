@@ -1,5 +1,7 @@
 /* Simple test of various block store classes.  */
 
+#include <alloca.h>
+
 #include <chop/chop.h>
 #include <chop/stores.h>
 #include <chop/chop-config.h>
