@@ -29,6 +29,14 @@ libchop_la_SOURCES = chop.c chop-errors.c logs.c		\
 		     stream-file.c stream-mem.c			\
 		     stream-filtered.c  # stream-ext2.c 
 
+AM_CPPFLAGS = -I$(top_srcdir)/include -D_GNU_SOURCE=1	\
+	      -I$(top_srcdir)/lib -I$(top_builddir)/lib
+AM_CFLAGS   = -Winline -Wall -fno-strict-aliasing
+
+# Gnulib
+AM_CPPFLAGS += -I$(top_srcdir)/lib -I$(top_builddir)/lib
+libchop_la_LIBADD = -L$(top_builddir)/lib -lgnu
+
 if HAVE_TDB
 libchop_la_SOURCES += store-tdb.c
 else
@@ -96,9 +104,6 @@ libchop_store_browsers_la_SOURCES = store-browsers.c		\
 libchop_store_browsers_la_LIBADD = $(AVAHI_LIBS) -lchop $(AM_LIBS)
 libchop_store_browsers_la_CPPFLAGS = $(AVAHI_CPPFLAGS) $(AM_CPPFLAGS)
 endif
-
-AM_CPPFLAGS = -I$(top_srcdir)/include -D_GNU_SOURCE=1
-AM_CFLAGS   = -Winline -Wall -fno-strict-aliasing
 
 if HAVE_GNUTLS
 AM_CFLAGS += $(LIBGNUTLS_CFLAGS) $(LIBGNUTLS_EXTRA_CFLAGS)

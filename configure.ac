@@ -26,8 +26,12 @@ AC_ARG_WITH([dbus],
 
 # Checks for programs.
 AC_PROG_CC
+gl_EARLY
 AM_PROG_CC_C_O
 AC_PROG_LIBTOOL
+
+# Gnulib
+gl_INIT
 
 # `rpcgen' (recommended)
 AC_PATH_PROG([rpcgen], [rpcgen],
@@ -232,6 +236,7 @@ AM_CONDITIONAL(HAVE_GUILE, test "x$guile" != "x")
 
 AC_CONFIG_FILES([Makefile
 		 guile/pre-inst-guile
+		 lib/Makefile
                  include/Makefile
                  src/Makefile
 		 rpc/Makefile
