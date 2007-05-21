@@ -29,13 +29,12 @@ libchop_la_SOURCES = chop.c chop-errors.c logs.c		\
 		     stream-file.c stream-mem.c			\
 		     stream-filtered.c  # stream-ext2.c 
 
-AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_srcdir)/include	\
-	      -I$(top_srcdir)/lib -I$(top_builddir)/lib		\
+AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include	\
+	      -I$(top_srcdir)/lib     -I$(top_builddir)/lib	\
 	      -D_GNU_SOURCE=1
 AM_CFLAGS   = -Winline -Wall -fno-strict-aliasing
 
 # Gnulib
-AM_CPPFLAGS += -I$(top_srcdir)/lib -I$(top_builddir)/lib
 libchop_la_LIBADD = -L$(top_builddir)/lib -lgnu
 
 if HAVE_TDB
