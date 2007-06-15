@@ -101,10 +101,10 @@ chop_zlib_zip_filter_init (int zlib_compression_level, size_t input_size,
 
 #define ZIP_FLUSH       Z_FINISH
 #define ZIP_NO_FLUSH    0
-#define ZIP_STREAM_END  Z_STREAM_END
 #define ZIP_OK          Z_OK
 #define ZIP_NO_PROGRESS Z_BUF_ERROR
 
+#define ZIP_STREAM_ENDED(_zstream, _zret)      ((_zret) == Z_STREAM_END)
 #define ZIP_PROCESS(_zstream, _flush)          deflate ((_zstream), (_flush))
 #define ZIP_NEED_MORE_INPUT(_zstream, _zret)   (0)
 #define ZIP_CANT_PRODUCE_MORE(_zstream, _zret) ((_zret) == Z_BUF_ERROR)

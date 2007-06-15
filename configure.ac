@@ -66,7 +66,26 @@ AC_CHECK_LIB([gdbm], [gdbm_open], [],
 AC_CHECK_LIB([z], [deflate], [],
   [AC_MSG_ERROR([`libz' not found.  Too bad.])])
 
+
+#
 # Optional libraries
+#
+
+# libbz2
+AC_CHECK_LIB([bz2], [BZ2_bzCompress], [have_libbz2=yes], [have_libbz2=no])
+if test "x$have_libbz2" = "xyes"; then
+  AC_CHECK_HEADER([bzlib.h], [], [have_libbz2=no])
+fi
+AM_CONDITIONAL([HAVE_LIBBZ2], test "x$have_libbz2" = "xyes")
+if test "x$have_libbz2" = "xyes"; then
+   AC_DEFINE([HAVE_LIBBZ2], 1, [Tells whether `libbz2' is available.])
+   LIBS="$LIBS -lbz2"
+else
+   AC_MSG_WARN([`libbz2' not found, won't be used.])
+fi
+
+
+# TDB, the Trivial Database (part of Samba)
 AC_CHECK_LIB([tdb], [tdb_open], [have_libtdb=yes], [have_libtdb=no])
 if test "x$have_libtdb" = "xyes"; then
    AC_CHECK_HEADER([tdb.h], [], [have_libtdb=no])

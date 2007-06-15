@@ -1,4 +1,4 @@
-check_PROGRAMS = filter-zlib stream-filtered chopper-anchor-based \
+check_PROGRAMS = filter-zip stream-filtered chopper-anchor-based \
 		 stream-indexing
 TESTS = $(check_PROGRAMS)
 

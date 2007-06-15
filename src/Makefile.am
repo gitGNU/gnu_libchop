@@ -37,6 +37,12 @@ AM_CFLAGS   = -Winline -Wall -fno-strict-aliasing
 # Gnulib
 libchop_la_LIBADD = -L$(top_builddir)/lib -lgnu
 
+if HAVE_LIBBZ2
+libchop_la_SOURCES += filter-bzip2-zip.c filter-bzip2-unzip.c
+else
+EXTRA_DIST += filter-bzip2-zip.c filter-bzip2-unzip.c
+endif
+
 if HAVE_TDB
 libchop_la_SOURCES += store-tdb.c
 else

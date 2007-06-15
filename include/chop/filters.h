@@ -202,5 +202,27 @@ chop_zlib_unzip_filter_init (size_t input_size,
 			     chop_filter_t *filter);
 
 
+
+/* The (optional) bzip2-based compressing and uncompressing filter
+   classes.  */
+
+extern const chop_class_t chop_bzip2_zip_filter_class;
+extern const chop_class_t chop_bzip2_unzip_filter_class;
+
+/* Initialize the bzip2-based compression filter with compression level
+   BZIP2_COMPRESSION_LEVEL (an integer between 0 and 9) with an input buffer
+   of INPUT_SIZE bytes.  If BZIP2_COMPRESSION_LEVEL is -1, then bzip2's
+   default compression level is used.  If INPUT_SIZE is zero, then a default
+   size is used.  */
+extern errcode_t
+chop_bzip2_zip_filter_init (int bzip2_compression_level, size_t input_size,
+			    chop_filter_t *filter);
+
+/* Initialize the bzip2-based decompressiong filter with an input buffer of
+   INPUT_SIZE bytes.  If INPUT_SIZE is zero, then a default size is used.  */
+extern errcode_t
+chop_bzip2_unzip_filter_init (size_t input_size,
+			      chop_filter_t *filter);
+
 
 #endif
