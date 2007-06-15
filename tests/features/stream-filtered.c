@@ -17,18 +17,10 @@ static char input[SIZE_OF_INPUT];
 
 /* Characterization of zip/unzip filter implementations.  */
 
-typedef errcode_t (* zip_filter_init_t) (int compression_level,
-					 size_t input_size,
-					 chop_filter_t *filter);
-typedef errcode_t (* unzip_filter_init_t) (size_t input_size,
-					   chop_filter_t *filter);
-
 typedef struct
 {
-  const chop_class_t *zip_class;
-  const chop_class_t *unzip_class;
-  zip_filter_init_t   zip_init;
-  unzip_filter_init_t unzip_init;
+  const chop_zip_filter_class_t   *zip_class;
+  const chop_unzip_filter_class_t *unzip_class;
 } zip_implementation_t;
 
 
@@ -38,16 +30,12 @@ main (int argc, char *argv[])
   static const zip_implementation_t implementations[] =
     {
       { &chop_zlib_zip_filter_class,
-	&chop_zlib_unzip_filter_class,
-	 chop_zlib_zip_filter_init,
-	 chop_zlib_unzip_filter_init },
+	&chop_zlib_unzip_filter_class },
 #ifdef HAVE_LIBBZ2
       { &chop_bzip2_zip_filter_class,
-	&chop_bzip2_unzip_filter_class,
-	 chop_bzip2_zip_filter_init,
-	 chop_bzip2_unzip_filter_init },
+	&chop_bzip2_unzip_filter_class },
 #endif
-      { NULL, NULL, NULL, NULL }
+      { NULL, NULL }
     };
 
   errcode_t err;
@@ -69,15 +57,18 @@ main (int argc, char *argv[])
       chop_stream_t *source_stream, *zipped_stream, *unzipped_stream;
 
       test_stage ("stacked `%s'/`%s' filtered streams",
-		  chop_class_name (implementation->zip_class),
-		  chop_class_name (implementation->unzip_class));
+		  chop_class_name ((chop_class_t *) implementation->zip_class),
+		  chop_class_name ((chop_class_t *) implementation->unzip_class));
 
       test_randomize_input (input, sizeof (input));
       source_stream = chop_class_alloca_instance (&chop_mem_stream_class);
       chop_mem_stream_open (input, sizeof (input), NULL, source_stream);
 
-      zip_filter = chop_class_alloca_instance (implementation->zip_class);
-      err = implementation->zip_init (5, 0, zip_filter);
+      zip_filter = chop_class_alloca_instance ((chop_class_t *)
+					       implementation->zip_class);
+      err = chop_zip_filter_generic_open (implementation->zip_class,
+					  CHOP_ZIP_FILTER_DEFAULT_COMPRESSION,
+					  0, zip_filter);
       test_check_errcode (err, "initializing zip filter");
 
       zipped_stream =
@@ -88,8 +79,10 @@ main (int argc, char *argv[])
 				       zipped_stream);
       test_check_errcode (err, "initializing zip-filtered stream");
 
-      unzip_filter = chop_class_alloca_instance (implementation->unzip_class);
-      err = implementation->unzip_init (0, unzip_filter);
+      unzip_filter = chop_class_alloca_instance ((chop_class_t *)
+						 implementation->unzip_class);
+      err = chop_unzip_filter_generic_open (implementation->unzip_class,
+					    0, unzip_filter);
       test_check_errcode (err, "initializing unzip filter");
 
       unzipped_stream =

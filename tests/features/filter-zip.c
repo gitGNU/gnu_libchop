@@ -80,11 +80,11 @@ handle_zipped_input_fault (chop_filter_t *unzip_filter,
 
   /* Obviously, ZIP_FILTER is supposed to be, well, a zip filter.  */
   assert (chop_object_is_a ((chop_object_t *) zdata->zip_filter,
-			    &chop_zlib_zip_filter_class)
+			    (chop_class_t *) &chop_zlib_zip_filter_class)
 #ifdef HAVE_LIBBZ2
 	  ||
 	  chop_object_is_a ((chop_object_t *) zdata->zip_filter,
-			    &chop_bzip2_zip_filter_class)
+			    (chop_class_t *) &chop_bzip2_zip_filter_class)
 #endif
 	  );
 
@@ -117,18 +117,10 @@ handle_zipped_input_fault (chop_filter_t *unzip_filter,
 
 /* Characterization of zip/unzip filter implementations.  */
 
-typedef errcode_t (* zip_filter_init_t) (int compression_level,
-					 size_t input_size,
-					 chop_filter_t *filter);
-typedef errcode_t (* unzip_filter_init_t) (size_t input_size,
-					   chop_filter_t *filter);
-
 typedef struct
 {
-  const chop_class_t *zip_class;
-  const chop_class_t *unzip_class;
-  zip_filter_init_t   zip_init;
-  unzip_filter_init_t unzip_init;
+  const chop_zip_filter_class_t   *zip_class;
+  const chop_unzip_filter_class_t *unzip_class;
 } zip_implementation_t;
 
 
@@ -138,16 +130,12 @@ main (int argc, char *argv[])
   static const zip_implementation_t implementations[] =
     {
       { &chop_zlib_zip_filter_class,
-	&chop_zlib_unzip_filter_class,
-	 chop_zlib_zip_filter_init,
-	 chop_zlib_unzip_filter_init },
+	&chop_zlib_unzip_filter_class },
 #ifdef HAVE_LIBBZ2
       { &chop_bzip2_zip_filter_class,
-	&chop_bzip2_unzip_filter_class,
-	 chop_bzip2_zip_filter_init,
-	chop_bzip2_unzip_filter_init },
+	&chop_bzip2_unzip_filter_class },
 #endif
-      { NULL, NULL, NULL, NULL }
+      { NULL, NULL }
     };
 
   errcode_t err;
@@ -173,13 +161,18 @@ main (int argc, char *argv[])
       chop_log_t *zip_log, *unzip_log;
       zipped_input_fault_handler_data_t zifh_data;
 
-      zip_filter = chop_class_alloca_instance (implementation->zip_class);
-      unzip_filter = chop_class_alloca_instance (implementation->unzip_class);
+      zip_filter =
+	chop_class_alloca_instance ((chop_class_t *) implementation->zip_class);
+      unzip_filter =
+	chop_class_alloca_instance ((chop_class_t *) implementation->unzip_class);
 
-      err = implementation->zip_init (-1, 0, zip_filter);
+      err = chop_zip_filter_generic_open (implementation->zip_class,
+					  CHOP_ZIP_FILTER_DEFAULT_COMPRESSION,
+					  0, zip_filter);
       test_check_errcode (err, "initializing zlib zip filter");
 
-      err = implementation->unzip_init (0, unzip_filter);
+      err = chop_unzip_filter_generic_open (implementation->unzip_class,
+					    0, unzip_filter);
       test_check_errcode (err, "initializing zlib unzip filter");
 
       if (test_debug_mode ())
@@ -207,7 +200,8 @@ main (int argc, char *argv[])
       test_randomize_input (input, sizeof (input));
 
       test_stage ("pull from the `%s' filter",
-		  chop_class_name (implementation->unzip_class));
+		  chop_class_name ((chop_class_t *)
+				   implementation->unzip_class));
 
       /* Pull data from UNZIP_FILTER until an end-of-stream error is
 	 caught.  */

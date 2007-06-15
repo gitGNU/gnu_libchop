@@ -147,18 +147,10 @@ test_filter_non_nominal (chop_filter_t *filter)
 
 /* Characterization of zip/unzip filter implementations.  */
 
-typedef errcode_t (* zip_filter_init_t) (int compression_level,
-					 size_t input_size,
-					 chop_filter_t *filter);
-typedef errcode_t (* unzip_filter_init_t) (size_t input_size,
-					   chop_filter_t *filter);
-
 typedef struct
 {
-  const chop_class_t *zip_class;
-  const chop_class_t *unzip_class;
-  zip_filter_init_t   zip_init;
-  unzip_filter_init_t unzip_init;
+  const chop_zip_filter_class_t   *zip_class;
+  const chop_unzip_filter_class_t *unzip_class;
 } zip_implementation_t;
 
 
@@ -169,16 +161,12 @@ main (int argc, char *argv[])
   static const zip_implementation_t implementations[] =
     {
       { &chop_zlib_zip_filter_class,
-	&chop_zlib_unzip_filter_class,
-	 chop_zlib_zip_filter_init,
-	 chop_zlib_unzip_filter_init },
+	&chop_zlib_unzip_filter_class },
 #ifdef HAVE_LIBBZ2
       { &chop_bzip2_zip_filter_class,
-	&chop_bzip2_unzip_filter_class,
-	 chop_bzip2_zip_filter_init,
-	 chop_bzip2_unzip_filter_init },
+	&chop_bzip2_unzip_filter_class },
 #endif
-      { NULL, NULL, NULL, NULL }
+      { NULL, NULL }
     };
 
   errcode_t err;
@@ -194,11 +182,14 @@ main (int argc, char *argv[])
        implementation->zip_class != NULL;
        implementation++)
     {
-      chop_filter_t *zip_filter, *unzip_filter;
+      chop_filter_t *zip_filter = NULL, *unzip_filter = NULL;
       size_t zipped_size = 0, unzipped_size = 0;
 
-      zip_filter = chop_class_alloca_instance (implementation->zip_class);
-      err = implementation->zip_init (-1, 0, zip_filter);
+      zip_filter =
+	chop_class_alloca_instance ((chop_class_t *) implementation->zip_class);
+      err = chop_zip_filter_generic_open (implementation->zip_class,
+					  CHOP_ZIP_FILTER_DEFAULT_COMPRESSION,
+					  0, zip_filter);
       test_check_errcode (err, "initializing zip filter");
 
       randomize_input (input, sizeof (input));
@@ -211,8 +202,10 @@ main (int argc, char *argv[])
 	}
 
       /* Now, test an unzip filter.  */
-      unzip_filter = chop_class_alloca_instance (implementation->unzip_class);
-      err = implementation->unzip_init (0, unzip_filter);
+      unzip_filter =
+	chop_class_alloca_instance ((chop_class_t *) implementation->unzip_class);
+      err = chop_unzip_filter_generic_open (implementation->unzip_class,
+					    0, unzip_filter);
       test_check_errcode (err, "initializing unzip filter");
 
       if (!test_filter (unzip_filter, zipped_input, zipped_size,
@@ -229,9 +222,12 @@ main (int argc, char *argv[])
 	  chop_object_destroy ((chop_object_t *) unzip_filter);
 
 	  /* Test the non-nominal situation.  */
-	  err = implementation->unzip_init (0, unzip_filter);
+	  err = chop_unzip_filter_generic_open (implementation->unzip_class,
+						0, unzip_filter);
 	  test_check_errcode (err, "initializing unzip filter");
-	  err = implementation->zip_init (-1, 0, zip_filter);
+	  err = chop_zip_filter_generic_open (implementation->zip_class,
+					      CHOP_ZIP_FILTER_DEFAULT_COMPRESSION,
+					      0, zip_filter);
 	  test_check_errcode (err, "initializing zip filter");
 
 	  if (!test_filter_non_nominal (zip_filter))
