@@ -106,8 +106,9 @@ chop_bzip2_unzip_filter_init (size_t input_size,
 
 
 /* The push and pull methods.  */
-#define ZIP_TYPE       bzip2
-#define ZIP_DIRECTION  unzip
+#define ZIP_TYPE        bzip2
+#define ZIP_DIRECTION   unzip
+#define ZIP_BUFFER_TYPE char
 
 #define ZIP_FLUSH       BZ_FLUSH
 #define ZIP_NO_FLUSH    BZ_RUN
@@ -123,7 +124,7 @@ chop_bzip2_unzip_filter_init (size_t input_size,
 #define ZIP_NEED_MORE_INPUT(_zstream, _zret)   ((_zret) == BZ_DATA_ERROR)
 #define ZIP_CANT_PRODUCE_MORE(_zstream, _zret) ((_zret) == BZ_STREAM_END)
 #define ZIP_INPUT_CORRUPTED(_zret)             ((_zret) == BZ_DATA_ERROR)
-#define ZIP_RESET_PROCESSING(_zstream)         inflateReset ((_zstream))
+#define ZIP_RESET_PROCESSING(_zstream)         BZ2_bzDecompressEnd (_zstream)
 
 #include "filter-zip-push-pull.c"
 

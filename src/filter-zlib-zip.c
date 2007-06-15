@@ -98,6 +98,7 @@ chop_zlib_zip_filter_init (int zlib_compression_level, size_t input_size,
 /* The push and pull methods.  */
 #define ZIP_TYPE        zlib
 #define ZIP_DIRECTION   zip
+#define ZIP_BUFFER_TYPE unsigned char
 
 #define ZIP_FLUSH       Z_FINISH
 #define ZIP_NO_FLUSH    0

@@ -95,8 +95,9 @@ chop_zlib_unzip_filter_init (size_t input_size,
 
 
 /* The push and pull methods.  */
-#define ZIP_TYPE       zlib
-#define ZIP_DIRECTION  unzip
+#define ZIP_TYPE        zlib
+#define ZIP_DIRECTION   unzip
+#define ZIP_BUFFER_TYPE unsigned char
 
 #define ZIP_FLUSH       Z_SYNC_FLUSH
 #define ZIP_NO_FLUSH    0
