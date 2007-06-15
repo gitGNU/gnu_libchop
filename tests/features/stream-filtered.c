@@ -15,17 +15,6 @@
 static char input[SIZE_OF_INPUT];
 
 
-/* Write SIZE poorly random bytes into buffer.  */
-static void
-randomize_input (char *buffer, size_t size)
-{
-  char *p;
-
-  for (p = buffer; p < buffer + size; p++)
-    *p = random ();
-}
-
-
 /* Characterization of zip/unzip filter implementations.  */
 
 typedef errcode_t (* zip_filter_init_t) (int compression_level,
@@ -83,7 +72,7 @@ main (int argc, char *argv[])
 		  chop_class_name (implementation->zip_class),
 		  chop_class_name (implementation->unzip_class));
 
-      randomize_input (input, sizeof (input));
+      test_randomize_input (input, sizeof (input));
       source_stream = chop_class_alloca_instance (&chop_mem_stream_class);
       chop_mem_stream_open (input, sizeof (input), NULL, source_stream);
 

@@ -50,16 +50,6 @@ static size_t insertion_block_offsets[(SIZE_OF_INPUT + SIZE_OF_INSERTION) / 2];
 
 
 
-/* Write SIZE poorly random bytes into buffer.  */
-static void
-randomize_input (char *buffer, size_t size)
-{
-  char *p;
-
-  for (p = buffer; p < buffer + size; p++)
-    *p = random ();
-}
-
 static void
 read_blocks_from_chopper (chop_chopper_t *chopper,
 			  size_t *offset_vector, size_t offset_vector_size,
@@ -107,7 +97,7 @@ copy_input_with_random_insertion (const char *input, size_t input_size,
   insertion += insertion_offset;
   input += insertion_offset;
 
-  randomize_input (insertion, insertion_size);
+  test_randomize_input (insertion, insertion_size);
   insertion += insertion_size;
 
   memcpy (insertion, input, input_size - insertion_offset);
@@ -175,7 +165,7 @@ do_test (void)
   chop_stream_t *stream;
   chop_chopper_t *chopper;
 
-  randomize_input (input, sizeof (input));
+  test_randomize_input (input, sizeof (input));
 
   stream = chop_class_alloca_instance (&chop_mem_stream_class);
   chopper =

@@ -32,16 +32,7 @@ static char input[SIZE_OF_INPUT];
 static size_t input_offset = 0;
 
 
-/* Write SIZE poorly random bytes into buffer.  */
-static void
-randomize_input (char *buffer, size_t size)
-{
-  char *p;
-
-  for (p = buffer; p < buffer + size; p++)
-    *p = random ();
-}
-
+
 /* Handle input faults for FILTER (actually the zip filter) and provide it
    with random data taken from INPUT.  */
 static errcode_t
@@ -213,7 +204,7 @@ main (int argc, char *argv[])
 					   &zifh_data);
 
       /* Randomize the input (which hasn't been read yet).  */
-      randomize_input (input, sizeof (input));
+      test_randomize_input (input, sizeof (input));
 
       test_stage ("pull from the `%s' filter",
 		  chop_class_name (implementation->unzip_class));
