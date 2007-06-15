@@ -9,11 +9,13 @@
 
 
 /* Define `chop_bzip2_zip_filter_t' which inherits from `chop_filter_t'.  */
-CHOP_DECLARE_RT_CLASS (bzip2_zip_filter, filter,
-		       int bzip2_compression_level;
-		       char *input_buffer;
-		       size_t input_buffer_size;
-		       bz_stream zstream;);
+CHOP_DECLARE_RT_CLASS_WITH_METACLASS (bzip2_zip_filter, filter,
+				      zip_filter_class,
+
+				      int bzip2_compression_level;
+				      char *input_buffer;
+				      size_t input_buffer_size;
+				      bz_stream zstream;);
 
 /* Bzip2 debugging.  */
 #define CHOP_BZIP2_VERBOSITY  0
@@ -63,10 +65,24 @@ bzip2_zip_filter_dtor (chop_object_t *object)
   chop_object_destroy ((chop_object_t *)&zfilter->filter.log);
 }
 
-CHOP_DEFINE_RT_CLASS (bzip2_zip_filter, filter,
-		      bzip2_zip_filter_ctor, bzip2_zip_filter_dtor,
-		      NULL, NULL,
-		      NULL, NULL);
+static errcode_t
+bzf_open (int compression_level, size_t input_size,
+	  chop_filter_t *filter)
+{
+  return (chop_bzip2_zip_filter_init (compression_level, input_size,
+				      filter));
+}
+
+CHOP_DEFINE_RT_CLASS_WITH_METACLASS (bzip2_zip_filter, filter,
+				     zip_filter_class, /* Metaclass */
+
+				     /* Metaclass inits.  */
+				     .generic_open = bzf_open,
+
+				     bzip2_zip_filter_ctor,
+				     bzip2_zip_filter_dtor,
+				     NULL, NULL, /* No copy, equalp */
+				     NULL, NULL  /* No serial, deserial */);
 
 /* FIXME: We need to choose parameters more adapated to libbz2.  */
 errcode_t
@@ -78,8 +94,9 @@ chop_bzip2_zip_filter_init (int bzip2_compression_level, size_t input_size,
 
   zfilter = (chop_bzip2_zip_filter_t *)filter;
 
-  err = chop_object_initialize ((chop_object_t *)filter,
-				&chop_bzip2_zip_filter_class);
+  err =
+    chop_object_initialize ((chop_object_t *) filter,
+				(chop_class_t *) &chop_bzip2_zip_filter_class);
   if (err)
     return err;
 

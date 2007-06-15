@@ -9,10 +9,12 @@
 
 
 /* Define `chop_zlib_zip_filter_t' which inherits from `chop_filter_t'.  */
-CHOP_DECLARE_RT_CLASS (zlib_zip_filter, filter,
-		       char *input_buffer;
-		       size_t input_buffer_size;
-		       z_stream zstream;);
+CHOP_DECLARE_RT_CLASS_WITH_METACLASS (zlib_zip_filter, filter,
+				      zip_filter_class,
+
+				      char *input_buffer;
+				      size_t input_buffer_size;
+				      z_stream zstream;);
 
 
 
@@ -58,10 +60,24 @@ zlib_zip_filter_dtor (chop_object_t *object)
   chop_object_destroy ((chop_object_t *)&zfilter->filter.log);
 }
 
-CHOP_DEFINE_RT_CLASS (zlib_zip_filter, filter,
-		      zlib_zip_filter_ctor, zlib_zip_filter_dtor,
-		      NULL, NULL,
-		      NULL, NULL);
+static errcode_t
+zzf_open (int compression_level, size_t input_size,
+	  chop_filter_t *filter)
+{
+  return (chop_zlib_zip_filter_init (compression_level, input_size,
+				     filter));
+}
+
+CHOP_DEFINE_RT_CLASS_WITH_METACLASS (zlib_zip_filter, filter,
+				     zip_filter_class, /* Metaclass */
+
+				     /* Metaclass inits */
+				     .generic_open = zzf_open,
+
+				     zlib_zip_filter_ctor,
+				     zlib_zip_filter_dtor,
+				     NULL, NULL,
+				     NULL, NULL);
 
 errcode_t
 chop_zlib_zip_filter_init (int zlib_compression_level, size_t input_size,
@@ -72,8 +88,8 @@ chop_zlib_zip_filter_init (int zlib_compression_level, size_t input_size,
 
   zfilter = (chop_zlib_zip_filter_t *)filter;
 
-  err = chop_object_initialize ((chop_object_t *)filter,
-				&chop_zlib_zip_filter_class);
+  err = chop_object_initialize ((chop_object_t *) filter,
+				(chop_class_t *) &chop_zlib_zip_filter_class);
   if (err)
     return err;
 

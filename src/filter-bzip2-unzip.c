@@ -9,10 +9,12 @@
 
 
 /* Define `chop_bzip2_unzip_filter_t' which inherits from `chop_filter_t'.  */
-CHOP_DECLARE_RT_CLASS (bzip2_unzip_filter, filter,
-		       char *input_buffer;
-		       size_t input_buffer_size;
-		       bz_stream zstream;);
+CHOP_DECLARE_RT_CLASS_WITH_METACLASS (bzip2_unzip_filter, filter,
+				      unzip_filter_class,
+
+				      char *input_buffer;
+				      size_t input_buffer_size;
+				      bz_stream zstream;);
 
 /* Bzip2 debugging.  */
 #define CHOP_BZIP2_VERBOSITY  0
@@ -61,10 +63,23 @@ bzip2_unzip_filter_dtor (chop_object_t *object)
   chop_object_destroy ((chop_object_t *)&zfilter->filter.log);
 }
 
-CHOP_DEFINE_RT_CLASS (bzip2_unzip_filter, filter,
-		      bzip2_unzip_filter_ctor, bzip2_unzip_filter_dtor,
-		      NULL, NULL,
-		      NULL, NULL);
+
+static errcode_t
+buf_open (size_t input_size, chop_filter_t *filter)
+{
+  return (chop_bzip2_unzip_filter_init (input_size, filter));
+}
+
+CHOP_DEFINE_RT_CLASS_WITH_METACLASS (bzip2_unzip_filter, filter,
+				     unzip_filter_class, /* Metaclass */
+
+				     /* Metaclass inits */
+				     .generic_open = buf_open,
+
+				     bzip2_unzip_filter_ctor,
+				     bzip2_unzip_filter_dtor,
+				     NULL, NULL,
+				     NULL, NULL);
 
 
 errcode_t
@@ -76,8 +91,9 @@ chop_bzip2_unzip_filter_init (size_t input_size,
 
   zfilter = (chop_bzip2_unzip_filter_t *)filter;
 
-  err = chop_object_initialize ((chop_object_t *)filter,
-				&chop_bzip2_unzip_filter_class);
+  err =
+    chop_object_initialize ((chop_object_t *) filter,
+			    (chop_class_t *) &chop_bzip2_unzip_filter_class);
   if (err)
     return err;
 

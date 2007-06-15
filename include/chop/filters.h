@@ -181,10 +181,64 @@ extern errcode_t chop_filter_through (chop_filter_t *filter,
 				      chop_buffer_t *output);
 
 
+/* The `chop_{zip,unzip}_filter_class_t' metaclasses which provide a generic
+   zip/unzip filter creation method (a "factory").  */
+
+CHOP_DECLARE_RT_CLASS (zip_filter_class, class,
+		       errcode_t (* generic_open) (int, size_t,
+						   chop_filter_t *););
+
+
+CHOP_DECLARE_RT_CLASS (unzip_filter_class, class,
+		       errcode_t (* generic_open) (size_t, chop_filter_t *););
+
+
+/* The default zip filter compression level.  */
+#define CHOP_ZIP_FILTER_DEFAULT_COMPRESSION (-1)
+
+/* Initialize FILTER as an instance of KLASS, using an input buffer of size
+   INPUT_SIZE.  COMPRESSION_LEVEL should be either
+   `CHOP_ZIP_FILTER_DEFAULT_COMPRESSION', in which case the implementation
+   will choose some default compression level, or an integer between 0 and 9
+   inclusive.  */
+static __inline__ errcode_t
+chop_zip_filter_generic_open (const chop_zip_filter_class_t *klass,
+			      int compression_level, size_t input_size,
+			      chop_filter_t *filter)
+{
+  errcode_t err;
+
+  if (CHOP_EXPECT_TRUE (klass->generic_open != NULL))
+    err = klass->generic_open (compression_level, input_size, filter);
+  else
+    err = CHOP_ERR_NOT_IMPL;
+
+  return err;
+}
+
+/* Initialize FILTER as an instance of KLASS, using an input buffer of size
+   INPUT_SIZE.  */
+static __inline__ errcode_t
+chop_unzip_filter_generic_open (const chop_unzip_filter_class_t *klass,
+				size_t input_size,
+				chop_filter_t *filter)
+{
+  errcode_t err;
+
+  if (CHOP_EXPECT_TRUE (klass->generic_open != NULL))
+    err = klass->generic_open (input_size, filter);
+  else
+    err = CHOP_ERR_NOT_IMPL;
+
+  return err;
+}
+
+
+
 /* The zlib-based compressing and uncompressing filter classes.  */
 
-extern const chop_class_t chop_zlib_zip_filter_class;
-extern const chop_class_t chop_zlib_unzip_filter_class;
+extern const chop_zip_filter_class_t   chop_zlib_zip_filter_class;
+extern const chop_unzip_filter_class_t chop_zlib_unzip_filter_class;
 
 /* Initialize the zlib-based compression filter with compression level
    ZLIB_COMPRESSION_LEVEL (an integer between 0 and 9) with an input buffer
@@ -206,8 +260,8 @@ chop_zlib_unzip_filter_init (size_t input_size,
 /* The (optional) bzip2-based compressing and uncompressing filter
    classes.  */
 
-extern const chop_class_t chop_bzip2_zip_filter_class;
-extern const chop_class_t chop_bzip2_unzip_filter_class;
+extern const chop_zip_filter_class_t   chop_bzip2_zip_filter_class;
+extern const chop_unzip_filter_class_t chop_bzip2_unzip_filter_class;
 
 /* Initialize the bzip2-based compression filter with compression level
    BZIP2_COMPRESSION_LEVEL (an integer between 0 and 9) with an input buffer

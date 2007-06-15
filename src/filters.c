@@ -150,3 +150,17 @@ chop_filter_through (chop_filter_t *filter,
 
   return err;
 }
+
+
+/* The zip/unzip metaclasses.  */
+
+CHOP_DEFINE_RT_CLASS (zip_filter_class, class,
+		      NULL, NULL,
+		      NULL, NULL,
+		      NULL, NULL);
+
+CHOP_DEFINE_RT_CLASS (unzip_filter_class, class,
+		      NULL, NULL,
+		      NULL, NULL,
+		      NULL, NULL);
+
