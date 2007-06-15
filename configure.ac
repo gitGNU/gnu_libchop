@@ -178,7 +178,7 @@ AC_MSG_RESULT([$have_avahi])
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_TIME
-AC_CHECK_HEADERS([stdlib.h obstack.h argp.h gdbm.h gcrypt.h com_err.h zlib.h netinet/in.h lightning.h pthread.h])
+AC_CHECK_HEADERS([stdlib.h stdarg.h argp.h gdbm.h gcrypt.h com_err.h zlib.h netinet/in.h lightning.h pthread.h])
 
 # libuuid (optional)
 AC_CHECK_HEADER([uuid/uuid.h], [have_libuuid=yes], [have_libuuid=no])
@@ -195,6 +195,7 @@ AM_CONDITIONAL([HAVE_LIBUUID], [test "x$have_libuuid" = "xyes"])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
+AC_C_INLINE
 AC_TYPE_PID_T
 AC_TYPE_SIZE_T
 
