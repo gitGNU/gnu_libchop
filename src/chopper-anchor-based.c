@@ -12,6 +12,8 @@
        In Proceedings of the Usenix Winter 1994 Conference, pages 1--10,
        January, 1994, http://www.cs.arizona.edu/research/reports.html.  */
 
+#include <alloca.h>
+
 #include <chop/chop.h>
 #include <chop/choppers.h>
 #include <chop/chop-config.h>
@@ -326,7 +328,7 @@ static inline errcode_t
 read_sliding_window (chop_anchor_based_chopper_t *anchor,
 		     char *buffer, size_t *size)
 {
-  errcode_t err;
+  errcode_t err = 0;
   chop_stream_t *input = anchor->chopper.stream;
 
   *size = 0;

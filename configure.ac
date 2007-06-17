@@ -26,8 +26,12 @@ AC_ARG_WITH([dbus],
 
 # Checks for programs.
 AC_PROG_CC
+gl_EARLY
 AM_PROG_CC_C_O
 AC_PROG_LIBTOOL
+
+# Gnulib
+gl_INIT
 
 # `rpcgen' (recommended)
 AC_PATH_PROG([rpcgen], [rpcgen],
@@ -62,7 +66,26 @@ AC_CHECK_LIB([gdbm], [gdbm_open], [],
 AC_CHECK_LIB([z], [deflate], [],
   [AC_MSG_ERROR([`libz' not found.  Too bad.])])
 
+
+#
 # Optional libraries
+#
+
+# libbz2
+AC_CHECK_LIB([bz2], [BZ2_bzCompress], [have_libbz2=yes], [have_libbz2=no])
+if test "x$have_libbz2" = "xyes"; then
+  AC_CHECK_HEADER([bzlib.h], [], [have_libbz2=no])
+fi
+AM_CONDITIONAL([HAVE_LIBBZ2], test "x$have_libbz2" = "xyes")
+if test "x$have_libbz2" = "xyes"; then
+   AC_DEFINE([HAVE_LIBBZ2], 1, [Tells whether `libbz2' is available.])
+   LIBS="$LIBS -lbz2"
+else
+   AC_MSG_WARN([`libbz2' not found, won't be used.])
+fi
+
+
+# TDB, the Trivial Database (part of Samba)
 AC_CHECK_LIB([tdb], [tdb_open], [have_libtdb=yes], [have_libtdb=no])
 if test "x$have_libtdb" = "xyes"; then
    AC_CHECK_HEADER([tdb.h], [], [have_libtdb=no])
@@ -155,7 +178,7 @@ AC_MSG_RESULT([$have_avahi])
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_TIME
-AC_CHECK_HEADERS([stdlib.h obstack.h argp.h gdbm.h gcrypt.h com_err.h zlib.h netinet/in.h lightning.h pthread.h])
+AC_CHECK_HEADERS([stdlib.h stdarg.h argp.h gdbm.h gcrypt.h com_err.h zlib.h netinet/in.h lightning.h pthread.h])
 
 # libuuid (optional)
 AC_CHECK_HEADER([uuid/uuid.h], [have_libuuid=yes], [have_libuuid=no])
@@ -172,6 +195,7 @@ AM_CONDITIONAL([HAVE_LIBUUID], [test "x$have_libuuid" = "xyes"])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
+AC_C_INLINE
 AC_TYPE_PID_T
 AC_TYPE_SIZE_T
 
@@ -232,6 +256,7 @@ AM_CONDITIONAL(HAVE_GUILE, test "x$guile" != "x")
 
 AC_CONFIG_FILES([Makefile
 		 guile/pre-inst-guile
+		 lib/Makefile
                  include/Makefile
                  src/Makefile
 		 rpc/Makefile

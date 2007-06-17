@@ -1,6 +1,8 @@
 /* Test the compliance of various chopper implementations with the interface
    specifications.  */
 
+#include <alloca.h>
+
 #include <chop/chop.h>
 #include <chop/choppers.h>
 

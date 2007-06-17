@@ -5,6 +5,8 @@
    [1]  Ralph C. Merkel, Protocols for Public Key Cryptosystems,
         IEEE Symp. on Security and Privacy, pp. 122--134, 1980.  */
 
+#include <alloca.h>
+
 #include <chop/chop.h>
 #include <chop/indexers.h>
 

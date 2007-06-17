@@ -9,10 +9,12 @@
 
 
 /* Define `chop_zlib_zip_filter_t' which inherits from `chop_filter_t'.  */
-CHOP_DECLARE_RT_CLASS (zlib_zip_filter, filter,
-		       char *input_buffer;
-		       size_t input_buffer_size;
-		       z_stream zstream;);
+CHOP_DECLARE_RT_CLASS_WITH_METACLASS (zlib_zip_filter, filter,
+				      zip_filter_class,
+
+				      char *input_buffer;
+				      size_t input_buffer_size;
+				      z_stream zstream;);
 
 
 
@@ -58,10 +60,24 @@ zlib_zip_filter_dtor (chop_object_t *object)
   chop_object_destroy ((chop_object_t *)&zfilter->filter.log);
 }
 
-CHOP_DEFINE_RT_CLASS (zlib_zip_filter, filter,
-		      zlib_zip_filter_ctor, zlib_zip_filter_dtor,
-		      NULL, NULL,
-		      NULL, NULL);
+static errcode_t
+zzf_open (int compression_level, size_t input_size,
+	  chop_filter_t *filter)
+{
+  return (chop_zlib_zip_filter_init (compression_level, input_size,
+				     filter));
+}
+
+CHOP_DEFINE_RT_CLASS_WITH_METACLASS (zlib_zip_filter, filter,
+				     zip_filter_class, /* Metaclass */
+
+				     /* Metaclass inits */
+				     .generic_open = zzf_open,
+
+				     zlib_zip_filter_ctor,
+				     zlib_zip_filter_dtor,
+				     NULL, NULL,
+				     NULL, NULL);
 
 errcode_t
 chop_zlib_zip_filter_init (int zlib_compression_level, size_t input_size,
@@ -72,8 +88,8 @@ chop_zlib_zip_filter_init (int zlib_compression_level, size_t input_size,
 
   zfilter = (chop_zlib_zip_filter_t *)filter;
 
-  err = chop_object_initialize ((chop_object_t *)filter,
-				&chop_zlib_zip_filter_class);
+  err = chop_object_initialize ((chop_object_t *) filter,
+				(chop_class_t *) &chop_zlib_zip_filter_class);
   if (err)
     return err;
 
@@ -98,13 +114,14 @@ chop_zlib_zip_filter_init (int zlib_compression_level, size_t input_size,
 /* The push and pull methods.  */
 #define ZIP_TYPE        zlib
 #define ZIP_DIRECTION   zip
+#define ZIP_BUFFER_TYPE unsigned char
 
 #define ZIP_FLUSH       Z_FINISH
 #define ZIP_NO_FLUSH    0
-#define ZIP_STREAM_END  Z_STREAM_END
 #define ZIP_OK          Z_OK
 #define ZIP_NO_PROGRESS Z_BUF_ERROR
 
+#define ZIP_STREAM_ENDED(_zstream, _zret)      ((_zret) == Z_STREAM_END)
 #define ZIP_PROCESS(_zstream, _flush)          deflate ((_zstream), (_flush))
 #define ZIP_NEED_MORE_INPUT(_zstream, _zret)   (0)
 #define ZIP_CANT_PRODUCE_MORE(_zstream, _zret) ((_zret) == Z_BUF_ERROR)

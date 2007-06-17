@@ -29,6 +29,20 @@ libchop_la_SOURCES = chop.c chop-errors.c logs.c		\
 		     stream-file.c stream-mem.c			\
 		     stream-filtered.c  # stream-ext2.c 
 
+AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include	\
+	      -I$(top_srcdir)/lib     -I$(top_builddir)/lib	\
+	      -D_GNU_SOURCE=1
+AM_CFLAGS   = -Winline -Wall -fno-strict-aliasing
+
+# Gnulib
+libchop_la_LIBADD = -L$(top_builddir)/lib -lgnu
+
+if HAVE_LIBBZ2
+libchop_la_SOURCES += filter-bzip2-zip.c filter-bzip2-unzip.c
+else
+EXTRA_DIST += filter-bzip2-zip.c filter-bzip2-unzip.c
+endif
+
 if HAVE_TDB
 libchop_la_SOURCES += store-tdb.c
 else
@@ -97,9 +111,6 @@ libchop_store_browsers_la_LIBADD = $(AVAHI_LIBS) -lchop $(AM_LIBS)
 libchop_store_browsers_la_CPPFLAGS = $(AVAHI_CPPFLAGS) $(AM_CPPFLAGS)
 endif
 
-AM_CPPFLAGS = -I$(top_srcdir)/include -D_GNU_SOURCE=1
-AM_CFLAGS   = -Winline -Wall -fno-strict-aliasing
-
 if HAVE_GNUTLS
 AM_CFLAGS += $(LIBGNUTLS_CFLAGS) $(LIBGNUTLS_EXTRA_CFLAGS)
 endif
@@ -138,3 +149,5 @@ class-lookup.c: $(libchop_la_SOURCES)
 	$(GPERF) -t -C -N chop_lookup_class_entry > $@
 
 endif
+
+CLEANFILES = $(BUILT_SOURCES)

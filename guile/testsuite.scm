@@ -34,6 +34,7 @@ exec ${GUILE-guile} --debug -L modules -l $0 -c "(apply $main (cdr (command-line
 	     (chop block-indexers)
 	     (chop indexers)
 
+	     (srfi srfi-1)
              (srfi srfi-11))  ;; `let-values'
 
 ;;; Author:  Ludovic Courtès
@@ -207,8 +208,15 @@ exec ${GUILE-guile} --debug -L modules -l $0 -c "(apply $main (cdr (command-line
   `(cons ',name ,(symbol-append 't- name)))
 
 (define-public (testsuite . args)
-  (set! %test-input-file (string-append (getcwd) "/testsuite.scm"))
-  (if (not (false-if-exception (stat %test-input-file)))
+  (set! %test-input-file
+	(find file-exists?
+	      (list (string-append (getcwd) "/testsuite.scm")
+		    (or (getenv "GUILE") "")
+		    "Makefile"
+		    "/etc/fstab")))
+
+  (format #t "test input file: `~a'~%~%" %test-input-file)
+  (if (not %test-input-file)
       (error "could not determine a valid input file name"
 	     %test-input-file))
 
@@ -225,7 +233,7 @@ exec ${GUILE-guile} --debug -L modules -l $0 -c "(apply $main (cdr (command-line
 		  (unit-test stacked-zip-filtered-streams)
 		  ))
 
-  (format #t "~%* done!~%~%~%"))
+  (format #t "~%* done!~%"))
 
 (define main testsuite)
 

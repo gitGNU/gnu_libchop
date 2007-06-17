@@ -1,5 +1,7 @@
 /* The TDB store */
 
+#include <alloca.h>
+
 #include <chop/chop.h>
 #include <chop/stores.h>
 #include <chop/buffers.h>
@@ -96,7 +98,7 @@ static errcode_t chop_tdb_close (chop_block_store_t *);
 #include <stdarg.h>
 
 static void
-show_message (TDB_CONTEXT *db, int level, const char *message, ...)
+show_message (TDB_CONTEXT *db, enum tdb_debug_level level, const char *message, ...)
 {
   va_list args;
   char *fmt;
@@ -126,7 +128,10 @@ chop_tdb_store_open (const char *name,
   db = tdb_open (name, hash_size, TDB_DEFAULT | TDB_NOLOCK,
 		 open_flags, mode);
   if (!db)
-    return (errno);  /* FIXME:  Is this true?  */
+    {
+      int err = errno;
+      return (err ? err : CHOP_INVALID_ARG);
+    }
 
   chop_object_initialize ((chop_object_t *)store,
 			  (chop_class_t *)&chop_tdb_block_store_class);
@@ -142,7 +147,13 @@ chop_tdb_store_open (const char *name,
   store->block_store.close = chop_tdb_close;
 
 #ifdef DEBUG
-  tdb_logging_function (store->db, show_message);
+  {
+    struct tdb_logging_context log;
+
+    log.log_fn = show_message;
+    log.log_private = NULL;
+    tdb_set_logging_function (store->db, &log);
+  }
 #endif
 
   return 0;
@@ -167,10 +178,10 @@ chop_tdb_store_open (const char *name,
 #define DB_CLOSE(_db)                  tdb_close ((_db))
 
 /* Convert `chop_block_key_t' object CK into TDB key TDBK.  */
-#define CHOP_KEY_TO_DB(_tdbk, _ck)			\
-{							\
-  (_tdbk)->dptr = (char *)chop_block_key_buffer (_ck);	\
-  (_tdbk)->dsize = chop_block_key_size (_ck);		\
+#define CHOP_KEY_TO_DB(_tdbk, _ck)					\
+{									\
+  (_tdbk)->dptr = (unsigned char *) chop_block_key_buffer (_ck);	\
+  (_tdbk)->dsize = chop_block_key_size (_ck);				\
 }
 
 #include "store-generic-db.c"

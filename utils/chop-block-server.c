@@ -2,6 +2,8 @@
    store, e.g. a GDBM block store, and serves it remotely.  A lot of code is
    borrowed from `chop-archiver.c'.  */
 
+#include <alloca.h>
+
 #include <chop/chop.h>
 #include <chop/hash.h>
 #include <chop/stores.h>

@@ -4,6 +4,13 @@
 # error "This file is meant to be included in some other source file."
 #endif
 
+#ifndef TYPE_OF
+# ifdef __GNUC__
+#  define TYPE_OF(_what, _default)  typeof (_what)
+# else
+#  define TYPE_OF(_what, _default)  _default
+# endif
+#endif
 
 #ifndef CONCAT4
 # define _CONCAT4(_x, _y, _z, _p) _x ## _y ## _z ## _p
@@ -65,7 +72,7 @@ DB_READ_BLOCK_METHOD (chop_block_store_t *store,
       return CHOP_STORE_BLOCK_UNAVAIL;
     }
 
-  err = chop_buffer_push (buffer, db_content.dptr, db_content.dsize);
+  err = chop_buffer_push (buffer, (char *) db_content.dptr, db_content.dsize);
   *size = db_content.dsize;
 
   free (db_content.dptr);
@@ -83,7 +90,7 @@ DB_WRITE_BLOCK_METHOD (chop_block_store_t *store,
   DB_DATA_TYPE db_key, db_content;
 
   CHOP_KEY_TO_DB (&db_key, key);
-  db_content.dptr = (char *)buffer;
+  db_content.dptr = (TYPE_OF (db_content.dptr, char *)) buffer;
   db_content.dsize = size;
 
   err = DB_WRITE (gdbm->db,
@@ -130,7 +137,7 @@ DB_FIRST_BLOCK_METHOD (chop_block_store_t *store,
 	  return err;
 	}
 
-      chop_block_key_init (&it->key, db_key.dptr, db_key.dsize,
+      chop_block_key_init (&it->key, (char *) db_key.dptr, db_key.dsize,
 			   do_free_key, NULL);
       it->nil = 0;
       it->store = store;
@@ -162,7 +169,7 @@ DB_NEXT_BLOCK_METHOD (chop_block_iterator_t *it)
 
   if (db_next_key.dptr != NULL)
     {
-      chop_block_key_init (&it->key, db_next_key.dptr, db_next_key.dsize,
+      chop_block_key_init (&it->key, (char *) db_next_key.dptr, db_next_key.dsize,
 			   do_free_key, NULL);
       err = 0;
     }

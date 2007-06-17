@@ -1,6 +1,3 @@
-GUILE = @GUILE@
-G_WRAP_CONFIG = @G_WRAP_CONFIG@
-
 lib_LTLIBRARIES = libguile-chop.la libguile-chop-store-browsers.la	\
 		  libguile-chop-block-server.la
 
@@ -59,15 +56,17 @@ EXTRA_DIST = $(binding_specs) $(support_c_files) README $(TESTS)
 CLEANFILES = $(built_c_files) $(built_scm_files)
 
 
-AM_CPPFLAGS = -I../include $(shell $(G_WRAP_CONFIG) --c-compile-args guile)
-AM_CFLAGS = -O0 -Wall -g
-LIBS = $(shell $(G_WRAP_CONFIG) --c-link-args guile) -L../src -lchop
+AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include	\
+	      -I$(top_srcdir)/lib     -I$(top_builddir)/lib	\
+	      $(shell $(G_WRAP_CONFIG) --c-compile-args guile)
+AM_CFLAGS = -Wall -g
+LIBS = $(shell $(G_WRAP_CONFIG) --c-link-args guile)	\
+      -L$(top_builddir)/src -lchop			\
+      -L$(top_builddir)/lib -lgnu
 
-## FIXME:  This fixes a g-wrap-config deficiency here.
-AM_CPPFLAGS += -I/usr/local/include
 
 %.c $(module_suffix)/%.scm: %-spec.scm
-	spec_name="$(basename $(<:%-spec.scm=%))" &&			\
+	spec_name="`basename $(<:%-spec.scm=%)`" &&			\
 	echo "* generating bindings for \`$$spec_name'..." &&		\
 	$(GUILE) $(GUILE_FLAGS) -L $(srcdir) -c				\
 	  "(use-modules (g-wrap))					\
@@ -82,6 +81,6 @@ AM_CPPFLAGS += -I/usr/local/include
 #
 
 TESTS = testsuite.scm
-TESTS_ENVIRONMENT = GUILE=$(builddir)/pre-inst-guile
+TESTS_ENVIRONMENT = GUILE=$(top_builddir)/guile/pre-inst-guile
 
 check_SCRIPTS = testsuite.scm
