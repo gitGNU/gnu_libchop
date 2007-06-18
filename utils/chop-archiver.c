@@ -433,8 +433,10 @@ process_command (const char *argument,
 
 	  zip_filter = chop_class_alloca_instance ((chop_class_t *)
 						   zip_stream_filter_class);
-	  err = chop_zip_filter_generic_open (zip_stream_filter_class,
-					      -1, 0, zip_filter);
+	  err =
+	    chop_zip_filter_generic_open (zip_stream_filter_class,
+					  CHOP_ZIP_FILTER_DEFAULT_COMPRESSION,
+					  0, zip_filter);
 	  if (err)
 	    {
 	      com_err (program_name, err, "failed to open zip filter");
@@ -640,58 +642,10 @@ open_db_store (const chop_file_based_store_class_t *class,
   return err;
 }
 
-/* Look for zip/unzip filter classes nicknamed SHORT_NAME.  */
-static void
-get_zip_filter_classes (const char *short_name,
-			const chop_zip_filter_class_t **zip_class,
-			const chop_unzip_filter_class_t **unzip_class)
-{
-  if (short_name == NULL)
-    {
-      /* Default to `zlib'.  */
-      *zip_class = &chop_zlib_zip_filter_class;
-      *unzip_class = &chop_zlib_unzip_filter_class;
-    }
-  else
-    {
-      size_t len;
-      char *zip_name, *unzip_name;
 
-      len = strlen (short_name);
-      zip_name = (char *) alloca (len + 50);
-      unzip_name = (char *) alloca (len + 50);
+/* Dealing with zip/unzip filter classes.  */
+#include "zip-helper.c"
 
-      strcpy (zip_name, short_name);
-      strcat (zip_name, "_zip_filter");
-      strcpy (unzip_name, short_name);
-      strcat (unzip_name, "_unzip_filter");
-
-      *zip_class = (chop_zip_filter_class_t *) chop_class_lookup (zip_name);
-      if ((!*zip_class)
-	  || (!chop_object_is_a ((chop_object_t *) *zip_class,
-				 &chop_zip_filter_class_class)))
-	goto not_found;
-
-      *unzip_class =
-	(chop_unzip_filter_class_t *) chop_class_lookup (unzip_name);
-      if ((!*unzip_class)
-	  || (!chop_object_is_a ((chop_object_t *) *unzip_class,
-				 &chop_unzip_filter_class_class)))
-	goto not_found;
-
-      return;
-
-    not_found:
-      {
-	const char *which;
-
-	which = (*zip_class == NULL) ? zip_name : unzip_name;
-	fprintf (stderr, "%s: zip/unzip classes not found\n",
-		 which);
-	exit (1);
-      }
-    }
-}
 
 
 /* Parse a single option. */
@@ -953,7 +907,8 @@ main (int argc, char *argv[])
 						  unzip_block_filter_class);
 
       err = chop_zip_filter_generic_open (zip_block_filter_class,
-					  -1, 0, input_filter);
+					  CHOP_ZIP_FILTER_DEFAULT_COMPRESSION,
+					  0, input_filter);
       if (!err)
 	err = chop_unzip_filter_generic_open (unzip_block_filter_class,
 					      0, output_filter);

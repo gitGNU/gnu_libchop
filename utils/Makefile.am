@@ -5,7 +5,7 @@ bin_PROGRAMS = chop-archiver chop-store-list		\
 	       chop-store-discover
 noinst_PROGRAMS = chop-file
 dist_bin_SCRIPTS = chop-rcs.sh
-EXTRA_DIST = gnutls-init-params.c gnutls-helper.h
+EXTRA_DIST = gnutls-init-params.c gnutls-helper.h zip-helper.c
 
 AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include	\
 	      -I$(top_srcdir)/lib     -I$(top_builddir)/lib
