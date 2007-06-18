@@ -79,9 +79,11 @@ static int debugging = 0;
 /* Whether to be verbose */
 static int verbose = 0;
 
-/* Whether to use the zlib filters.  */
-static int use_zlib_block_filters = 0;
-static int use_zlib_stream_filters = 0;
+/* Zip/unzip filters to use.  */
+static const chop_zip_filter_class_t   *zip_block_filter_class = NULL;
+static const chop_unzip_filter_class_t *unzip_block_filter_class = NULL;
+static const chop_zip_filter_class_t   *zip_stream_filter_class = NULL;
+static const chop_unzip_filter_class_t *unzip_stream_filter_class = NULL;
 
 /* Whether to show store statistics.  */
 static int show_stats = 0;
@@ -132,13 +134,14 @@ static struct argp_option options[] =
     { "block-size", 'b', "SIZE", 0,
       "Choose a typical size of SIZE bytes for the blocks produced by "
       "the chopper" },
-    { "zip-input", 'Z', 0, 0,
-      "Pass the input stream through a zlib filter to compress (resp. "
+    { "zip-input", 'Z', "ZIP-TYPE", OPTION_ARG_OPTIONAL,
+      "Pass the input stream through a zip filter to compress (resp. "
       "decompress) data when writing (resp. reading) to (resp. from) the "
-      "archive" },
-    { "zip",     'z', 0, 0,
-      "Pass data blocks through a zlib filter to compress (resp. decompress) "
-      "data when writing (resp. reading) to (resp. from) the archive" },
+      "archive.  ZIP-TYPE should be one of `zlib', `bzip2', or `lzo'." },
+    { "zip",     'z', "ZIP-TYPE", OPTION_ARG_OPTIONAL,
+      "Pass data blocks through a zip filter to compress (resp. decompress) "
+      "data when writing (resp. reading) to (resp. from) the archive.  "
+      "ZIP-TYPE should be one of `zlib', `bzip2', or `lzo'." },
     { "remote",  'R', "HOST", 0,
       "Use the remote block store located at HOST (using TCP) for both "
       "data and meta-data blocks; HOST may contain `:' followed by a port "
@@ -320,14 +323,16 @@ do_retrieve (chop_index_handle_t *handle,
       return err;
     }
 
-  if (use_zlib_stream_filters)
+  if (zip_stream_filter_class)
     {
       /* Use a unzip-filtered stream to proxy STREAM.  */
       chop_stream_t *raw_stream = stream;
       chop_filter_t *unzip_filter;
 
-      unzip_filter = chop_class_alloca_instance (&chop_zlib_unzip_filter_class);
-      err = chop_zlib_unzip_filter_init (0, unzip_filter);
+      unzip_filter = chop_class_alloca_instance ((chop_class_t *)
+						 unzip_stream_filter_class);
+      err = chop_unzip_filter_generic_open (unzip_stream_filter_class,
+					    0, unzip_filter);
       if (err)
 	{
 	  com_err (program_name, err, "while opening unzip filter");
@@ -420,14 +425,16 @@ process_command (const char *argument,
 	  exit (1);
 	}
 
-      if (use_zlib_stream_filters)
+      if (zip_stream_filter_class)
 	{
 	  /* Use a zip-filtered stream to proxy STREAM.  */
 	  chop_stream_t *raw_stream = stream;
 	  chop_filter_t *zip_filter;
 
-	  zip_filter = chop_class_alloca_instance (&chop_zlib_zip_filter_class);
-	  err = chop_zlib_zip_filter_init (-1, 0, zip_filter);
+	  zip_filter = chop_class_alloca_instance ((chop_class_t *)
+						   zip_stream_filter_class);
+	  err = chop_zip_filter_generic_open (zip_stream_filter_class,
+					      -1, 0, zip_filter);
 	  if (err)
 	    {
 	      com_err (program_name, err, "failed to open zip filter");
@@ -633,6 +640,58 @@ open_db_store (const chop_file_based_store_class_t *class,
   return err;
 }
 
+/* Look for zip/unzip filter classes nicknamed SHORT_NAME.  */
+static void
+get_zip_filter_classes (const char *short_name,
+			const chop_zip_filter_class_t **zip_class,
+			const chop_unzip_filter_class_t **unzip_class)
+{
+  if (short_name == NULL)
+    {
+      /* Default to `zlib'.  */
+      *zip_class = &chop_zlib_zip_filter_class;
+      *unzip_class = &chop_zlib_unzip_filter_class;
+    }
+  else
+    {
+      size_t len;
+      char *zip_name, *unzip_name;
+
+      len = strlen (short_name);
+      zip_name = (char *) alloca (len + 50);
+      unzip_name = (char *) alloca (len + 50);
+
+      strcpy (zip_name, short_name);
+      strcat (zip_name, "_zip_filter");
+      strcpy (unzip_name, short_name);
+      strcat (unzip_name, "_unzip_filter");
+
+      *zip_class = (chop_zip_filter_class_t *) chop_class_lookup (zip_name);
+      if ((!*zip_class)
+	  || (!chop_object_is_a ((chop_object_t *) *zip_class,
+				 &chop_zip_filter_class_class)))
+	goto not_found;
+
+      *unzip_class =
+	(chop_unzip_filter_class_t *) chop_class_lookup (unzip_name);
+      if ((!*unzip_class)
+	  || (!chop_object_is_a ((chop_object_t *) *unzip_class,
+				 &chop_unzip_filter_class_class)))
+	goto not_found;
+
+      return;
+
+    not_found:
+      {
+	const char *which;
+
+	which = (*zip_class == NULL) ? zip_name : unzip_name;
+	fprintf (stderr, "%s: zip/unzip classes not found\n",
+		 which);
+	exit (1);
+      }
+    }
+}
 
 
 /* Parse a single option. */
@@ -665,10 +724,12 @@ parse_opt (int key, char *arg, struct argp_state *state)
       option_argument = arg;
       break;
     case 'Z':
-      use_zlib_stream_filters = 1;
+      get_zip_filter_classes (arg, &zip_stream_filter_class,
+			      &unzip_stream_filter_class);
       break;
     case 'z':
-      use_zlib_block_filters = 1;
+      get_zip_filter_classes (arg, &zip_block_filter_class,
+			      &unzip_block_filter_class);
       break;
     case 'R':
       {
@@ -879,29 +940,33 @@ main (int argc, char *argv[])
       chop_log_attach (chop_dummy_block_store_log (metastore), 2, 0);
     }
 
-  if (use_zlib_block_filters)
+  if (zip_block_filter_class)
     {
-      /* Create a filtered store that uses zlib filters and proxies the
+      /* Create a filtered store that uses zip filters and proxies the
 	 block store for data (not metadata).  */
       chop_block_store_t *raw_store = store;
 
       store = chop_class_alloca_instance (&chop_filtered_block_store_class);
-      input_filter = chop_class_alloca_instance (&chop_zlib_zip_filter_class);
-      output_filter = chop_class_alloca_instance (&chop_zlib_unzip_filter_class);
+      input_filter = chop_class_alloca_instance ((chop_class_t *)
+						 zip_block_filter_class);
+      output_filter = chop_class_alloca_instance ((chop_class_t *)
+						  unzip_block_filter_class);
 
-      err = chop_zlib_zip_filter_init (-1, 0, input_filter);
+      err = chop_zip_filter_generic_open (zip_block_filter_class,
+					  -1, 0, input_filter);
       if (!err)
-	err = chop_zlib_unzip_filter_init (0, output_filter);
+	err = chop_unzip_filter_generic_open (unzip_block_filter_class,
+					      0, output_filter);
 
       if (err)
 	{
-	  com_err (program_name, err, "while initializing zlib filters");
+	  com_err (program_name, err, "while initializing zip filters");
 	  exit (4);
 	}
 
       if (verbose)
 	{
-	  /* Dump the zlib filters' logs to `stderr'.  */
+	  /* Dump the zip filters' logs to `stderr'.  */
 	  chop_log_t *log;
 	  log = chop_filter_log (input_filter);
 	  chop_log_attach (log, 2, 0);
