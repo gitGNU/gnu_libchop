@@ -273,9 +273,11 @@ chop_bzip2_zip_filter_init (size_t block_count_100k, size_t work_factor,
 			    size_t input_size, chop_filter_t *filter);
 
 /* Initialize the bzip2-based decompressiong filter with an input buffer of
-   INPUT_SIZE bytes.  If INPUT_SIZE is zero, then a default size is used.  */
+   INPUT_SIZE bytes.  If INPUT_SIZE is zero, then a default size is used.  If
+   SMALL is non-zero, then `libbzip2' will use an alternate decompression
+   algorithm that is slower but uses less memory.  */
 extern errcode_t
-chop_bzip2_unzip_filter_init (size_t input_size,
+chop_bzip2_unzip_filter_init (int small, size_t input_size,
 			      chop_filter_t *filter);
 
 
