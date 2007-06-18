@@ -12,8 +12,9 @@
 CHOP_DECLARE_RT_CLASS_WITH_METACLASS (bzip2_unzip_filter, filter,
 				      unzip_filter_class,
 
-				      char *input_buffer;
-				      size_t input_buffer_size;
+				      int     small;
+				      char   *input_buffer;
+				      size_t  input_buffer_size;
 				      bz_stream zstream;);
 
 /* Bzip2 debugging.  */
@@ -36,6 +37,7 @@ bzip2_unzip_filter_ctor (chop_object_t *object,
   chop_bzip2_unzip_filter_t *zfilter;
   zfilter = (chop_bzip2_unzip_filter_t *)object;
 
+  zfilter->small = 0;
   zfilter->filter.push = chop_bzip2_unzip_push;
   zfilter->filter.pull = chop_bzip2_unzip_pull;
   zfilter->zstream.bzalloc = NULL;
@@ -67,7 +69,7 @@ bzip2_unzip_filter_dtor (chop_object_t *object)
 static errcode_t
 buf_open (size_t input_size, chop_filter_t *filter)
 {
-  return (chop_bzip2_unzip_filter_init (input_size, filter));
+  return (chop_bzip2_unzip_filter_init (0, input_size, filter));
 }
 
 CHOP_DEFINE_RT_CLASS_WITH_METACLASS (bzip2_unzip_filter, filter,
@@ -83,7 +85,7 @@ CHOP_DEFINE_RT_CLASS_WITH_METACLASS (bzip2_unzip_filter, filter,
 
 
 errcode_t
-chop_bzip2_unzip_filter_init (size_t input_size,
+chop_bzip2_unzip_filter_init (int small, size_t input_size,
 			      chop_filter_t *filter)
 {
   errcode_t err;
@@ -103,9 +105,10 @@ chop_bzip2_unzip_filter_init (size_t input_size,
     return ENOMEM;
 
   zfilter->input_buffer_size = input_size;
+  zfilter->small = small;
 
   err = BZ2_bzDecompressInit (&zfilter->zstream, CHOP_BZIP2_VERBOSITY,
-			      0 /* XXX: what's that? */);
+			      small);
   if (err)
     {
       err = CHOP_FILTER_ERROR;
@@ -136,11 +139,18 @@ chop_bzip2_unzip_filter_init (size_t input_size,
 #define ZIP_STREAM_ENDED(_zstream, _zret)			\
  (((_zret) == BZ_STREAM_END) || ((_zret) == BZ_SEQUENCE_ERROR))
 
-#define ZIP_PROCESS(_zstream, _flush)          BZ2_bzDecompress (_zstream)
-#define ZIP_NEED_MORE_INPUT(_zstream, _zret)   ((_zret) == BZ_DATA_ERROR)
-#define ZIP_CANT_PRODUCE_MORE(_zstream, _zret) ((_zret) == BZ_STREAM_END)
-#define ZIP_INPUT_CORRUPTED(_zret)             ((_zret) == BZ_DATA_ERROR)
-#define ZIP_RESET_PROCESSING(_zstream)         BZ2_bzDecompressEnd (_zstream)
+#define ZIP_PROCESS(_zstream, _flush)		\
+ BZ2_bzDecompress (_zstream)
+#define ZIP_NEED_MORE_INPUT(_zstream, _zret)	\
+ ((_zstream)->avail_in == 0)
+#define ZIP_CANT_PRODUCE_MORE(_zstream, _zret)	\
+ ((_zret) == BZ_STREAM_END)
+#define ZIP_INPUT_CORRUPTED(_zret)					\
+ (((_zret) == BZ_DATA_ERROR) || ((_zret) == BZ_DATA_ERROR_MAGIC))
+#define ZIP_RESET_PROCESSING(_zstream)				\
+ BZ2_bzDecompressEnd (_zstream);				\
+ BZ2_bzDecompressInit ((_zstream), CHOP_BZIP2_VERBOSITY,	\
+		       zfilter->small)
 
 #include "filter-zip-push-pull.c"
 

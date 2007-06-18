@@ -12,9 +12,10 @@
 CHOP_DECLARE_RT_CLASS_WITH_METACLASS (bzip2_zip_filter, filter,
 				      zip_filter_class,
 
-				      int bzip2_compression_level;
-				      char *input_buffer;
-				      size_t input_buffer_size;
+				      size_t  block_count_100k;
+				      size_t  work_factor;
+				      char   *input_buffer;
+				      size_t  input_buffer_size;
 				      bz_stream zstream;);
 
 /* Bzip2 debugging.  */
@@ -42,7 +43,11 @@ bzip2_zip_filter_ctor (chop_object_t *object,
   zfilter->zstream.bzalloc = NULL;
   zfilter->zstream.bzfree = NULL;
   zfilter->zstream.opaque = NULL;
-  zfilter->bzip2_compression_level = 0;
+  zfilter->work_factor = 0;
+  zfilter->block_count_100k = 0;
+  zfilter->input_buffer_size = 0;
+  zfilter->input_buffer = NULL;
+
   return chop_log_init ("bzip2-zip-filter", &zfilter->filter.log);
 }
 
@@ -69,8 +74,16 @@ static errcode_t
 bzf_open (int compression_level, size_t input_size,
 	  chop_filter_t *filter)
 {
-  return (chop_bzip2_zip_filter_init (compression_level, input_size,
-				      filter));
+  size_t block_count_100k;
+
+  if (compression_level >= 0)
+    block_count_100k = (size_t) compression_level;
+  else
+    block_count_100k = 1; /* default "compression level" */
+
+  return (chop_bzip2_zip_filter_init (block_count_100k,
+				      0 /* default work factor */,
+				      input_size, filter));
 }
 
 CHOP_DEFINE_RT_CLASS_WITH_METACLASS (bzip2_zip_filter, filter,
@@ -84,10 +97,9 @@ CHOP_DEFINE_RT_CLASS_WITH_METACLASS (bzip2_zip_filter, filter,
 				     NULL, NULL, /* No copy, equalp */
 				     NULL, NULL  /* No serial, deserial */);
 
-/* FIXME: We need to choose parameters more adapated to libbz2.  */
 errcode_t
-chop_bzip2_zip_filter_init (int bzip2_compression_level, size_t input_size,
-			    chop_filter_t *filter)
+chop_bzip2_zip_filter_init (size_t block_count_100k, size_t work_factor,
+			    size_t input_size, chop_filter_t *filter)
 {
   errcode_t err;
   chop_bzip2_zip_filter_t *zfilter;
@@ -96,7 +108,7 @@ chop_bzip2_zip_filter_init (int bzip2_compression_level, size_t input_size,
 
   err =
     chop_object_initialize ((chop_object_t *) filter,
-				(chop_class_t *) &chop_bzip2_zip_filter_class);
+			    (chop_class_t *) &chop_bzip2_zip_filter_class);
   if (err)
     return err;
 
@@ -106,18 +118,13 @@ chop_bzip2_zip_filter_init (int bzip2_compression_level, size_t input_size,
     return ENOMEM;
 
   zfilter->input_buffer_size = input_size;
+  zfilter->work_factor = work_factor;
+  zfilter->block_count_100k = block_count_100k;
 
-  bzip2_compression_level =
-    (bzip2_compression_level >= 0)
-    ? bzip2_compression_level
-    : 5;
-
-  zfilter->bzip2_compression_level = bzip2_compression_level;
   err = BZ2_bzCompressInit (&zfilter->zstream,
-			    1 /* FIXME: what's this? */,
+			    block_count_100k,
 			    CHOP_BZIP2_VERBOSITY,
-			    /* FIXME: work factor? */
-			    bzip2_compression_level);
+			    work_factor);
   switch (err)
     {
     case BZ_PARAM_ERROR:
@@ -189,10 +196,10 @@ do_zip_process (bz_stream *zstream, int action)
 #define ZIP_NEED_MORE_INPUT(_zstream, _zret)   (0)
 #define ZIP_CANT_PRODUCE_MORE(_zstream, _zret) ((_zret) == BZ_OUTBUFF_FULL)
 #define ZIP_INPUT_CORRUPTED(_zret)             ((_zret) == BZ_DATA_ERROR)
-#define ZIP_RESET_PROCESSING(_zstream)				\
-  BZ2_bzCompressEnd (_zstream);					\
-  BZ2_bzCompressInit ((_zstream), 1, CHOP_BZIP2_VERBOSITY,	\
-		      zfilter->bzip2_compression_level)
+#define ZIP_RESET_PROCESSING(_zstream)					\
+  BZ2_bzCompressEnd (_zstream);						\
+  BZ2_bzCompressInit ((_zstream), zfilter->block_count_100k,		\
+		      CHOP_BZIP2_VERBOSITY, zfilter->work_factor)
 
 #include "filter-zip-push-pull.c"
 

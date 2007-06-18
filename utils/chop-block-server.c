@@ -847,8 +847,10 @@ static char args_doc[] = "LOCAL-BLOCK-STORE";
 /* Use the dummy store for debugging purposes.  */
 static int debugging = 0;
 
-/* Whether to use the zlib filters.  */
-static int use_zlib_filters = 0;
+/* The zip/unzip filter classes to be used.  */
+static const chop_zip_filter_class_t   *zip_filter_class = NULL;
+static const chop_unzip_filter_class_t *unzip_filter_class = NULL;
+
 
 #ifdef HAVE_GPERF
 static char *file_based_store_class_name = "gdbm_block_store";
@@ -860,9 +862,10 @@ static struct argp_option options[] =
     { "debug",   'd', 0, 0,
       "Produce debugging output and use a dummy block store (i.e. a block "
       "store that does nothing but print messages)" },
-    { "zip",     'z', 0, 0,
-      "Pass data through a zlib filter to compress (resp. decompress) data "
-      "when writing (resp. reading) to (resp. from) the archive" },
+    { "zip",     'z', "ZIP-TYPE", OPTION_ARG_OPTIONAL,
+      "Pass data through a ZIP-TYPE filter to compress (resp. decompress) "
+      "data when writing (resp. reading) to (resp. from) the archive.  "
+      "ZIP-TYPE may be one of `zlib', `bzip2' or `lzo', for instance." },
 #ifdef HAVE_GPERF
     { "store",   'S', "CLASS", 0,
       "Use CLASS as the underlying file-based block store" },
@@ -900,6 +903,10 @@ static struct argp_option options[] =
     { 0, 0, 0, 0, 0 }
   };
 
+
+/* Dealing with zip/unzip filter classes.  */
+#include "zip-helper.c"
+
 /* Parse a single option. */
 static error_t
 parse_opt (int key, char *arg, struct argp_state *state)
@@ -913,7 +920,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
       debugging = 1;
       break;
     case 'z':
-      use_zlib_filters = 1;
+      get_zip_filter_classes (arg, &zip_filter_class, &unzip_filter_class);
       break;
 
     case 'R':
@@ -1162,30 +1169,35 @@ main (int argc, char *argv[])
       chop_log_attach (chop_dummy_block_store_log (local_store), 2, 0);
     }
 
-  if (use_zlib_filters)
+  if (zip_filter_class)
     {
-      /* Create a filtered store that uses zlib filters and proxies the
+      /* Create a filtered store that uses zip filters and proxies the
 	 block store for data (not metadata).  */
       chop_block_store_t *raw_store = local_store;
 
       local_store =
 	chop_class_alloca_instance (&chop_filtered_block_store_class);
-      input_filter = chop_class_alloca_instance (&chop_zlib_zip_filter_class);
-      output_filter = chop_class_alloca_instance (&chop_zlib_unzip_filter_class);
+      input_filter = chop_class_alloca_instance ((chop_class_t *)
+						 zip_filter_class);
+      output_filter = chop_class_alloca_instance ((chop_class_t *)
+						  unzip_filter_class);
 
-      err = chop_zlib_zip_filter_init (-1, 0, input_filter);
+      err = chop_zip_filter_generic_open (zip_filter_class,
+					  CHOP_ZIP_FILTER_DEFAULT_COMPRESSION,
+					  0, input_filter);
       if (!err)
-	err = chop_zlib_unzip_filter_init (0, output_filter);
+	err = chop_unzip_filter_generic_open (unzip_filter_class,
+					      0, output_filter);
 
       if (err)
 	{
-	  com_err (program_name, err, "while initializing zlib filters");
+	  com_err (program_name, err, "while initializing zip/unzip filters");
 	  exit (4);
 	}
 
       if (verbose)
 	{
-	  /* Dump the zlib filters' logs to `stderr'.  */
+	  /* Dump the zip filters' logs to `stderr'.  */
 	  chop_log_t *log;
 	  log = chop_filter_log (input_filter);
 	  chop_log_attach (log, 2, 0);
