@@ -161,6 +161,14 @@ ZIP_PULL_METHOD (chop_filter_t *filter, int flush,
 	  err = 0;
 	  break;
 	}
+
+      if (zret != ZIP_OK)
+	{
+	  chop_log_printf (&filter->log, "pull: zip error: zret=%i",
+			   zret);
+	  err = CHOP_FILTER_ERROR;
+	  break;
+	}
     }
 
   if (err == CHOP_FILTER_EMPTY)
