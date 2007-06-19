@@ -71,7 +71,7 @@ AC_CHECK_LIB([z], [deflate], [],
 # Optional libraries
 #
 
-# libbz2
+# libbz2 (bzip2 compression)
 AC_CHECK_LIB([bz2], [BZ2_bzCompress], [have_libbz2=yes], [have_libbz2=no])
 if test "x$have_libbz2" = "xyes"; then
   AC_CHECK_HEADER([bzlib.h], [], [have_libbz2=no])
@@ -82,6 +82,20 @@ if test "x$have_libbz2" = "xyes"; then
    LIBS="$LIBS -lbz2"
 else
    AC_MSG_WARN([`libbz2' not found, won't be used.])
+fi
+
+
+# LZO (GPL'd, lightweight, fast compression)
+AC_CHECK_LIB([lzo], [lzo1x_decompress], [have_lzo=yes], [have_lzo=no])
+if test "x$have_lzo" = "xyes"; then
+   AC_CHECK_HEADER([lzo1x.h], [], [have_lzo=no])
+fi
+AM_CONDITIONAL([HAVE_LZO], test "x$have_lzo" = "xyes")
+if test "x$have_lzo" = "xyes"; then
+   AC_DEFINE([HAVE_LZO], 1, [Tells whether the LZO library is available.])
+   LIBS="$LIBS -llzo"
+else
+   AC_MSG_WARN([`liblzo' not found, won't be used.])
 fi
 
 
