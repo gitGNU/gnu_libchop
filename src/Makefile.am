@@ -43,6 +43,12 @@ else
 EXTRA_DIST += filter-bzip2-zip.c filter-bzip2-unzip.c
 endif
 
+# if HAVE_LZO
+# libchop_la_SOURCES += filter-lzo-zip.c filter-lzo-unzip.c
+# else
+EXTRA_DIST += filter-lzo-zip.c filter-lzo-unzip.c filter-lzo-common.c
+# endif
+
 if HAVE_TDB
 libchop_la_SOURCES += store-tdb.c
 else
