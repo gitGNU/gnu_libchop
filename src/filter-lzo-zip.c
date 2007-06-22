@@ -6,6 +6,8 @@
 #include <errno.h>
 #include <assert.h>
 
+#include <arpa/inet.h>
+
 #include <lzo1x.h>
 
 
@@ -120,29 +122,30 @@ chop_lzo_zip_pull (chop_filter_t *filter, int flush,
 	    {
 	      /* Encode `avail_in' and `avail_out' to ease per-block
 		 decompression.  */
-	      /* FIXME: Check endianness and 32-bit-ness.  */
-	      unsigned in32, out32;
-
 	      assert (zfilter->avail_out + 8 <= zfilter->output_buffer_size);
 
-	      in32  = zfilter->avail_in;
-	      out32 = zfilter->avail_out;
-	      memcpy (zfilter->output_buffer, &out32, 4);
-	      memcpy (zfilter->output_buffer + 4, &in32, 4);
+	      if ((zfilter->avail_in & ~0xffffffffUL)
+		  || (zfilter->avail_out & ~0xffffffffUL))
+		{
+		  chop_log_printf (&filter->log,
+				   "pull: fatal: buffer sizes are too "
+				   "large (%u in and %u out)",
+				   zfilter->avail_in, zfilter->avail_out);
+		  err = CHOP_FILTER_ERROR;
+		}
+	      else
+		{
+		  unsigned long in32, out32;
 
-	      err = 0;
-	      zfilter->avail_in = 0;
-	      zfilter->avail_out += 8;
+		  in32  = htonl (zfilter->avail_in);
+		  out32 = htonl (zfilter->avail_out);
+		  memcpy (zfilter->output_buffer, &out32, 4);
+		  memcpy (zfilter->output_buffer + 4, &in32, 4);
 
-#if 0
-	      {
-		char *hex;
-		hex = alloca (zfilter->avail_out * 2 + 1);
-		chop_buffer_to_hex_string (zfilter->output_buffer + 8,
-					   zfilter->avail_out - 8, hex);
-		chop_log_printf (&filter->log, "compressed data: %s", hex);
-	      }
-#endif
+		  err = 0;
+		  zfilter->avail_in = 0;
+		  zfilter->avail_out += 8;
+		}
 	    }
 	}
       else

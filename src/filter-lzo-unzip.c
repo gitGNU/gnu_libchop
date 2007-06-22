@@ -6,6 +6,8 @@
 #include <errno.h>
 #include <assert.h>
 
+#include <arpa/inet.h>
+
 #include <lzo1x.h>
 
 
@@ -118,11 +120,13 @@ chop_lzo_unzip_pull (chop_filter_t *filter, int flush,
 
 	  /* Fetch the size of the compressed block so that we can eventually
 	     proceed with decompression.  */
-	  /* FIXME: Check endianness and 32-bit-ness.  */
 	  unsigned in32, out32;
 
 	  memcpy (&in32,  zfilter->input_buffer, 4);
 	  memcpy (&out32, zfilter->input_buffer + 4, 4);
+	  in32  = ntohl (in32);
+	  out32 = ntohl (out32);
+
 	  zfilter->input_offset += 8;
 	  zfilter->avail_in     -= 8;
 	  size                  -= 8;
@@ -168,17 +172,6 @@ chop_lzo_unzip_pull (chop_filter_t *filter, int flush,
 			       "output: %u, flush: %s)",
 			       in32, zfilter->input_offset, out32,
 			       flush ? "yes" : "no");
-
-#if 0
-	      {
-		char *hex;
-		hex = alloca (in32 * 2 + 1);
-		chop_buffer_to_hex_string (zfilter->input_buffer
-					   + zfilter->input_offset,
-					   in32, hex);
-		chop_log_printf (&filter->log, "compressed data: %s", hex);
-	      }
-#endif
 
 	      zfilter->avail_out = zfilter->output_buffer_size;
 	      err = lzo1x_decompress_safe (zfilter->input_buffer
