@@ -79,12 +79,18 @@ handle_zipped_input_fault (chop_filter_t *unzip_filter,
   zdata = (zipped_input_fault_handler_data_t *) data;
 
   /* Obviously, ZIP_FILTER is supposed to be, well, a zip filter.  */
-  assert (chop_object_is_a ((chop_object_t *) zdata->zip_filter,
+  test_assert (
+	  chop_object_is_a ((chop_object_t *) zdata->zip_filter,
 			    (chop_class_t *) &chop_zlib_zip_filter_class)
 #ifdef HAVE_LIBBZ2
 	  ||
 	  chop_object_is_a ((chop_object_t *) zdata->zip_filter,
 			    (chop_class_t *) &chop_bzip2_zip_filter_class)
+#endif
+#ifdef HAVE_LZO
+	  ||
+	  chop_object_is_a ((chop_object_t *) zdata->zip_filter,
+			    (chop_class_t *) &chop_lzo_zip_filter_class)
 #endif
 	  );
 
@@ -101,6 +107,7 @@ handle_zipped_input_fault (chop_filter_t *unzip_filter,
       if (err == CHOP_STREAM_END)
 	{
 	  /* Next time, we'll start flushing ZIP_FILTER.  */
+	  test_debug ("%s: got end-of-stream", __FUNCTION__);
 	  zdata->flushing = 1;
 	  err = 0;
 	}
@@ -134,6 +141,10 @@ main (int argc, char *argv[])
 #ifdef HAVE_LIBBZ2
       { &chop_bzip2_zip_filter_class,
 	&chop_bzip2_unzip_filter_class },
+#endif
+#ifdef HAVE_LZO
+      { &chop_lzo_zip_filter_class,
+	&chop_lzo_unzip_filter_class },
 #endif
       { NULL, NULL }
     };
