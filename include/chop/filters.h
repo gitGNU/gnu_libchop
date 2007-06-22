@@ -281,4 +281,10 @@ chop_bzip2_unzip_filter_init (int small, size_t input_size,
 			      chop_filter_t *filter);
 
 
+
+/* The (optional) LZO-based compression and decompression filters.  */
+
+extern const chop_zip_filter_class_t   chop_lzo_zip_filter_class;
+extern const chop_unzip_filter_class_t chop_lzo_unzip_filter_class;
+
 #endif
