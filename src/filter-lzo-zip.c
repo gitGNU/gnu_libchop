@@ -17,11 +17,11 @@ CHOP_DECLARE_RT_CLASS_WITH_METACLASS (lzo_zip_filter, filter,
 				      zip_filter_class,
 
 				      lzo_voidp  work_mem;
-				      char      *input_buffer;
+				      lzo_bytep  input_buffer;
 				      size_t     input_buffer_size;
 				      size_t     avail_in;
 				      size_t     input_offset;
-				      char      *output_buffer;
+				      lzo_bytep  output_buffer;
 				      size_t     output_buffer_size;
 				      size_t     avail_out;
 				      size_t     output_offset;);
@@ -209,8 +209,8 @@ chop_lzo_zip_filter_init (size_t input_size, chop_filter_t *filter)
   if (err)
     return err;
 
-  input_size = input_size ? input_size : 1024;
-  zfilter->input_buffer = malloc (input_size);
+  input_size = input_size ? input_size : 8192;
+  zfilter->input_buffer = (lzo_bytep) malloc (input_size);
   if (!zfilter->input_buffer)
     goto mem_err;
 
@@ -223,7 +223,7 @@ chop_lzo_zip_filter_init (size_t input_size, chop_filter_t *filter)
 
      Thus, we compute that size and add a few bytes for safety.  */
   zfilter->output_buffer_size = input_size + (input_size >> 6) + 100;
-  zfilter->output_buffer = malloc (zfilter->output_buffer_size);
+  zfilter->output_buffer = (lzo_bytep) malloc (zfilter->output_buffer_size);
   if (!zfilter->output_buffer)
     goto mem_err;
 

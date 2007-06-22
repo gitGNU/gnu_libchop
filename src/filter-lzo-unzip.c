@@ -17,11 +17,11 @@ CHOP_DECLARE_RT_CLASS_WITH_METACLASS (lzo_unzip_filter, filter,
 				      unzip_filter_class,
 
 				      lzo_voidp  work_mem;
-				      char      *input_buffer;
+				      lzo_bytep  input_buffer;
 				      size_t     input_buffer_size;
 				      size_t     avail_in;
 				      size_t     input_offset;
-				      char      *output_buffer;
+				      lzo_bytep  output_buffer;
 				      size_t     output_buffer_size;
 				      size_t     avail_out;
 				      size_t     output_offset;);
@@ -44,34 +44,34 @@ chop_lzo_unzip_pull (chop_filter_t *filter, int flush,
 # define STRINGIFY(_z) _STRINGIFY(_z)
 #endif
 
-#define ENSURE_LARGE_ENOUGH_BUFFER(_which, _size)		\
-  if (zfilter-> _which ## _buffer_size < (_size))		\
-    {								\
-      char *new_buf;						\
-      size_t new_size = zfilter-> _which ## _buffer_size;	\
-								\
-      do							\
-	{							\
-	  new_size <<= 1;					\
-	}							\
-      while (new_size < (_size) + zfilter-> _which ## _offset);	\
-								\
-      chop_log_printf (&filter->log,				\
-		       STRINGIFY (_which)			\
-		       " buffer is too small (%u bytes "	\
-		       "but %u needed), growing to %u bytes",	\
-		       zfilter-> _which ## _buffer_size,	\
-		       (_size), new_size);			\
-      new_buf = realloc (zfilter-> _which ## _buffer,		\
-			 new_size);				\
-      if (!new_buf)						\
-	{							\
-	  err = ENOMEM;						\
-	  break;						\
-	}							\
-								\
-      zfilter-> _which ## _buffer = new_buf;			\
-      zfilter-> _which ## _buffer_size = new_size;		\
+#define ENSURE_LARGE_ENOUGH_BUFFER(_which, _size)			\
+  if (zfilter-> _which ## _buffer_size < (_size))			\
+    {									\
+      lzo_bytep new_buf;						\
+      size_t new_size = zfilter-> _which ## _buffer_size;		\
+									\
+      do								\
+	{								\
+	  new_size <<= 1;						\
+	}								\
+      while (new_size < (_size) + zfilter-> _which ## _offset);		\
+									\
+      chop_log_printf (&filter->log,					\
+		       STRINGIFY (_which)				\
+		       " buffer is too small (%u bytes "		\
+		       "but %u needed), growing to %u bytes",		\
+		       zfilter-> _which ## _buffer_size,		\
+		       (_size), new_size);				\
+      new_buf = (lzo_bytep) realloc (zfilter-> _which ## _buffer,	\
+				     new_size);				\
+      if (!new_buf)							\
+	{								\
+	  err = ENOMEM;							\
+	  break;							\
+	}								\
+									\
+      zfilter-> _which ## _buffer = new_buf;				\
+      zfilter-> _which ## _buffer_size = new_size;			\
     }
 
   zfilter = (chop_lzo_unzip_filter_t *) filter;
@@ -262,7 +262,7 @@ chop_lzo_unzip_filter_init (size_t input_size, chop_filter_t *filter)
     return err;
 
   input_size = input_size ? input_size : 1024;
-  zfilter->input_buffer = malloc (input_size);
+  zfilter->input_buffer = (lzo_bytep) malloc (input_size);
   if (!zfilter->input_buffer)
     goto mem_err;
 
@@ -270,7 +270,7 @@ chop_lzo_unzip_filter_init (size_t input_size, chop_filter_t *filter)
 
   /* We may eventually grow the output buffer if needed.  */
   zfilter->output_buffer_size = input_size << 1;
-  zfilter->output_buffer = malloc (zfilter->output_buffer_size);
+  zfilter->output_buffer = (lzo_bytep) malloc (zfilter->output_buffer_size);
   if (!zfilter->output_buffer)
     goto mem_err;
 
