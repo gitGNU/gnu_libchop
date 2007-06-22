@@ -7,6 +7,7 @@
 #include <assert.h>
 
 #include <arpa/inet.h>
+#include <stdlib.h>  /* For Gnulib's `malloc ()' */
 
 #include <lzo1x.h>
 
