@@ -281,4 +281,28 @@ chop_bzip2_unzip_filter_init (int small, size_t input_size,
 			      chop_filter_t *filter);
 
 
+
+/* The (optional) LZO-based compression and decompression filters.  LZO is
+   much faster than zlib and bzip2, at the cost of lower compression
+   rates.  */
+
+extern const chop_zip_filter_class_t   chop_lzo_zip_filter_class;
+extern const chop_unzip_filter_class_t chop_lzo_unzip_filter_class;
+
+
+/* Initialize FILTER as an LZO compression filter, using a input buffer of
+   INPUT_SIZE bytes.  In practice, since LZO is state-less, this means that
+   input data will be compressed by blocks of INPUT_SIZE bytes.  Thus, it is
+   necessary to use a reasonably large buffer size to obtain reasonable
+   compression.  If INPUT_SIZE is zero, a reasonable default is used.  The
+   compression algorithm that is used is LZO1X.  */
+extern errcode_t chop_lzo_zip_filter_init (size_t input_size,
+					   chop_filter_t *filter);
+
+/* Initialize FILTER as an LZO decompression buffer, using INPUT_SIZE as the
+   default input buffer size.  In practice, the input buffer will be grown as
+   needed anyway.  */
+extern errcode_t chop_lzo_unzip_filter_init (size_t input_size,
+					     chop_filter_t *filter);
+
 #endif

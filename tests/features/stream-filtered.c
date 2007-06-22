@@ -35,6 +35,10 @@ main (int argc, char *argv[])
       { &chop_bzip2_zip_filter_class,
 	&chop_bzip2_unzip_filter_class },
 #endif
+#ifdef HAVE_LZO
+      { &chop_lzo_zip_filter_class,
+	&chop_lzo_unzip_filter_class },
+#endif
       { NULL, NULL }
     };
 

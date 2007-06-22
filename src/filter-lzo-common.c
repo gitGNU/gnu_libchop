@@ -19,17 +19,24 @@
 #define ZIP_PUSH_METHOD  CONCAT3 (chop_lzo_, ZIP_DIRECTION, _push)
 #define ZIP_PULL_METHOD  CONCAT3 (chop_lzo_, ZIP_DIRECTION, _pull)
 #define ZIP_FILTER_TYPE  CONCAT3 (chop_lzo_, ZIP_DIRECTION, _filter_t)
+#define ZIP_FILTER_CTOR  CONCAT3 (lzo_, ZIP_DIRECTION, _filter_ctor)
+#define ZIP_FILTER_DTOR  CONCAT3 (lzo_, ZIP_DIRECTION, _filter_dtor)
 
 static errcode_t
 ZIP_PUSH_METHOD (chop_filter_t *filter,
 		 const char *buffer, size_t size, size_t *pushed)
 {
-  errcode_t err;
+  errcode_t err = 0;
+  size_t offset;
   ZIP_FILTER_TYPE *zfilter;
 
   zfilter = (ZIP_FILTER_TYPE *)filter;
 
   *pushed = 0;
+  offset = zfilter->input_offset + zfilter->avail_in;
+
+  assert (offset <= zfilter->input_buffer_size);
+
   while ((size > 0) && (err == 0))
     {
       size_t available, amount;
@@ -42,7 +49,7 @@ ZIP_PUSH_METHOD (chop_filter_t *filter,
 	  if (err)
 	    {
 	      chop_log_printf (&filter->log,
-			       "filter-full event unhandled: %s",
+			       "push: filter-full event unhandled: %s",
 			       error_message (err));
 	      if ((err != 0) && (err != CHOP_FILTER_UNHANDLED_FAULT))
 		return err;
@@ -55,19 +62,22 @@ ZIP_PUSH_METHOD (chop_filter_t *filter,
 	  zfilter->output_buffer_size = 0;
 	}
 
-      available = zfilter->input_buffer_size - zfilter->avail_in;
+      available = zfilter->input_buffer_size - offset;
       if (available > 0)
 	{
 	  amount = (available > size) ? size : available;
-	  memcpy (zfilter->input_buffer + zfilter->avail_in,
+	  memcpy (zfilter->input_buffer + offset,
 		  buffer, amount);
 
-	  zfilter->avail_in += amount;
-	  size -= amount;
-	  *pushed += amount;
-	}
-      else
+	  chop_log_printf (&filter->log,
+			   "push: got %u bytes at offset %u",
+			   amount, offset);
 
+	  offset            += amount;
+	  zfilter->avail_in += amount;
+	  size              -= amount;
+	  *pushed           += amount;
+	}
     }
 
   return err;
@@ -78,16 +88,16 @@ ZIP_PUSH_METHOD (chop_filter_t *filter,
 /* Constructor and destructor.  */
 
 static errcode_t
-lzo_ ## ZIP_DIRECTION ## _filter_ctor (chop_object_t *object,
-				       const chop_class_t *class)
+ZIP_FILTER_CTOR (chop_object_t *object, const chop_class_t *class)
 {
   ZIP_FILTER_TYPE *zfilter;
   zfilter = (ZIP_FILTER_TYPE *) object;
 
-  zfilter->filter.push = chop_lzo_zip_push;
-  zfilter->filter.pull = chop_lzo_zip_pull;
+  zfilter->filter.push = ZIP_PUSH_METHOD;
+  zfilter->filter.pull = ZIP_PULL_METHOD;
   zfilter->input_buffer_size = zfilter->output_buffer_size = 0;
   zfilter->avail_in = zfilter->avail_out = 0;
+  zfilter->input_offset = zfilter->output_offset = 0;
   zfilter->input_buffer = zfilter->output_buffer = NULL;
 
   return chop_log_init ("lzo-" STRINGIFY (ZIP_DIRECTION) "-filter",
@@ -95,7 +105,7 @@ lzo_ ## ZIP_DIRECTION ## _filter_ctor (chop_object_t *object,
 }
 
 static void
-lzo_ ## ZIP_DIRECTION ## _filter_dtor (chop_object_t *object)
+ZIP_FILTER_DTOR (chop_object_t *object)
 {
   ZIP_FILTER_TYPE *zfilter;
   zfilter = (ZIP_FILTER_TYPE *) object;
