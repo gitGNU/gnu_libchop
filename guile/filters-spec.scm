@@ -1,4 +1,4 @@
-;;;; Copyright (C) 2005 Ludovic Courtès
+;;;; Copyright (C) 2005, 2007 Ludovic Courtès
 ;;;;
 ;;;; This program is free software; you can redistribute it and/or
 ;;;; modify it under the terms of the GNU Lesser General Public
@@ -109,7 +109,32 @@
 		  #:c-name "chop_zlib_unzip_filter_init_alloc"
 		  #:returns '<errcode>
 		  #:arguments '((int input-size (default 0))
-				((<filter> out) filter))))
+				((<filter> out) filter)))
+
+  ;; generic constructors
+
+  (wrap-constant! ws
+                  #:name 'zip-compression-level/default
+                  #:type 'int
+                  #:value "CHOP_ZIP_FILTER_DEFAULT_COMPRESSION"
+                  #:description "The default zip compression level")
+
+  (wrap-function! ws
+		  #:name 'zip-filter-init
+		  #:c-name "chop_generic_zip_filter_open_alloc"
+		  #:returns '<errcode>
+		  #:arguments '(((mchars caller-owned) zip-type)
+                                (int compression-level (default -1))
+                                (int input-size        (default 0))
+				((<filter> out)        filter)))
+
+  (wrap-function! ws
+		  #:name 'unzip-filter-init
+		  #:c-name "chop_generic_unzip_filter_open_alloc"
+		  #:returns '<errcode>
+		  #:arguments '(((mchars caller-owned) zip-type)
+                                (int input-size        (default 0))
+				((<filter> out)        filter))))
 
 
 ;; arch-tag: e5d3a1f4-e328-4cfe-b878-51afc1a2d4ea
