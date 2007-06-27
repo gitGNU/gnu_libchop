@@ -15,7 +15,7 @@ chop_dummy_block_store_open_alloc (const char *name)
   chop_block_store_t *store;
 
   store =
-    scm_malloc (chop_class_instance_size (&chop_dummy_block_store_class));
+    gwrap_chop_malloc (&chop_dummy_block_store_class);
 
   chop_dummy_block_store_open (name, store);
 
@@ -29,7 +29,7 @@ chop_dummy_proxy_block_store_open_alloc (const char *name,
   chop_block_store_t *store;
 
   store =
-    scm_malloc (chop_class_instance_size (&chop_dummy_block_store_class));
+    gwrap_chop_malloc (&chop_dummy_block_store_class);
 
   chop_dummy_proxy_block_store_open (name, backend, store);
 
@@ -42,7 +42,7 @@ chop_smart_block_store_open_alloc (chop_block_store_t *backend)
   chop_block_store_t *store;
 
   store =
-    scm_malloc (chop_class_instance_size (&chop_smart_block_store_class));
+    gwrap_chop_malloc (&chop_smart_block_store_class);
 
   chop_smart_block_store_open (backend, store);
 
@@ -72,14 +72,14 @@ chop_file_based_store_open_alloc (const char *class_nickname,
       != &chop_file_based_store_class_class)
     return CHOP_INVALID_ARG;
 
-  *store = scm_malloc (chop_class_instance_size (class));
+  *store = gwrap_chop_malloc (class);
 
   err = chop_file_based_store_open ((chop_file_based_store_class_t *)class,
 				    file, open_flags, mode,
 				    *store);
   if (err)
     {
-      free (*store);
+      gwrap_chop_free_uninitialized ((chop_object_t *) *store, class);
       *store = NULL;
     }
 
@@ -95,14 +95,15 @@ chop_gdbm_block_store_open_alloc (const char *name, size_t block_size,
   errcode_t err;
 
   *store =
-    scm_malloc
-    (chop_class_instance_size ((chop_class_t *)&chop_gdbm_block_store_class));
+    gwrap_chop_malloc ((chop_class_t *) &chop_gdbm_block_store_class);
 
   err = chop_gdbm_store_open (name, block_size, open_flags, mode, NULL,
 			      *store);
   if (err)
     {
-      free (*store);
+      gwrap_chop_free_uninitialized
+	((chop_object_t *) *store,
+	 (chop_class_t *) &chop_gdbm_block_store_class);
       *store = NULL;
     }
 
@@ -116,14 +117,15 @@ chop_tdb_block_store_open_alloc (const char *name, int hash_size,
 {
   errcode_t err;
 
-  *store = scm_malloc
-    (chop_class_instance_size ((chop_class_t *)&chop_tdb_block_store_class));
+  *store = gwrap_chop_malloc ((chop_class_t *) &chop_tdb_block_store_class);
 
   err = chop_tdb_store_open (name, hash_size, 0, open_flags, mode,
 			     *store);
   if (err)
     {
-      free (*store);
+      gwrap_chop_free_uninitialized
+	((chop_object_t *) *store,
+	 (chop_class_t *) &chop_tdb_block_store_class);
       *store = NULL;
     }
 
@@ -138,12 +140,13 @@ chop_sunrpc_block_store_open_alloc (const char *host, unsigned port,
   errcode_t err;
 
   *store =
-    scm_malloc (chop_class_instance_size (&chop_sunrpc_block_store_class));
+    gwrap_chop_malloc (&chop_sunrpc_block_store_class);
 
   err = chop_sunrpc_block_store_open (host, port, protocol, *store);
   if (err)
     {
-      free (*store);
+      gwrap_chop_free_uninitialized ((chop_object_t *) *store,
+				     &chop_sunrpc_block_store_class);
       *store = NULL;
     }
 
@@ -160,14 +163,15 @@ chop_sunrpc_tls_block_store_simple_open_alloc (const char *host,
   errcode_t err;
 
   *store =
-    scm_malloc (chop_class_instance_size (&chop_sunrpc_block_store_class));
+    gwrap_chop_malloc (&chop_sunrpc_block_store_class);
 
   err = chop_sunrpc_tls_block_store_simple_open (host, port,
 						 pubkey_file, privkey_file,
 						 *store);
   if (err)
     {
-      free (*store);
+      gwrap_chop_free_uninitialized ((chop_object_t *) *store,
+				     &chop_sunrpc_block_store_class);
       *store = NULL;
     }
 
@@ -224,7 +228,7 @@ chop_filtered_store_open_alloc (chop_filter_t *input, chop_filter_t *output,
   errcode_t err;
 
   *store =
-    scm_malloc (chop_class_instance_size (&chop_filtered_block_store_class));
+    gwrap_chop_malloc (&chop_filtered_block_store_class);
 
   err = chop_filtered_store_open (input, output, backend,
 				  /* Never destroy BACKEND: this is the GC's
@@ -236,7 +240,8 @@ chop_filtered_store_open_alloc (chop_filter_t *input, chop_filter_t *output,
 				  *store);
   if (err)
     {
-      free (*store);
+      gwrap_chop_free_uninitialized ((chop_object_t *) *store,
+				     &chop_filtered_block_store_class);
       *store = NULL;
     }
 
@@ -260,12 +265,12 @@ chop_store_first_block_alloc (chop_block_store_t *store,
       return CHOP_ERR_NOT_IMPL;
     }
 
-  *it = scm_malloc (chop_class_instance_size (it_class));
+  *it = gwrap_chop_malloc (it_class);
 
   err = chop_store_first_block (store, *it);
   if (err)
     {
-      free (*it);
+      gwrap_chop_free_uninitialized ((chop_object_t *) *it, it_class);
       *it = NULL;
     }
 
@@ -534,7 +539,7 @@ chop_make_scheme_block_store (SCM read_block, SCM write_block,
   SCM s_store = SCM_BOOL_F;
   chop_scheme_block_store_t *store;
 
-  store = scm_malloc (sizeof (chop_scheme_block_store_t));
+  store = gwrap_chop_malloc ((chop_class_t *) &chop_scheme_block_store_class);
 
   chop_object_initialize ((chop_object_t *)store,
 			  (chop_class_t *)&chop_scheme_block_store_class);

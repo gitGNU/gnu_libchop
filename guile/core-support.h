@@ -5,6 +5,7 @@
 
 #include <chop/chop.h>
 #include <chop/objects.h>
+#include <chop/chop-config.h>
 
 #include <libguile.h>
 #include <stdlib.h>
@@ -36,6 +37,43 @@ extern size_t gwrap_chop_object_cleanup (void *wcp);
 /* The function that gets called to mark WCP, a wrapped C pointer to a
    `chop_object_t'.  */
 extern SCM gwrap_chop_object_mark (SCM wcp);
+
+/* Allocate an instance of type KLASS.  */
+static inline void *
+gwrap_chop_malloc (const chop_class_t *klass)
+{
+  size_t size;
+  chop_object_t *object;
+
+  size = chop_class_instance_size (klass);
+
+  object = (chop_object_t *) scm_gc_malloc (size, chop_class_name (klass));
+
+  return (object);
+}
+
+/* Destroy and free OBJECT which was previously allocated by
+   `gwrap_chop_malloc ()'.  */
+static inline void
+gwrap_chop_free (chop_object_t *object)
+{
+  const chop_class_t *klass;
+
+  klass = chop_object_get_class (object);
+
+  chop_object_destroy (object);
+  scm_gc_free (object, chop_class_instance_size (klass),
+	       chop_class_name (klass));
+}
+
+/* Free OBJECT, an uninitialized object of type KLASS.  */
+static inline void
+gwrap_chop_free_uninitialized (chop_object_t *object,
+			       const chop_class_t *klass)
+{
+  scm_gc_free (object, chop_class_instance_size (klass),
+	       chop_class_name (klass));
+}
 
 
 _CHOP_END_DECLS

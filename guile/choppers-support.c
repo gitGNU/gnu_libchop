@@ -13,14 +13,16 @@ chop_fixed_size_chopper_open_alloc (chop_stream_t *input,
   errcode_t err;
 
   *chopper =
-    scm_malloc (chop_class_instance_size ((chop_class_t *)&chop_fixed_size_chopper_class));
+    gwrap_chop_malloc ((chop_class_t *)&chop_fixed_size_chopper_class);
   if (!*chopper)
     return ENOMEM;
 
   err = chop_fixed_size_chopper_init (input, block_size, pad_blocks, *chopper);
   if (err)
     {
-      free (*chopper);
+      gwrap_chop_free_uninitialized
+	((chop_object_t *) *chopper,
+	 (chop_class_t *) &chop_fixed_size_chopper_class);
       *chopper = NULL;
     }
 
@@ -36,7 +38,7 @@ chop_anchor_based_chopper_open_alloc (chop_stream_t *input,
   errcode_t err;
 
   *chopper =
-    scm_malloc (chop_class_instance_size ((chop_class_t *)&chop_anchor_based_chopper_class));
+    gwrap_chop_malloc ((chop_class_t *) &chop_anchor_based_chopper_class);
   if (!*chopper)
     return ENOMEM;
 
@@ -44,7 +46,9 @@ chop_anchor_based_chopper_open_alloc (chop_stream_t *input,
 					*chopper);
   if (err)
     {
-      free (*chopper);
+      gwrap_chop_free_uninitialized
+	((chop_object_t *) *chopper,
+	 (chop_class_t *) &chop_anchor_based_chopper_class);
       *chopper = NULL;
     }
 
@@ -73,7 +77,7 @@ chop_chopper_generic_open_alloc (const char *class_nickname,
       != &chop_chopper_class_class)
     return CHOP_INVALID_ARG;
 
-  *chopper = scm_malloc (chop_class_instance_size (class));
+  *chopper = gwrap_chop_malloc (class);
   if (!*chopper)
     return ENOMEM;
 
@@ -81,7 +85,7 @@ chop_chopper_generic_open_alloc (const char *class_nickname,
 				   typical_block_size, *chopper);
   if (err)
     {
-      free (*chopper);
+      gwrap_chop_free_uninitialized ((chop_object_t *) *chopper, class);
       *chopper = NULL;
       return err;
     }

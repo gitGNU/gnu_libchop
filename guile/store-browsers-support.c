@@ -97,9 +97,9 @@ chop_avahi_store_browser_open_alloc (const char *domain,
 
   *browser = NULL;
   backend =
-    scm_malloc (chop_class_instance_size (&chop_avahi_store_browser_class));
+    gwrap_chop_malloc (&chop_avahi_store_browser_class);
   scm =
-    scm_malloc (chop_class_instance_size ((chop_class_t *)&chop_scheme_store_browser_class));
+    gwrap_chop_malloc ((chop_class_t *) &chop_scheme_store_browser_class);
 
   err = chop_avahi_store_browser_open (domain,
 				       ssb_discovery_trampoline, scm,
@@ -107,8 +107,12 @@ chop_avahi_store_browser_open_alloc (const char *domain,
 				       backend);
   if (err)
     {
-      free (scm);
-      free (backend);
+      gwrap_chop_free_uninitialized
+	((chop_object_t *) scm,
+	 (chop_class_t *) &chop_scheme_store_browser_class);
+      gwrap_chop_free_uninitialized
+	((chop_object_t *) backend,
+	 &chop_avahi_store_browser_class);
       return err;
     }
 
@@ -117,9 +121,10 @@ chop_avahi_store_browser_open_alloc (const char *domain,
 			    (chop_class_t *)&chop_scheme_store_browser_class);
   if (err)
     {
-      chop_object_destroy ((chop_object_t *)backend);
-      free (scm);
-      free (backend);
+      gwrap_chop_free_uninitialized
+	((chop_object_t *) scm,
+	 (chop_class_t *) &chop_scheme_store_browser_class);
+      gwrap_chop_free ((chop_object_t *) backend);
       return err;
     }
 
@@ -162,8 +167,7 @@ ssb_dtor (chop_object_t *object)
   scm = (chop_scheme_store_browser_t *)object;
   if (scm->backend)
     {
-      chop_object_destroy ((chop_object_t *)scm->backend);
-      free (scm->backend);
+      gwrap_chop_free ((chop_object_t *) scm->backend);
       scm->backend = NULL;
     }
 }

@@ -15,12 +15,13 @@ chop_tree_indexer_open_alloc (size_t keys_per_block,
 {
   errcode_t err;
 
-  *indexer = scm_malloc (chop_class_instance_size (&chop_tree_indexer_class));
+  *indexer = gwrap_chop_malloc (&chop_tree_indexer_class);
 
   err = chop_tree_indexer_open (keys_per_block, *indexer);
   if (err)
     {
-      free (*indexer);
+      gwrap_chop_free_uninitialized ((chop_object_t *) *indexer,
+				     &chop_tree_indexer_class);
       *indexer = NULL;
     }
 
@@ -39,7 +40,7 @@ chop_indexer_index_blocks_alloc  (chop_indexer_t *indexer,
   const chop_class_t *handle_class;
 
   handle_class = chop_block_indexer_index_handle_class (block_indexer);
-  *handle = scm_malloc (chop_class_instance_size (handle_class));
+  *handle = gwrap_chop_malloc (handle_class);
 
   err = chop_indexer_index_blocks (indexer, input, block_indexer,
 				   datastore, metadatastore, *handle);
@@ -50,7 +51,8 @@ chop_indexer_index_blocks_alloc  (chop_indexer_t *indexer,
   err = ((err == CHOP_STREAM_END) ? 0 : err);
   if (err)
     {
-      free (*handle);
+      gwrap_chop_free_uninitialized ((chop_object_t *) *handle,
+				     handle_class);
       *handle = NULL;
     }
 
@@ -69,13 +71,14 @@ chop_indexer_fetch_stream_alloc (chop_indexer_t *indexer,
   const chop_class_t *stream_class;
 
   stream_class = chop_indexer_stream_class (indexer);
-  *stream = scm_malloc (chop_class_instance_size (stream_class));
+  *stream = gwrap_chop_malloc (stream_class);
 
   err = chop_indexer_fetch_stream (indexer, handle, fetcher,
 				   datastore, metadatastore, *stream);
   if (err)
     {
-      free (*stream);
+      gwrap_chop_free_uninitialized ((chop_object_t *) *stream,
+				     stream_class);
       *stream = NULL;
     }
 
@@ -127,9 +130,9 @@ chop_ascii_deserialize_index_tuple_alloc (const char *serial,
   if (err)
     return err;
 
-  *index = scm_malloc (chop_class_instance_size (handle_class));
-  *indexer = scm_malloc (chop_class_instance_size (indexer_class));
-  *fetcher = scm_malloc (chop_class_instance_size (fetcher_class));
+  *index = gwrap_chop_malloc (handle_class);
+  *indexer = gwrap_chop_malloc (indexer_class);
+  *fetcher = gwrap_chop_malloc (fetcher_class);
 
   *bytes_read = 0;
   err = chop_ascii_deserialize_index_tuple_s2 (serial + offset,
@@ -142,9 +145,15 @@ chop_ascii_deserialize_index_tuple_alloc (const char *serial,
 
   if (err)
     {
-      free (*index);    *index = NULL;
-      free (*fetcher);  *fetcher = NULL;
-      free (*indexer);  *indexer = NULL;
+      gwrap_chop_free_uninitialized ((chop_object_t *) *index,
+				     handle_class);
+      gwrap_chop_free_uninitialized ((chop_object_t *) *fetcher,
+				     fetcher_class);
+      gwrap_chop_free_uninitialized ((chop_object_t *) *indexer,
+				     indexer_class);
+      *index = NULL;
+      *fetcher = NULL;
+      *indexer = NULL;
       return err;
     }
 

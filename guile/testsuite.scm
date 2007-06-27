@@ -1,7 +1,7 @@
 #!/bin/sh
 # aside from this initial boilerplate, this is actually -*- scheme -*- code
 main='(module-ref (resolve-module '\''(testsuite)) '\'main')'
-exec ${GUILE-guile} --debug -L modules -l $0 -c "(apply $main (cdr (command-line)))" "$@"
+exec ${GUILE-guile} -L modules -l $0 -c "(apply $main (cdr (command-line)))" "$@"
 !#
 ;;;
 ;;; Copyright 2005, 2006, 2007  Ludovic Courtès <ludovic.courtes@laas.fr>
