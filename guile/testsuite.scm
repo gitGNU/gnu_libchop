@@ -47,7 +47,7 @@ exec ${GUILE-guile} --debug -L modules -l $0 -c "(apply $main (cdr (command-line
 ;;;
 ;;; Code:
 
-(define %stress-loop-count 700)
+(define %stress-loop-count 500)
 
 (define (stress name+thunk)
   (format #t "running `~a'... " (car name+thunk))
@@ -174,8 +174,6 @@ exec ${GUILE-guile} --debug -L modules -l $0 -c "(apply $main (cdr (command-line
 	    (loop (false-if-exception
 		   (stream-read! s vec))))))))
 
-(define %uz (zlib-unzip-filter-init))
-(define %z  (zlib-zip-filter-init 1))
 
 (define (t-stacked-zip-filtered-streams)
   ;; XXX: Guile's GC leaks some objects.  However, since zlib-zip-filter
@@ -198,6 +196,40 @@ exec ${GUILE-guile} --debug -L modules -l $0 -c "(apply $main (cdr (command-line
 	    (loop (+ total read)
 		  (false-if-exception (stream-read! uz buf))))))))
 
+
+(define (t-aggregated-objects)
+  ;; Check whether filters aggregated by a filtered stream are eventually
+  ;; GC'd.  This can take some time.
+  (define (query-guardian guardian expected-object-count)
+    (define max-iterations (* expected-object-count 4))
+    (let loop ((objects-seen 0)
+               (iterations   0))
+      ;;(format #t "seen ~a~%" objects-seen)
+      (cond ((>= objects-seen expected-object-count)
+             #t)
+            ((>= iterations max-iterations)
+             #f)
+            (else
+             (if (= 0 (modulo iterations expected-object-count))
+                 (gc))
+             (loop (if (guardian)
+                       (+ 1 objects-seen)
+                       objects-seen)
+                   (+ 1 iterations))))))
+
+  (let ((g (make-guardian)))
+    (let* ((zip-filter   (zlib-zip-filter-init 1))
+           (unzip-filter (zlib-unzip-filter-init))
+           (uz (filtered-stream-open
+                (filtered-stream-open (file-stream-open %test-input-file)
+                                      zip-filter #t)
+                unzip-filter #t)))
+      (for-each g (list zip-filter unzip-filter uz))
+      (set! zip-filter #f)
+      (set! unzip-filter #f)
+      (set! uz #f))
+
+    (query-guardian g 3)))
 
 
 ;;;
@@ -230,7 +262,8 @@ exec ${GUILE-guile} --debug -L modules -l $0 -c "(apply $main (cdr (command-line
  		  (unit-test stat-store)
  		  (unit-test complex1)
  		  (unit-test complex2)
-		  (unit-test stacked-zip-filtered-streams)
+ 		  (unit-test stacked-zip-filtered-streams)
+                  (unit-test aggregated-objects)
 		  ))
 
   (format #t "~%* done!~%"))
