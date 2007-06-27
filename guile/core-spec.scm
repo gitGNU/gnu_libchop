@@ -20,6 +20,7 @@
   #:use-module (core-spec)
 
   #:use-module (oop goops)
+  #:use-module (ice-9 optargs)
   #:use-module (srfi srfi-13) ;; strings
 
   #:use-module (g-wrap)
@@ -71,7 +72,6 @@
      "  " (c-type-name type) " " result-var " = " func-call-code ";"
      "  if (" result-var " != 0)"
      "    {"
-     "      SCM_ALLOW_INTS;"
      "      "(scm-var result)" = SCM_BOOL_F;"
      "      scm_throw (scm_from_locale_symbol (\"chop-error\"), "
      "                 scm_list_1 (scm_from_long (" result-var ")));"
@@ -290,11 +290,6 @@
 
 ;;;
 ;;; Wrapping of chop classes that inherit `chop_object_t'.
-;;;
-;;; XXX:  This heavily relies on improvements made to G-Wrap.  In particular,
-;;;       the `wcp-free-function' and `wcp-mark-function' things were
-;;;       proposed in Sep. 2005, as well as the new `aggregated' typespec.
-;;;       See the `g-wrap-dev@nongnu.org' archives for details.
 ;;;
 
 (define-public (wrap-as-chop-object! ws . args)

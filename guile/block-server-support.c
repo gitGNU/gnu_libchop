@@ -17,14 +17,15 @@ chop_avahi_store_publisher_open_alloc (const char *service_name,
   errcode_t err;
 
   *publisher =
-    scm_malloc (chop_class_instance_size (&chop_avahi_store_publisher_class));
+    gwrap_chop_malloc (&chop_avahi_store_publisher_class);
 
   err = chop_avahi_store_publisher_open (service_name, host, port,
 					 hash_spec, use_tls,
 					 openpgp_fpr, openpgp_fpr_size,
 					 *publisher);
   if (err)
-    free (*publisher);
+    gwrap_chop_free_uninitialized ((chop_object_t *) *publisher,
+				   &chop_avahi_store_publisher_class);
 
   return err;
 }

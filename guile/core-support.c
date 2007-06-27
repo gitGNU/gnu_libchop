@@ -49,12 +49,11 @@ gwrap_chop_object_cleanup (void *wcp)
 	   chop_class_name (class),
 	   object);
 #endif
-  chop_object_destroy (object);
 
-  /* We assume this was allocated with the libc standard functions.  */
-  free (object);
+  /* We assume that it was allocated with `gwrap_chop_malloc ()'.  */
+  gwrap_chop_free (object);
 
-  return (chop_class_instance_size (class));
+  return (chop_class_instance_size (class)); /* FIXME: Return 0? */
 }
 
 SCM

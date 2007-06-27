@@ -18,13 +18,14 @@ chop_zlib_zip_filter_init_alloc (int compression, size_t input_size,
   errcode_t err;
 
   *filter =
-    scm_malloc (chop_class_instance_size ((chop_class_t *)
-					  &chop_zlib_zip_filter_class));
+    gwrap_chop_malloc ((chop_class_t *) &chop_zlib_zip_filter_class);
 
   err = chop_zlib_zip_filter_init (compression, input_size, *filter);
   if (err)
     {
-      free (*filter);
+      gwrap_chop_free_uninitialized
+	((chop_object_t *) *filter,
+	 (chop_class_t *) &chop_zlib_zip_filter_class);
       *filter = NULL;
     }
 
@@ -38,13 +39,14 @@ chop_zlib_unzip_filter_init_alloc (size_t input_size,
   errcode_t err;
 
   *filter =
-    scm_malloc (chop_class_instance_size ((chop_class_t *)
-					  &chop_zlib_unzip_filter_class));
+    gwrap_chop_malloc ((chop_class_t *) &chop_zlib_unzip_filter_class);
 
   err = chop_zlib_unzip_filter_init (input_size, *filter);
   if (err)
     {
-      free (*filter);
+      gwrap_chop_free_uninitialized
+	((chop_object_t *) *filter,
+	 (chop_class_t *) &chop_zlib_unzip_filter_class);
       *filter = NULL;
     }
 
@@ -74,11 +76,12 @@ chop_generic_zip_filter_open_alloc (const char *class_nickname,
     err = CHOP_ERR_NOT_FOUND;
   else
     {
-      *filter = scm_malloc (chop_class_instance_size ((chop_class_t *) klass));
+      *filter = gwrap_chop_malloc ((chop_class_t *) klass);
       err = chop_zip_filter_generic_open (klass, compression_level,
 					  input_size, *filter);
       if (err)
-	free (*filter);
+	gwrap_chop_free_uninitialized ((chop_object_t *) *filter,
+				       (chop_class_t *) klass);
     }
 
   return err;
@@ -104,10 +107,11 @@ chop_generic_unzip_filter_open_alloc (const char *class_nickname,
     err = CHOP_ERR_NOT_FOUND;
   else
     {
-      *filter = scm_malloc (chop_class_instance_size ((chop_class_t *) klass));
+      *filter = gwrap_chop_malloc ((chop_class_t *) klass);
       err = chop_unzip_filter_generic_open (klass, input_size, *filter);
       if (err)
-	free (*filter);
+	gwrap_chop_free_uninitialized ((chop_object_t *) *filter,
+				       (chop_class_t *) klass);
     }
 
   return err;

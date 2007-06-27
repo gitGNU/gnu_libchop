@@ -21,11 +21,12 @@ chop_block_indexer_make_fetcher_alloc (chop_block_indexer_t *indexer,
 
   fetcher_class = chop_block_indexer_fetcher_class (indexer);
   *fetcher =
-    (chop_block_fetcher_t *)scm_malloc (chop_class_instance_size (fetcher_class));
+    (chop_block_fetcher_t *)gwrap_chop_malloc (fetcher_class);
 
   err = chop_block_indexer_initialize_fetcher (indexer, *fetcher);
   if (err)
-    free (*fetcher);
+    gwrap_chop_free_uninitialized ((chop_object_t *) *fetcher,
+				   fetcher_class);
 
   return err;
 }
@@ -36,11 +37,12 @@ chop_hash_block_indexer_open_alloc (chop_hash_method_t hash_method,
 {
   errcode_t err;
 
-  *bi = scm_malloc (chop_class_instance_size (&chop_hash_block_indexer_class));
+  *bi = gwrap_chop_malloc (&chop_hash_block_indexer_class);
   err = chop_hash_block_indexer_open (hash_method, *bi);
   if (err)
     {
-      free (*bi);
+      gwrap_chop_free_uninitialized ((chop_object_t *) *bi,
+				     &chop_hash_block_indexer_class);
       *bi = NULL;
     }
 
@@ -55,7 +57,7 @@ chop_chk_block_indexer_open_alloc (chop_cipher_handle_t cipher_handle,
 {
   errcode_t err;
 
-  *bi = scm_malloc (chop_class_instance_size (&chop_chk_block_indexer_class));
+  *bi = gwrap_chop_malloc (&chop_chk_block_indexer_class);
   err = chop_chk_block_indexer_open (cipher_handle,
 				     0, /* let the GC free it when needed */
 				     key_hash_method,
@@ -63,7 +65,8 @@ chop_chk_block_indexer_open_alloc (chop_cipher_handle_t cipher_handle,
 				     *bi);
   if (err)
     {
-      free (*bi);
+      gwrap_chop_free_uninitialized ((chop_object_t *) *bi,
+				     &chop_chk_block_indexer_class);
       *bi = NULL;
     }
 
@@ -75,11 +78,12 @@ chop_uuid_block_indexer_open_alloc (chop_block_indexer_t **bi)
 {
   errcode_t err;
 
-  *bi = scm_malloc (chop_class_instance_size (&chop_uuid_block_indexer_class));
+  *bi = gwrap_chop_malloc (&chop_uuid_block_indexer_class);
   err = chop_uuid_block_indexer_open (*bi);
   if (err)
     {
-      free (*bi);
+      gwrap_chop_free_uninitialized ((chop_object_t *) *bi,
+				     &chop_uuid_block_indexer_class);
       *bi = NULL;
     }
 
@@ -99,12 +103,13 @@ chop_block_indexer_index_alloc (chop_block_indexer_t *block_indexer,
   const chop_class_t *handle_class;
 
   handle_class = chop_block_indexer_index_handle_class (block_indexer);
-  *handle = scm_malloc (chop_class_instance_size (handle_class));
+  *handle = gwrap_chop_malloc (handle_class);
   err = chop_block_indexer_index (block_indexer, store,
 				  buffer, size, *handle);
   if (err)
     {
-      free (*handle);
+      gwrap_chop_free_uninitialized ((chop_object_t *) *handle,
+				     handle_class);
       *handle = NULL;
     }
 
@@ -189,7 +194,7 @@ chop_index_handle_ascii_deserialize (chop_block_indexer_t *indexer,
   const chop_class_t *handle_class;
 
   handle_class = chop_block_indexer_index_handle_class (indexer);
-  *handle = scm_malloc (chop_class_instance_size (handle_class));
+  *handle = gwrap_chop_malloc (handle_class);
 
 #ifdef DEBUG
   fprintf (stderr, "%s: deserializing index handle, class `%s', size %u\n",
@@ -204,7 +209,8 @@ chop_index_handle_ascii_deserialize (chop_block_indexer_t *indexer,
 				 &bytes_read);
   if (err)
     {
-      free (*handle);
+      gwrap_chop_free_uninitialized ((chop_object_t *) *handle,
+				     handle_class);
       *handle = NULL;
     }
 

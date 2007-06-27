@@ -18,7 +18,7 @@ chop_stat_block_store_open_alloc (const char *name,
   errcode_t err;
 
   *store =
-    scm_malloc (chop_class_instance_size (&chop_stat_block_store_class));
+    gwrap_chop_malloc (&chop_stat_block_store_class);
 
   err = chop_stat_block_store_open (name, backend,
 				    /* in any case, let the GC do its work */
@@ -28,7 +28,8 @@ chop_stat_block_store_open_alloc (const char *name,
 				    *store);
   if (err)
     {
-      free (*store);
+      gwrap_chop_free_uninitialized ((chop_object_t *) *store,
+				     &chop_stat_block_store_class);
       *store = NULL;
     }
 
@@ -46,13 +47,14 @@ chop_stat_block_store_stats_alloc (chop_block_store_t *store)
   if (!stats)
     return NULL;
 
-  result = scm_malloc (sizeof (*result));
+  result = gwrap_chop_malloc (&chop_block_store_stats_class);
 
   err = chop_object_copy ((const chop_object_t *)stats,
 			  (chop_object_t *)result);
   if (err)
     {
-      free (result);
+      gwrap_chop_free_uninitialized ((chop_object_t *) result,
+				     &chop_block_store_stats_class);
       return NULL;
     }
 

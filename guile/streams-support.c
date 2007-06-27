@@ -9,11 +9,12 @@ chop_file_stream_open_alloc (const char *path, chop_stream_t **stream)
 {
   errcode_t err;
 
-  *stream = scm_malloc (chop_class_instance_size (&chop_file_stream_class));
+  *stream = gwrap_chop_malloc (&chop_file_stream_class);
 
   err = chop_file_stream_open (path, *stream);
   if (err)
-    free (*stream);
+    gwrap_chop_free_uninitialized ((chop_object_t *) *stream,
+				   &chop_file_stream_class);
 
   return err;
 }
@@ -36,7 +37,7 @@ chop_mem_stream_open_alloc (SCM u8vector)
   elements_copy = (scm_t_uint8 *)scm_malloc (size);
   memcpy (elements_copy, elements, size);
 
-  stream = scm_malloc (chop_class_instance_size (&chop_mem_stream_class));
+  stream = gwrap_chop_malloc (&chop_mem_stream_class);
 
   /* ELEMENTS_COPY will be automatically freed with `free ()' when STREAM is
      closed.  */
@@ -56,7 +57,7 @@ chop_filtered_stream_open_alloc (chop_stream_t *backend,
 {
   errcode_t err;
 
-  *stream = scm_malloc (chop_class_instance_size (&chop_filtered_stream_class));
+  *stream = gwrap_chop_malloc (&chop_filtered_stream_class);
   err = chop_filtered_stream_open (backend,
 				   /* Never destroy BACKEND: this is the GC's
 				      job.  At most, close it when *STORE
@@ -67,7 +68,8 @@ chop_filtered_stream_open_alloc (chop_stream_t *backend,
 				   filter, 0, *stream);
   if (err)
     {
-      free (*stream);
+      gwrap_chop_free_uninitialized ((chop_object_t *) *stream,
+				     &chop_filtered_stream_class);
       *stream = NULL;
     }
 
