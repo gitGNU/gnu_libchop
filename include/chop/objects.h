@@ -379,6 +379,15 @@ extern const chop_class_t *chop_class_lookup (const char *name)
 
 #endif
 
+
+/* Memory allocators.  The `chop_class_t' argument allows allocators to know
+   on behalf of which class memory is being allocated.  */
+
+typedef void * (* chop_malloc_t) (size_t, const chop_class_t *);
+typedef void * (* chop_realloc_t) (void *, size_t, const chop_class_t *);
+typedef void   (* chop_free_t) (void *, const chop_class_t *);
+
+
 
 _CHOP_END_DECLS
 

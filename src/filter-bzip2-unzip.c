@@ -12,6 +12,9 @@
 CHOP_DECLARE_RT_CLASS_WITH_METACLASS (bzip2_unzip_filter, filter,
 				      unzip_filter_class,
 
+				      chop_malloc_t malloc;
+				      chop_free_t free;
+
 				      int     small;
 				      char   *input_buffer;
 				      size_t  input_buffer_size;
@@ -30,6 +33,13 @@ static errcode_t
 chop_bzip2_unzip_pull (chop_filter_t *filter, int flush,
 		      char *buffer, size_t size, size_t *pulled);
 
+static void *
+custom_alloc (void *opaque, int items, int size);
+
+static void
+custom_free (void *opaque, void *address);
+
+
 static errcode_t
 bzip2_unzip_filter_ctor (chop_object_t *object,
 			 const chop_class_t *class)
@@ -43,6 +53,8 @@ bzip2_unzip_filter_ctor (chop_object_t *object,
   zfilter->zstream.bzalloc = NULL;
   zfilter->zstream.bzfree = NULL;
   zfilter->zstream.opaque = NULL;
+  zfilter->malloc = NULL;
+  zfilter->free = NULL;
   return chop_log_init ("bzip2-unzip-filter", &zfilter->filter.log);
 }
 
@@ -58,7 +70,14 @@ bzip2_unzip_filter_dtor (chop_object_t *object)
   zfilter->zstream.opaque = NULL;
 
   if (zfilter->input_buffer)
-    free (zfilter->input_buffer);
+    {
+      if (zfilter->free)
+	zfilter->free (zfilter->input_buffer,
+		       (chop_class_t *) &chop_bzip2_zip_filter_class);
+      else
+	free (zfilter->input_buffer);
+    }
+
   zfilter->input_buffer = NULL;
   zfilter->input_buffer_size = 0;
 
@@ -67,9 +86,13 @@ bzip2_unzip_filter_dtor (chop_object_t *object)
 
 
 static errcode_t
-buf_open (size_t input_size, chop_filter_t *filter)
+buf_open (size_t input_size,
+	  chop_malloc_t malloc, chop_realloc_t realloc, chop_free_t free,
+	  chop_filter_t *filter)
 {
-  return (chop_bzip2_unzip_filter_init (0, input_size, filter));
+  return (chop_bzip2_unzip_filter_init2 (0, input_size,
+					 malloc, realloc, free,
+					 filter));
 }
 
 CHOP_DEFINE_RT_CLASS_WITH_METACLASS (bzip2_unzip_filter, filter,
@@ -85,8 +108,10 @@ CHOP_DEFINE_RT_CLASS_WITH_METACLASS (bzip2_unzip_filter, filter,
 
 
 errcode_t
-chop_bzip2_unzip_filter_init (int small, size_t input_size,
-			      chop_filter_t *filter)
+chop_bzip2_unzip_filter_init2 (int small, size_t input_size,
+			       chop_malloc_t alloc, chop_realloc_t realloc,
+			       chop_free_t free,
+			       chop_filter_t *filter)
 {
   errcode_t err;
   chop_bzip2_unzip_filter_t *zfilter;
@@ -100,12 +125,26 @@ chop_bzip2_unzip_filter_init (int small, size_t input_size,
     return err;
 
   input_size = input_size ? input_size : 1024;
-  zfilter->input_buffer = malloc (input_size);
+  if (alloc)
+    zfilter->input_buffer =
+      alloc (input_size, (chop_class_t *) &chop_zlib_zip_filter_class);
+  else
+    zfilter->input_buffer = malloc (input_size);
+
   if (!zfilter->input_buffer)
     return ENOMEM;
 
   zfilter->input_buffer_size = input_size;
   zfilter->small = small;
+
+  if ((alloc != NULL) && (free != NULL))
+    {
+      zfilter->zstream.bzalloc = custom_alloc;
+      zfilter->zstream.bzfree  = custom_free;
+      zfilter->zstream.opaque  = zfilter;
+      zfilter->malloc          = alloc;
+      zfilter->free            = free;
+    }
 
   err = BZ2_bzDecompressInit (&zfilter->zstream, CHOP_BZIP2_VERBOSITY,
 			      small);
@@ -123,11 +162,21 @@ chop_bzip2_unzip_filter_init (int small, size_t input_size,
   return err;
 }
 
+errcode_t
+chop_bzip2_unzip_filter_init (int small, size_t input_size,
+			      chop_filter_t *filter)
+{
+  return (chop_bzip2_unzip_filter_init2 (small, input_size,
+					 NULL, NULL, NULL,
+					 filter));
+}
+
 
 /* The push and pull methods.  */
 #define ZIP_TYPE        bzip2
 #define ZIP_DIRECTION   unzip
 #define ZIP_BUFFER_TYPE char
+#define ZIP_CUSTOM_ALLOC_ITEM_T int
 
 #define ZIP_FLUSH       BZ_FLUSH
 #define ZIP_NO_FLUSH    BZ_RUN
