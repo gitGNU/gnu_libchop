@@ -28,15 +28,15 @@ libguile_chop_la_SOURCES += choppers.c cipher.c core.c hash.c	\
 			    logs.c store-stats.c filters.c	\
 			    block-indexers.c
 
-libguile_chop_la_LIBADD = -L$(top_builddir)/src -lchop
+libguile_chop_la_LIBADD = $(top_builddir)/src/libchop.la
 
 libguile_chop_store_browsers_la_SOURCES = store-browsers.c
 libguile_chop_store_browsers_la_LIBADD =		\
-    -L$(top_builddir)/src -lchop-store-browsers -lguile-chop
+    $(top_builddir)/src/libchop-store-browsers.la libguile-chop.la
 
 libguile_chop_block_server_la_SOURCES = block-server.c
 libguile_chop_block_server_la_LIBADD =			\
-    -L$(top_builddir)/src -lchop-block-server -lguile-chop
+    $(top_builddir)/src/libchop-block-server.la libguile-chop.la
 
 support_c_files = block-indexers-support.c	\
 		  choppers-support.c		\
@@ -60,9 +60,9 @@ AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include	\
 	      -I$(top_srcdir)/lib     -I$(top_builddir)/lib	\
 	      $(shell $(G_WRAP_CONFIG) --c-compile-args guile)
 AM_CFLAGS = -Wall -g
-LIBS = $(shell $(G_WRAP_CONFIG) --c-link-args guile)	\
-      -L$(top_builddir)/src -lchop			\
-      -L$(top_builddir)/lib -lgnu
+LIBS = $(top_builddir)/src/libchop.la			\
+       $(top_builddir)/lib/libgnu.la			\
+       $(shell $(G_WRAP_CONFIG) --c-link-args guile)
 
 
 %.c $(module_suffix)/%.scm: %-spec.scm
