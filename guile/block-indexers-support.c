@@ -1,6 +1,8 @@
 /* Contructors with a functional style that perform memory allocation by
    themselves.  */
 
+#include <chop/chop-config.h>
+
 #include <errno.h>
 #include <assert.h>
 
@@ -12,7 +14,7 @@
 
 /* Constructors.  */
 
-static __inline__ errcode_t
+static inline errcode_t
 chop_block_indexer_make_fetcher_alloc (chop_block_indexer_t *indexer,
 				       chop_block_fetcher_t **fetcher)
 {
@@ -31,7 +33,7 @@ chop_block_indexer_make_fetcher_alloc (chop_block_indexer_t *indexer,
   return err;
 }
 
-static __inline__ errcode_t
+static inline errcode_t
 chop_hash_block_indexer_open_alloc (chop_hash_method_t hash_method,
 				    chop_block_indexer_t **bi)
 {
@@ -49,7 +51,7 @@ chop_hash_block_indexer_open_alloc (chop_hash_method_t hash_method,
   return err;
 }
 
-static __inline__ errcode_t
+static inline errcode_t
 chop_chk_block_indexer_open_alloc (chop_cipher_handle_t cipher_handle,
 				   chop_hash_method_t key_hash_method,
 				   chop_hash_method_t block_id_hash_method,
@@ -73,7 +75,7 @@ chop_chk_block_indexer_open_alloc (chop_cipher_handle_t cipher_handle,
   return err;
 }
 
-static __inline__ errcode_t
+static inline errcode_t
 chop_uuid_block_indexer_open_alloc (chop_block_indexer_t **bi)
 {
   errcode_t err;
@@ -90,10 +92,28 @@ chop_uuid_block_indexer_open_alloc (chop_block_indexer_t **bi)
   return err;
 }
 
+static inline errcode_t
+chop_integer_block_indexer_open_alloc (unsigned long start,
+				       chop_block_indexer_t **bi)
+{
+  errcode_t err;
+
+  *bi = gwrap_chop_malloc (&chop_integer_block_indexer_class);
+  err = chop_integer_block_indexer_open (start, *bi);
+  if (err)
+    {
+      gwrap_chop_free_uninitialized ((chop_object_t *) *bi,
+				     &chop_integer_block_indexer_class);
+      *bi = NULL;
+    }
+
+  return err;
+}
+
 
 /* Methods.  */
 
-static __inline__ errcode_t
+static inline errcode_t
 chop_block_indexer_index_alloc (chop_block_indexer_t *block_indexer,
 				chop_block_store_t *store,
 				const char *buffer, size_t size,
@@ -116,7 +136,7 @@ chop_block_indexer_index_alloc (chop_block_indexer_t *block_indexer,
   return err;
 }
 
-static __inline__ errcode_t
+static inline errcode_t
 chop_block_fetcher_fetch_alloc_u8vector (chop_block_fetcher_t *block_fetcher,
 					 const chop_index_handle_t *index,
 					 chop_block_store_t *store,
@@ -159,7 +179,7 @@ chop_block_fetcher_fetch_alloc_u8vector (chop_block_fetcher_t *block_fetcher,
 
 /* Convenience functions.  */
 
-static __inline__ errcode_t
+static inline errcode_t
 chop_index_handle_ascii_serialize (const chop_index_handle_t *handle,
 				   char **serialization)
 {
@@ -184,7 +204,7 @@ chop_index_handle_ascii_serialize (const chop_index_handle_t *handle,
   return err;
 }
 
-static __inline__ errcode_t
+static inline errcode_t
 chop_index_handle_ascii_deserialize (chop_block_indexer_t *indexer,
 				     const char *ascii_handle,
 				     chop_index_handle_t **handle)
