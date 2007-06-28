@@ -41,6 +41,7 @@ static const chop_class_t *block_indexer_classes[] =
   {
     &chop_hash_block_indexer_class,
     &chop_chk_block_indexer_class,
+    &chop_integer_block_indexer_class,
 #ifdef HAVE_LIBUUID
     &chop_uuid_block_indexer_class,
 #endif
@@ -50,6 +51,7 @@ static const char *block_indexer_serials[] =
   {
     "rmd160",
     "blowfish,cbc,sha1,sha1",
+    "123",
 #ifdef HAVE_LIBUUID
     "",
 #endif

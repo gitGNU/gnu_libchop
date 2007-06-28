@@ -176,10 +176,12 @@ chop_block_fetcher_index_handle_class (const chop_block_fetcher_t *__f)
 extern const chop_class_t chop_hash_block_indexer_class;
 extern const chop_class_t chop_chk_block_indexer_class;
 extern const chop_class_t chop_uuid_block_indexer_class;
+extern const chop_class_t chop_integer_block_indexer_class;
 
 extern const chop_class_t chop_hash_block_fetcher_class;
 extern const chop_class_t chop_chk_block_fetcher_class;
 extern const chop_class_t chop_uuid_block_fetcher_class;
+extern const chop_class_t chop_integer_block_fetcher_class;
 
 
 /* Initialize INDEXER as a hash block indexer.  INDEXER will use HASH_METHOD
@@ -213,6 +215,13 @@ chop_chk_block_indexer_open (chop_cipher_handle_t cipher_handle,
    indexers.  */
 extern errcode_t
 chop_uuid_block_indexer_open (chop_block_indexer_t *block_indexer);
+
+/* Initialize INDEXER as an indexer that will simply return consecutive
+   32-bit integers as block IDs, starting from START.  */
+extern errcode_t
+chop_integer_block_indexer_open (unsigned long start,
+				 chop_block_indexer_t *indexer);
+
 
 /* If FETCHER is an instance of CHOP_HASH_BLOCK_FETCHER_CLASS, then return
    its associated log, otherwise return NULL.  */

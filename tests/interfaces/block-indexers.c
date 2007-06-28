@@ -93,7 +93,16 @@ main (int argc, char *argv[])
   block_indexer_count++;
 #endif
 
+  block_indexers[block_indexer_count] =
+    chop_class_alloca_instance (&chop_integer_block_indexer_class);
+  err = chop_integer_block_indexer_open (0,
+					 block_indexers[block_indexer_count]);
+  test_check_errcode (err, "opening integer block indexer");
+  block_indexer_count++;
+
+
   block_indexers[block_indexer_count] = NULL;
+
 
   /* Go! */
   err = chop_buffer_init (&buffer, sizeof (random_data[0]));
