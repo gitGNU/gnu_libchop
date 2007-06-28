@@ -21,6 +21,7 @@
 #define ZIP_FILTER_TYPE  CONCAT3 (chop_lzo_, ZIP_DIRECTION, _filter_t)
 #define ZIP_FILTER_CTOR  CONCAT3 (lzo_, ZIP_DIRECTION, _filter_ctor)
 #define ZIP_FILTER_DTOR  CONCAT3 (lzo_, ZIP_DIRECTION, _filter_dtor)
+#define ZIP_FILTER_CLASS CONCAT3 (chop_lzo_, ZIP_DIRECTION, _filter_class)
 
 static errcode_t
 ZIP_PUSH_METHOD (chop_filter_t *filter,
@@ -99,6 +100,9 @@ ZIP_FILTER_CTOR (chop_object_t *object, const chop_class_t *class)
   zfilter->avail_in = zfilter->avail_out = 0;
   zfilter->input_offset = zfilter->output_offset = 0;
   zfilter->input_buffer = zfilter->output_buffer = NULL;
+  zfilter->malloc = NULL;
+  zfilter->realloc = NULL;
+  zfilter->free = NULL;
 
   return chop_log_init ("lzo-" STRINGIFY (ZIP_DIRECTION) "-filter",
 			&zfilter->filter.log);
@@ -107,21 +111,33 @@ ZIP_FILTER_CTOR (chop_object_t *object, const chop_class_t *class)
 static void
 ZIP_FILTER_DTOR (chop_object_t *object)
 {
+#define DO_FREE(_buf)							\
+  do									\
+    {									\
+      if (zfilter->free)						\
+	zfilter->free ((_buf), (chop_class_t *) &ZIP_FILTER_CLASS);	\
+      else								\
+	free (_buf);							\
+    }									\
+  while (0)
+
   ZIP_FILTER_TYPE *zfilter;
   zfilter = (ZIP_FILTER_TYPE *) object;
 
   if (zfilter->input_buffer)
-    free (zfilter->input_buffer);
+    DO_FREE (zfilter->input_buffer);
   if (zfilter->output_buffer)
-    free (zfilter->output_buffer);
+    DO_FREE (zfilter->output_buffer);
   if (zfilter->work_mem)
-    free (zfilter->work_mem);
+    DO_FREE (zfilter->work_mem);
 
   zfilter->input_buffer = zfilter->output_buffer = NULL;
   zfilter->input_buffer_size = zfilter->output_buffer_size = 0;
   zfilter->avail_in = zfilter->avail_out = 0;
 
   chop_object_destroy ((chop_object_t *)&zfilter->filter.log);
+
+#undef DO_FREE
 }
 
 /* arch-tag: 95b8ed0f-7671-44da-8357-18d79cc42879
