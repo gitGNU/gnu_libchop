@@ -113,6 +113,13 @@
 		  #:returns '<errcode>
 		  #:arguments '(((<block-indexer> out) bi)))
 
+  (wrap-function! ws
+		  #:name 'integer-block-indexer-open
+		  #:c-name "chop_integer_block_indexer_open_alloc"
+		  #:returns '<errcode>
+		  #:arguments '((unsigned-long         start (default 0))
+                                ((<block-indexer> out) bi)))
+
   ;; methods
 
   (wrap-function! ws
