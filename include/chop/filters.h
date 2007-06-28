@@ -186,41 +186,15 @@ extern errcode_t chop_filter_through (chop_filter_t *filter,
 
 CHOP_DECLARE_RT_CLASS (zip_filter_class, class,
 		       errcode_t (* generic_open) (int, size_t,
-						   chop_malloc_t,
-						   chop_realloc_t,
-						   chop_free_t,
 						   chop_filter_t *););
 
 
 CHOP_DECLARE_RT_CLASS (unzip_filter_class, class,
-		       errcode_t (* generic_open) (size_t,
-						   chop_malloc_t,
-						   chop_realloc_t,
-						   chop_free_t,
-						   chop_filter_t *););
+		       errcode_t (* generic_open) (size_t, chop_filter_t *););
 
 
 /* The default zip filter compression level.  */
 #define CHOP_ZIP_FILTER_DEFAULT_COMPRESSION (-1)
-
-static __inline__ errcode_t
-chop_zip_filter_generic_open2 (const chop_zip_filter_class_t *klass,
-			       int compression_level, size_t input_size,
-			       chop_malloc_t malloc,
-			       chop_realloc_t realloc, chop_free_t free,
-			       chop_filter_t *filter)
-{
-  errcode_t err;
-
-  if (CHOP_EXPECT_TRUE (klass->generic_open != NULL))
-    err = klass->generic_open (compression_level, input_size,
-			       malloc, realloc, free,
-			       filter);
-  else
-    err = CHOP_ERR_NOT_IMPL;
-
-  return err;
-}
 
 /* Initialize FILTER as an instance of KLASS, using an input buffer of size
    INPUT_SIZE.  COMPRESSION_LEVEL should be either
@@ -232,23 +206,10 @@ chop_zip_filter_generic_open (const chop_zip_filter_class_t *klass,
 			      int compression_level, size_t input_size,
 			      chop_filter_t *filter)
 {
-  return (chop_zip_filter_generic_open2 (klass, compression_level, input_size,
-					 NULL, NULL, NULL,
-					 filter));
-}
-
-
-static __inline__ errcode_t
-chop_unzip_filter_generic_open2 (const chop_unzip_filter_class_t *klass,
-				 size_t input_size,
-				 chop_malloc_t malloc,
-				 chop_realloc_t realloc, chop_free_t free,
-				 chop_filter_t *filter)
-{
   errcode_t err;
 
   if (CHOP_EXPECT_TRUE (klass->generic_open != NULL))
-    err = klass->generic_open (input_size, malloc, realloc, free, filter);
+    err = klass->generic_open (compression_level, input_size, filter);
   else
     err = CHOP_ERR_NOT_IMPL;
 
@@ -262,11 +223,15 @@ chop_unzip_filter_generic_open (const chop_unzip_filter_class_t *klass,
 				size_t input_size,
 				chop_filter_t *filter)
 {
-  return (chop_unzip_filter_generic_open2 (klass, input_size,
-					   NULL, NULL, NULL,
-					   filter));
-}
+  errcode_t err;
 
+  if (CHOP_EXPECT_TRUE (klass->generic_open != NULL))
+    err = klass->generic_open (input_size, filter);
+  else
+    err = CHOP_ERR_NOT_IMPL;
+
+  return err;
+}
 
 
 
@@ -290,17 +255,6 @@ extern errcode_t
 chop_zlib_unzip_filter_init (size_t input_size,
 			     chop_filter_t *filter);
 
-extern errcode_t
-chop_zlib_zip_filter_init2 (int zlib_compression_level, size_t input_size,
-			    chop_malloc_t alloc, chop_realloc_t realloc,
-			    chop_free_t free,
-			    chop_filter_t *filter);
-
-extern errcode_t
-chop_zlib_unzip_filter_init2 (size_t input_size,
-			      chop_malloc_t alloc, chop_realloc_t realloc,
-			      chop_free_t free,
-			      chop_filter_t *filter);
 
 
 /* The (optional) bzip2-based compressing and uncompressing filter
@@ -327,19 +281,6 @@ chop_bzip2_unzip_filter_init (int small, size_t input_size,
 			      chop_filter_t *filter);
 
 
-extern errcode_t
-chop_bzip2_zip_filter_init2 (size_t block_count_100k, size_t work_factor,
-			     size_t input_size, chop_malloc_t alloc,
-			     chop_realloc_t realloc, chop_free_t free,
-			     chop_filter_t *filter);
-
-extern errcode_t
-chop_bzip2_unzip_filter_init2 (int small, size_t input_size,
-			       chop_malloc_t alloc, chop_realloc_t realloc,
-			       chop_free_t free,
-			       chop_filter_t *filter);
-
-
 
 /* The (optional) LZO-based compression and decompression filters.  LZO is
    much faster than zlib and bzip2, at the cost of lower compression
@@ -363,17 +304,5 @@ extern errcode_t chop_lzo_zip_filter_init (size_t input_size,
    needed anyway.  */
 extern errcode_t chop_lzo_unzip_filter_init (size_t input_size,
 					     chop_filter_t *filter);
-
-extern errcode_t
-chop_lzo_zip_filter_init2 (size_t input_size,
-			   chop_malloc_t malloc, chop_realloc_t realloc,
-			   chop_free_t free,
-			   chop_filter_t *filter);
-
-extern errcode_t
-chop_lzo_unzip_filter_init2 (size_t input_size,
-			     chop_malloc_t malloc, chop_realloc_t realloc,
-			     chop_free_t free,
-			     chop_filter_t *filter);
 
 #endif

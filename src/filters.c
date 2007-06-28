@@ -64,7 +64,9 @@ errcode_t
 chop_filter_set_input_from_buffer (chop_filter_t *filter,
 				   const char *input, size_t input_size)
 {
-  input_buffer_t *ibuffer = malloc (sizeof (input_buffer_t));
+  input_buffer_t *ibuffer;
+
+  ibuffer = chop_malloc (sizeof (input_buffer_t), &chop_filter_class);
   if (!ibuffer)
     return ENOMEM;
 
@@ -98,7 +100,7 @@ chop_filter_finish_input_from_buffer (chop_filter_t *filter,
 				       ibuffer->prev_handler.handle,
 				       ibuffer->prev_handler.data);
 
-  free (ibuffer);
+  chop_free (ibuffer, &chop_filter_class);
 }
 
 errcode_t

@@ -24,9 +24,16 @@ CHOP_DECLARE_RT_CLASS (hybrid_scheme_class, class,
 		       SCM (* mark) (chop_object_t *););
 
 
-/* Initialize G-Wrap/Guile support for `chop_object_t' objects.  */
-extern void gwrap_chop_object_support_init (void);
+
+/* Custom allocator.  */
 
+extern void *chop_scm_malloc (size_t size, const chop_class_t *klass);
+extern void *chop_scm_realloc (void *data, size_t size,
+			       const chop_class_t *klass);
+extern void  chop_scm_free (void *data, const chop_class_t *klass);
+
+
+
 /* This function calls `chop_object_equal ()' on O1 and O2.  */
 extern int gwrap_chop_object_equal (void *o1, void *o2);
 

@@ -317,7 +317,9 @@
 
 (define-method (initializations-cg (ws <chop-core-wrapset>) error-var)
   (list (next-method)
-	"\nchop_init ();\n\n"))
+	"\nchop_init_with_allocator (chop_scm_malloc,"
+        "\n                          chop_scm_realloc, chop_scm_free);"
+        "\n"))
 
 (define-class <chop-core-wrapset> (<gw-guile-wrapset>)
   #:id 'core

@@ -16,10 +16,6 @@
 CHOP_DECLARE_RT_CLASS_WITH_METACLASS (lzo_zip_filter, filter,
 				      zip_filter_class,
 
-				      chop_malloc_t  malloc;
-				      chop_realloc_t realloc;
-				      chop_free_t    free;
-
 				      lzo_voidp  work_mem;
 				      lzo_bytep  input_buffer;
 				      size_t     input_buffer_size;
@@ -177,13 +173,11 @@ chop_lzo_zip_filter_init (size_t input_size, chop_filter_t *filter);
 
 static errcode_t
 lzf_open (int compression_level, size_t input_size,
-	  chop_malloc_t malloc, chop_realloc_t realloc, chop_free_t free,
 	  chop_filter_t *filter)
 {
   /* FIXME: Handle COMPRESSION_LEVEL.  */
 
-  return (chop_lzo_zip_filter_init2 (input_size, malloc, realloc, free,
-				     filter));
+  return (chop_lzo_zip_filter_init (input_size, filter));
 }
 
 CHOP_DEFINE_RT_CLASS_WITH_METACLASS (lzo_zip_filter, filter,
@@ -198,10 +192,7 @@ CHOP_DEFINE_RT_CLASS_WITH_METACLASS (lzo_zip_filter, filter,
 				     NULL, NULL  /* No serial, deserial */);
 
 errcode_t
-chop_lzo_zip_filter_init2 (size_t input_size,
-			   chop_malloc_t alloc, chop_realloc_t realloc,
-			   chop_free_t free,
-			   chop_filter_t *filter)
+chop_lzo_zip_filter_init (size_t input_size, chop_filter_t *filter)
 {
   errcode_t err;
   chop_lzo_zip_filter_t *zfilter;
@@ -218,21 +209,10 @@ chop_lzo_zip_filter_init2 (size_t input_size,
   if (err)
     return err;
 
-  if (alloc)
-    {
-      zfilter->malloc  = alloc;
-      zfilter->realloc = realloc;
-      zfilter->free    = free;
-    }
-
   input_size = input_size ? input_size : 8192;
-  if (alloc)
-    zfilter->input_buffer =
-      (lzo_bytep) alloc (input_size,
-			 (chop_class_t *) &chop_lzo_zip_filter_class);
-  else
-    zfilter->input_buffer = (lzo_bytep) malloc (input_size);
-
+  zfilter->input_buffer =
+    (lzo_bytep) chop_malloc (input_size,
+			     (chop_class_t *) &chop_lzo_zip_filter_class);
   if (!zfilter->input_buffer)
     goto mem_err;
 
@@ -245,23 +225,15 @@ chop_lzo_zip_filter_init2 (size_t input_size,
 
      Thus, we compute that size and add a few bytes for safety.  */
   zfilter->output_buffer_size = input_size + (input_size >> 6) + 100;
-  if (alloc)
-    zfilter->output_buffer =
-      (lzo_bytep) alloc (zfilter->output_buffer_size,
-			 (chop_class_t *) &chop_lzo_zip_filter_class);
-  else
-    zfilter->output_buffer = (lzo_bytep) malloc (zfilter->output_buffer_size);
-
+  zfilter->output_buffer =
+    (lzo_bytep) chop_malloc (zfilter->output_buffer_size,
+			     (chop_class_t *) &chop_lzo_zip_filter_class);
   if (!zfilter->output_buffer)
     goto mem_err;
 
-  if (alloc)
-    zfilter->work_mem =
-      alloc (LZO1X_1_MEM_COMPRESS,
-	     (chop_class_t *) &chop_lzo_zip_filter_class);
-  else
-    zfilter->work_mem = malloc (LZO1X_1_MEM_COMPRESS);
-
+  zfilter->work_mem =
+    (lzo_voidp) chop_malloc (LZO1X_1_MEM_COMPRESS,
+			     (chop_class_t *) &chop_lzo_zip_filter_class);
   if (!zfilter->work_mem)
     goto mem_err;
 
@@ -271,14 +243,6 @@ chop_lzo_zip_filter_init2 (size_t input_size,
   chop_object_destroy ((chop_object_t *) zfilter);
   return ENOMEM;
 }
-
-errcode_t
-chop_lzo_zip_filter_init (size_t input_size, chop_filter_t *filter)
-{
-  return (chop_lzo_zip_filter_init2 (input_size, NULL, NULL, NULL,
-				     filter));
-}
-
 
 
 /* The push and pull methods.  */

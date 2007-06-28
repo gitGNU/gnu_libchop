@@ -330,7 +330,8 @@ chop_key_block_new (size_t indexes_per_block,
   errcode_t err;
 
   /* XXX: Use obstacks.  */
-  *block = (key_block_t *)malloc (sizeof (key_block_t));
+  *block = (key_block_t *) chop_malloc (sizeof (key_block_t),
+					&chop_tree_indexer_class);
   if (!*block)
     return ENOMEM;
 
@@ -338,7 +339,7 @@ chop_key_block_new (size_t indexes_per_block,
 			     log, *block);
   if (err)
     {
-      free (*block);
+      chop_free (*block, &chop_tree_indexer_class);
       *block = NULL;
     }
 
@@ -533,7 +534,7 @@ chop_block_tree_free (key_block_tree_t *tree)
     {
       parent = block->parent;
       chop_key_block_destroy (block);
-      free (block);
+      chop_free (block, &chop_tree_indexer_class);
     }
 }
 
@@ -736,7 +737,8 @@ chop_decoded_block_tree_init (decoded_block_tree_t *tree,
   tree->data_store = data_store;
   tree->metadata_store = metadata_store;
 
-  tree->index = malloc (chop_class_instance_size (handle_class));
+  tree->index = chop_malloc (chop_class_instance_size (handle_class),
+			     handle_class);
   if (!tree->index)
     return ENOMEM;
 
@@ -744,7 +746,7 @@ chop_decoded_block_tree_init (decoded_block_tree_t *tree,
 			  (chop_object_t *)tree->index);
   if (err)
     {
-      free (tree->index);
+      chop_free (tree->index, handle_class);
       return err;
     }
 
@@ -772,13 +774,13 @@ chop_decoded_block_tree_free (decoded_block_tree_t *tree)
     {
       next = block->current_child;
       chop_buffer_return (&block->buffer);
-      free (block);
+      chop_free (block, &chop_tree_stream_class);
     }
 
   tree->top_level = NULL;
 
   chop_object_destroy ((chop_object_t *)tree->index);
-  free (tree->index);
+  chop_free (tree->index, &chop_tree_stream_class);
   tree->index = NULL;
 }
 
@@ -902,7 +904,8 @@ chop_decoded_block_new (decoded_block_t **block, chop_log_t *log)
 {
   errcode_t err;
 
-  *block = malloc (sizeof (decoded_block_t));
+  *block = chop_malloc (sizeof (decoded_block_t),
+			&chop_tree_stream_class);
   if (!*block)
     return ENOMEM;
 

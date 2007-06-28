@@ -12,9 +12,6 @@
 CHOP_DECLARE_RT_CLASS_WITH_METACLASS (bzip2_zip_filter, filter,
 				      zip_filter_class,
 
-				      chop_malloc_t malloc;
-				      chop_free_t free;
-
 				      size_t  block_count_100k;
 				      size_t  work_factor;
 				      char   *input_buffer;
@@ -50,11 +47,17 @@ bzip2_zip_filter_ctor (chop_object_t *object,
 
   zfilter->filter.push = chop_bzip2_zip_push;
   zfilter->filter.pull = chop_bzip2_zip_pull;
-  zfilter->zstream.bzalloc = NULL;
-  zfilter->zstream.bzfree = NULL;
+  if (chop_internal_malloc)
+    {
+      zfilter->zstream.bzalloc = custom_alloc;
+      zfilter->zstream.bzfree  = custom_free;
+    }
+  else
+    {
+      zfilter->zstream.bzalloc = NULL;
+      zfilter->zstream.bzfree = NULL;
+    }
   zfilter->zstream.opaque = NULL;
-  zfilter->malloc = NULL;
-  zfilter->free = NULL;
   zfilter->work_factor = 0;
   zfilter->block_count_100k = 0;
   zfilter->input_buffer_size = 0;
@@ -75,14 +78,8 @@ bzip2_zip_filter_dtor (chop_object_t *object)
   zfilter->zstream.opaque = NULL;
 
   if (zfilter->input_buffer)
-    {
-      if (zfilter->free)
-	zfilter->free (zfilter->input_buffer,
-		       (chop_class_t *) &chop_bzip2_zip_filter_class);
-      else
-	free (zfilter->input_buffer);
-    }
-
+    chop_free (zfilter->input_buffer,
+	       (chop_class_t *) &chop_bzip2_zip_filter_class);
   zfilter->input_buffer = NULL;
   zfilter->input_buffer_size = 0;
 
@@ -91,7 +88,6 @@ bzip2_zip_filter_dtor (chop_object_t *object)
 
 static errcode_t
 bzf_open (int compression_level, size_t input_size,
-	  chop_malloc_t malloc, chop_realloc_t realloc, chop_free_t free,
 	  chop_filter_t *filter)
 {
   size_t block_count_100k;
@@ -101,11 +97,9 @@ bzf_open (int compression_level, size_t input_size,
   else
     block_count_100k = 1; /* default "compression level" */
 
-  return (chop_bzip2_zip_filter_init2 (block_count_100k,
-				       0 /* default work factor */,
-				       input_size,
-				       malloc, realloc, free,
-				       filter));
+  return (chop_bzip2_zip_filter_init (block_count_100k,
+				      0 /* default work factor */,
+				      input_size, filter));
 }
 
 CHOP_DEFINE_RT_CLASS_WITH_METACLASS (bzip2_zip_filter, filter,
@@ -120,10 +114,8 @@ CHOP_DEFINE_RT_CLASS_WITH_METACLASS (bzip2_zip_filter, filter,
 				     NULL, NULL  /* No serial, deserial */);
 
 errcode_t
-chop_bzip2_zip_filter_init2 (size_t block_count_100k, size_t work_factor,
-			     size_t input_size, chop_malloc_t alloc,
-			     chop_realloc_t realloc, chop_free_t free,
-			     chop_filter_t *filter)
+chop_bzip2_zip_filter_init (size_t block_count_100k, size_t work_factor,
+			    size_t input_size, chop_filter_t *filter)
 {
   errcode_t err;
   chop_bzip2_zip_filter_t *zfilter;
@@ -137,23 +129,10 @@ chop_bzip2_zip_filter_init2 (size_t block_count_100k, size_t work_factor,
     return err;
 
   input_size = input_size ? input_size : 1024;
-  if (alloc)
-    zfilter->input_buffer =
-      alloc (input_size, (chop_class_t *) &chop_zlib_zip_filter_class);
-  else
-    zfilter->input_buffer = malloc (input_size);
-
+  zfilter->input_buffer =
+    chop_malloc (input_size, (chop_class_t *) &chop_bzip2_zip_filter_class);
   if (!zfilter->input_buffer)
     return ENOMEM;
-
-  if ((alloc != NULL) && (free != NULL))
-    {
-      zfilter->zstream.bzalloc = custom_alloc;
-      zfilter->zstream.bzfree  = custom_free;
-      zfilter->zstream.opaque  = zfilter;
-      zfilter->malloc          = alloc;
-      zfilter->free            = free;
-    }
 
   zfilter->input_buffer_size = input_size;
   zfilter->work_factor = work_factor;
@@ -183,15 +162,6 @@ chop_bzip2_zip_filter_init2 (size_t block_count_100k, size_t work_factor,
     chop_object_destroy ((chop_object_t *) zfilter);
 
   return err;
-}
-
-errcode_t
-chop_bzip2_zip_filter_init (size_t block_count_100k, size_t work_factor,
-			    size_t input_size, chop_filter_t *filter)
-{
-  return (chop_bzip2_zip_filter_init2 (block_count_100k, work_factor,
-				       input_size, NULL, NULL, NULL,
-				       filter));
 }
 
 

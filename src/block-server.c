@@ -82,9 +82,12 @@ publisher_dtor (chop_object_t *object)
 
   publisher = (chop_store_publisher_t *) object;
 
-#define FREE_FIELD(f)				\
-  if (publisher-> f != NULL)			\
-    free (publisher-> f), publisher-> f = NULL;
+#define FREE_FIELD(f)						\
+  if (publisher-> f != NULL)					\
+    {								\
+      chop_free (publisher-> f, &chop_store_publisher_class);	\
+      publisher-> f = NULL;					\
+    }
 
   FREE_FIELD (service_name);
   FREE_FIELD (host);

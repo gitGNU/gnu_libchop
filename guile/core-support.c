@@ -86,5 +86,86 @@ gwrap_chop_object_mark (SCM wcp)
   return ret;
 }
 
+
+/* Custom allocator for libchop.  */
+
+/* This custom allocators are very important because they allow Guile's GC to
+   know how much memory has been allocated, beside memory allocated by
+   itself.  For instance, zip filters consume a *lot* of memory (e.g., zlib
+   allocates 64K buffers, and bzip2 uses 400K buffers by default), and it is
+   important to let Guile know that we *are* using a lot of memory, and that
+   it should GC more often.  */
+
+
+/* We end up rolling our own allocator data structure to keep track of buffer
+   sizes.  */
+typedef struct
+{
+  size_t size;
+  char   data[0];
+} alloc_header_t;
+
+
+void *
+chop_scm_malloc (size_t size, const chop_class_t *klass)
+{
+  alloc_header_t *header;
+  const char *what;
+
+  what = klass ? chop_class_name (klass) : "<chop-internal>";
+
+  header = scm_gc_malloc (size + sizeof (size_t), what);
+  header->size = size;
+
+#ifdef DEBUG
+  printf ("allocated %u bytes at %p [header %p], class `%s'\n",
+	  size, &header->data[0], header, what);
+#endif
+
+  return (&header->data[0]);
+}
+
+void *
+chop_scm_realloc (void *data, size_t size,
+		  const chop_class_t *klass)
+{
+  alloc_header_t *header;
+  const char *what;
+
+  what = klass ? chop_class_name (klass) : "<chop-internal>";
+  header = (alloc_header_t *) (data - sizeof (size_t));
+
+  header = scm_gc_realloc (header,
+			   header->size + sizeof (size_t),
+			   size + sizeof (size_t),
+			   what);
+#ifdef DEBUG
+  printf ("reallocated %u -> %u bytes at %p [header %p], class `%s'\n",
+	  header->size, size, data, header, what);
+#endif
+
+  header->size = size;
+
+  return (&header->data[0]);
+}
+
+void
+chop_scm_free (void *data, const chop_class_t *klass)
+{
+  alloc_header_t *header;
+  const char *what;
+
+  what = klass ? chop_class_name (klass) : "<chop-internal>";
+  header = (alloc_header_t *) (data - sizeof (size_t));
+
+#ifdef DEBUG
+  printf ("freeing %u bytes at %p [header %p], class `%s'\n",
+	  header->size, data, header, what);
+#endif
+
+  scm_gc_free (header, header->size, what);
+}
+
+
 /* arch-tag: fb93cde4-28b3-485e-a0fd-dd2df2e1c5c6
  */

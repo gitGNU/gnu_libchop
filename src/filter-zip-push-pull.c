@@ -185,20 +185,14 @@ static void *
 custom_alloc (void *opaque, ZIP_CUSTOM_ALLOC_ITEM_T items,
 	      ZIP_CUSTOM_ALLOC_ITEM_T size)
 {
-  ZIP_FILTER_TYPE *zfilter;
-  zfilter = (ZIP_FILTER_TYPE *) opaque;
-
-  return (zfilter->malloc (items * size,
-			   (chop_class_t *) &ZIP_FILTER_CLASS));
+  return (chop_malloc (items * size,
+		       (chop_class_t *) &ZIP_FILTER_CLASS));
 }
 
 static void
 custom_free (void *opaque, void *address)
 {
-  ZIP_FILTER_TYPE *zfilter;
-  zfilter = (ZIP_FILTER_TYPE *) opaque;
-
-  zfilter->free (address, (chop_class_t *) &ZIP_FILTER_CLASS);
+  chop_free (address, (chop_class_t *) &ZIP_FILTER_CLASS);
 }
 
 #undef ZIP_PUSH_METHOD

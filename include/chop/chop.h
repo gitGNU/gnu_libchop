@@ -5,6 +5,8 @@
 
 #include <chop/chop-errors.h>
 #include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
 
 
 /* Helper macros.  */
@@ -48,12 +50,95 @@ typedef struct chop_block_key chop_block_key_t;
 typedef enum chop_hash_method chop_hash_method_t;
 typedef enum chop_proxy_semantics chop_proxy_semantics_t;
 
+/* Memory allocators.  The `chop_class_t' argument allows allocators to know
+   on behalf of which class memory is being allocated.  */
+
+struct chop_class;
+
+typedef void * (* chop_malloc_t) (size_t, const struct chop_class *);
+typedef void * (* chop_realloc_t) (void *, size_t, const struct chop_class *);
+typedef void   (* chop_free_t) (void *, const struct chop_class *);
+
 
 /* Initialize the Chop library.  This function must be called before using
    the library.  */
 extern errcode_t chop_init (void);
 
+/* Initialize the Chop library using the specified memory allocation
+   functions.  */
+extern errcode_t chop_init_with_allocator (chop_malloc_t, chop_realloc_t,
+					   chop_free_t);
 
+
+
+/* Internal memory management functions.  */
+
+extern chop_malloc_t   chop_internal_malloc;
+extern chop_realloc_t  chop_internal_realloc;
+extern chop_free_t     chop_internal_free;
+
+static __inline__ void *
+chop_malloc (size_t amount, const struct chop_class *klass)
+{
+  if (chop_internal_malloc)
+    return (chop_internal_malloc (amount, klass));
+  else
+    return (malloc (amount));
+}
+
+static __inline__ void *
+chop_calloc (size_t amount, const struct chop_class *klass)
+{
+  void *ret;
+
+  if (chop_internal_malloc)
+    {
+      ret = chop_internal_malloc (amount, klass);
+      if (ret)
+	memset (ret, 0, amount);
+    }
+  else
+    ret = calloc (1, amount);
+
+  return ret;
+}
+
+static __inline__ void *
+chop_strdup (const char *str, const struct chop_class *klass)
+{
+  void *ret;
+
+  if (chop_internal_malloc)
+    {
+      ret = chop_internal_malloc (strlen (str) + 1, klass);
+      if (ret)
+	strcpy (ret, str);
+    }
+  else
+    ret = strdup (str);
+
+  return ret;
+}
+
+static __inline__ void *
+chop_realloc (void *mem, size_t new_amount, const struct chop_class *klass)
+{
+  if (chop_internal_realloc)
+    return (chop_internal_realloc (mem, new_amount, klass));
+  else
+    return (realloc (mem, new_amount));
+}
+
+static __inline__ void
+chop_free (void *mem, const struct chop_class *klass)
+{
+  if (chop_internal_free)
+    chop_internal_free (mem, klass);
+  else
+    free (mem);
+}
+
+
 /* The following type is used to define the relationship between a proxy and
    an object it proxies.  This is used in proxying streams and proxying
    stores, such as filtered streams and filtered stores.  */

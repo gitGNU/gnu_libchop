@@ -273,7 +273,7 @@ stats_dtor (chop_object_t *object)
     (chop_block_store_stats_t *)object;
 
   if (stats->name)
-    free (stats->name);
+    chop_free (stats->name, &chop_block_store_stats_class);
 
   stats->name = NULL;
 
@@ -288,7 +288,8 @@ bss_copy (const chop_object_t *src, chop_object_t *dst)
 
   if (source->name)
     {
-      dest->name = strdup (source->name);
+      dest->name = chop_strdup (source->name,
+				&chop_block_store_stats_class);
       if (!dest->name)
 	return ENOMEM;
     }
@@ -328,7 +329,7 @@ chop_block_store_stats_init (const char *name,
 
   if (name)
     {
-      stats->name = strdup (name);
+      stats->name = chop_strdup (name, &chop_block_store_stats_class);
       if (!stats->name)
 	{
 	  chop_object_destroy ((chop_object_t *)stats);

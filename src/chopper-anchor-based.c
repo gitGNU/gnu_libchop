@@ -18,6 +18,7 @@
 #include <chop/choppers.h>
 #include <chop/chop-config.h>
 
+#include <string.h>
 #include <stdint.h>
 #include <assert.h>
 #include <alloca.h>
@@ -255,7 +256,8 @@ compile_multiplication_function (unsigned long prime_to_the_ws)
   jit_multiplier_t result;
 
   JIT_MULTIPLIER_INIT (result);
-  buffer = malloc (MAX_CODE_SIZE);
+  buffer = chop_malloc (MAX_CODE_SIZE,
+			(chop_class_t *) &chop_anchor_based_chopper_class);
   if (!buffer)
     return result;
 
@@ -311,7 +313,8 @@ compile_multiplication_function (unsigned long prime_to_the_ws)
   assert (end - start < MAX_CODE_SIZE);
   jit_flush_code (start, end);
 
-  buffer = realloc (buffer, end - start);
+  buffer = chop_realloc (buffer, end - start,
+			 (chop_class_t *) &chop_anchor_based_chopper_class);
   return result;
 #undef MAX_CODE_SIZE
 }
@@ -616,7 +619,8 @@ sliding_window_clear (sliding_window_t *window)
 static inline errcode_t
 sliding_window_init (sliding_window_t *window, size_t size)
 {
-  window->raw_window = calloc (2 * size, 1);
+  window->raw_window =
+    chop_calloc (2 * size, (chop_class_t *) &chop_anchor_based_chopper_class);
   if (!window->raw_window)
     return ENOMEM;
 
@@ -634,7 +638,8 @@ sliding_window_init (sliding_window_t *window, size_t size)
 static inline void
 sliding_window_destroy (sliding_window_t *window)
 {
-  free (window->raw_window);
+  chop_free (window->raw_window,
+	     (chop_class_t *) &chop_anchor_based_chopper_class);
   window->raw_window = NULL;
   window->windows[0] = window->windows[1] = NULL;
 }
@@ -784,7 +789,8 @@ ab_dtor (chop_object_t *object)
   chop_object_destroy ((chop_object_t *)&anchor->log);
 
 #ifdef HAVE_LIGHTNING_H
-  free (JIT_MULTIPLIER_FUNC (anchor->jit_multiply_with_prime_to_the_ws));
+  chop_free (JIT_MULTIPLIER_FUNC (anchor->jit_multiply_with_prime_to_the_ws),
+	     (chop_class_t *) &chop_anchor_based_chopper_class);
 #endif
 }
 

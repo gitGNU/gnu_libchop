@@ -64,7 +64,7 @@ chop_track_object (chop_object_t *object)
   uintptr_t bucket;
   chop_tracked_object_t *new_object, *next;
 
-  new_object = malloc (sizeof (*new_object));
+  new_object = chop_malloc (sizeof (*new_object), NULL);
   if (!new_object)
     return ENOMEM;
 
@@ -147,7 +147,7 @@ chop_test_and_untrack_object (chop_object_t *object)
 
 	  chop_object_mark_as_untracked (object);
 
-	  free (obj);
+	  chop_free (obj, NULL);
 
 	  return 1;
 	}
@@ -584,6 +584,10 @@ chop_integer_to_hex_string (unsigned num, char *hex)
 
 /* Initialization.  */
 
+chop_malloc_t   chop_internal_malloc = NULL;
+chop_realloc_t  chop_internal_realloc = NULL;
+chop_free_t     chop_internal_free = NULL;
+
 errcode_t
 chop_init (void)
 {
@@ -601,3 +605,24 @@ chop_init (void)
   return chop_log_init ("cipher", &chop_cipher_log);
 }
 
+errcode_t
+chop_init_with_allocator (chop_malloc_t malloc, chop_realloc_t realloc,
+			  chop_free_t free)
+{
+  if ((malloc == NULL) && (realloc == NULL) && (free == NULL))
+    return (chop_init ());
+  else
+    {
+      if ((malloc == NULL) || (realloc == NULL) || (free == NULL))
+	return CHOP_INVALID_ARG;
+      else
+	{
+	  chop_internal_malloc  = malloc;
+	  chop_internal_realloc = realloc;
+	  chop_internal_free    = free;
+	  return (chop_init ());
+	}
+    }
+
+  return CHOP_INVALID_ARG;
+}
