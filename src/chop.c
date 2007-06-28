@@ -30,10 +30,14 @@
 # include <execinfo.h>
 #endif
 
+/* A live object.  */
 typedef struct chop_tracked_object
 {
   struct chop_tracked_object *next;
-  chop_object_t *object;
+
+  const chop_class_t *klass;
+  const void         *object_address;
+
 #ifdef __GNU_LIBRARY__
 # define BACKTRACE_SIZE  20
   void  *backtrace[BACKTRACE_SIZE];
@@ -41,13 +45,22 @@ typedef struct chop_tracked_object
 #endif
 } chop_tracked_object_t;
 
+/* An object that has been (recently) destroyed.  */
+typedef struct chop_untracked_object
+{
+  const chop_class_t *klass;
+  void               *address;
+} chop_untracked_object_t;
+
+
+
 #define BUCKET_COUNT  4096
-static chop_tracked_object_t *tracked_objects[BUCKET_COUNT];
+static chop_tracked_object_t  *tracked_objects[BUCKET_COUNT];
 
 /* A list of the recently untracked (i.e. probably destroyed) objects.  */
-#define RECENTLY_UNTRACKED_COUNT 4096
-static chop_object_t *recently_untracked[RECENTLY_UNTRACKED_COUNT];
-static size_t         recently_untracked_head = 0;
+#define RECENTLY_UNTRACKED_COUNT 10 /* 4096 */
+static chop_untracked_object_t recently_untracked[RECENTLY_UNTRACKED_COUNT];
+static size_t                  recently_untracked_head = 0;
 
 #define chop_object_hash(_obj) (((uintptr_t)(_obj) >> 2) & (BUCKET_COUNT - 1))
 
@@ -55,7 +68,8 @@ static size_t         recently_untracked_head = 0;
 static inline void
 chop_object_tracker_init (void)
 {
-  memset (tracked_objects, '\0', sizeof (tracked_objects));
+  memset (tracked_objects, 0, sizeof (tracked_objects));
+  memset (recently_untracked, 0, sizeof (recently_untracked));
 }
 
 static inline errcode_t
@@ -73,7 +87,8 @@ chop_track_object (chop_object_t *object)
   tracked_objects[bucket] = new_object;
 
   new_object->next = next;
-  new_object->object = object;
+  new_object->klass = chop_object_get_class (object);
+  new_object->object_address = object;
 #ifdef __GNU_LIBRARY__
   new_object->backtrace_size = backtrace (new_object->backtrace,
 					  BACKTRACE_SIZE);
@@ -91,7 +106,7 @@ chop_object_is_tracked (chop_object_t *object)
   bucket = chop_object_hash (object);
   for (p = tracked_objects[bucket]; p; p = p->next)
     {
-      if (p->object == object)
+      if (p->object_address == object)
 	return 1;
     }
 
@@ -101,7 +116,10 @@ chop_object_is_tracked (chop_object_t *object)
 static inline void
 chop_object_mark_as_untracked (chop_object_t *object)
 {
-  recently_untracked[recently_untracked_head] = object;
+  recently_untracked[recently_untracked_head].address = object;
+  recently_untracked[recently_untracked_head].klass =
+    chop_object_get_class (object);
+
   recently_untracked_head =
     (recently_untracked_head + 1) % RECENTLY_UNTRACKED_COUNT;
 }
@@ -115,10 +133,11 @@ chop_object_was_recently_untracked (chop_object_t *object)
        num != recently_untracked_head;
        num = (num - 1) % RECENTLY_UNTRACKED_COUNT)
     {
-      if (recently_untracked[num] == object)
+      if (recently_untracked[num].address == object)
 	return 1;
 
-      if (!recently_untracked[num])
+      if (recently_untracked[num].address == NULL)
+	/* End of the array.  */
 	return 0;
     }
 
@@ -137,7 +156,7 @@ chop_test_and_untrack_object (chop_object_t *object)
        obj;
        prev = obj, obj = obj->next)
     {
-      if (obj->object == object)
+      if (obj->object_address == object)
 	{
 	  chop_tracked_object_t *next = obj->next;
 	  if (prev)
@@ -165,8 +184,8 @@ show_tracked_object (chop_tracked_object_t *p)
   symbols = backtrace_symbols (p->backtrace, p->backtrace_size);
 
   fprintf (stderr, "%s: object @ %p, class `%s', initialized from:\n",
-	   __FUNCTION__, p->object,
-	   chop_class_name (p->object->class));
+	   __FUNCTION__, p->object_address,
+	   chop_class_name (p->klass));
   if (symbols)
     {
       size_t remaining = p->backtrace_size;
@@ -195,7 +214,7 @@ chop_show_object_info (chop_object_t *object)
   bucket = chop_object_hash (object);
   for (p = tracked_objects[bucket]; p; p = p->next)
     {
-      if (p->object == object)
+      if (p->object_address == object)
 	{
 	  show_tracked_object (p);
 	  return;
@@ -217,7 +236,7 @@ chop_show_tracked_objects (void)
 	{
 	  /* CHOP_CIPHER_LOG is always be leaked, so there's no point in
 	     tracking it.  */
-	  if (p->object != (chop_object_t *)&chop_cipher_log)
+	  if (p->object_address != (chop_object_t *)&chop_cipher_log)
 	    show_tracked_object (p);
 	}
     }
