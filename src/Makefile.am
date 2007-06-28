@@ -27,7 +27,7 @@ libchop_la_SOURCES = chop.c chop-errors.c logs.c		\
 		     filters.c					\
 		     filter-zlib-zip.c filter-zlib-unzip.c	\
 		     stream-file.c stream-mem.c			\
-		     stream-filtered.c  # stream-ext2.c 
+		     stream-filtered.c
 
 AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include	\
 	      -I$(top_srcdir)/lib     -I$(top_builddir)/lib	\
