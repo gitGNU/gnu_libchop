@@ -15,12 +15,13 @@
 #include <assert.h>
 
 #include <arpa/inet.h>
+#include <stdint.h>
 
 
 /* The index handle class.  */
 
 CHOP_DECLARE_RT_CLASS (integer_index_handle, index_handle,
-		       unsigned int id;  /* the current block key */);
+		       uint32_t id;  /* the current block key */);
 
 
 static int
@@ -58,7 +59,7 @@ iih_serialize (const chop_object_t *object, chop_serial_method_t method,
     {
     case CHOP_SERIAL_BINARY:
       {
-	unsigned int id;
+	uint32_t id;
 	id = htonl (iih->id);
 	chop_buffer_push (buffer, (char *) &id, sizeof (id));
       }
@@ -215,7 +216,7 @@ integer_block_fetch (chop_block_fetcher_t *block_fetcher,
   errcode_t err;
   chop_integer_index_handle_t *iih;
   chop_integer_block_fetcher_t *fetcher;
-  unsigned int id;
+  uint32_t id;
   chop_block_key_t key;
 
   fetcher = (chop_integer_block_fetcher_t *)block_fetcher;
@@ -236,7 +237,7 @@ integer_block_fetch (chop_block_fetcher_t *block_fetcher,
 
 /* The indexer class.  */
 CHOP_DECLARE_RT_CLASS (integer_block_indexer, block_indexer,
-		       unsigned int id; /* the current block ID */);
+		       uint32_t id; /* the current block ID */);
 
 static errcode_t
 integer_indexer_init_fetcher (const chop_block_indexer_t *block_indexer,
@@ -349,7 +350,7 @@ integer_block_index (chop_block_indexer_t *indexer,
   chop_integer_block_indexer_t *ibi;
   chop_integer_index_handle_t *iih;
   chop_block_key_t key;
-  unsigned int id;
+  uint32_t id;
 
   ibi = (chop_integer_block_indexer_t *) indexer;
   err = chop_object_initialize ((chop_object_t *)handle,
