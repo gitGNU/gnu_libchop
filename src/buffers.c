@@ -60,7 +60,7 @@ chop_buffer_init (chop_buffer_t *buffer, size_t size)
     }
 #endif
 
-  buffer->buffer = (char *)calloc (1, size);
+  buffer->buffer = (char *) chop_calloc (size, NULL);
   if (!buffer->buffer)
     return ENOMEM;
 
@@ -95,7 +95,7 @@ chop_buffer_grow (chop_buffer_t *buffer, size_t size)
   while (new_size < size)
     new_size <<= 1;
 
-  larger = realloc (buffer->buffer, new_size);
+  larger = chop_realloc (buffer->buffer, new_size, NULL);
   if (!larger)
     return ENOMEM;
 
@@ -156,7 +156,7 @@ _chop_buffer_return (chop_buffer_t *buffer)
       buffer_pool_available += buffer->real_size;
     }
   else
-    free (buffer->buffer);
+    chop_free (buffer->buffer, NULL);
 }
 #endif
 
@@ -167,7 +167,7 @@ chop_buffer_return (chop_buffer_t *buffer)
   _chop_buffer_return (buffer);
 #else
   if (buffer->buffer)
-    free (buffer->buffer);
+    chop_free (buffer->buffer, NULL);
 #endif
 
   buffer->size = buffer->real_size = 0;

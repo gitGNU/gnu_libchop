@@ -210,7 +210,9 @@ chop_lzo_zip_filter_init (size_t input_size, chop_filter_t *filter)
     return err;
 
   input_size = input_size ? input_size : 8192;
-  zfilter->input_buffer = (lzo_bytep) malloc (input_size);
+  zfilter->input_buffer =
+    (lzo_bytep) chop_malloc (input_size,
+			     (chop_class_t *) &chop_lzo_zip_filter_class);
   if (!zfilter->input_buffer)
     goto mem_err;
 
@@ -223,11 +225,15 @@ chop_lzo_zip_filter_init (size_t input_size, chop_filter_t *filter)
 
      Thus, we compute that size and add a few bytes for safety.  */
   zfilter->output_buffer_size = input_size + (input_size >> 6) + 100;
-  zfilter->output_buffer = (lzo_bytep) malloc (zfilter->output_buffer_size);
+  zfilter->output_buffer =
+    (lzo_bytep) chop_malloc (zfilter->output_buffer_size,
+			     (chop_class_t *) &chop_lzo_zip_filter_class);
   if (!zfilter->output_buffer)
     goto mem_err;
 
-  zfilter->work_mem = (lzo_voidp) malloc (LZO1X_1_MEM_COMPRESS);
+  zfilter->work_mem =
+    (lzo_voidp) chop_malloc (LZO1X_1_MEM_COMPRESS,
+			     (chop_class_t *) &chop_lzo_zip_filter_class);
   if (!zfilter->work_mem)
     goto mem_err;
 

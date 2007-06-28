@@ -10,8 +10,8 @@ AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include	\
 	      -I$(top_srcdir)/lib     -I$(top_builddir)/lib	\
 	      -I$(top_srcdir)/tests/include
 AM_CFLAGS = -Wall -g
-LDADD = -L$(top_builddir)/src -lchop		\
-	-L$(top_builddir)/lib -lgnu
+LIBS = $(top_builddir)/src/libchop.la		\
+       $(top_builddir)/lib/libgnu.la
 
 distclean-local:
 	rm -f ,,t-*.db

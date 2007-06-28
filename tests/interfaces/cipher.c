@@ -94,6 +94,9 @@ main (int argc, char *argv[])
   program_name = argv[0];
   test_init (argv[0]);
 
+  err = chop_init ();
+  test_check_errcode (err, "initializing libchop");
+
   for (algo = the_algorithms, algo_count = 0;
        *algo != CHOP_CIPHER_NONE;
        algo++, algo_count++)

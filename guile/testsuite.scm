@@ -176,9 +176,6 @@ exec ${GUILE-guile} -L modules -l $0 -c "(apply $main (cdr (command-line)))" "$@
 
 
 (define (t-stacked-zip-filtered-streams)
-  ;; XXX: Guile's GC leaks some objects.  However, since zlib-zip-filter
-  ;; objects embed 64K of state (the compression buffer), the effect of leaks
-  ;; is magnified.
   (let* ((size (stat:size (stat %test-input-file)))
 	 (uz (filtered-stream-open
 	      (filtered-stream-open (file-stream-open %test-input-file)

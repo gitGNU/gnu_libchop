@@ -21,6 +21,7 @@
 #define ZIP_FILTER_TYPE  CONCAT3 (chop_lzo_, ZIP_DIRECTION, _filter_t)
 #define ZIP_FILTER_CTOR  CONCAT3 (lzo_, ZIP_DIRECTION, _filter_ctor)
 #define ZIP_FILTER_DTOR  CONCAT3 (lzo_, ZIP_DIRECTION, _filter_dtor)
+#define ZIP_FILTER_CLASS CONCAT3 (chop_lzo_, ZIP_DIRECTION, _filter_class)
 
 static errcode_t
 ZIP_PUSH_METHOD (chop_filter_t *filter,
@@ -111,11 +112,11 @@ ZIP_FILTER_DTOR (chop_object_t *object)
   zfilter = (ZIP_FILTER_TYPE *) object;
 
   if (zfilter->input_buffer)
-    free (zfilter->input_buffer);
+    chop_free (zfilter->input_buffer, (chop_class_t *) &ZIP_FILTER_CLASS);
   if (zfilter->output_buffer)
-    free (zfilter->output_buffer);
+    chop_free (zfilter->output_buffer, (chop_class_t *) &ZIP_FILTER_CLASS);
   if (zfilter->work_mem)
-    free (zfilter->work_mem);
+    chop_free (zfilter->work_mem, (chop_class_t *) &ZIP_FILTER_CLASS);
 
   zfilter->input_buffer = zfilter->output_buffer = NULL;
   zfilter->input_buffer_size = zfilter->output_buffer_size = 0;

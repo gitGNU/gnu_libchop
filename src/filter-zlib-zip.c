@@ -26,6 +26,13 @@ static errcode_t
 chop_zlib_zip_pull (chop_filter_t *filter, int flush,
 		    char *buffer, size_t size, size_t *pulled);
 
+static void *
+custom_alloc (voidp opaque, uInt items, uInt size);
+
+static void
+custom_free (voidpf opaque, voidp address);
+
+
 static errcode_t
 zlib_zip_filter_ctor (chop_object_t *object,
 		      const chop_class_t *class)
@@ -35,8 +42,16 @@ zlib_zip_filter_ctor (chop_object_t *object,
 
   zfilter->filter.push = chop_zlib_zip_push;
   zfilter->filter.pull = chop_zlib_zip_pull;
-  zfilter->zstream.zalloc = Z_NULL;
-  zfilter->zstream.zfree = Z_NULL;
+  if (chop_internal_malloc)
+    {
+      zfilter->zstream.zalloc = custom_alloc;
+      zfilter->zstream.zfree  = custom_free;
+    }
+  else
+    {
+      zfilter->zstream.zalloc = Z_NULL;
+      zfilter->zstream.zfree = Z_NULL;
+    }
   zfilter->zstream.opaque = Z_NULL;
   return chop_log_init ("zlib-zip-filter", &zfilter->filter.log);
 }
@@ -53,7 +68,8 @@ zlib_zip_filter_dtor (chop_object_t *object)
   zfilter->zstream.opaque = Z_NULL;
 
   if (zfilter->input_buffer)
-    free (zfilter->input_buffer);
+    chop_free (zfilter->input_buffer,
+	       (chop_class_t *) &chop_zlib_zip_filter_class);
   zfilter->input_buffer = NULL;
   zfilter->input_buffer_size = 0;
 
@@ -94,7 +110,9 @@ chop_zlib_zip_filter_init (int zlib_compression_level, size_t input_size,
     return err;
 
   input_size = input_size ? input_size : 1024;
-  zfilter->input_buffer = malloc (input_size);
+  zfilter->input_buffer =
+    chop_malloc (input_size,
+		 (chop_class_t *) &chop_zlib_zip_filter_class);
   if (!zfilter->input_buffer)
     return ENOMEM;
 
@@ -115,6 +133,7 @@ chop_zlib_zip_filter_init (int zlib_compression_level, size_t input_size,
 #define ZIP_TYPE        zlib
 #define ZIP_DIRECTION   zip
 #define ZIP_BUFFER_TYPE unsigned char
+#define ZIP_CUSTOM_ALLOC_ITEM_T uInt
 
 #define ZIP_FLUSH       Z_FINISH
 #define ZIP_NO_FLUSH    0

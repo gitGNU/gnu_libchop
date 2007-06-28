@@ -21,8 +21,12 @@ main (int argc, char *argv[])
     };
   const char *const *name;
   unsigned passed = 0, failed = 0;
+  errcode_t err;
 
   test_init (argv[0]);
+
+  err = chop_init ();
+  test_check_errcode (err, "initializing libchop");
 
   test_stage ("%u class lookups by name",
 	      (sizeof (class_names) / sizeof (*class_names)) - 1);

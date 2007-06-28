@@ -48,7 +48,7 @@ log_dtor (chop_object_t *object)
   chop_log_close (log);
 
   if (log->name)
-    free (log->name);
+    chop_free (log->name, &chop_log_class);
 
   log->name = NULL;
   log->attached = 0;
@@ -67,14 +67,14 @@ chop_log_init (const char *name, chop_log_t *log)
   errcode_t err;
   char *log_name;
 
-  log_name = strdup (name);
+  log_name = chop_strdup (name, &chop_log_class);
   if (!log_name)
     return ENOMEM;
 
   err = chop_object_initialize ((chop_object_t *)log, &chop_log_class);
   if (err)
     {
-      free (log_name);
+      chop_free (log_name, &chop_log_class);
       return err;
     }
 
@@ -87,9 +87,9 @@ errcode_t
 chop_log_set_name (chop_log_t *log, const char *name)
 {
   if (log->name)
-    free (log->name);
+    chop_free (log->name, &chop_log_class);
 
-  log->name = strdup (name);
+  log->name = chop_strdup (name, &chop_log_class);
   if (!log->name)
     return ENOMEM;
 
@@ -163,5 +163,5 @@ chop_log_builtin_printf (chop_log_t *log, const char *fmt, va_list ap)
 
   write (log->fd, str, strlen (str));
 
-  free (str);
+  chop_free (str, &chop_log_class);
 }

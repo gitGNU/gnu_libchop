@@ -115,7 +115,7 @@ chop_cipher_open (chop_cipher_algo_t algo, chop_cipher_mode_t mode)
     return NULL;
 
   /* XXX:  All this overhead is libgcrypt's fault!  */
-  handle = malloc (sizeof (struct chop_cipher_handle));
+  handle = chop_malloc (sizeof (struct chop_cipher_handle), NULL);
   if (!handle)
     return NULL;
 
@@ -251,7 +251,7 @@ chop_cipher_close (chop_cipher_handle_t cipher)
 {
   gcry_cipher_close (cipher->gcry_handle);
 
-  free (cipher);
+  chop_free (cipher, NULL);
 }
 
 

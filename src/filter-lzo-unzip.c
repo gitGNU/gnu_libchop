@@ -62,8 +62,11 @@ chop_lzo_unzip_pull (chop_filter_t *filter, int flush,
 		       "but %u needed), growing to %u bytes",		\
 		       zfilter-> _which ## _buffer_size,		\
 		       (_size), new_size);				\
-      new_buf = (lzo_bytep) realloc (zfilter-> _which ## _buffer,	\
-				     new_size);				\
+      new_buf =								\
+	(lzo_bytep) chop_realloc (zfilter-> _which ## _buffer,		\
+				  new_size,				\
+				  (chop_class_t *)			\
+				  &chop_lzo_unzip_filter_class);	\
       if (!new_buf)							\
 	{								\
 	  err = ENOMEM;							\
@@ -262,7 +265,9 @@ chop_lzo_unzip_filter_init (size_t input_size, chop_filter_t *filter)
     return err;
 
   input_size = input_size ? input_size : 1024;
-  zfilter->input_buffer = (lzo_bytep) malloc (input_size);
+  zfilter->input_buffer =
+    (lzo_bytep) chop_malloc (input_size,
+			     (chop_class_t *) &chop_lzo_unzip_filter_class);
   if (!zfilter->input_buffer)
     goto mem_err;
 
@@ -270,11 +275,15 @@ chop_lzo_unzip_filter_init (size_t input_size, chop_filter_t *filter)
 
   /* We may eventually grow the output buffer if needed.  */
   zfilter->output_buffer_size = input_size << 1;
-  zfilter->output_buffer = (lzo_bytep) malloc (zfilter->output_buffer_size);
+  zfilter->output_buffer =
+    (lzo_bytep) chop_malloc (zfilter->output_buffer_size,
+			     (chop_class_t *) &chop_lzo_unzip_filter_class);
   if (!zfilter->output_buffer)
     goto mem_err;
 
-  zfilter->work_mem = malloc (LZO1X_1_MEM_COMPRESS);
+  zfilter->work_mem =
+    (lzo_voidp) chop_malloc (LZO1X_1_MEM_COMPRESS,
+			     (chop_class_t *) &chop_lzo_unzip_filter_class);
   if (!zfilter->work_mem)
     goto mem_err;
 

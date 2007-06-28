@@ -10,6 +10,8 @@
 #include <errno.h>
 #include <assert.h>
 
+
+/* Constructors.  */
 
 static inline errcode_t
 chop_zlib_zip_filter_init_alloc (int compression, size_t input_size,
@@ -108,7 +110,8 @@ chop_generic_unzip_filter_open_alloc (const char *class_nickname,
   else
     {
       *filter = gwrap_chop_malloc ((chop_class_t *) klass);
-      err = chop_unzip_filter_generic_open (klass, input_size, *filter);
+      err = chop_unzip_filter_generic_open (klass, input_size,
+					    *filter);
       if (err)
 	gwrap_chop_free_uninitialized ((chop_object_t *) *filter,
 				       (chop_class_t *) klass);

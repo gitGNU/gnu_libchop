@@ -16,6 +16,7 @@
 #define ZIP_PUSH_METHOD  CONCAT5 (chop_, ZIP_TYPE, _, ZIP_DIRECTION, _push)
 #define ZIP_PULL_METHOD  CONCAT5 (chop_, ZIP_TYPE, _, ZIP_DIRECTION, _pull)
 #define ZIP_FILTER_TYPE  CONCAT5 (chop_, ZIP_TYPE, _, ZIP_DIRECTION, _filter_t)
+#define ZIP_FILTER_CLASS CONCAT5 (chop_, ZIP_TYPE, _, ZIP_DIRECTION, _filter_class)
 
 static errcode_t
 ZIP_PUSH_METHOD (chop_filter_t *filter,
@@ -177,6 +178,24 @@ ZIP_PULL_METHOD (chop_filter_t *filter, int flush,
   return err;
 }
 
+
+/* Custom memory allocators.  */
+
+static void *
+custom_alloc (void *opaque, ZIP_CUSTOM_ALLOC_ITEM_T items,
+	      ZIP_CUSTOM_ALLOC_ITEM_T size)
+{
+  return (chop_malloc (items * size,
+		       (chop_class_t *) &ZIP_FILTER_CLASS));
+}
+
+static void
+custom_free (void *opaque, void *address)
+{
+  chop_free (address, (chop_class_t *) &ZIP_FILTER_CLASS);
+}
+
 #undef ZIP_PUSH_METHOD
 #undef ZIP_PULL_METHOD
 #undef ZIP_FILTER_TYPE
+#undef ZIP_FILTER_CLASS

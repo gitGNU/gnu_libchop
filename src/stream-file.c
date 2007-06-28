@@ -73,7 +73,7 @@ chop_file_stream_open (const char *path,
   stream->position = 0;
   stream->stream.close = chop_file_stream_close;
   stream->stream.read = chop_file_stream_read;
-  stream->stream.name = strdup (path);
+  stream->stream.name = chop_strdup (path, &chop_file_stream_class);
   stream->stream.preferred_block_size = file_stats.st_blksize;
   stream->size = file_stats.st_size;
 

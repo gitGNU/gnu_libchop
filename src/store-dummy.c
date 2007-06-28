@@ -23,7 +23,8 @@ dbs_dtor (chop_object_t *object)
     (chop_dummy_block_store_t *)object;
 
   if (dummy->block_store.name)
-    free (dummy->block_store.name);
+    chop_free (dummy->block_store.name,
+	       &chop_dummy_block_store_class);
   dummy->block_store.name = NULL;
 
   chop_object_destroy ((chop_object_t *)&dummy->log);
@@ -261,7 +262,7 @@ chop_dummy_block_store_open (const char *name,
   /* By default, dump to stderr */
 /*   chop_log_attach (&dummy->log, 2, 0); */
 
-  store->name = strdup (name);
+  store->name = chop_strdup (name, &chop_dummy_block_store_class);
   store->iterator_class = NULL; /* not supported */
   store->block_exists = chop_dummy_block_store_block_exists;
   store->read_block = chop_dummy_block_store_read_block;

@@ -33,9 +33,9 @@ stream_dtor (chop_object_t *object)
   chop_stream_close (stream);
 
   if (stream->name)
-    /* We are assuming that subclasses will use the standard libc allocation
-       functions for NAME.  */
-    free (stream->name);
+    /* We are assuming that subclasses will use the standard libchop
+       allocation functions for NAME.  */
+    chop_free (stream->name, chop_object_get_class (object));
 
   stream->name = NULL;
 }

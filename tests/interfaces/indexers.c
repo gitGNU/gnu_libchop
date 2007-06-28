@@ -171,7 +171,8 @@ main (int argc, char *argv[])
 				       block_indexer,
 				       store, metastore, handle);
       test_assert (err == CHOP_INDEXER_EMPTY_SOURCE);
-      chop_object_destroy ((chop_object_t *)chopper);
+      chop_object_destroy ((chop_object_t *) chopper);
+      chop_object_destroy ((chop_object_t *) stream);
 
 
       /* Index an actual, non-empty stream.  */
@@ -184,13 +185,11 @@ main (int argc, char *argv[])
       err = chop_indexer_index_blocks (*current_indexer, chopper,
 				       block_indexer,
 				       store, metastore, handle);
-      if ((err) && (err != CHOP_STREAM_END))
-	{
-	  com_err (argv[0], err, "while indexing blocks");
-	  exit (7);
-	}
+      test_check_errcode (err, "indexing blocks");
       test_assert (chop_object_is_a ((chop_object_t *)handle,
 				     &chop_index_handle_class));
+      chop_object_destroy ((chop_object_t *) chopper);
+      chop_object_destroy ((chop_object_t *) stream);
 
 
       /* Fetch the stream.  */
@@ -241,7 +240,6 @@ main (int argc, char *argv[])
 
       test_assert (bytes_fetched == sizeof (mem_stream_contents));
 
-      chop_stream_close (stream);
 
       /* Close the stores.  */
       err = chop_store_close (store);
@@ -250,9 +248,19 @@ main (int argc, char *argv[])
 
       test_check_errcode (err, "closing stores");
 
-      chop_object_destroy ((chop_object_t *)handle);
+      chop_object_destroy ((chop_object_t *) store);
+      if (store != metastore)
+	chop_object_destroy ((chop_object_t *) metastore);
+
+      chop_object_destroy ((chop_object_t *) handle);
+      chop_object_destroy ((chop_object_t *) fetched_stream);
+      chop_object_destroy ((chop_object_t *) *current_indexer);
+
       test_stage_result (1);
     }
+
+  chop_object_destroy ((chop_object_t *) block_indexer);
+  chop_object_destroy ((chop_object_t *) block_fetcher);
 
   return 0;
 }

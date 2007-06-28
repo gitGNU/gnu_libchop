@@ -85,11 +85,6 @@ extern errcode_t chop_filtered_stream_open (chop_stream_t *backend,
 					    int owns_filter,
 					    chop_stream_t *stream);
 
-#if 0   /* Not implemented yet */
-extern errcode_t chop_ext2_stream_open (const char *path,
-					const char *fs,
-					chop_ext2_stream_t *stream);
-#endif
 
 _CHOP_END_DECLS;
 

@@ -266,6 +266,9 @@ main (int argc, char *argv[])
       test_assert (output_size == SIZE_OF_INPUT);
       test_assert (!memcmp (input, output, SIZE_OF_INPUT));
 
+      chop_object_destroy ((chop_object_t *) zip_filter);
+      chop_object_destroy ((chop_object_t *) unzip_filter);
+
       test_stage_result (1);
     }
 

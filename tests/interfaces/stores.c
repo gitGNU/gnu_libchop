@@ -150,6 +150,8 @@ main (int argc, char *argv[])
 	  exit (6);
 	}
 
+      chop_object_destroy ((chop_object_t *) store);
+
       test_stage_result (1);
     }
 
