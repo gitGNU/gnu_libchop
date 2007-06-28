@@ -493,6 +493,9 @@ chop_block_tree_flush (key_block_tree_t *tree,
        block != NULL;
        block = block->parent)
     {
+      /* Destroy the previous index.  */
+      chop_object_destroy ((chop_object_t *) root_index);
+
       depth++;
       last_depth = block->depth;
       err = chop_key_block_flush (block, block_indexer,
@@ -601,6 +604,7 @@ chop_tree_index_blocks (chop_indexer_t *indexer,
 			chop_index_handle_t *index)
 {
   errcode_t err = 0;
+  int first = 1;
   chop_tree_indexer_t *htree = (chop_tree_indexer_t *)indexer;
   size_t amount, total_amount = 0;
   chop_buffer_t buffer;
@@ -627,6 +631,12 @@ chop_tree_index_blocks (chop_indexer_t *indexer,
 	continue;
 
       total_amount += amount;
+
+      if (CHOP_EXPECT_FALSE (first))
+	first = 0;
+      else
+	/* Destroy the index of the previous block.  */
+	chop_object_destroy ((chop_object_t *) index);
 
       /* Store this block and get its index */
       err = chop_block_indexer_index (block_indexer, output,
