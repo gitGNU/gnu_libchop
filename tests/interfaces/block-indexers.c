@@ -149,7 +149,7 @@ main (int argc, char *argv[])
       test_stage_result (1);
     }
 
-  chop_store_close (store);
+  chop_object_destroy ((chop_object_t *) store);
   chop_buffer_return (&buffer);
 
   return 0;

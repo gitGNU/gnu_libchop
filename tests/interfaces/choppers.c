@@ -38,6 +38,9 @@ main (int argc, char *argv[])
   test_init (argv[0]);
   test_init_random_seed ();
 
+  err = chop_init ();
+  test_check_errcode (err, "initializing libchop");
+
   for (mem = mem_stream_contents;
        mem - mem_stream_contents < sizeof (mem_stream_contents);
        mem++)
@@ -119,7 +122,6 @@ main (int argc, char *argv[])
 	  exit (3);
 	}
 
-      chop_chopper_close (chopper);
       chop_stream_close (input);
 
       if (bytes_read != input_size)
@@ -129,6 +131,9 @@ main (int argc, char *argv[])
 		   bytes_read, input_size);
 	  exit (4);
 	}
+
+      chop_object_destroy ((chop_object_t *) chopper);
+      chop_object_destroy ((chop_object_t *) input);
 
       test_stage_result (1);
     }
