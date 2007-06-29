@@ -48,6 +48,7 @@ uih_copy (const chop_object_t *s, chop_object_t *d)
   dest = (chop_uuid_index_handle_t *)d;
 
   uuid_copy (dest->uuid, source->uuid);
+  dest->index_handle.size = CHOP_UUID_SIZE;
 
   return 0;
 }
@@ -56,6 +57,7 @@ static errcode_t
 uih_serialize (const chop_object_t *object, chop_serial_method_t method,
 	       chop_buffer_t *buffer)
 {
+  errcode_t err;
   chop_uuid_index_handle_t *uuid =
     (chop_uuid_index_handle_t *)object;
   char out[CHOP_UUID_SIZE];
@@ -68,14 +70,14 @@ uih_serialize (const chop_object_t *object, chop_serial_method_t method,
     case CHOP_SERIAL_ASCII:
       uuid_unparse (uuid->uuid, out);
       /* assert (strlen (out) + 1 == CHOP_UUID_SIZE); */
-      chop_buffer_push (buffer, out, CHOP_UUID_SIZE);
+      err = chop_buffer_push (buffer, out, CHOP_UUID_SIZE);
       break;
 
     default:
-      return CHOP_ERR_NOT_IMPL;
+      err = CHOP_ERR_NOT_IMPL;
     }
 
-  return 0;
+  return err;
 }
 
 static errcode_t
@@ -96,11 +98,18 @@ uih_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
     case CHOP_SERIAL_BINARY:
     case CHOP_SERIAL_ASCII:
       if (size < 37)
-	return CHOP_DESERIAL_TOO_SHORT;
+	{
+	  chop_object_destroy (object);
+	  return CHOP_DESERIAL_TOO_SHORT;
+	}
 
       if (uuid_parse (buffer, uuid->uuid))
-	return CHOP_DESERIAL_CORRUPT_INPUT;
+	{
+	  chop_object_destroy (object);
+	  return CHOP_DESERIAL_CORRUPT_INPUT;
+	}
 
+      uuid->index_handle.size = CHOP_UUID_SIZE;
       *bytes_read = 37;
       break;
 
@@ -296,17 +305,10 @@ static errcode_t
 ubi_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 		 chop_object_t *object, size_t *bytes_read)
 {
-  errcode_t err;
-
+  /* Stateless.  */
   *bytes_read = 0;
 
-  err = chop_object_initialize (object, &chop_uuid_block_indexer_class);
-  if (err)
-    return err;
-
-  /* Stateless.  */
-
-  return 0;
+  return (chop_object_initialize (object, &chop_uuid_block_indexer_class));
 }
 
 CHOP_DEFINE_RT_CLASS (uuid_block_indexer, block_indexer,
