@@ -52,6 +52,7 @@ static errcode_t
 iih_serialize (const chop_object_t *object, chop_serial_method_t method,
 	      chop_buffer_t *buffer)
 {
+  errcode_t err;
   chop_integer_index_handle_t *iih =
     (chop_integer_index_handle_t *) object;
 
@@ -61,7 +62,7 @@ iih_serialize (const chop_object_t *object, chop_serial_method_t method,
       {
 	uint32_t id;
 	id = htonl (iih->id);
-	chop_buffer_push (buffer, (char *) &id, sizeof (id));
+	err = chop_buffer_push (buffer, (char *) &id, sizeof (id));
       }
       break;
 
@@ -69,15 +70,15 @@ iih_serialize (const chop_object_t *object, chop_serial_method_t method,
       {
 	char out[123];
 	sprintf (out, "%08x", iih->id);
-	chop_buffer_push (buffer, out, 9);
+	err = chop_buffer_push (buffer, out, 9);
       }
       break;
 
     default:
-      return CHOP_ERR_NOT_IMPL;
+      err = CHOP_ERR_NOT_IMPL;
     }
 
-  return 0;
+  return err;
 }
 
 static errcode_t
@@ -97,10 +98,15 @@ iih_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
     {
     case CHOP_SERIAL_BINARY:
       if (size < sizeof (iih->id))
-	return CHOP_DESERIAL_TOO_SHORT;
+	{
+	  chop_object_destroy (object);
+	  return CHOP_DESERIAL_TOO_SHORT;
+	}
+
       memcpy (&iih->id, buffer, sizeof (iih->id));
       iih->id = ntohl (iih->id);
 
+      iih->index_handle.size = sizeof (iih->id);
       *bytes_read = sizeof (iih->id);
       break;
 
@@ -112,9 +118,15 @@ iih_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 	char *end;
 	iih->id = strtoul (buffer, &end, 16);
 	if (end == buffer)
-	  return CHOP_DESERIAL_CORRUPT_INPUT;
+	  {
+	    chop_object_destroy (object);
+	    return CHOP_DESERIAL_CORRUPT_INPUT;
+	  }
 	else
-	  *bytes_read = end - buffer;
+	  {
+	    iih->index_handle.size = sizeof (iih->id);
+	    *bytes_read = end - buffer;
+	  }
       }
 
       break;
