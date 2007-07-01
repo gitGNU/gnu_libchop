@@ -1,3 +1,8 @@
+/* Note: To allow GPLv3 licensing of libchop, we must be using LZO version 1
+   and not LZO version 2, because the latter is released under GPL version 2
+   *only*, while the former is released under GPL version 2 or later.
+   <lzo1x.h> is LZO version 1, and <lzo/lzo1x.h> would be LZO version 2.  */
+
 #include <chop/chop.h>
 #include <chop/objects.h>
 #include <chop/filters.h>
