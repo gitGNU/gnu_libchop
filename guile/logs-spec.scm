@@ -71,14 +71,14 @@
 		  #:c-name "chop_log_attach_to_port"
 		  #:returns 'void
 		  #:arguments '((<log> log)
-				(<raw-scheme-type> port)))
+				(scm   port)))
 
   (wrap-function! ws
 		  #:name 'log-attach-to-user
 		  #:c-name "chop_log_attach_to_scheme_user"
 		  #:returns 'void
 		  #:arguments '((<log> log)
-				(<raw-scheme-type> proc)))
+				(scm   proc)))
 
   )
 

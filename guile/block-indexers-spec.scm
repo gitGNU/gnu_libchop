@@ -138,7 +138,7 @@
 		  #:arguments '((<block-fetcher> bf)
 				(<index-handle> index)
 				(<store> store)
-				((<raw-scheme-type> out) buffer)))
+				((scm out) buffer)))
 
   (wrap-function! ws
 		  #:name 'block-indexer-make-fetcher

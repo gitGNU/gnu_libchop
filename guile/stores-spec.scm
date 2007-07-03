@@ -284,15 +284,15 @@
   (wrap-function! ws
 		  #:name 'make-block-store
 		  #:c-name "chop_make_scheme_block_store"
-		  #:returns '<raw-scheme-type>
-		  #:arguments '((<raw-scheme-type> read-block-proc)
-				(<raw-scheme-type> write-block-proc)
-				(<raw-scheme-type> block-exists-proc)
-				(<raw-scheme-type> remove-block-proc)
-				(<raw-scheme-type> first-block-proc)
-				(<raw-scheme-type> iterator-next!-proc)
-				(<raw-scheme-type> sync-proc)
-				(<raw-scheme-type> close-proc)))
+		  #:returns 'scm
+		  #:arguments '((scm read-block-proc)
+				(scm write-block-proc)
+				(scm block-exists-proc)
+				(scm remove-block-proc)
+				(scm first-block-proc)
+				(scm iterator-next!-proc)
+				(scm sync-proc)
+				(scm close-proc)))
 
 
   ;; methods
@@ -312,7 +312,7 @@
 		  #:c-name "chop_store_read_block_alloc_u8vector"
 		  #:arguments '((<store> store)
 				(<block-key> key)
-				((<raw-scheme-type> out) buffer))
+				((scm out) buffer))
 		  #:description "Read from @var{store} the block whose key
 is @var{key} and return a u8vector representing its content.")
 
