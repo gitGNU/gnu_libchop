@@ -84,7 +84,7 @@
 		  #:name 'mem-stream-open
 		  #:returns '<stream>
 		  #:c-name "chop_mem_stream_open_alloc"
-		  #:arguments '((<raw-scheme-type> vector)))
+		  #:arguments '((scm vector)))
 
   (wrap-function! ws
 		  #:name 'filtered-stream-open
@@ -111,9 +111,7 @@
 		  #:name 'stream-close
 		  #:returns 'void
 		  #:c-name "chop_stream_close"
-		  #:arguments '((<stream> stream)))
-
-)
+		  #:arguments '((<stream> stream))))
 
 ;; Local Variables:
 ;; mode: scheme

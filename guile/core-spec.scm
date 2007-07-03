@@ -1,4 +1,4 @@
-;;;; Copyright (C) 2005 Ludovic Courtès
+;;;; Copyright (C) 2005, 2007 Ludovic Courtès
 ;;;;
 ;;;; This program is free software; you can redistribute it and/or
 ;;;; modify it under the terms of the GNU Lesser General Public
@@ -174,40 +174,11 @@
 
 
 ;;
-;; A simple type that allows us to return a raw Scheme object (an
-;; `SCM' object on the C side) in `hash-buffer' and the likes.
-;;
-
-(define-class <chop-raw-scheme-type> (<gw-type>))
-
-(define-method (check-typespec-options (type <chop-raw-scheme-type>)
-				       (options <list>))
-  #t)
-
-(define-method (c-type-name (type <chop-raw-scheme-type>))
-  "SCM")
-
-(define-method (c-type-name (type <chop-raw-scheme-type>)
-			    (typespec <gw-typespec>))
-  (if (memq 'out (options typespec)) "SCM *" "SCM"))
-
-(define-method (wrap-value-cg (type <chop-raw-scheme-type>)
-			      (param <gw-value>) error-var)
-  (list "\n/* A raw Scheme object.  */\n"
-	(scm-var param) " = " (var param) ";\n"))
-
-(define-method (unwrap-value-cg (type <chop-raw-scheme-type>)
-				(param <gw-value>) error-var)
-  (list "\n/* A raw Scheme object.  */\n"
-	(var param) " = " (scm-var param) ";\n"))
-
-
-;;
 ;; Growing `chop_buffer_t' buffers used as output buffers and mapped to
 ;; SRFI-4 u8vectors.
 ;;
 ;; FIXME: This is unused 'cause I couldn't make it work.  Instead, I found it
-;; much easier to use <raw-scheme-type> and do part of the work by myself...
+;; much easier to use `scm' and do part of the work by myself...
 ;;
 
 (define-class <chop-output-buffer> (<gw-type>))
@@ -401,8 +372,5 @@
 		  #:name '<input-buffer>))
 
   (add-type! ws (make <chop-writable-input-buffer-type>
-		  #:name '<writable-input-buffer>))
-
-  (add-type! ws (make <chop-raw-scheme-type>
-		  #:name '<raw-scheme-type>)))
+		  #:name '<writable-input-buffer>)))
 
