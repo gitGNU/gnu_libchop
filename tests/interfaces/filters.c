@@ -12,6 +12,9 @@
 #include <stdio.h>
 
 
+/* Iterations for each filter, to test reusability of filters.  */
+#define ITERATIONS_PER_FILTER 15
+
 #define SIZE_OF_INPUT  27777
 static char input[SIZE_OF_INPUT];
 
@@ -41,8 +44,8 @@ test_filter (chop_filter_t *filter,
 	     char *output, size_t *output_size)
 {
   errcode_t err = 0;
-  size_t bytes_read = 0;
-  int flush = 0;
+  size_t bytes_read = 0, prev_bytes_read = 0;
+  unsigned int iteration = 0;
   const chop_class_t *filter_class;
 
   filter_class = chop_object_get_class ((chop_object_t *)filter);
@@ -57,51 +60,65 @@ test_filter (chop_filter_t *filter,
       chop_log_attach (log, 2, 0);
     }
 
-  chop_filter_set_input_from_buffer (filter, input, input_size);
-  *output_size = 0;
-
-  /* Copied from `chop_filter_through ()'.  */
-  while (1)
+  /* Run the test several times for each filter to make sure that filters can
+     be re-used.  */
+  for (iteration = 0; iteration < ITERATIONS_PER_FILTER; iteration++)
     {
-      char block[837];
-      size_t pulled = 0;
+      int flush = 0;
 
-      err = chop_filter_pull (filter, flush,
-			      block, sizeof (block), &pulled);
-      if (err)
+      test_debug ("starting iteration %u", iteration);
+
+      chop_filter_set_input_from_buffer (filter, input, input_size);
+      *output_size = 0;
+      prev_bytes_read = bytes_read;
+
+      /* Copied from `chop_filter_through ()'.  */
+      while (1)
 	{
-	  if (err == CHOP_FILTER_EMPTY)
+	  char block[837];
+	  size_t pulled = 0;
+
+	  err = chop_filter_pull (filter, flush,
+				  block, sizeof (block), &pulled);
+	  if (err)
 	    {
-	      test_assert (pulled == 0);
-	      if (!flush)
-		flush = 1;
-	      else
+	      if (err == CHOP_FILTER_EMPTY)
 		{
-		  /* Normal termination.  */
-		  err = 0;
-		  break;
+		  test_assert (pulled == 0);
+		  if (!flush)
+		    flush = 1;
+		  else
+		    {
+		      /* Normal termination.  */
+		      err = 0;
+		      break;
+		    }
 		}
+	      else
+		break;
 	    }
 	  else
-	    break;
+	    {
+	      test_assert (pulled <= sizeof (block));
+	      memcpy (output + *output_size, block, pulled);
+	      *output_size += pulled;
+	    }
 	}
-      else
-	{
-	  test_assert (pulled <= sizeof (block));
-	  memcpy (output + *output_size, block, pulled);
-	  *output_size += pulled;
-	}
+
+      test_check_errcode (err, "pulling data from filter");
+
+      test_debug ("input size was: %u; output size was: %u",
+		  input_size, *output_size);
+
+      chop_filter_finish_input_from_buffer (filter, &bytes_read);
+
+      /* Make sure everything was read.  */
+      test_assert (bytes_read == input_size);
+
+      /* Make sure the filter behaves deterministically when it's reused.  */
+      if (prev_bytes_read)
+	test_assert (bytes_read == prev_bytes_read);
     }
-
-  test_check_errcode (err, "pulling data from filter");
-
-  test_debug ("input size was: %u; output size was: %u",
-	      input_size, *output_size);
-
-  chop_filter_finish_input_from_buffer (filter, &bytes_read);
-
-  /* Make sure everything was read.  */
-  test_assert (bytes_read == input_size);
 
   test_stage_result (1);
 
