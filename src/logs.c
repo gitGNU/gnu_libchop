@@ -163,5 +163,6 @@ chop_log_builtin_printf (chop_log_t *log, const char *fmt, va_list ap)
 
   write (log->fd, str, strlen (str));
 
-  chop_free (str, &chop_log_class);
+  /* Free the string allocated by `vasprintf ()'.  */
+  free (str);
 }
