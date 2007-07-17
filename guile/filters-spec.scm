@@ -18,6 +18,7 @@
 
 (define-module (filters-spec)
   #:use-module (core-spec)
+  #:use-module (logs-spec)
 
   #:use-module (oop goops)
   #:use-module (srfi srfi-1)
@@ -40,7 +41,7 @@
 
 (define-class <chop-filters-wrapset> (<gw-guile-wrapset>)
   #:id 'filters
-  #:dependencies '(standard core))
+  #:dependencies '(standard core logs))
 
 
 
@@ -134,7 +135,16 @@
 		  #:returns '<errcode>
 		  #:arguments '(((mchars caller-owned) zip-type)
                                 (int input-size        (default 0))
-				((<filter> out)        filter))))
+				((<filter> out)        filter)))
+
+  ;; methods
+
+  (wrap-function! ws
+                  #:name 'filter-log
+                  #:c-name "chop_filter_log"
+                  #:returns '(<log> null-ok)
+                  #:arguments '(((<filter> aggregated)  filter))
+                  #:description "Return the log attached to @var{filter}."))
 
 
 ;; arch-tag: e5d3a1f4-e328-4cfe-b878-51afc1a2d4ea
