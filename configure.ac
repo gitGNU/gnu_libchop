@@ -282,8 +282,7 @@ AC_CONFIG_FILES([Makefile
 
 AC_CONFIG_COMMANDS([pre-inst-guile-exec], [chmod +x guile/pre-inst-guile])
 
-# The `config.h' file is needed by Gnulib modules (we assume that they
-# automatically get `-I$(top_builddir)/include/chop').
-AC_CONFIG_LINKS(include/chop/config.h:include/chop/chop-config.h)
+# The `config.h' file is needed by Gnulib modules.
+AC_CONFIG_LINKS(lib/config.h:include/chop/chop-config.h)
 
 AC_OUTPUT
