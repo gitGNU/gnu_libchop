@@ -30,11 +30,7 @@ scm_log_printf (chop_log_t *log, const char *fmt, va_list args)
   char *str;
   SCM   proc = (SCM)chop_log_user_data (log);
 
-#ifdef __GNU_LIBRARY__
   vasprintf (&str, fmt, args);
-#else
-# error "You should consider using the GNU libc."
-#endif
 
   scm_call_1 (proc, scm_take_locale_string (str));
 }
