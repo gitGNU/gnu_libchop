@@ -59,8 +59,6 @@ else
    LIBS="$LIBS $LIBGCRYPT_LIBS"
 fi
 
-AC_CHECK_LIB([c], [vasprintf], [],
-  [AC_MSG_ERROR([`vasprintf' not found.  Are you using the GNU libc?])])
 AC_CHECK_LIB([gdbm], [gdbm_open], [],
   [AC_MSG_ERROR([`libgdbm' not found.  Come on, install it first.])])
 AC_CHECK_LIB([z], [deflate], [],
@@ -283,5 +281,9 @@ AC_CONFIG_FILES([Makefile
 		 doc/Makefile])
 
 AC_CONFIG_COMMANDS([pre-inst-guile-exec], [chmod +x guile/pre-inst-guile])
+
+# The `config.h' file is needed by Gnulib modules (we assume that they
+# automatically get `-I$(top_builddir)/include/chop').
+AC_CONFIG_LINKS(include/chop/config.h:include/chop/chop-config.h)
 
 AC_OUTPUT
