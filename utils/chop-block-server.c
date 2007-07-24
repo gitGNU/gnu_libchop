@@ -276,6 +276,7 @@ handle_write_block (block_store_write_block_args *argp, struct svc_req *req)
   if (!no_collision_check)
     {
       chop_buffer_t buffer;
+      int leave = 0;
       size_t read;
 
       chop_buffer_init (&buffer, 0);
@@ -305,15 +306,25 @@ handle_write_block (block_store_write_block_args *argp, struct svc_req *req)
 	      result = -3;
 	    }
 	  else
+	    /* No collision detected, nothing to write.  */
 	    result = 0;
+
+	  /* At any rate, we can leave here.  */
+	  leave = 1;
 	  break;
 
 	default:
-	  result = -2;
+	  info ("underlying store returned unexpectedly (%i: %s)",
+		(int) err, error_message (err));
+
+	  /* Ignore the problem and try to write to LOCAL_STORE.  This makes
+	     sense since, for instance, the dummy block store can return
+	     `CHOP_ERR_NOT_IMPL' on `read_block' requests.  */
+	  result = 0;
 	}
 
       chop_buffer_return (&buffer);
-      if (result)
+      if (leave)
 	return &result;
     }
 
