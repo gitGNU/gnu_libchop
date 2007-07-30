@@ -143,7 +143,7 @@ static struct argp_option options[] =
       "data when writing (resp. reading) to (resp. from) the archive.  "
       "ZIP-TYPE should be one of `zlib', `bzip2', or `lzo'." },
     { "remote",  'R', "HOST", 0,
-      "Use the remote block store located at HOST (using TCP) for both "
+      "Use the remote block store located at HOST for both "
       "data and meta-data blocks; HOST may contain `:' followed by a port "
       "number" },
     { "protocol", 'p', "PROTO", 0,
@@ -151,7 +151,7 @@ static struct argp_option options[] =
 #ifdef HAVE_GNUTLS
       "\"tls/tcp\", "
 #endif
-      "\"tcp\" or \"udp\") when communicating with "
+      "\"tcp\", \"udp\" or \"unix\") when communicating with "
       "the remote store" },
 #ifdef HAVE_GNUTLS
     { "openpgp-pubkey", 'o', "PUBKEY-FILE", 0,

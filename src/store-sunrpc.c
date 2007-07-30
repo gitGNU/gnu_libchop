@@ -16,6 +16,15 @@
 # include <gnutls/extra.h>
 #endif
 
+#include <sys/socket.h>
+#include <sys/un.h>
+
+#ifndef UNIX_PATH_MAX
+/* On GNU/Linux, Glibc doesn't define it but Linux *does* have this
+   limitation nevertheless.  */
+# define UNIX_PATH_MAX 108
+#endif
+
 #include <string.h>
 #include <errno.h>
 
@@ -270,30 +279,47 @@ sunrpc_block_store_open (const char *host, unsigned port,
 #ifdef HAVE_GNUTLS
   int use_tls = 0;
 #endif
-  long proto;
-  CLIENT *rpc_client;
+  long proto = IPPROTO_TCP + IPPROTO_UDP;
+  CLIENT *rpc_client = NULL;
   int *granted;
   char *hello_arg;
   int connection = -1;
   struct sockaddr_in addr;
   chop_sunrpc_block_store_t *remote = (chop_sunrpc_block_store_t *)store;
 
-  if (!strcasecmp (protocol, "tcp"))
-    proto = IPPROTO_TCP;
-  else if (!strcasecmp (protocol, "udp"))
-    proto = IPPROTO_UDP;
-  else if (!strcasecmp (protocol, "tls/tcp"))
-#ifdef HAVE_GNUTLS
-    use_tls = 1, proto = IPPROTO_TCP;
-#else
-    return CHOP_ERR_NOT_IMPL;
-#endif
+  if (!strcasecmp (protocol, "unix"))
+    {
+      struct sockaddr_un unix_addr;
+
+      unix_addr.sun_family = AF_UNIX;
+      if (strlen (host) + 1 > UNIX_PATH_MAX)
+	return CHOP_INVALID_ARG;
+      else
+	memcpy (unix_addr.sun_path, host, strlen (host) + 1);
+
+      rpc_client = clntunix_create (&unix_addr, BLOCK_STORE_PROGRAM,
+				    BLOCK_STORE_VERSION, &connection,
+				    0, 0);
+    }
   else
-    return CHOP_INVALID_ARG;
+    {
+      if (!strcasecmp (protocol, "tcp"))
+	proto = IPPROTO_TCP;
+      else if (!strcasecmp (protocol, "udp"))
+	proto = IPPROTO_UDP;
+      else if (!strcasecmp (protocol, "tls/tcp"))
+#ifdef HAVE_GNUTLS
+	use_tls = 1, proto = IPPROTO_TCP;
+#else
+      return CHOP_ERR_NOT_IMPL;
+#endif
+      else
+	return CHOP_INVALID_ARG;
 
 
-  if (get_host_inet_address (host, port, &addr))
-    return CHOP_INVALID_ARG; /* FIXME: Too vague */
+      if (get_host_inet_address (host, port, &addr))
+	return CHOP_INVALID_ARG; /* FIXME: Too vague */
+    }
 
 #ifdef HAVE_GNUTLS
   if (use_tls)
@@ -353,7 +379,7 @@ sunrpc_block_store_open (const char *host, unsigned port,
     rpc_client = clnttcp_create (&addr, BLOCK_STORE_PROGRAM,
 				 BLOCK_STORE_VERSION,
 				 &connection, 0, 0);
-  else
+  else if (proto == IPPROTO_UDP)
     {
       /* XXX: We might want to make UDP wait time configurable.  */
       struct timeval wait_time;
