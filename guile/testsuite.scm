@@ -25,6 +25,7 @@ exec ${GUILE-guile} -L modules -l $0 -c "(apply $main (cdr (command-line)))" "$@
 (define-module (testsuite))
 
 (use-modules (chop core)
+             (chop objects)
 	     (chop cipher)
 	     (chop filters)
 	     (chop streams)
@@ -73,6 +74,21 @@ exec ${GUILE-guile} -L modules -l $0 -c "(apply $main (cdr (command-line)))" "$@
 ;;;
 ;;; Individual tests.
 ;;;
+
+(define (t-class)
+  (and (every (lambda (name)
+                (equal? (class-name (class-lookup name))
+                        name))
+              '("fixed_size_chopper" "file_stream"
+                "hash_block_indexer" "chk_block_indexer"))
+       (object-is-a? (class-lookup "fixed_size_chopper")
+                     (class-lookup "chopper_class"))
+       (let ((input (mem-stream-open '#u8(1 2 3 4 5))))
+         (every (lambda (name)
+                  (let ((long-name (string-append name "_chopper")))
+                    (object-is-a? (chopper-generic-open name input)
+                                  (class-lookup long-name))))
+                '("fixed_size" "anchor_based")))))
 
 (define (t-stream)
   (stream-close (file-stream-open %test-input-file))
@@ -250,7 +266,8 @@ exec ${GUILE-guile} -L modules -l $0 -c "(apply $main (cdr (command-line)))" "$@
 	     %test-input-file))
 
   (for-each stress
-	    (list (unit-test stream)
+	    (list (unit-test class)
+                  (unit-test stream)
  		  (unit-test indexer+log)
  		  (unit-test hash)
  		  (unit-test cipher)
