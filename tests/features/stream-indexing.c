@@ -116,6 +116,16 @@ test_configuration (chop_indexer_t *indexer, chop_block_indexer_t *bi,
   if (initialize_store (store_class, store))
     return -1;
 
+  if (test_debug_mode ())
+    {
+      chop_block_store_t *debugger;
+
+      debugger = chop_class_alloca_instance (&chop_dummy_block_store_class);
+      chop_dummy_proxy_block_store_open ("store", store, debugger);
+      chop_log_attach (chop_dummy_block_store_log (debugger), 2, 0);
+      store = debugger;
+    }
+
   test_stage_intermediate ("indexing");
   index = chop_block_indexer_alloca_index_handle (bi);
   err = chop_indexer_index_blocks (indexer, chopper, bi,
