@@ -11,7 +11,8 @@ binding_specs = choppers-spec.scm cipher-spec.scm core-spec.scm		\
 		hash-spec.scm indexers-spec.scm stores-spec.scm		\
 		streams-spec.scm logs-spec.scm store-stats-spec.scm	\
 		filters-spec.scm block-indexers-spec.scm		\
-		store-browsers-spec.scm block-server-spec.scm
+		store-browsers-spec.scm block-server-spec.scm		\
+		objects-spec.scm
 
 built_c_files = $(binding_specs:%-spec.scm=%.c)
 built_scm_files =							\
@@ -26,7 +27,7 @@ libguile_chop_la_SOURCES = core-support.c
 libguile_chop_la_SOURCES += choppers.c cipher.c core.c hash.c	\
 		            indexers.c stores.c streams.c	\
 			    logs.c store-stats.c filters.c	\
-			    block-indexers.c
+			    block-indexers.c objects.c
 
 libguile_chop_la_LIBADD = $(top_builddir)/src/libchop.la
 
@@ -49,7 +50,8 @@ support_c_files = block-indexers-support.c	\
 		  store-stats-support.c		\
 		  stores-support.c		\
 		  streams-support.c		\
-		  block-server-support.c
+		  block-server-support.c	\
+		  objects-support.c
 
 
 EXTRA_DIST = $(binding_specs) $(support_c_files) README $(TESTS)
