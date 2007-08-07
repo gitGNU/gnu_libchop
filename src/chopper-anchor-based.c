@@ -401,28 +401,22 @@ read_sliding_window (chop_anchor_based_chopper_t *anchor,
 # define INLINED
 #endif
 
-static int sliding_window_unfull (sliding_window_t *) INLINED;
 static char * sliding_window_dest_buffer (sliding_window_t *,
 					  size_t **,
 					  size_t *) INLINED;
-static int sliding_window_unfull (sliding_window_t *) INLINED;
 static void sliding_window_increment_offset (sliding_window_t *) INLINED;
 
 
 
 /* Return non-zero if less than WINDOW->WINDOW_SIZE bytes are available from
    WINDOW's current offset.  */
-static inline int
-sliding_window_unfull (sliding_window_t *window)
-{
-  if (window->sizes[1] > 0)
-    return (window->offset > window->sizes[1]);
-
-  if (window->sizes[0] > 0)
-    return ((window->offset > 0) || (window->sizes[0] < window->window_size));
-
-  return 1;
-}
+#define sliding_window_unfull(window)				\
+  (((window)->sizes[1] > 0)					\
+   ? ((window)->offset > (window)->sizes[1])			\
+   : (((window)->sizes[0] > 0)					\
+      ? (((window)->offset > 0)					\
+	 || ((window)->sizes[0] < (window)->window_size))	\
+      : 1))
 
 /* Return a pointer to a WINDOW->WINDOW_SIZE byte buffer.  Return in
    DEST_SIZE a pointer to this buffer's size which should be updated and be
