@@ -16,6 +16,7 @@
 # include <gnutls/extra.h>
 #endif
 
+#include <string.h>
 #include <errno.h>
 
 
