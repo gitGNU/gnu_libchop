@@ -49,6 +49,8 @@ static struct argp_option options[] =
       "Show names of the given public key" },
     { "pk-algo", 'p', NULL, 0,
       "Show the public key algorithm of the given keys" },
+    { "key-usage", 'u', NULL, 0,
+      "Show the intended key usage" },
 
     { 0, 0, 0, 0, 0 }
   };
@@ -66,6 +68,7 @@ static int show_id = 0;
 static int show_fingerprint = 0;
 static int show_names = 0;
 static int show_pk_algorithm = 0;
+static int show_key_usage = 0;
 
 
 
@@ -101,6 +104,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
       break;
     case 'p':
       show_pk_algorithm = 1;
+      break;
+    case 'u':
+      show_key_usage = 1;
       break;
 
     default:
@@ -297,6 +303,40 @@ show_key_names (gnutls_openpgp_key_t pubkey)
   return (i == 0) ? err : 0;
 }
 
+static int
+show_pubkey_usage (gnutls_openpgp_key_t pubkey)
+{
+  int err;
+  unsigned int key_usage;
+
+  err = gnutls_openpgp_key_get_key_usage (pubkey, &key_usage);
+  if (!err)
+    {
+      printf ("key usage:");
+
+      if (key_usage & GNUTLS_KEY_DIGITAL_SIGNATURE)
+	printf ("\tdigital-signature");
+      if (key_usage & GNUTLS_KEY_NON_REPUDIATION)
+	printf ("\tnon-repudation");
+      if (key_usage & GNUTLS_KEY_KEY_ENCIPHERMENT)
+	printf ("\tkey-encipherment");
+      if (key_usage & GNUTLS_KEY_DATA_ENCIPHERMENT)
+	printf ("\tdata-encipherment");
+      if (key_usage & GNUTLS_KEY_KEY_AGREEMENT)
+	printf ("\tkey-agreement");
+      if (key_usage & GNUTLS_KEY_KEY_CERT_SIGN)
+	printf ("\tcertificate-signature");
+      if (key_usage & GNUTLS_KEY_CRL_SIGN)
+	printf ("\tcrl-signature");
+      if (key_usage & GNUTLS_KEY_ENCIPHER_ONLY)
+	printf ("\tencipher-only");
+
+      printf ("\n");
+    }
+
+  return err;
+}
+
 
 
 /* The program.  */
@@ -376,6 +416,12 @@ main (int argc, char *argv[])
 	  err = show_privkey_pk_algorithm (privkey);
 	  handle_error (err, "retrieving private key PK algorithm");
 	}
+    }
+
+  if (show_all || show_key_usage)
+    {
+      err = show_pubkey_usage (pubkey);
+      handle_error (err, "retrieving private key PK algorithm");
     }
 
   gnutls_openpgp_key_deinit (pubkey);
