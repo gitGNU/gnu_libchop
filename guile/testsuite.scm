@@ -90,6 +90,19 @@ exec ${GUILE-guile} -L modules -l $0 -c "(apply $main (cdr (command-line)))" "$@
                                   (class-lookup long-name))))
                 '("fixed_size" "anchor_based")))))
 
+(define (t-serialize)
+  (let ((input (mem-stream-open '#u8(1 2 3 4 5))))
+    (every (lambda (obj)
+             (let ((str (serialize-object/ascii obj)))
+               (string? str)))
+           (map block-indexer-make-fetcher
+                (list (hash-block-indexer-open 'hash-method/sha1)
+                      (chk-block-indexer-open (cipher-open
+                                               'cipher-algo/blowfish
+                                               'cipher-mode/ecb)
+                                              'hash-method/sha1
+                                              'hash-method/sha1))))))
+
 (define (t-stream)
   (stream-close (file-stream-open %test-input-file))
   (let* ((input (make-u8vector 500))
@@ -267,6 +280,7 @@ exec ${GUILE-guile} -L modules -l $0 -c "(apply $main (cdr (command-line)))" "$@
 
   (for-each stress
 	    (list (unit-test class)
+                  (unit-test serialize)
                   (unit-test stream)
  		  (unit-test indexer+log)
  		  (unit-test hash)
