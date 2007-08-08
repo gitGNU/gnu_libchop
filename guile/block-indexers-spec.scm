@@ -21,6 +21,7 @@
   #:use-module (hash-spec)
   #:use-module (cipher-spec)
   #:use-module (stores-spec)
+  #:use-module (objects-spec)
   #:use-module (logs-spec)
 
   #:use-module (oop goops)
@@ -43,7 +44,7 @@
 
 (define-class <chop-block-indexer-wrapset> (<gw-guile-wrapset>)
   #:id 'block-indexers
-  #:dependencies '(standard core hash cipher stores logs))
+  #:dependencies '(standard core objects hash cipher stores logs))
 
 
 (define-method (global-declarations-cg (ws <chop-block-indexer-wrapset>))
@@ -163,7 +164,7 @@
 		  #:name 'index-handle-ascii-deserialize
 		  #:returns '<errcode>
 		  #:c-name "chop_index_handle_ascii_deserialize"
-		  #:arguments '((<block-indexer> indexer)
+		  #:arguments '((<chop-class> index-class)
 				((mchars caller-owned) ascii-handle)
 				((<index-handle> out) handle)))
 
