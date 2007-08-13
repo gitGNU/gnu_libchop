@@ -205,15 +205,13 @@ chop_index_handle_ascii_serialize (const chop_index_handle_t *handle,
 }
 
 static inline errcode_t
-chop_index_handle_ascii_deserialize (chop_block_indexer_t *indexer,
+chop_index_handle_ascii_deserialize (const chop_class_t *handle_class,
 				     const char *ascii_handle,
 				     chop_index_handle_t **handle)
 {
   errcode_t err;
   size_t bytes_read;
-  const chop_class_t *handle_class;
 
-  handle_class = chop_block_indexer_index_handle_class (indexer);
   *handle = gwrap_chop_malloc (handle_class);
 
 #ifdef DEBUG
@@ -227,7 +225,7 @@ chop_index_handle_ascii_deserialize (chop_block_indexer_t *indexer,
 				 CHOP_SERIAL_ASCII,
 				 ascii_handle, strlen (ascii_handle),
 				 &bytes_read);
-  if (err)
+  if (CHOP_EXPECT_FALSE (err))
     {
       gwrap_chop_free_uninitialized ((chop_object_t *) *handle,
 				     handle_class);

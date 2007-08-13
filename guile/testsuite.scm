@@ -174,17 +174,20 @@ exec ${GUILE-guile} -L modules -l $0 -c "(apply $main (cdr (command-line)))" "$@
 	 (i (tree-indexer-open 100)))
     ;;(set! s #f)
     (let ((index (indexer-index-blocks i c bi sbs sbs)))
-      (format #f "index-handle: ~a~%"
-	      (index-handle-ascii-serialize index)))
-    (stream-close f)
-    (for-each store-close (list sbs s))
-    (let ((stats (stat-block-store-stats sbs)))
-      ;;(set! sbs #f)
-      ;;(gc)
-      (values (block-store-stats:blocks-written stats)
-	      (block-store-stats:virgin-bytes stats)
-	      (block-store-stats:average-block-size
-	       stats)))))
+      (and (equal? index
+                   (index-handle-ascii-deserialize
+                    (class-lookup "hash_index_handle")
+                    (index-handle-ascii-serialize index)))
+           (begin
+             (stream-close f)
+             (for-each store-close (list sbs s))
+             (let ((stats (stat-block-store-stats sbs)))
+               ;;(set! sbs #f)
+               ;;(gc)
+               (values (block-store-stats:blocks-written stats)
+                       (block-store-stats:virgin-bytes stats)
+                       (block-store-stats:average-block-size
+                        stats))))))))
 
 (define (t-complex2)
   (let ((s (filtered-stream-open (file-stream-open %test-input-file)
