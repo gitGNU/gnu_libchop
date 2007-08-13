@@ -25,9 +25,9 @@
   #:use-module (g-wrap)
   #:use-module (g-wrap c-codegen)
 
-  ;; Imported for their side effects.
   #:use-module (g-wrap rti)
   #:use-module (g-wrap c-types)
+  #:use-module (g-wrap enumeration)
   #:use-module (g-wrap ws standard)
 
   ;; Guile-specific things.
@@ -61,6 +61,12 @@
                 #:c-type-name "chop_class_t *"
                 #:c-const-type-name "const chop_class_t *")
 
+  (wrap-enum! ws
+              #:name 'serial-method
+              #:c-type-name "chop_serial_method_t"
+              #:values '((serial-method/ascii . "CHOP_SERIAL_ASCII")
+                         (serial-method/binary . "CHOP_SERIAL_BINARY")))
+
   (wrap-function! ws
                   #:name 'class-lookup
                   #:returns '<chop-class>
@@ -80,6 +86,33 @@
                   #:returns 'bool
                   #:c-name "chop_scm_object_is_a"
                   #:arguments '((scm obj)
-                                (<chop-class> class))))
+                                (<chop-class> class)))
+
+  (wrap-function! ws
+                  #:name 'serialize-object/ascii
+                  #:returns '<errcode>
+                  #:c-name "chop_scm_serialize_object_ascii"
+                  #:arguments '((scm object)
+                                ((mchars out caller-owned null-ok) str)))
+
+  (wrap-function! ws
+                  #:name 'deserialize-object
+                  #:returns '<errcode>
+                  #:c-name "chop_scm_deserialize_object"
+                  #:arguments '((<chop-class>       class)
+                                (serial-method      method)
+                                (<input-buffer>     input)
+                                ((scm out)          object)
+                                ((size_t out)       bytes-read)))
+  (wrap-function! ws
+                  #:name 'deserialize-object/ascii
+                  #:returns '<errcode>
+                  #:c-name "chop_scm_deserialize_object_ascii"
+                  #:arguments '((<chop-class>          class)
+                                ((mchars caller-owned) input)
+                                ((scm out)             object)
+                                ((size_t out)          bytes-read)))
+
+  )
 
 ;;; arch-tag: 2cd2fe41-15a1-4c31-ab75-2715e0e21fb1
