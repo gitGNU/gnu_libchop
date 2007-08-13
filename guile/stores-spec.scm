@@ -90,7 +90,6 @@
     (list "if (SCM_FALSEP (scm_u8vector_p (" (scm-var value) ")))"
 	  `(gw:error ,error-var type ,(wrapped-var value))
 	  "else { "
-	  "scm_gc_protect_object (" (scm-var value) ");\n"
 	  content-var " = " "scm_u8vector_elements ("
 	  (scm-var value)
 	  ", &" handle-var ", &" size-var ", &" increment-var ");\n"
@@ -126,7 +125,7 @@
      (list "\n/* post-call-arg-cg/block-key */\n"
 	   "if (scm_u8vector_p (" (scm-var param) ") == SCM_BOOL_T)\n{\n"
 	   "scm_array_handle_release (&" handle-var ");\n"
-	   "scm_gc_unprotect_object (" (scm-var param) ");\n}\n"))))
+	   "scm_remember_upto_here (" (scm-var param) ");\n}\n"))))
 
 (define-method (call-arg-cg (type <chop-block-key-type>)
 			    (value <gw-value>))
