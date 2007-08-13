@@ -571,6 +571,7 @@ chop_make_scheme_block_store (SCM read_block, SCM write_block,
       module = scm_c_resolve_module ("chop stores");
       guile_chop_store_type = scm_c_module_lookup (module, "<store>");
       guile_chop_store_type = scm_variable_ref (guile_chop_store_type);
+      guile_chop_store_type = scm_gc_protect_object (guile_chop_store_type);
     }
 
   /* We need to make sure that only one SMOB is created for this C object, so
