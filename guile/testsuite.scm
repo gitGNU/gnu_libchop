@@ -128,6 +128,20 @@ exec ${GUILE-guile} -L modules -l $0 -c "(apply $main (cdr (command-line)))" "$@
 ; 		       (false-if-exception (stream-read! s buf))
 		       )))))))
 
+(define (t-stream->port)
+  (let* ((input (make-u8vector 7777))
+         (port  (stream->port (mem-stream-open input)))
+         (buf   (make-u8vector 1)))
+    (let loop ((total 0))
+      (if (>= total (u8vector-length input))
+          (= total (u8vector-length input))
+          (let ((read (uniform-vector-read! buf port)))
+            (and (or (= read 0)
+                     (and (= read 1)
+                          (= (u8vector-ref input total)
+                             (u8vector-ref buf 0))))
+                 (loop (+ read total))))))))
+
 
 (define (t-indexer+log)
   (tree-indexer-log (tree-indexer-open 100)))
@@ -285,6 +299,7 @@ exec ${GUILE-guile} -L modules -l $0 -c "(apply $main (cdr (command-line)))" "$@
 	    (list (unit-test class)
                   (unit-test serialize)
                   (unit-test stream)
+                  (unit-test stream->port)
  		  (unit-test indexer+log)
  		  (unit-test hash)
  		  (unit-test cipher)

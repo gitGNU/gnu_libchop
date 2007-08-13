@@ -40,19 +40,16 @@
   #:id 'streams
   #:dependencies '(standard core filters))
 
-
-;; types
 
-;; A wrapped C pointer.
-(define-class <chop-stream-type> (<gw-wct>))
-
-
-
 (define-method (global-declarations-cg (ws <chop-stream-wrapset>))
   (list (next-method)
 	"#include <chop/chop.h>\n#include <chop/streams.h>\n\n"
 	"#include \"core-support.h\"\n"
 	"#include \"streams-support.c\"\n\n"))
+
+(define-method (initializations-cg (ws <chop-stream-wrapset>) error-var)
+  (list (next-method)
+        "chop_scm_init_stream_port_type ();\n"))
 
 
 (define-method (initialize (ws <chop-stream-wrapset>) initargs)
@@ -95,9 +92,6 @@
 				(bool  close-backend? (default #f))
 				((<stream> out)        stream)))
 
-  ;; FIXME: We could (should?) also provide a port interface for streams just
-  ;; like what `(gnome gnome-vfs)' does.
-
   (wrap-function! ws
 		  #:name 'stream-read!
 		  #:returns '<errcode>
@@ -111,7 +105,13 @@
 		  #:name 'stream-close
 		  #:returns 'void
 		  #:c-name "chop_stream_close"
-		  #:arguments '((<stream> stream))))
+		  #:arguments '((<stream> stream)))
+
+  (wrap-function! ws
+                  #:name 'stream->port
+                  #:returns 'scm
+                  #:c-name "make_stream_port"
+                  #:arguments '((scm  stream))))
 
 ;; Local Variables:
 ;; mode: scheme
