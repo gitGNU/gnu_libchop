@@ -13,7 +13,7 @@
 /* Define this to enable run-time tracking of the objects created and
    destroyed.  Among other things, this allows to check that an object about
    to be destroyed was actually constructed before.  */
-#define USE_OBJECT_TRACKER
+#undef USE_OBJECT_TRACKER
 
 /* If both USE_OBJECT_TRACKER and TRACK_OBJECT_LEAKS, then libchop will
    report about non-destroy objects when the program finishes.  */
@@ -613,6 +613,8 @@ chop_free_t     chop_internal_free = NULL;
 errcode_t
 chop_init (void)
 {
+  errcode_t err;
+
   initialize_chop_error_table ();
 
 #ifdef USE_OBJECT_TRACKER
@@ -624,7 +626,11 @@ chop_init (void)
 #endif
 #endif
 
-  return chop_log_init ("cipher", &chop_cipher_log);
+  err = _chop_cipher_init ();
+  if (CHOP_EXPECT_TRUE (err == 0))
+    err =  chop_log_init ("cipher", &chop_cipher_log);
+
+  return err;
 }
 
 errcode_t
