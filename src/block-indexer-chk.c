@@ -641,15 +641,15 @@ cbi_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 	chop_cipher_mode_t mode;
 	chop_hash_method_t key_hash_method, block_id_hash_method;
 
-#define FETCH_NAME(_name)			\
-    comma = memchr (buffer, ',', size);		\
-    if (!comma)					\
-      return CHOP_DESERIAL_CORRUPT_INPUT;	\
-						\
-    (_name) = alloca (comma - buffer + 1);	\
-    strncpy ((_name), buffer, comma - buffer);	\
-    (_name)[comma - buffer] = '\0';		\
-    *bytes_read += comma - buffer + 1;		\
+#define FETCH_NAME(_name)				\
+    comma = memchr (buffer, ',', size - *bytes_read);	\
+    if (!comma)						\
+      return CHOP_DESERIAL_CORRUPT_INPUT;		\
+							\
+    (_name) = alloca (comma - buffer + 1);		\
+    strncpy ((_name), buffer, comma - buffer);		\
+    (_name)[comma - buffer] = '\0';			\
+    *bytes_read += comma - buffer + 1;			\
     buffer = comma + 1;
 
         FETCH_NAME (algo_name);
