@@ -128,6 +128,13 @@ extern void chop_randomize (char *buffer, size_t size);
 
 
 
+/* Internal.  */
+
+/* Initialize the cipher subsystem.  */
+extern errcode_t _chop_cipher_init (void);
+
+
+
 /* Debugging.  */
 
 #include <chop/logs.h>

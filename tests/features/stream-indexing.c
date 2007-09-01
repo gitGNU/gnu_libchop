@@ -180,21 +180,17 @@ test_configuration (chop_indexer_t *indexer, chop_block_indexer_t *bi,
 int
 main (int argc, char *argv[])
 {
-  static long int random_data[789987];
+  static char random_data[1789987];
 
   errcode_t err;
   unsigned chopper_it, indexer_it, bi_it;
   size_t bytes_read = 0;
   chop_stream_t *stream;
-  long int *p;
 
   test_init (argv[0]);
   test_init_random_seed ();
 
-  for (p = random_data;
-       p < random_data + (sizeof (random_data) / sizeof (random_data[0]));
-       p++)
-    *p = random ();
+  test_randomize_input (random_data, sizeof (random_data));
 
   err = chop_init ();
   test_check_errcode (err, "initializing libchop");
@@ -238,7 +234,7 @@ main (int argc, char *argv[])
 	      const chop_class_t *bi_class = block_indexer_classes[bi_it];
 	      const char *bi_serial = block_indexer_serials[bi_it];
 
-	      chop_mem_stream_open ((char *)random_data,
+	      chop_mem_stream_open (random_data,
 				    sizeof (random_data),
 				    NULL, stream);
 
@@ -259,7 +255,7 @@ main (int argc, char *argv[])
 	      test_assert (bytes_read == strlen (bi_serial));
 
 	      if (test_configuration (indexer, bi, chopper,
-				      (char *)random_data,
+				      random_data,
 				      sizeof (random_data)))
 		return -1;
 

@@ -763,12 +763,13 @@ chk_index_block (chop_block_indexer_t *indexer,
   block_size = chop_cipher_algo_block_size (algo);
   cipher_key_size = chop_cipher_algo_key_size (algo);
   assert (block_size > 0);
+  assert (cipher_key_size > 0);
 
   hash_key_size = chop_hash_size (chk_indexer->key_hash_method);
   hash_key = alloca (hash_key_size);
   chop_hash_buffer (chk_indexer->key_hash_method, buffer, size, hash_key);
 
-  /* Most ciphering algorithm need the input size to be a multiple of
+  /* Most ciphering algorithms need the input size to be a multiple of
      their ciphering block size.  */
   padding_size = (size % block_size) ? (block_size - (size % block_size)) : 0;
   total_size = size + padding_size;
@@ -789,7 +790,7 @@ chk_index_block (chop_block_indexer_t *indexer,
   err = chop_cipher_set_key (cipher_handle, chk_handle->key,
 			     cipher_key_size);
 
-  while (err == CHOP_CIPHER_WEAK_KEY)
+  while (CHOP_EXPECT_FALSE (err == CHOP_CIPHER_WEAK_KEY))
     {
       /* The key we wanted to use was considered weak.  Hence, we use a
 	 random one, hoping that it won't be considered weak...  */
@@ -798,36 +799,38 @@ chk_index_block (chop_block_indexer_t *indexer,
 				 cipher_key_size);
     }
 
-  if (!err)
+  if (CHOP_EXPECT_TRUE (err == 0))
     err = chop_cipher_encrypt (cipher_handle,
 			       block_content, total_size,
 			       buffer, total_size);
 
-  chk_handle->key_size = cipher_key_size;
+  if (CHOP_EXPECT_TRUE (err == 0))
+    {
+      /* Compute the block key.  */
+      block_id_size = chop_hash_size (chk_indexer->block_id_hash_method);
+      chop_hash_buffer (chk_indexer->block_id_hash_method,
+			block_content, total_size,
+			chk_handle->block_id);
+      chk_handle->block_id_size = block_id_size;
+      chk_handle->key_size = cipher_key_size;
 
 
-  /* Compute the block key.  */
-  block_id_size = chop_hash_size (chk_indexer->block_id_hash_method);
-  chop_hash_buffer (chk_indexer->block_id_hash_method,
-		    block_content, total_size,
-		    chk_handle->block_id);
-  chk_handle->block_id_size = block_id_size;
+      /* Write the ciphered block to backing store.  */
+      chop_block_key_init (&key, chk_handle->block_id, block_id_size,
+			   NULL, NULL);
 
-  /* Write the ciphered block to backing store.  */
-  chop_block_key_init (&key, chk_handle->block_id, block_id_size,
-		       NULL, NULL);
+      err = chop_store_write_block (store, &key, block_content, total_size);
+      chk_handle->block_size = size;
 
-  err = chop_store_write_block (store, &key, block_content, total_size);
-  if (err)
-    chop_object_destroy ((chop_object_t *)handle);
-  else
-    chk_handle->block_size = size;
+      /* Again, the binary representation uses 8 bytes to store the
+	 `block_size' field.  */
+      chk_handle->index_handle.size =
+	chk_handle->key_size + chk_handle->block_id_size
+	+ BINARY_SERIALIZATION_HEADER_SIZE;
+    }
 
-  /* Again, the binary representation uses 8 bytes to store the `block_size'
-     field.  */
-  chk_handle->index_handle.size =
-    chk_handle->key_size + chk_handle->block_id_size
-    + BINARY_SERIALIZATION_HEADER_SIZE;
+  if (CHOP_EXPECT_FALSE (err != 0))
+    chop_object_destroy ((chop_object_t *) handle);
 
   return err;
 }

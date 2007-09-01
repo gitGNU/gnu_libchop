@@ -292,3 +292,16 @@ chop_cipher_hash_encrypt (chop_cipher_handle_t cipher_handle,
   return (err ? CHOP_INVALID_ARG : 0);  /* FIXME */
 }
 #endif
+
+errcode_t
+_chop_cipher_init ()
+{
+  const char *version;
+
+  version = gcry_check_version (GCRYPT_VERSION);
+
+  if (version != NULL)
+    return 0;
+  else
+    return CHOP_INVALID_ARG;
+}

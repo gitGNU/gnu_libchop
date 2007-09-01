@@ -38,9 +38,12 @@ main (int argc, char *argv[])
   chop_buffer_t buffer;
 
   test_init (argv[0]);
+  test_init_random_seed ();
+
   err = chop_init ();
   test_check_errcode (err, "initializing libchop");
 
+  test_randomize_input (random_bytes, sizeof (random_bytes));
   chop_block_key_init (&random_key, random_bytes, sizeof (random_bytes),
 		       NULL, NULL);
   chop_buffer_init (&buffer, sizeof (random_bytes));
