@@ -107,7 +107,9 @@ chop_file_stream_close (chop_stream_t *stream)
 {
   chop_file_stream_t *file = (chop_file_stream_t *)stream;
 
-  munmap (file->map, file->size);
+  if (file->map != NULL)
+    munmap (file->map, file->size);
+
   if (file->fd > 2)
     close (file->fd);
 
