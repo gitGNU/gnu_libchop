@@ -33,6 +33,15 @@ AC_PROG_LIBTOOL
 # Gnulib
 gl_INIT
 
+# GCC specifics.
+if test "x$GCC" = "xyes"; then
+  # We absolutely need `-fno-strict-aliasing' because of the casts
+  # used to deal with polymorphism.
+  CFLAGS="-fno-strict-aliasing $CFLAGS"
+  CFLAGS="-Wall -Winline -Wmissing-prototypes -Wpointer-arith $CFLAGS"
+  CFLAGS="-Wdeclaration-after-statement -Wcast-align $CFLAGS"
+fi
+
 # `rpcgen' (recommended)
 AC_PATH_PROG([rpcgen], [rpcgen],
   [AC_MSG_ERROR([`rpcgen' not found.  This is normally part of the GNU libc.])])
