@@ -1,11 +1,13 @@
 /* Contructors with a functional style that perform memory allocation by
    themselves.  */
 
+#include <chop/chop-config.h>
+
 #include <errno.h>
 #include <assert.h>
 
 
-static __inline__ errcode_t
+static inline errcode_t
 chop_fixed_size_chopper_open_alloc (chop_stream_t *input,
 				    size_t block_size, int pad_blocks,
 				    chop_chopper_t **chopper)
@@ -29,7 +31,7 @@ chop_fixed_size_chopper_open_alloc (chop_stream_t *input,
   return err;
 }
 
-static __inline__ errcode_t
+static inline errcode_t
 chop_anchor_based_chopper_open_alloc (chop_stream_t *input,
 				      size_t window_size,
 				      unsigned long magic_fpr_mask,
@@ -94,7 +96,7 @@ chop_chopper_generic_open_alloc (const char *class_nickname,
 }
 
 
-static __inline__ errcode_t
+static inline errcode_t
 chop_chopper_read_block_alloc_u8vector (chop_chopper_t *chopper,
 					SCM *result)
 {

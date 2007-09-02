@@ -5,11 +5,13 @@
    adding an `allocate-value-cg' method (counterpart of `destroy-value-cg')
    for `<gw-value>' objects.  */
 
+#include <chop/chop-config.h>
+
 #include <stdlib.h>
 #include <errno.h>
 #include <assert.h>
 
-static __inline__ chop_block_store_t *
+static inline chop_block_store_t *
 chop_dummy_block_store_open_alloc (const char *name)
 {
   chop_block_store_t *store;
@@ -22,7 +24,7 @@ chop_dummy_block_store_open_alloc (const char *name)
   return store;
 }
 
-static __inline__ chop_block_store_t *
+static inline chop_block_store_t *
 chop_dummy_proxy_block_store_open_alloc (const char *name,
 					 chop_block_store_t *backend)
 {
@@ -36,7 +38,7 @@ chop_dummy_proxy_block_store_open_alloc (const char *name,
   return store;
 }
 
-static __inline__ chop_block_store_t *
+static inline chop_block_store_t *
 chop_smart_block_store_open_alloc (chop_block_store_t *backend)
 {
   chop_block_store_t *store;
@@ -87,7 +89,7 @@ chop_file_based_store_open_alloc (const char *class_nickname,
 }
 
 
-static __inline__ errcode_t
+static inline errcode_t
 chop_gdbm_block_store_open_alloc (const char *name, size_t block_size,
 				  int open_flags, mode_t mode,
 				  chop_block_store_t **store)
@@ -110,7 +112,7 @@ chop_gdbm_block_store_open_alloc (const char *name, size_t block_size,
   return err;
 }
 
-static __inline__ errcode_t
+static inline errcode_t
 chop_tdb_block_store_open_alloc (const char *name, int hash_size,
 				 int open_flags, mode_t mode,
 				 chop_block_store_t **store)
@@ -132,7 +134,7 @@ chop_tdb_block_store_open_alloc (const char *name, int hash_size,
   return err;
 }
 
-static __inline__ errcode_t
+static inline errcode_t
 chop_sunrpc_block_store_open_alloc (const char *host, unsigned port,
 				    const char *protocol,
 				    chop_block_store_t **store)
@@ -153,7 +155,7 @@ chop_sunrpc_block_store_open_alloc (const char *host, unsigned port,
   return err;
 }
 
-static __inline__ errcode_t
+static inline errcode_t
 chop_sunrpc_tls_block_store_simple_open_alloc (const char *host,
 					       unsigned port,
 					       const char *pubkey_file,
@@ -178,7 +180,7 @@ chop_sunrpc_tls_block_store_simple_open_alloc (const char *host,
   return err;
 }
 
-static __inline__ errcode_t
+static inline errcode_t
 chop_store_read_block_alloc_u8vector (chop_block_store_t *store,
 				      const chop_block_key_t *key,
 				      SCM *result)
@@ -219,7 +221,7 @@ chop_store_read_block_alloc_u8vector (chop_block_store_t *store,
 }
 
 
-static __inline__ errcode_t
+static inline errcode_t
 chop_filtered_store_open_alloc (chop_filter_t *input, chop_filter_t *output,
 				chop_block_store_t *backend,
 				int close_backend,
@@ -251,7 +253,7 @@ chop_filtered_store_open_alloc (chop_filter_t *input, chop_filter_t *output,
 
 /* Block iterators.  */
 
-static __inline__ errcode_t
+static inline errcode_t
 chop_store_first_block_alloc (chop_block_store_t *store,
 			      chop_block_iterator_t **it)
 {
@@ -277,7 +279,7 @@ chop_store_first_block_alloc (chop_block_store_t *store,
   return err;
 }
 
-static __inline__ errcode_t
+static inline errcode_t
 chop_block_iterator_key_check_non_nil (chop_block_iterator_t *it,
 				       chop_block_key_t *key)
 {
@@ -530,7 +532,7 @@ scm_store_mark (chop_object_t *object)
 }
 
 
-static __inline__ SCM
+static inline SCM
 chop_make_scheme_block_store (SCM read_block, SCM write_block,
 			      SCM block_exists, SCM delete_block,
 			      SCM first_block, SCM it_next,

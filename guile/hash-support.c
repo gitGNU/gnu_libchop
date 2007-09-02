@@ -1,9 +1,11 @@
 /* Support routines for (chop hash).  */
 
+#include <chop/chop-config.h>
+
 #include <libguile.h>
 
 /* Directly return a ready-to-use Scheme u8vector.  */
-static __inline__ SCM
+static inline SCM
 chop_hash_buffer_alloc (chop_hash_method_t method,
 			const char *buffer, size_t size)
 {

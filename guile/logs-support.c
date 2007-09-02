@@ -1,12 +1,14 @@
 /* Support functions for the log interface wrapping.  */
 
+#include <chop/chop-config.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 
 #include "core-support.h"
 
 
-static __inline__ void
+static inline void
 chop_log_attach_to_port (chop_log_t *log, SCM port)
 #define FUNC_NAME "log-attach-to-port"
 {
@@ -57,7 +59,7 @@ scm_log_copy_ctor (chop_log_t *child, const chop_log_t *parent)
 			   scm_log_dtor, scm_log_copy_ctor);
 }
 
-static __inline__ void
+static inline void
 chop_log_attach_to_scheme_user (chop_log_t *log, SCM proc)
 {
   /* Protect PROC against garbage collection.  We'll unprotect it in
