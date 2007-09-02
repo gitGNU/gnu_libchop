@@ -517,6 +517,8 @@ extern const chop_class_t chop_gdbm_block_iterator_class,
   chop_bdb_block_iterator_class,
   chop_qdbm_block_iterator_class;
 
+const struct chop_class_entry *
+chop_lookup_class_entry (const char *str, unsigned int len);
 
 /* Include the gperf-generated perfect hash table.  */
 #include "class-lookup.c"
@@ -584,6 +586,7 @@ chop_hex_string_to_buffer (const char *hex, size_t size, char *buffer,
   *end = (char *)p;
 }
 
+#if 0
 void /* untested */
 chop_integer_to_hex_string (unsigned num, char *hex)
 {
@@ -601,6 +604,7 @@ chop_integer_to_hex_string (unsigned num, char *hex)
 
   *hex = '\0';
 }
+#endif
 
 
 
