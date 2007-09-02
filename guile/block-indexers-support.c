@@ -78,6 +78,8 @@ chop_chk_block_indexer_open_alloc (chop_cipher_handle_t cipher_handle,
 static inline errcode_t
 chop_uuid_block_indexer_open_alloc (chop_block_indexer_t **bi)
 {
+#ifdef HAVE_LIBUUID
+
   errcode_t err;
 
   *bi = gwrap_chop_malloc (&chop_uuid_block_indexer_class);
@@ -90,6 +92,14 @@ chop_uuid_block_indexer_open_alloc (chop_block_indexer_t **bi)
     }
 
   return err;
+
+#else /* !HAVE_LIBUUID */
+
+  *bi = NULL;
+
+  return CHOP_ERR_NOT_IMPL;
+
+#endif /* !HAVE_LIBUUID */
 }
 
 static inline errcode_t
