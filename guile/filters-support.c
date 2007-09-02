@@ -58,7 +58,7 @@ chop_zlib_unzip_filter_init_alloc (size_t input_size,
 
 /* Generic zip/unzip filters.  */
 
-static inline errcode_t
+static errcode_t
 chop_generic_zip_filter_open_alloc (const char *class_nickname,
 				    int compression_level, size_t input_size,
 				    chop_filter_t **filter)
@@ -89,7 +89,7 @@ chop_generic_zip_filter_open_alloc (const char *class_nickname,
   return err;
 }
 
-static inline errcode_t
+static errcode_t
 chop_generic_unzip_filter_open_alloc (const char *class_nickname,
 				      size_t input_size,
 				      chop_filter_t **filter)

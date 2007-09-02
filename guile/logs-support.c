@@ -1,6 +1,6 @@
 /* Support functions for the log interface wrapping.  */
 
-#define _GNU_SOURCE 1
+#include <stdlib.h>
 #include <stdio.h>
 
 #include "core-support.h"

@@ -50,7 +50,7 @@ chop_smart_block_store_open_alloc (chop_block_store_t *backend)
 }
 
 
-static __inline__ errcode_t
+static errcode_t
 chop_file_based_store_open_alloc (const char *class_nickname,
 				  const char *file, int open_flags,
 				  mode_t mode,

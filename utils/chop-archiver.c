@@ -195,7 +195,7 @@ static struct argp_option options[] =
 
 /* Archive STREAM onto DATA_STORE and METADATA_STORE.  Use CHOPPER and
    INDEXER in order to chop STREAM into blocks and then index blocks.  */
-errcode_t
+static errcode_t
 do_archive (chop_stream_t *stream, chop_block_store_t *data_store,
 	    chop_block_store_t *metadata_store,
 	    chop_chopper_t *chopper, chop_indexer_t *indexer)
@@ -303,7 +303,7 @@ do_archive (chop_stream_t *stream, chop_block_store_t *data_store,
 
 /* Retrieve data pointed to by HANDLE from DATA_STORE and METADATA_STORE
    using INDEXER and display it.  */
-errcode_t
+static errcode_t
 do_retrieve (chop_index_handle_t *handle,
 	     chop_indexer_t *indexer, chop_block_fetcher_t *fetcher,
 	     chop_block_store_t *data_store,

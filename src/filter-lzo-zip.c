@@ -33,6 +33,8 @@ CHOP_DECLARE_RT_CLASS_WITH_METACLASS (lzo_zip_filter, filter,
 
 
 /* LZO global initialization.  */
+extern errcode_t chop_initialize_lzo (void);
+
 errcode_t
 chop_initialize_lzo (void)
 {

@@ -55,7 +55,7 @@ chop_anchor_based_chopper_open_alloc (chop_stream_t *input,
   return err;
 }
 
-static __inline__ errcode_t
+static errcode_t
 chop_chopper_generic_open_alloc (const char *class_nickname,
 				 chop_stream_t *input,
 				 unsigned long typical_block_size,

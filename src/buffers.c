@@ -70,7 +70,7 @@ chop_buffer_init (chop_buffer_t *buffer, size_t size)
   return 0;
 }
 
-errcode_t
+static errcode_t
 chop_buffer_grow (chop_buffer_t *buffer, size_t size)
 {
   size_t new_size = buffer->real_size;

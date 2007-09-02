@@ -376,11 +376,11 @@ chop_avahi_store_browser_open (const char *domain,
 			       void *removal_data,
 			       chop_store_browser_t *browser)
 {
+  int error;
   chop_avahi_store_browser_t *avahi;
+  errcode_t ret = CHOP_INVALID_ARG;
 
   avahi = (chop_avahi_store_browser_t *)browser;
-  int error;
-  errcode_t ret = CHOP_INVALID_ARG;
 
   ret = chop_object_initialize ((chop_object_t *)avahi,
 				&chop_avahi_store_browser_class);
