@@ -18,6 +18,12 @@
 # include <stdarg.h>
 #endif
 
+#ifdef __GNUC__
+# define CHOP_TEST_PRINTF(x, y)  __attribute__ ((format (printf, x, y)))
+#else
+# define CHOP_TEST_PRINTF(x, y)
+#endif
+
 
 static const char *_test_program_name = NULL;
 
@@ -52,16 +58,13 @@ test_randomize_input (char *buffer, size_t size)
 }
 
 
-#ifdef __GNUC__
-# define TEST_PRINTF(y, z)     __attribute__ ((format (printf, y, z)))
-#else
-# define TEST_PRINTF(y, z)
-#endif
 
-static void test_stage (const char *, ...) TEST_PRINTF (1, 2);
-static void test_stage_intermediate (const char *, ...) TEST_PRINTF (1, 2);
+static void test_stage (const char *, ...)
+  _CHOP_UNUSED CHOP_TEST_PRINTF (1, 2);
+static void test_stage_intermediate (const char *, ...)
+  _CHOP_UNUSED CHOP_TEST_PRINTF (1, 2);
 
-static inline void
+static void
 test_stage (const char *fmt, ...)
 {
   char *msg;
@@ -77,7 +80,7 @@ test_stage (const char *fmt, ...)
   va_end (ap);
 }
 
-static inline void
+static void
 test_stage_intermediate (const char *fmt, ...)
 {
   char *msg;
@@ -105,7 +108,7 @@ test_stage_result (int result)
 /* Debugging messages.  */
 
 static void test_debug (const char *fmt, ...)
-     TEST_PRINTF (1, 2);
+  _CHOP_UNUSED CHOP_TEST_PRINTF (1, 2);
 
 static inline int
 test_debug_mode (void)
@@ -113,7 +116,7 @@ test_debug_mode (void)
   return (getenv ("CHOP_DEBUG") != NULL);
 }
 
-static inline void
+static void
 test_debug (const char *fmt, ...)
 {
   va_list ap;
