@@ -4,12 +4,14 @@
    arch-tag: 7bf927c0-f737-40bc-ab13-e88357a16782
    */
 
+#include <chop/chop-config.h>
+
 #include <stdlib.h>
 #include <errno.h>
 #include <assert.h>
 
 
-static __inline__ errcode_t
+static inline errcode_t
 chop_stat_block_store_open_alloc (const char *name,
 				  chop_block_store_t *backend,
 				  int close_backend,
@@ -36,7 +38,7 @@ chop_stat_block_store_open_alloc (const char *name,
   return err;
 }
 
-static __inline__ chop_block_store_stats_t *
+static inline chop_block_store_stats_t *
 chop_stat_block_store_stats_alloc (chop_block_store_t *store)
 {
   errcode_t err;

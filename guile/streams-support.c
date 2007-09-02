@@ -1,6 +1,8 @@
 /* Contructors with a functional style that perform memory allocation by
    themselves.  */
 
+#include <chop/chop-config.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>

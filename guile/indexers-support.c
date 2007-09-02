@@ -1,6 +1,8 @@
 /* Contructors with a functional style that perform memory allocation by
    themselves.  */
 
+#include <chop/chop-config.h>
+
 #include <errno.h>
 #include <assert.h>
 
@@ -9,7 +11,7 @@
 #endif
 
 
-static __inline__ errcode_t
+static inline errcode_t
 chop_tree_indexer_open_alloc (size_t keys_per_block,
 			      chop_indexer_t **indexer)
 {
@@ -28,7 +30,7 @@ chop_tree_indexer_open_alloc (size_t keys_per_block,
   return err;
 }
 
-static __inline__ errcode_t
+static inline errcode_t
 chop_indexer_index_blocks_alloc  (chop_indexer_t *indexer,
 				  chop_chopper_t *input,
 				  chop_block_indexer_t *block_indexer,
@@ -59,7 +61,7 @@ chop_indexer_index_blocks_alloc  (chop_indexer_t *indexer,
   return err;
 }
 
-static __inline__ errcode_t
+static inline errcode_t
 chop_indexer_fetch_stream_alloc (chop_indexer_t *indexer,
 				 const chop_index_handle_t *handle,
 				 chop_block_fetcher_t *fetcher,
@@ -86,7 +88,7 @@ chop_indexer_fetch_stream_alloc (chop_indexer_t *indexer,
 }
 
 
-static __inline__ errcode_t
+static inline errcode_t
 chop_ascii_serialize_index_tuple_alloc (chop_index_handle_t *index,
 					chop_indexer_t *indexer,
 					chop_block_indexer_t *block_indexer,
@@ -112,7 +114,7 @@ chop_ascii_serialize_index_tuple_alloc (chop_index_handle_t *index,
   return err;
 }
 
-static __inline__ errcode_t
+static inline errcode_t
 chop_ascii_deserialize_index_tuple_alloc (const char *serial,
 					  chop_index_handle_t **index,
 					  chop_indexer_t **indexer,
