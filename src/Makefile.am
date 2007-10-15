@@ -31,8 +31,7 @@ libchop_la_SOURCES = chop.c chop-errors.c logs.c		\
 		     stream-filtered.c
 
 AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include	\
-	      -I$(top_srcdir)/lib     -I$(top_builddir)/lib	\
-	      -D_GNU_SOURCE=1
+	      -I$(top_srcdir)/lib     -I$(top_builddir)/lib
 
 # Gnulib
 libchop_la_LIBADD = $(top_builddir)/lib/libgnu.la
