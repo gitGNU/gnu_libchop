@@ -57,13 +57,15 @@ Optional dependencies:
   zlib
   libbz2
   liblzo (version 1)
-  GNUtls 1.4.1 (or compatible --- recommended)
+
+  GnuTLS 1.4.1 (or compatible --- recommended)
+  Avahi 0.6 or later
 
 If you want to build the Guile bindings of libchop (you don't have to),
 then you'll need the following:
 
   GNU Guile 1.8
-  G-Wrap 1.9.6+ (see `guile/README')
+  G-Wrap 1.9.7 or later
 
 And that's it.
 
