@@ -15,7 +15,7 @@ AC_ARG_ENABLE([guile-bindings],
 	AS_HELP_STRING([--enable-guile-bindings],
 	  [produce Guile bindings (requires Guile and G-Wrap)]),
 	[produce_guile_bindings="$enableval"],
-	[produce_guile_bindings="no"])
+	[produce_guile_bindings="yes"])
 
 AC_ARG_WITH([dbus],
 	AS_HELP_STRING([--with-dbus],

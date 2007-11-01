@@ -12,6 +12,7 @@ binding_specs = choppers-spec.scm cipher-spec.scm core-spec.scm		\
 		objects-spec.scm
 
 built_c_files = $(binding_specs:%-spec.scm=%.c)
+built_h_files = $(binding_specs:%-spec.scm=%.h)
 built_scm_files =							\
   $(addprefix $(module_suffix)/, $(binding_specs:%-spec.scm=%.scm))
 
@@ -50,15 +51,18 @@ support_c_files = block-indexers-support.c	\
 		  block-server-support.c	\
 		  objects-support.c
 
+support_h_files = core-support.h
 
-EXTRA_DIST = $(binding_specs) $(support_c_files) README $(TESTS)
-CLEANFILES = $(built_c_files) $(built_scm_files)
+EXTRA_DIST = $(binding_specs) $(support_c_files) $(support_h_files)	\
+	     README $(TESTS)
+CLEANFILES = $(built_c_files) $(built_h_files) $(built_scm_files)
 
 
 AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include	\
 	      -I$(top_srcdir)/lib     -I$(top_builddir)/lib	\
+	      -I$(srcdir)             -I$(builddir)		\
 	      $(shell $(G_WRAP_CONFIG) --c-compile-args guile)
-AM_CFLAGS = -Wall -g
+
 LIBS = $(top_builddir)/src/libchop.la			\
        $(top_builddir)/lib/libgnu.la			\
        $(shell $(G_WRAP_CONFIG) --c-link-args guile)
