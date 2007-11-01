@@ -1,0 +1,66 @@
+Source: libchop
+Priority: extra
+Maintainer: Ludovic Courtès <ludo@gnu.org>
+Build-Depends: debhelper (>= 4), autotools-dev, gperf, comerr-dev, libgdbm-dev, tdb-dev, zlib1g-dev, libbz2-dev, liblzo-dev, libgnutls-dev (>= 1.6), libavahi-client-dev (>= 0.6), guile-1.8-dev, g-wrap (>= 1.9.7), libgwrap-runtime-dev (>= 1.9.7)
+Standards-Version: 3.7.2
+Section: libs
+
+Package: libchop-dev
+Section: libdevel
+Architecture: any
+Depends: libchop0 (= ${Source-Version})
+Description: `libchop', a toolkit for distributed storage
+ `libchop' is a C library that provides various tools for distributed
+ storage.  Although it was primarily designed as the basis of a
+ distributed cooperative backup tool, it may be applied to other
+ domains such as peer-to-peer storage and version control.
+ .
+ This package contains the C header files.
+
+Package: libchop0
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: `libchop', a toolkit for distributed storage
+ `libchop' is a C library that provides various tools for distributed
+ storage.  Although it was primarily designed as the basis of a
+ distributed cooperative backup tool, it may be applied to other
+ domains such as peer-to-peer storage and version control.
+ .
+ This package contains the C library.
+
+Package: libchop-bin
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: `libchop', a toolkit for distributed storage
+ `libchop' is a C library that provides various tools for distributed
+ storage.  Although it was primarily designed as the basis of a
+ distributed cooperative backup tool, it may be applied to other
+ domains such as peer-to-peer storage and version control.
+ .
+ This package contains command-line tools.
+
+Package: libchop-doc
+Section: libs
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: `libchop', a toolkit for distributed storage
+ `libchop' is a C library that provides various tools for distributed
+ storage.  Although it was primarily designed as the basis of a
+ distributed cooperative backup tool, it may be applied to other
+ domains such as peer-to-peer storage and version control.
+ .
+ This package contains the documentation.
+
+Package: libchop-guile
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: `libchop', a toolkit for distributed storage
+ `libchop' is a C library that provides various tools for distributed
+ storage.  Although it was primarily designed as the basis of a
+ distributed cooperative backup tool, it may be applied to other
+ domains such as peer-to-peer storage and version control.
+ .
+ This package contains GNU Guile 1.8 bindings.
