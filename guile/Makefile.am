@@ -4,9 +4,6 @@ lib_LTLIBRARIES = libguile-chop.la libguile-chop-store-browsers.la	\
 # Suffix of the Guile module directory.
 module_suffix = modules/chop
 
-# Installation directory for Guile modules.
-chop_moduledir = $(GUILE_SITE)/chop
-
 binding_specs = choppers-spec.scm cipher-spec.scm core-spec.scm		\
 		hash-spec.scm indexers-spec.scm stores-spec.scm		\
 		streams-spec.scm logs-spec.scm store-stats-spec.scm	\
@@ -18,7 +15,7 @@ built_c_files = $(binding_specs:%-spec.scm=%.c)
 built_scm_files =							\
   $(addprefix $(module_suffix)/, $(binding_specs:%-spec.scm=%.scm))
 
-nodist_chop_module_DATA = $(built_scm_files)
+nodist_guilemodule_DATA = $(built_scm_files)
 
 libguile_chop_la_SOURCES = core-support.c
 

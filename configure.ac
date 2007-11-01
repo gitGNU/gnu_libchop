@@ -23,6 +23,14 @@ AC_ARG_WITH([dbus],
 	[use_dbus="$withval"],
 	[use_dbus="no"])
 
+AC_ARG_WITH([guilemoduledir],
+  [use the specified installation path for Guile modules],
+  [case "x$withval" in
+     xyes|xno) guilemoduledir="";;
+     *)        guilemoduledir="$withval";;
+   esac],
+  [guilemoduledir=""])
+   
 
 # Checks for programs.
 AC_PROG_CC
@@ -272,6 +280,20 @@ if test "x$produce_guile_bindings" = "xyes"; then
 fi
 
 AM_CONDITIONAL(HAVE_GUILE, test "x$guile" != "x")
+
+pkgdatadir="$datadir/$PACKAGE_NAME"
+if test "x$guilemoduledir" = "x"; then
+  guilemoduledir="$pkgdatadir"
+fi
+AC_SUBST([guilemoduledir])
+
+if test "$guilemoduledir" != "$GUILE_SITE"; then
+   # Guile won't be able to locate the module "out of the box", so
+   # warn the user.
+   AC_MSG_WARN([`guilemoduledir' ($guilemoduledir) is different from `GUILE_SITE' ($GUILE_SITE).])
+   AC_MSG_WARN([Make sure to adjust the `GUILE_LOAD_PATH' environment variable accordingly,])
+   AC_MSG_WARN([or re-run `configure' with `--with-guilemoduledir=$GUILE_SITE'.])
+fi
 
 AC_CONFIG_FILES([Makefile
 		 guile/pre-inst-guile
