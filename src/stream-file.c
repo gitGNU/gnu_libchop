@@ -1,9 +1,23 @@
+/* Uncomment the following line to have file streams use `mmap'.  This is
+   quite unsafe, since "the effect of references to portions of the mapped
+   region that correspond to added or removed portions of the file is
+   unspecified" when the file is changed concurrently:
+
+   http://www.opengroup.org/onlinepubs/000095399/functions/mmap.html
+
+   On GNU/Linux, accessing to an mmapped file that has been modified (e.g.,
+   truncated) soon yields a segmentation fault.  */
+/* #define USE_MMAP */
+
 #include <chop/chop.h>
 #include <chop/streams.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/mman.h>
+#ifdef USE_MMAP
+# include <sys/mman.h>
+#endif
+
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
@@ -55,6 +69,7 @@ chop_file_stream_open (const char *path,
   if (fd == -1)
     return errno;
 
+#ifdef USE_MMAP
   map = mmap (0, file_stats.st_size, PROT_READ, MAP_SHARED, fd, 0);
   if (map == MAP_FAILED)
     {
@@ -63,6 +78,9 @@ chop_file_stream_open (const char *path,
     }
 
   madvise (map, file_stats.st_size, MADV_SEQUENTIAL);
+#else
+  map = NULL;
+#endif
 
   chop_object_initialize ((chop_object_t *)raw_stream,
 			  &chop_file_stream_class);
@@ -82,22 +100,64 @@ chop_file_stream_open (const char *path,
 
 static errcode_t
 chop_file_stream_read (chop_stream_t *stream,
-		       char *buffer, size_t howmuch, size_t *read)
+		       char *buffer, size_t howmuch, size_t *bytes_read)
 {
   chop_file_stream_t *file = (chop_file_stream_t *)stream;
+
+#ifdef USE_MMAP
+
   size_t remaining;
 
   if (file->position >= file->size)
     {
-      *read = 0;
+      *bytes_read = 0;
       return CHOP_STREAM_END;
     }
 
   remaining = file->size - file->position;
-  *read = (howmuch > remaining) ? remaining : howmuch;
+  *bytes_read = (howmuch > remaining) ? remaining : howmuch;
 
-  memcpy (buffer, &file->map[file->position], *read);
-  file->position += *read;
+  memcpy (buffer, &file->map[file->position], *bytes_read);
+
+#else
+
+  ssize_t amount, total_read = 0;
+
+  while (howmuch > 0)
+    {
+      amount = read (file->fd, buffer + total_read, howmuch);
+      if (amount > 0)
+	{
+	  total_read += amount;
+	  howmuch    -= amount;
+	}
+      else if (amount == 0)
+	{
+	  if (total_read == 0)
+	    return CHOP_STREAM_END;
+	  else
+	    break;
+	}
+      else
+	{
+	  if ((amount != EINTR)
+#ifdef EWOULDBLOCK
+	      && (amount != EWOULDBLOCK)
+#endif
+	      && (amount != EAGAIN))
+	    {
+	      /* Undo the operation.  */
+	      (void) lseek (file->fd, -total_read, SEEK_CUR);
+	      return amount;
+	    }
+	}
+    }
+
+  *bytes_read = total_read;
+
+#endif
+
+  file->position += *bytes_read;
 
   return 0;
 }
@@ -107,8 +167,10 @@ chop_file_stream_close (chop_stream_t *stream)
 {
   chop_file_stream_t *file = (chop_file_stream_t *)stream;
 
+#ifdef USE_MMAP
   if (file->map != NULL)
     munmap (file->map, file->size);
+#endif
 
   if (file->fd > 2)
     close (file->fd);
