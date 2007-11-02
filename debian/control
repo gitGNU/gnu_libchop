@@ -1,7 +1,7 @@
 Source: libchop
 Priority: extra
 Maintainer: Ludovic Courtès <ludo@gnu.org>
-Build-Depends: debhelper (>= 4), autotools-dev, gperf, comerr-dev, libgdbm-dev, tdb-dev, zlib1g-dev, libbz2-dev, liblzo-dev, libgnutls-dev (>= 1.6), libavahi-client-dev (>= 0.6), guile-1.8-dev, g-wrap (>= 1.9.7), libgwrap-runtime-dev (>= 1.9.7)
+Build-Depends: debhelper (>= 4), autotools-dev, gperf, comerr-dev, libgdbm-dev, tdb-dev, zlib1g-dev, libbz2-dev, liblzo-dev, libgnutls-dev (>= 1.6), libavahi-client-dev (>= 0.6), guile-1.8-dev, g-wrap (>= 1.9.7), libgwrap-runtime-dev (>= 1.9.7), guile-g-wrap (>= 1.9.7)
 Standards-Version: 3.7.2
 Section: libs
 
@@ -56,7 +56,7 @@ Description: `libchop', a toolkit for distributed storage
 Package: libchop-guile
 Section: libs
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, guile-g-wrap (>= 1.9.7)
 Description: `libchop', a toolkit for distributed storage
  `libchop' is a C library that provides various tools for distributed
  storage.  Although it was primarily designed as the basis of a
