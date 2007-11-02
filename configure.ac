@@ -115,12 +115,15 @@ fi
 
 
 # TDB, the Trivial Database (part of Samba)
-PKG_CHECK_MODULES([tdb], [tdb], [have_libtdb=yes], [have_libtdb=no])
+# XXX: We could use `pkg-config' but `tdb.pc' was not available in TDB 1.0.x.
+AC_CHECK_LIB([tdb], [tdb_open], [have_libtdb=yes], [have_libtdb=no])
+if test "x$have_libtdb" = "xyes"; then
+   AC_CHECK_HEADER([tdb.h], [], [have_libtdb=no])
+fi
 AM_CONDITIONAL([HAVE_TDB], test "x$have_libtdb" = "xyes")
 if test "x$have_libtdb" = "xyes"; then
    AC_DEFINE([HAVE_TDB], 1, [Tells whether libtdb is available.])
-   LIBS="$LIBS $tdb_LIBS"
-   CFLAGS="$CFLAGS $tdb_CFLAGS"
+   LIBS="$LIBS -ltdb"
 else
    AC_MSG_WARN([`libtdb' not found, won't be used])
 fi
