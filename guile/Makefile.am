@@ -16,7 +16,8 @@ built_h_files = $(binding_specs:%-spec.scm=%.h)
 built_scm_files =							\
   $(addprefix $(module_suffix)/, $(binding_specs:%-spec.scm=%.scm))
 
-nodist_guilemodule_DATA = $(built_scm_files)
+chopguilemoduledir          = $(guilemoduledir)/chop
+nodist_chopguilemodule_DATA = $(built_scm_files)
 
 libguile_chop_la_SOURCES = core-support.c
 
