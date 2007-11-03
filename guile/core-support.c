@@ -133,7 +133,7 @@ chop_scm_realloc (void *data, size_t size,
   const char *what;
 
   what = klass ? chop_class_name (klass) : "<chop-internal>";
-  header = (alloc_header_t *) ((char *) data - sizeof (size_t));
+  header = (alloc_header_t *) (void *) ((char *) data - sizeof (size_t));
 
   header = scm_gc_realloc (header,
 			   header->size + sizeof (size_t),
@@ -156,7 +156,7 @@ chop_scm_free (void *data, const chop_class_t *klass)
   const char *what;
 
   what = klass ? chop_class_name (klass) : "<chop-internal>";
-  header = (alloc_header_t *) ((char *) data - sizeof (size_t));
+  header = (alloc_header_t *) (void *) ((char *) data - sizeof (size_t));
 
 #ifdef DEBUG
   printf ("freeing %u bytes at %p [header %p], class `%s'\n",
