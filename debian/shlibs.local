@@ -1,0 +1,4 @@
+libchop	0	libchop0 (>= 0.0)
+libchop-block-server	 0   libchop0 (>= 0.0)
+libchop-store-browsers	 0   libchop0 (>= 0.0)
+libguile-chop		 0   libchop-guile (>= 0.0)
