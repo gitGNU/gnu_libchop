@@ -186,7 +186,10 @@ make_default_tls_session (gnutls_session_t session,
      ciphersuite that supports `NULL' encryption.  */
   static const int cipher_prio[] =
     { GNUTLS_CIPHER_NULL, GNUTLS_CIPHER_ARCFOUR_128,
-      GNUTLS_CIPHER_AES_128_CBC, GNUTLS_CIPHER_AES_256_CBC, 0 };
+      GNUTLS_CIPHER_AES_128_CBC, GNUTLS_CIPHER_AES_256_CBC,
+      GNUTLS_CIPHER_3DES_CBC, GNUTLS_CIPHER_DES_CBC,
+      GNUTLS_CIPHER_RIJNDAEL_128_CBC, GNUTLS_CIPHER_RIJNDAEL_256_CBC,
+      0 };
 
   /* Likewise, we will rarely need compression.  */
   static const int compression_prio[] =
