@@ -19,22 +19,24 @@ built_scm_files =							\
 chopguilemoduledir          = $(guilemoduledir)/chop
 nodist_chopguilemodule_DATA = $(built_scm_files)
 
-libguile_chop_la_SOURCES = core-support.c
+libguile_chop_la_SOURCES =				\
+  core-support.c $(support_c_files) $(support_h_files)
 
 # Crap.  We can't use $(built_c_files) here because Automake will
 # fail to compute the right $(libguile_chop_la_OBJECTS) if we do so.
-libguile_chop_la_SOURCES += choppers.c cipher.c core.c hash.c	\
-		            indexers.c stores.c streams.c	\
-			    logs.c store-stats.c filters.c	\
-			    block-indexers.c objects.c
+nodist_libguile_chop_la_SOURCES =		\
+  choppers.c cipher.c core.c hash.c		\
+  indexers.c stores.c streams.c			\
+  logs.c store-stats.c filters.c		\
+  block-indexers.c objects.c
 
 libguile_chop_la_LIBADD = $(top_builddir)/src/libchop.la
 
-libguile_chop_store_browsers_la_SOURCES = store-browsers.c
+nodist_libguile_chop_store_browsers_la_SOURCES = store-browsers.c
 libguile_chop_store_browsers_la_LIBADD =		\
     $(top_builddir)/src/libchop-store-browsers.la libguile-chop.la
 
-libguile_chop_block_server_la_SOURCES = block-server.c
+nodist_libguile_chop_block_server_la_SOURCES = block-server.c
 libguile_chop_block_server_la_LIBADD =			\
     $(top_builddir)/src/libchop-block-server.la libguile-chop.la
 
@@ -54,8 +56,7 @@ support_c_files = block-indexers-support.c	\
 
 support_h_files = core-support.h
 
-EXTRA_DIST = $(binding_specs) $(support_c_files) $(support_h_files)	\
-	     README $(TESTS)
+EXTRA_DIST = $(binding_specs) README $(TESTS)
 CLEANFILES = $(built_c_files) $(built_h_files) $(built_scm_files)
 
 
