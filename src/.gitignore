@@ -1,0 +1,4 @@
+block_rstore.h
+block_rstore_*.c
+chop-errors.c
+class-lookup.c
