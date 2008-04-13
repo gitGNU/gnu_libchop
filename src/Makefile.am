@@ -92,11 +92,10 @@ rpc_headers      = block_rstore.h \
   $(top_builddir)/include/chop/block_rstore.h
 
 nodist_libchop_la_SOURCES = $(rpc_client_stubs) $(rpc_xdr)
-BUILT_SOURCES  = $(rpc_headers)
+BUILT_SOURCES  = $(rpc_headers) $(rpc_server_stubs)
 
 # The convenience library for block store RPC servers.
 libchop_block_server_la_SOURCES   = block-server.c $(rpc_xdr)
-nodist_libchop_block_server_la_SOURCES = $(rpc_server_stubs) $(rpc_xdr)
 libchop_block_server_la_LIBADD    = libchop.la $(AM_LIBS)
 libchop_block_server_la_CPPFLAGS  = $(AM_CPPFLAGS)
 
