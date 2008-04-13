@@ -290,12 +290,14 @@ if test "x$guilemoduledir" = "x"; then
 fi
 AC_SUBST([guilemoduledir])
 
-if test "$guilemoduledir" != "$GUILE_SITE"; then
-   # Guile won't be able to locate the module "out of the box", so
-   # warn the user.
-   AC_MSG_WARN([`guilemoduledir' ($guilemoduledir) is different from `GUILE_SITE' ($GUILE_SITE).])
-   AC_MSG_WARN([Make sure to adjust the `GUILE_LOAD_PATH' environment variable accordingly,])
-   AC_MSG_WARN([or re-run `configure' with `--with-guilemoduledir=$GUILE_SITE'.])
+if test "x$produce_guile_bindings" = "xyes"; then
+  if test "$guilemoduledir" != "$GUILE_SITE"; then
+     # Guile won't be able to locate the module "out of the box", so
+     # warn the user.
+     AC_MSG_WARN([`guilemoduledir' ($guilemoduledir) is different from `GUILE_SITE' ($GUILE_SITE).])
+     AC_MSG_WARN([Make sure to adjust the `GUILE_LOAD_PATH' environment variable accordingly,])
+     AC_MSG_WARN([or re-run `configure' with `--with-guilemoduledir=$GUILE_SITE'.])
+  fi
 fi
 
 AC_CONFIG_FILES([Makefile
