@@ -263,7 +263,8 @@ if test "x$produce_guile_bindings" = "xyes"; then
        AC_MSG_ERROR([Could not find `g-wrap-config'.  You mush has G-Wrap to produce Guile bindings.]))
 
      AC_MSG_CHECKING([whether G-Wrap's version is 1.9.7+])
-     if "$g_wrap_config" --version | grep ['1.9.[7-9]'] > /dev/null; then
+     if "$g_wrap_config" --version | grep ['1.9.[7-9]'] > /dev/null || \
+        "$g_wrap_config" --version | grep ['1.9.[1-9][0-9]'] > /dev/null ; then
        AC_MSG_RESULT([yes])
      else
        AC_MSG_RESULT([no])
