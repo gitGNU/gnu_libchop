@@ -1,3 +1,9 @@
+-*- org -*-
+
+* Get an external copy of libcom_err, as done in libtasn1 or Heimdal.
+
+* Implement a file system based block store (à la Git).
+
 * Write more documentation.
 
 * Introduce copy constructors (grep the code for `FIXME' and `copy' to
@@ -5,9 +11,5 @@
 
 * Implement a DBus-based block store.
 
-* Implement a bzip2 filter.
-
 * Experiment with simple erasure codes, like B-Codes.  Not sure this belong
   to libchop though.
-
-;;; arch-tag: d9cd6b46-5141-4f45-a9f1-90cbea4ec495
