@@ -32,7 +32,7 @@ AC_ARG_WITH([guilemoduledir],
   [guilemoduledir=""])
    
 
-# Checks for programs.
+dnl Checks for programs.
 AC_PROG_CC
 gl_EARLY
 AM_PROG_CC_C_O
@@ -50,27 +50,31 @@ if test "x$GCC" = "xyes"; then
   CFLAGS="-Wdeclaration-after-statement -Wcast-align $CFLAGS"
 fi
 
-# `rpcgen' (recommended)
-AC_PATH_PROG([rpcgen], [rpcgen],
-  [AC_MSG_ERROR([`rpcgen' not found.  This is normally part of the GNU libc.])])
-AC_SUBST([RPCGEN], [$rpcgen])
+dnl ONC RPC's `rpcgen'.
+AC_PATH_PROG([RPCGEN], [rpcgen])
+if test "x$RPCGEN" = "x"; then
+   AC_MSG_ERROR([`rpcgen' not found.  It is part of GNU C Library.])
+fi
+AC_SUBST([RPCGEN])
 
-# Checkpoint the cache
+dnl Checkpoint the cache
 AC_CACHE_SAVE
 
-# libcom_err2.
-AC_PATH_PROG([compile_et], [compile_et],
-  [AC_MSG_ERROR([Could not find `compile_et'.  Please, install `libcom_err'])])
-AC_SUBST([COMPILE_ET], [$compile_et])
+dnl libcom_err2.
+AC_PATH_PROG([COMPILE_ET], [compile_et])
+if test "x$COMPILE_ET" = "x"; then
+   AC_MSG_ERROR([Could not find `compile_et'.  Please, install `libcom_err' (part of e2fsprogs).])
+fi
+AC_SUBST([COMPILE_ET])
 PKG_CHECK_EXISTS([com_err],
   [CPPFLAGS="$CPPFLAGS `$PKG_CONFIG com_err --cflags`"
    LIBS="$LIBS `$PKG_CONFIG com_err --libs`"],
-  [AC_MSG_ERROR([`libcom_err' is not available.  Please, install it first.])])
+  [AC_MSG_ERROR([`libcom_err' is not available.  Please, install it first (part of e2fsprogs).])])
 
-# Checks for libraries.
+dnl Checks for libraries.
 AM_PATH_LIBGCRYPT([1.2.0], [has_libgcrypt=yes], [has_libgcrypt=no])
 if test "x$has_libgcrypt" != "xyes"; then
-   AC_MSG_ERROR([`libgcrypt' 1.2+ not found.  Please, install it first.])
+   AC_MSG_ERROR([GNU libgcrypt 1.2+ not found.  Please, install it first.])
 else
    CPPFLAGS="$CPPFLAGS $LIBGCRYPT_CFLAGS"
    LIBS="$LIBS $LIBGCRYPT_LIBS"
@@ -238,9 +242,9 @@ AC_CACHE_SAVE
 
 # Look for GNU Gperf (used for O(1) class lookup).
 AC_PATH_PROG([gperf], [gperf], [not-found])
-AM_CONDITIONAL(HAVE_GPERF, test "x$gperf" != "xnot-found")
+AM_CONDITIONAL([HAVE_GPERF], [test "x$gperf" != "xnot-found"])
 if test "x$gperf" != "xnot-found"; then
-  AC_SUBST(GPERF, $gperf)
+  AC_SUBST([GPERF], [$gperf])
   AC_DEFINE([HAVE_GPERF], 1, [Tells whether GNU Gperf is available.])   
 else
   AC_MSG_WARN([Class lookup by name will not be compiled in])
@@ -248,8 +252,7 @@ fi
 
 if test "x$produce_guile_bindings" = "xyes"; then
   # Check for Guile and G-Wrap
-  AC_PATH_PROG([guile], [guile],
-    AC_MSG_WARN([Guile not found.  Not building Guile bindings.]))
+  AC_PATH_PROG([guile], [guile])
 
   if test "x$guile" != "x"; then
      GUILE_PROGS
@@ -259,27 +262,31 @@ if test "x$produce_guile_bindings" = "xyes"; then
   #   AC_CHECK_LIB([guile], [scm_u8vector_elements], [],
   #     AC_MSG_ERROR([You version of Guile doesn't support SRFI-4 vectors.  Upgrade to 1.7.2 or later.]))
 
-     AC_PATH_PROG([g_wrap_config], [g-wrap-config],
-       AC_MSG_ERROR([Could not find `g-wrap-config'.  You mush has G-Wrap to produce Guile bindings.]))
-
-     AC_MSG_CHECKING([whether G-Wrap's version is 1.9.7+])
-     if "$g_wrap_config" --version | grep ['1.9.[7-9]'] > /dev/null || \
-        "$g_wrap_config" --version | grep ['1.9.[1-9][0-9]'] > /dev/null ; then
-       AC_MSG_RESULT([yes])
+     AC_PATH_PROG([g_wrap_config], [g-wrap-config])
+     if test "x$g_wrap_config" = "x"; then
+       AC_MSG_ERROR([Could not find `g-wrap-config'.  You must have G-Wrap to produce Guile bindings.])
      else
-       AC_MSG_RESULT([no])
-       AC_MSG_ERROR([Please, use the right G-Wrap version.])
-     fi
+       AC_MSG_CHECKING([whether G-Wrap's version is 1.9.7+])
+       if "$g_wrap_config" --version | grep ['1.9.[7-9]'] > /dev/null || \
+	  "$g_wrap_config" --version | grep ['1.9.[1-9][0-9]'] > /dev/null ; then
+	 AC_MSG_RESULT([yes])
+       else
+	 AC_MSG_RESULT([no])
+	 AC_MSG_ERROR([Please, use the right G-Wrap version.])
+       fi
 
-     # Make sure G-Wrap is usable, i.e., its modules are in
-     # `$GUILE_LOAD_PATH' or some such.
-     GUILE_MODULE_AVAILABLE([have_g_wrap_module], [(g-wrap)])
-     if test "x$have_g_wrap_module" = "xno"; then
-	AC_MSG_ERROR([Module `(g-wrap)' is not in Guile's load path.])
-     fi
+       # Make sure G-Wrap is usable, i.e., its modules are in
+       # `$GUILE_LOAD_PATH' or some such.
+       GUILE_MODULE_AVAILABLE([have_g_wrap_module], [(g-wrap)])
+       if test "x$have_g_wrap_module" = "xno"; then
+	  AC_MSG_ERROR([Module `(g-wrap)' is not in Guile's load path.])
+       fi
 
-     AC_SUBST(GUILE, $guile)
-     AC_SUBST(G_WRAP_CONFIG, $g_wrap_config)
+       AC_SUBST(GUILE, $guile)
+       AC_SUBST(G_WRAP_CONFIG, $g_wrap_config)
+     fi
+  else
+    AC_MSG_WARN([GNU Guile not found.  Not building Guile bindings.])
   fi
 fi
 
