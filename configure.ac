@@ -13,9 +13,9 @@ AC_CONFIG_MACRO_DIR(m4)
 
 AC_ARG_ENABLE([guile-bindings],
 	AS_HELP_STRING([--enable-guile-bindings],
-	  [produce Guile bindings (requires Guile and G-Wrap)]),
+	  [produce GNU Guile bindings (requires Guile and G-Wrap)]),
 	[produce_guile_bindings="$enableval"],
-	[produce_guile_bindings="yes"])
+	[produce_guile_bindings="no"])
 
 AC_ARG_WITH([dbus],
 	AS_HELP_STRING([--with-dbus],
