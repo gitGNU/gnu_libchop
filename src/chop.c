@@ -503,9 +503,11 @@ extern const chop_class_t chop_hash_index_handle_class,
   chop_chk_index_handle_class,
   chop_chk_block_indexer_class,
   chop_chk_block_fetcher_class,
+#ifdef HAVE_LIBUUID
   chop_uuid_index_handle_class,
   chop_uuid_block_indexer_class,
   chop_uuid_block_fetcher_class,
+#endif
   chop_integer_index_handle_class,
   chop_integer_block_indexer_class,
   chop_integer_block_fetcher_class,
