@@ -56,7 +56,7 @@ Optional dependencies:
   SleepyCat's Berkeley DB (BDB) 4.4 (4.3 should work too)
   zlib
   libbz2
-  liblzo (version 1)
+  liblzo2
 
   GnuTLS 1.4.1 (or compatible --- recommended)
   Avahi 0.6 or later
