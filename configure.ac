@@ -104,17 +104,17 @@ else
 fi
 
 
-# LZO (GPL'd, lightweight, fast compression)
-AC_CHECK_LIB([lzo], [lzo1x_decompress], [have_lzo=yes], [have_lzo=no])
+dnl LZO (GPL'd, lightweight, fast compression)
+AC_CHECK_LIB([lzo2], [lzo1x_decompress], [have_lzo=yes], [have_lzo=no])
 if test "x$have_lzo" = "xyes"; then
-   AC_CHECK_HEADER([lzo1x.h], [], [have_lzo=no])
+   AC_CHECK_HEADER([lzo/lzo1x.h], [], [have_lzo=no])
 fi
 AM_CONDITIONAL([HAVE_LZO], test "x$have_lzo" = "xyes")
 if test "x$have_lzo" = "xyes"; then
    AC_DEFINE([HAVE_LZO], 1, [Tells whether the LZO library is available.])
-   LIBS="$LIBS -llzo"
+   LIBS="$LIBS -llzo2"
 else
-   AC_MSG_WARN([`liblzo' not found, won't be used.])
+   AC_MSG_WARN([`liblzo2' not found, won't be used.])
 fi
 
 

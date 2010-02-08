@@ -1,7 +1,10 @@
-/* Note: To allow GPLv3 licensing of libchop, we must be using LZO version 1
-   and not LZO version 2, because the latter is released under GPL version 2
-   *only*, while the former is released under GPL version 2 or later.
-   <lzo1x.h> is LZO version 1, and <lzo/lzo1x.h> would be LZO version 2.  */
+/* Note: LZO 2.03 is GPLv2 or later (unlike previous releases of LZO 2.x,
+   which were GPLv2-only), which allows libchop to be GPLv3+.
+
+   <lzo1x.h> corresponds LZO version 1, and <lzo/lzo1x.h> corresponds LZO
+   2.x.  */
+
+#include <chop/chop-config.h>
 
 #include <chop/chop.h>
 #include <chop/objects.h>
@@ -14,7 +17,7 @@
 #include <arpa/inet.h>
 #include <stdlib.h>  /* For Gnulib's `malloc ()' */
 
-#include <lzo1x.h>
+#include <lzo/lzo1x.h>
 
 
 /* Define `chop_lzo_zip_filter_t' which inherits from `chop_filter_t'.  */

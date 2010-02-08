@@ -9,7 +9,7 @@
 #include <arpa/inet.h>
 #include <stdlib.h>  /* For Gnulib's `malloc ()' */
 
-#include <lzo1x.h>
+#include <lzo/lzo1x.h>
 
 
 /* Define `chop_lzo_unzip_filter_t' which inherits from `chop_filter_t'.  */
