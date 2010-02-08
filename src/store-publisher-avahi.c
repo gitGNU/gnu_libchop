@@ -3,6 +3,8 @@
 
 /* Based on the `client-publish-service.c' example from Avahi.  */
 
+#include <chop/chop-config.h>
+
 #include <alloca.h>
 
 #include <chop/logs.h>

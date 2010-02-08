@@ -1,3 +1,5 @@
+#include <chop/chop-config.h>
+
 #include <chop/chop.h>
 #include <chop/streams.h>
 #include <chop/choppers.h>
@@ -6,8 +8,6 @@
 #include <chop/filters.h>
 
 #include <chop/indexers.h>
-
-#include <chop/chop-config.h>
 
 #ifdef HAVE_GNUTLS
 # include <gnutls/gnutls.h>

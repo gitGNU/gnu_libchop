@@ -4,13 +4,14 @@
 
 /* Based on `client-browse-services.c' in Avahi.  */
 
+#include <chop/chop-config.h>
+
 #include <chop/chop.h>
 #include <chop/objects.h>
 #include <chop/store-browsers.h>
 
 #include <chop/logs.h>
 #include <chop/stores.h>
-#include <chop/chop-config.h>
 
 
 #ifdef HAVE_AVAHI

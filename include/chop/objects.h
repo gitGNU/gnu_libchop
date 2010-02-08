@@ -364,9 +364,6 @@ chop_object_serialize (const chop_object_t *__object,
 }
 
 
-#include <chop/chop-config.h>
-
-#ifdef HAVE_GPERF
 /* Note: we currently use GPerf for provide an O(1) lookup of all the
    built-in classes.  */
 
@@ -376,8 +373,6 @@ chop_object_serialize (const chop_object_t *__object,
    "stream".  */
 extern const chop_class_t *chop_class_lookup (const char *name)
      _CHOP_PURE_FUNC;
-
-#endif
 
 
 _CHOP_END_DECLS

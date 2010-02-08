@@ -12,11 +12,12 @@
        In Proceedings of the Usenix Winter 1994 Conference, pages 1--10,
        January, 1994, http://www.cs.arizona.edu/research/reports.html.  */
 
+#include <chop/chop-config.h>
+
 #include <alloca.h>
 
 #include <chop/chop.h>
 #include <chop/choppers.h>
-#include <chop/chop-config.h>
 
 #include <string.h>
 #include <stdint.h>

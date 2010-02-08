@@ -1,10 +1,11 @@
+#include <chop/chop-config.h>
+
 #include <alloca.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
 
 #include <chop/chop.h>
-#include <chop/chop-config.h>
 #include <chop/buffers.h>
 #include <chop/objects.h>
 #include <chop/stores.h>

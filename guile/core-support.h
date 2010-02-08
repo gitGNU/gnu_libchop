@@ -3,9 +3,9 @@
 #ifndef __CHOP_CORE_SUPPORT_H__
 #define __CHOP_CORE_SUPPORT_H__
 
+#include <chop/chop-config.h>
 #include <chop/chop.h>
 #include <chop/objects.h>
-#include <chop/chop-config.h>
 
 #include <libguile.h>
 #include <stdlib.h>

@@ -15,9 +15,10 @@
    pulling data from the zip filter; since the zip filter is empty too, it
    raises an input fault which is handled by pushing random data into it.  */
 
+#include <chop/chop-config.h>
+
 #include <alloca.h>
 
-#include <chop/chop-config.h>
 #include <chop/chop.h>
 #include <chop/filters.h>
 

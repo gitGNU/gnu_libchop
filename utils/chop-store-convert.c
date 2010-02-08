@@ -1,7 +1,8 @@
+#include <chop/chop-config.h>
+
 #include <alloca.h>
 
 #include <chop/chop.h>
-#include <chop/chop-config.h>
 
 #ifdef HAVE_GPERF
 

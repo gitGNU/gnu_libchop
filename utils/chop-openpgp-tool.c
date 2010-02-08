@@ -1,8 +1,8 @@
 /* Display information about OpenPGP keys.  This is primarily meant to be
    useful in debugging ciphersuite negotiation issues.  */
 
-#include <chop/chop.h>
 #include <chop/chop-config.h>
+#include <chop/chop.h>
 
 #include <gnutls/gnutls.h>
 #include <gnutls/extra.h>

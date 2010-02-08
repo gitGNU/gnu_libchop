@@ -2,6 +2,8 @@
    store, e.g. a GDBM block store, and serves it remotely.  A lot of code is
    borrowed from `chop-archiver.c'.  */
 
+#include <chop/chop-config.h>
+
 #include <alloca.h>
 
 #include <chop/chop.h>
@@ -25,7 +27,6 @@
 #include <errno.h>
 #include <assert.h>
 
-#include <chop/chop-config.h>
 #ifdef HAVE_GNUTLS
 # include <gnutls/gnutls.h>
 # include <gnutls/extra.h>

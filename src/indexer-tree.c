@@ -5,6 +5,8 @@
    [1]  Ralph C. Merkel, Protocols for Public Key Cryptosystems,
         IEEE Symp. on Security and Privacy, pp. 122--134, 1980.  */
 
+#include <chop/chop-config.h>
+
 #include <alloca.h>
 
 #include <chop/chop.h>
@@ -20,8 +22,6 @@
 
 /* libgcrypt */
 #include <gcrypt.h>
-
-#include <chop/chop-config.h>
 
 #if HAVE_NETINET_IN_H
 /* `htons ()' and friends */

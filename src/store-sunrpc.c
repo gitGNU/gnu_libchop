@@ -1,5 +1,7 @@
 /* A remote, Sun RPC-based, block store.  */
 
+#include <chop/chop-config.h>
+
 #include <chop/chop.h>
 #include <chop/stores.h>
 #include <chop/objects.h>
@@ -7,13 +9,13 @@
 
 #include <chop/block_rstore.h>
 
-#include <chop/chop-config.h>
 #ifdef HAVE_GNUTLS
 # include <chop/sunrpc-tls.h>
 # include <chop/store-sunrpc-tls.h>
 
 # include <gnutls/gnutls.h>
 # include <gnutls/extra.h>
+# include <gnutls/openpgp.h>
 #endif
 
 #include <sys/socket.h>
