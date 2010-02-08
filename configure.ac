@@ -2,10 +2,10 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
-AC_INIT(libchop, 0.0, ludovic.courtes@laas.fr)
+AC_INIT([libchop], [0.0], [ludo@gnu.org])
 AC_CONFIG_AUX_DIR(build-aux)
 
-AM_INIT_AUTOMAKE(libchop, 0.0)
+AM_INIT_AUTOMAKE
 
 AC_CONFIG_SRCDIR(src/chop.c)
 AC_CONFIG_HEADER(include/chop/chop-config.h)
