@@ -80,7 +80,7 @@ chop_file_stream_open (const char *path,
 
   err = stat (path, &file_stats);
   if (err)
-    return err;
+    return errno;
 
   fd = open (path, O_RDONLY);
   if (fd == -1)
