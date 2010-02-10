@@ -57,9 +57,9 @@ typedef struct
 {
   size_t window_size;        /* size of the sliding window */
   size_t raw_size;           /* 2 * WINDOW_SIZE */
-  char *raw_window;          /* pointer to RAW_SIZE bytes pointed to by the
+  uint8_t *raw_window;          /* pointer to RAW_SIZE bytes pointed to by the
 				two subwindows */
-  char *windows[2];          /* two subwindows, each of which points
+  uint8_t *windows[2];          /* two subwindows, each of which points
 				to WINDOW_SIZE bytes */
   size_t offset;             /* start offset within the sliding window */
   size_t sizes[2];           /* size of each of the subwindows */
@@ -162,7 +162,7 @@ CHOP_DECLARE_RT_CLASS_WITH_METACLASS (anchor_based_chopper, chopper,
 			  and first character of the previous sliding
 			  window.  */
 		       fpr_t prev_fpr;
-		       char  prev_first_char;
+		       uint8_t prev_first_char;
 
 		       /* Message logging */
 		       chop_log_t log;);
@@ -210,8 +210,8 @@ CHOP_DEFINE_RT_CLASS_WITH_METACLASS (anchor_based_chopper, chopper,
    `compute_next_window_fingerprint ()', we can multiply the previous
    fingerprint by ANCHOR_PRIME_NUMBER without risking to overflow the 32-bit
    `fpr_t' type.  */
-#define ANCHOR_PRIME_NUMBER (3)
-#define ANCHOR_MODULO_MASK  (0x3fffffff)
+#define ANCHOR_PRIME_NUMBER (3U)
+#define ANCHOR_MODULO_MASK  (0x3fffffffU)
 
 
 
@@ -230,7 +230,7 @@ chop_anchor_chopper_close (chop_chopper_t *);
 /* Multiply WHAT by ANCHOR->PRIME to the ANCHOR->WINDOW_SIZE.  */
 static inline fpr_t
 multiply_with_prime_to_the_ws (chop_anchor_based_chopper_t *anchor,
-			       char what)
+			       uint8_t what)
 {
   fpr_t cached;
   unsigned idx;
@@ -347,7 +347,7 @@ compile_multiplication_function (unsigned long prime_to_the_ws)
    stream and store it into BUFFER.  */
 static inline errcode_t
 read_sliding_window (chop_anchor_based_chopper_t *anchor,
-		     char *buffer, size_t *size)
+		     uint8_t *buffer, size_t *size)
 {
   errcode_t err = 0;
   chop_stream_t *input = anchor->chopper.stream;
@@ -360,7 +360,7 @@ read_sliding_window (chop_anchor_based_chopper_t *anchor,
     {
       size_t amount = 0;
 
-      err = chop_stream_read (input, buffer + *size,
+      err = chop_stream_read (input, (char *) buffer + *size,
 			      anchor->window_size - *size, &amount);
       *size += amount;
 
@@ -419,9 +419,9 @@ read_sliding_window (chop_anchor_based_chopper_t *anchor,
 # define INLINED
 #endif
 
-static char * sliding_window_dest_buffer (sliding_window_t *,
-					  size_t **,
-					  size_t *) INLINED;
+static uint8_t *sliding_window_dest_buffer (sliding_window_t *,
+					    size_t **,
+					    size_t *) INLINED;
 static void sliding_window_increment_offset (sliding_window_t *) INLINED;
 
 
@@ -442,12 +442,12 @@ static void sliding_window_increment_offset (sliding_window_t *) INLINED;
    amount of useful data that were originally pointed to by *DEST_SIZE.  This
    may be used to flush the data pointed to by *DEST_SIZE before overwriting
    it.  */
-static inline char *
+static inline uint8_t *
 sliding_window_dest_buffer (sliding_window_t *window,
 			    size_t **dest_size,
 			    size_t *discarded)
 {
-  char *dest;
+  uint8_t *dest;
 
   if (window->sizes[0] == 0)
     {
@@ -467,7 +467,7 @@ sliding_window_dest_buffer (sliding_window_t *window,
 	{
 	  /* Discard the contents of the first window.  Make the second
 	     window the first one.  */
-	  char *new_window = window->windows[0];
+	  uint8_t *new_window = window->windows[0];
 
 	  *discarded = window->sizes[0];
 
@@ -522,7 +522,7 @@ sliding_window_skip (sliding_window_t *window, size_t amount)
   if (window->offset + amount >= window->sizes[0])
     {
       /* Discard the first subwindow.  */
-      char *old_window;
+      uint8_t *old_window;
 
       window->offset += amount;
       window->offset -= window->sizes[0];
@@ -560,7 +560,8 @@ sliding_window_append_to_buffer (sliding_window_t *window,
       /* Copy from the first sub-window */
       size_t amount, available = window->sizes[0] - start_offset;
       amount = (available > size) ? size : available;
-      err = chop_buffer_append (buffer, window->windows[0] + start_offset,
+      err = chop_buffer_append (buffer,
+				(char *) window->windows[0] + start_offset,
 				amount);
       if (err)
 	return err;
@@ -572,7 +573,8 @@ sliding_window_append_to_buffer (sliding_window_t *window,
 	  available = window->sizes[1];
 	  amount = (available > size) ? size : available;
 
-	  err = chop_buffer_append (buffer, window->windows[1], amount);
+	  err = chop_buffer_append (buffer, (char *) window->windows[1],
+				    amount);
 	  if (err)
 	    return err;
 	}
@@ -586,7 +588,8 @@ sliding_window_append_to_buffer (sliding_window_t *window,
       amount = (available > size) ? size : available;
 
       start_offset -= window->window_size;
-      err = chop_buffer_append (buffer, window->windows[1] + start_offset,
+      err = chop_buffer_append (buffer,
+				(char *) window->windows[1] + start_offset,
 				size);
       if (err)
 	return err;
@@ -600,13 +603,13 @@ sliding_window_append_to_buffer (sliding_window_t *window,
    WINDOW->WINDOW_SIZE bytes.  */
 static inline void
 sliding_window_copy_second_half (sliding_window_t *window,
-				 char *buffer, size_t *size)
+				 uint8_t *buffer, size_t *size)
 {
   memcpy (buffer, window->windows[1], window->sizes[1]);
   *size = window->sizes[1];
 }
 
-static inline const char *
+static inline const uint8_t *
 sliding_window_first_half (sliding_window_t *window)
 {
   return (window->windows[0]);
@@ -664,7 +667,7 @@ sliding_window_destroy (sliding_window_t *window)
    fingerprint).  */
 static inline fpr_t
 compute_next_window_fingerprint (chop_anchor_based_chopper_t *anchor,
-				 char first_char, char last_char,
+				 uint8_t first_char, uint8_t last_char,
 				 register fpr_t fpr)
 {
 #if (defined HAVE_LIGHTNING_H) && (defined INLINE_LIGHTNING_CODE)
@@ -714,8 +717,8 @@ compute_window_fingerprint (chop_anchor_based_chopper_t *anchor,
 			    sliding_window_t *window)
 {
   register fpr_t fpr;
-  const char *p;
-  char first_char = '\0';
+  const uint8_t *p;
+  uint8_t first_char = '\0';
   fpr_t prime_power = 1;
   size_t total = anchor->window_size;
 
@@ -872,7 +875,7 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
   errcode_t err;
   sliding_window_t *window;
   int first = 1;
-  char *window_dest;
+  uint8_t *window_dest;
   size_t start_offset, *window_dest_size;
   register fpr_t window_fpr = 0;
   register fpr_t magic_fpr_mask;
@@ -903,7 +906,8 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
 	      assert (discarded >= start_offset);
 	      chop_log_printf (&anchor->log, "appending %zu bytes to block",
 			       discarded - start_offset);
-	      err = chop_buffer_append (buffer, window_dest + start_offset,
+	      err = chop_buffer_append (buffer,
+					(char *) window_dest + start_offset,
 					discarded - start_offset);
 	      if (err)
 		return err;
@@ -943,7 +947,7 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
 	{
 	  /* For subsequent windows, the fingerprint can be computed
 	     efficiently based on the previous fingerprint.  */
-	  register char first_char, last_char;
+	  register uint8_t first_char, last_char;
 
 	  first_char = sliding_window_first_char (window);
 	  last_char = sliding_window_last_char (window);
