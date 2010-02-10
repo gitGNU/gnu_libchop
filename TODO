@@ -1,15 +1,68 @@
 -*- org -*-
 
-* Get an external copy of libcom_err, as done in libtasn1 or Heimdal.
+* Packaging
+** Officially use C99
 
-* Implement a file system based block store (à la Git).
+  - the `inline' keyword
+  - varargs macros
+  - statement as expression?
 
-* Write more documentation.
+** Get an external copy of libcom_err, as done in libtasn1 or Heimdal.
 
-* Introduce copy constructors (grep the code for `FIXME' and `copy' to
-  see why).
+** Write more documentation.
 
-* Implement a DBus-based block store.
+** Use fewer recursive makefiles.
+* Storage
+** Use Gnulib's `full_read' in stream-file.c
+** Add recursive directory archival to `chop-archiver' [0/2]
 
-* Experiment with simple erasure codes, like B-Codes.  Not sure this belong
-  to libchop though.
+  - [ ] Add support in `chop-archiver', a `--recursive' option.
+  - [ ] implement a "directory_stream" which would produce a stream like
+    this:
+
+	relative/path/foo/bar|TYPE|HANDLE
+	...
+
+    where `|' may actually be a null byte (problem: using it with
+    Coreutils `cut' is not convenient) or a TAB (easier to use with
+    `cut', etc.), and where TYPE would tell whether it's a symlink,
+    fifo, etc.
+
+#+BEGIN_SRC c
+/* Pass INDEX_FILE an fd to the file to index.  INDEX_FILE should return a
+   serialized index.
+
+   Rationale:
+
+   - passing all the indexer, block indexer, chopper, etc. as arguments is
+     inconvenient and prevents some uses (e.g., taking the handle from a
+     cache somewhere);
+
+   - returning a `chop_index_handle_t' is not enough if we eventually want
+     to serialize the whole tuple with `chop_ascii_serialize_index_tuple ()'.  */
+
+errcode_t
+chop_directory_stream_open (int dirfd,
+			    char * (*index_file) (int file_fd, void *),
+			    void *closure);
+#+END_SRC
+
+** Implement a file system based block store (à la Git).
+
+Possibly have it work over FTP, SFTP, etc., though we don't want to
+implement yet another VFS.
+
+** Implement a DBus-based block store?
+
+Though it may not be that useful...
+
+** Experiment with simple erasure codes, like B-Codes.  Not sure this belong
+   to libchop though.
+* User interface
+** Have `chop-archiver' take fd numbers instead of paths, to honor POLA
+
+Example: chop-archiver --archive-fd 5 5< /foo/bar
+
+** Allow `chop-archiver' to read from stdin
+
+Example: echo foo | chop-archive --archive
