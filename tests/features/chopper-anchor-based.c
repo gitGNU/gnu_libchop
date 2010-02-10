@@ -100,7 +100,7 @@ read_blocks_from_chopper (chop_chopper_t *chopper,
 
   chop_buffer_return (&buffer);
 
-  test_debug ("read %u blocks, last offset is %u\n", *block_count,
+  test_debug ("read %zu blocks, last offset is %zu\n", *block_count,
 	      offset_vector[*block_count - 1]);
 }
 
@@ -158,8 +158,8 @@ compare_block_boundaries (size_t *ref_offsets, size_t ref_block_count,
   while (ref_offsets[ref] < insertion_offset + window_size)
     ref++;
 
-  test_debug ("insertion yielded %u additional blocks\n", mod - ref);
-  test_debug ("offsets: mod=%u ref=%u insertion=[%u .. %u]\n",
+  test_debug ("insertion yielded %zu additional blocks\n", mod - ref);
+  test_debug ("offsets: mod=%zu ref=%zu insertion=[%zu .. %zu]\n",
 	      insertion_offsets[mod], ref_offsets[ref],
 	      insertion_offset, insertion_end_offset);
 

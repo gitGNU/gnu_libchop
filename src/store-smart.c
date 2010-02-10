@@ -86,7 +86,7 @@ chop_smart_block_store_write_block (chop_block_store_t *store,
   chop_block_key_to_hex_string (key, hex_key);
   chop_log_printf (&smart->log,
 		   "smart: write_block (%s@%p, 0x%s,\n"
-		   "                    %p, %u)\n",
+		   "                    %p, %zu)\n",
 		   store->name, store, hex_key, block, size);
 
   err = chop_store_block_exists (smart->backend, key, &exists);

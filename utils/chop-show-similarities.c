@@ -208,7 +208,7 @@ show_similarities (block_info_vector_t *vector1,
 	}
     }
 
-  printf ("%u/%u common blocks, %u/%u common bytes\n",
+  printf ("%zu/%zu common blocks, %zu/%zu common bytes\n",
 	  common_blocks, total_blocks,
 	  common_bytes, longest->total_size);
   printf ("similarity (block level): %.0f%%\n",

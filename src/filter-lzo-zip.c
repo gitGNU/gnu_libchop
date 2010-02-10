@@ -114,7 +114,7 @@ chop_lzo_zip_pull (chop_filter_t *filter, int flush,
 	  howmuch = zfilter->input_buffer_size - zfilter->avail_in;
 	  chop_log_printf (&filter->log,
 			   "filter is empty, input fault "
-			   "(requesting %u bytes)",
+			   "(requesting %zu bytes)",
 			   howmuch);
 
 	  err = chop_filter_handle_input_fault (filter, howmuch);
@@ -133,7 +133,7 @@ chop_lzo_zip_pull (chop_filter_t *filter, int flush,
 
 	  /* Actually compress.  */
 	  chop_log_printf (&filter->log,
-			   "pull: processing stream (input: %u, output: %u, "
+			   "pull: processing stream (input: %zu, output: %zu, "
 			   "flush: %s)",
 			   zfilter->avail_in, zfilter->avail_out,
 			   flush ? "yes" : "no");
@@ -157,7 +157,7 @@ chop_lzo_zip_pull (chop_filter_t *filter, int flush,
 		{
 		  chop_log_printf (&filter->log,
 				   "pull: fatal: buffer sizes are too "
-				   "large (%u in and %u out)",
+				   "large (%zu in and %zu out)",
 				   zfilter->avail_in, zfilter->avail_out);
 		  err = CHOP_FILTER_ERROR;
 		}

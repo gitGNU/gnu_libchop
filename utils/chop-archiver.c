@@ -265,7 +265,7 @@ do_archive (chop_stream_t *stream, chop_block_store_t *data_store,
       }
 
     if (bytes_read < strlen (block_indexer_ascii))
-      fprintf (stderr, "%s: warning: %u: trailing garbage in block-indexer\n",
+      fprintf (stderr, "%s: warning: %zu: trailing garbage in block-indexer\n",
 	       program_name, bytes_read);
   }
 #endif

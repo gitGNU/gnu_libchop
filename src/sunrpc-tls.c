@@ -56,12 +56,14 @@
  * Mountain View, California  94043
  */
 
+#include <chop/chop-config.h>
 
 #include <stdio.h>
 #include <unistd.h>
 #include <rpc/rpc.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #include <sys/types.h>
 #include <netinet/in.h>
@@ -359,7 +361,7 @@ makefd_xprt (svctls_session_initializer_t initializer, void *init_data,
   xdrrec_create (&(cd->xdrs), sendsize, recvsize,
 		 (caddr_t) xprt, svc_readtls, svc_writetls);
 
-  gnutls_transport_set_ptr (*session, (gnutls_transport_ptr_t)fd);
+  gnutls_transport_set_ptr (*session, (gnutls_transport_ptr_t) (intptr_t) fd);
   err = gnutls_handshake (*session);
   if (err)
     {

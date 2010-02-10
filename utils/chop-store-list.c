@@ -189,7 +189,7 @@ main (int argc, char *argv[])
       chop_buffer_to_hex_string (chop_buffer_content (&buffer),
 				 block_len, hex_content);
 
-      fprintf (stdout, "key #%u: 0x%s %u bytes (0x%s%s)\n", count++,
+      fprintf (stdout, "key #%zu: 0x%s %zu bytes (0x%s%s)\n", count++,
 	       hex_key, chop_buffer_size (&buffer), hex_content,
 	       (block_len < chop_buffer_size (&buffer) ? "..." : ""));
 

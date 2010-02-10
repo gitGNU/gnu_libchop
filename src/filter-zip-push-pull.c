@@ -111,7 +111,7 @@ ZIP_PULL_METHOD (chop_filter_t *filter, int flush,
 	  howmuch = zfilter->input_buffer_size - zfilter->zstream.avail_in;
 	  chop_log_printf (&filter->log,
 			   "filter is empty, input fault "
-			   "(requesting %u bytes)",
+			   "(requesting %zu bytes)",
 			   howmuch);
 
 	  err = chop_filter_handle_input_fault (filter, howmuch);
@@ -167,7 +167,7 @@ ZIP_PULL_METHOD (chop_filter_t *filter, int flush,
 	     again (with FLUSH set again).  */
 	  chop_log_printf (&filter->log, "pull: flush was requested but "
 			   "data is still available; user should call "
-			   "again (zret: %i, pulled: %i)", zret, *pulled);
+			   "again (zret: %i, pulled: %zu)", zret, *pulled);
 	  err = 0;
 	  break;
 	}

@@ -397,23 +397,23 @@ chop_block_store_stats_display (const chop_block_store_stats_t *stats,
   chop_log_printf (log, "* store `%s'",
 		   stats->name ? stats->name : "<nameless>");
 
-  chop_log_printf (log, "  blocks written:        %7u",
+  chop_log_printf (log, "  blocks written:        %7zu",
 		   stats->blocks_written);
-  chop_log_printf (log, "  bytes written:         %7u",
+  chop_log_printf (log, "  bytes written:         %7zu",
 		   stats->bytes_written);
-  chop_log_printf (log, "  virgin blocks:         %7u (% 2.1f%%)",
+  chop_log_printf (log, "  virgin blocks:         %7zu (% 2.1f%%)",
 		   stats->virgin_blocks,
 		   ((float)stats->virgin_blocks
 		    / (float)stats->blocks_written) * 100);
-  chop_log_printf (log, "  virgin bytes:          %7u (% 2.1f%%)",
+  chop_log_printf (log, "  virgin bytes:          %7zu (% 2.1f%%)",
 		   stats->virgin_bytes,
 		   ((float)stats->virgin_bytes
 		    / (float)stats->bytes_written)* 100);
 
   chop_log_printf (log, "  average block size:    % 7.2f",
 		   stats->average_block_size);
-  chop_log_printf (log, "  min block size:        %7u",
+  chop_log_printf (log, "  min block size:        %7zu",
 		   stats->min_block_size);
-  chop_log_printf (log, "  max block size:        %7u",
+  chop_log_printf (log, "  max block size:        %7zu",
 		   stats->max_block_size);
 }

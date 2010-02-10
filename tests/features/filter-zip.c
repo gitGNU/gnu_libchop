@@ -63,7 +63,7 @@ handle_random_input_fault (chop_filter_t *filter,
   if (input_offset >= SIZE_OF_INPUT)
     return CHOP_STREAM_END;
 
-  test_debug ("serving input fault for the `%s' (%u bytes)",
+  test_debug ("serving input fault for the `%s' (%zu bytes)",
 	      chop_class_name (chop_object_get_class ((chop_object_t *)filter)),
 	      amount);
   available = SIZE_OF_INPUT - input_offset;
@@ -112,7 +112,7 @@ handle_zipped_input_fault (chop_filter_t *unzip_filter,
 #endif
 	  );
 
-  test_debug ("handling input fault for the `%s' (%u bytes)",
+  test_debug ("handling input fault for the `%s' (%zu bytes)",
 	      chop_class_name (chop_object_get_class
 			       ((chop_object_t *) unzip_filter)),
 	      amount);
@@ -278,7 +278,7 @@ main (int argc, char *argv[])
 
 
       /* We're done.  */
-      test_debug ("input size was: %u; output size was: %u",
+      test_debug ("input size was: %zu; output size was: %zu",
 		  SIZE_OF_INPUT, output_size);
 
       test_assert (output_size == SIZE_OF_INPUT);

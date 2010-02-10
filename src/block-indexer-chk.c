@@ -84,7 +84,7 @@ chk_serialize (const chop_object_t *object, chop_serial_method_t method,
 
 	/* Append a slash and the indexed block size.  */
 	hex_key[0] = '/';
-	sprintf (hex_key + 1, "%x", handle->block_size);
+	sprintf (hex_key + 1, "%zx", handle->block_size);
 	err = chop_buffer_append (buffer, hex_key, strlen (hex_key) + 1);
 
 	return err;
@@ -485,7 +485,7 @@ chk_block_fetch (chop_block_fetcher_t *block_fetcher,
 				     handle->block_id_size, hex);
 
 	  chop_log_printf (&fetcher->log, "block %s: "
-			   "got %u bytes instead of %u",
+			   "got %zu bytes instead of %zu",
 			   hex, *size, handle->block_size);
 
 	  *size = 0;
@@ -502,7 +502,7 @@ chk_block_fetch (chop_block_fetcher_t *block_fetcher,
       if (chop_cipher_algo_key_size (cipher_algo) != handle->key_size)
 	{
 	  chop_log_printf (&fetcher->log, "index' hash key size "
-			   "is %u instead of %u", handle->key_size,
+			   "is %zu instead of %zu", handle->key_size,
 			   chop_cipher_algo_key_size (cipher_algo));
 	  return CHOP_BLOCK_FETCHER_ERROR;
 	}

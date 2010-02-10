@@ -119,8 +119,8 @@ chop_dummy_block_store_read_block (chop_block_store_t *store,
 
   if ((!err) && (chop_buffer_size (buffer) != *size))
     chop_log_printf (&dummy->log,
-		     "dummy: read_block: warning: buffer size is %u while "
-		     "reported size is %u\n",
+		     "dummy: read_block: warning: buffer size is %zu while "
+		     "reported size is %zu\n",
 		     chop_buffer_size (buffer), *size);
 
   return err;
@@ -139,7 +139,7 @@ chop_dummy_block_store_write_block (chop_block_store_t *store,
   chop_block_key_to_hex_string (key, hex_key);
   chop_log_printf (&dummy->log,
 		   "dummy: write_block (%s@%p, 0x%s,\n"
-		   "                    %p, %u)\n",
+		   "                    %p, %zu)\n",
 		   store->name, store, hex_key, block, size);
 
   if (!dummy->backend)

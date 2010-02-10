@@ -121,13 +121,13 @@ stats_update (block_stats_t *stats, size_t size)
 static void
 stats_display (block_stats_t *stats)
 {
-  fprintf (stderr, "window size:    %7u\n", window_size);
+  fprintf (stderr, "window size:    %7zu\n", window_size);
   fprintf (stderr, "magic fpr mask: 0x%08lx\n\n", magic_fpr_mask);
 
-  fprintf (stderr, "block count:    %7u\n", stats->count);
-  fprintf (stderr, "size in bytes:  %7u\n", stats->bytes);
-  fprintf (stderr, "max size:       %7u\n", stats->max);
-  fprintf (stderr, "min size:       %7u\n", stats->min);
+  fprintf (stderr, "block count:    %7zu\n", stats->count);
+  fprintf (stderr, "size in bytes:  %7zu\n", stats->bytes);
+  fprintf (stderr, "max size:       %7zu\n", stats->max);
+  fprintf (stderr, "min size:       %7zu\n", stats->min);
   fprintf (stderr, "avg size:       % 7.2f\n", stats->average);
 }
 

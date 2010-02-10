@@ -75,7 +75,7 @@ main (int argc, char *argv[])
       size_t bytes_read = 0, input_size;
 
       input_size = sizeof (mem_stream_contents) - (random () % 60);
-      test_stage ("chopper class `%s', %u input bytes",
+      test_stage ("chopper class `%s', %zu input bytes",
 		  chop_class_name ((chop_class_t *)*class),
 		  input_size);
 
@@ -143,7 +143,7 @@ main (int argc, char *argv[])
 
       if (bytes_read != input_size)
 	{
-	  fprintf (stderr, "%s: `%s' chopper gave %u bytes instead of %u\n",
+	  fprintf (stderr, "%s: `%s' chopper gave %zu bytes instead of %u\n",
 		   argv[0], chop_class_name ((chop_class_t *)*class),
 		   bytes_read, input_size);
 	  exit (4);

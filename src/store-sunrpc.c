@@ -45,6 +45,7 @@
 #endif
 
 #include <string.h>
+#include <stdint.h>
 #include <errno.h>
 
 
@@ -364,7 +365,7 @@ sunrpc_block_store_open (const char *host, unsigned port,
 	  return CHOP_INVALID_ARG;
 	}
 
-      gnutls_transport_set_ptr (session, (gnutls_transport_ptr_t)endpoint);
+      gnutls_transport_set_ptr (session, (gnutls_transport_ptr_t)(intptr_t) endpoint);
 
       /* Invoke the user-provided session initializer.  */
       err = init_session (session, closure);

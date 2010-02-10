@@ -88,7 +88,7 @@ ZIP_PUSH_METHOD (chop_filter_t *filter,
 		  buffer, amount);
 
 	  chop_log_printf (&filter->log,
-			   "push: got %u bytes at offset %u",
+			   "push: got %zu bytes at offset %zu",
 			   amount, offset);
 
 	  offset            += amount;

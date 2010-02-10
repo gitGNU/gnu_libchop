@@ -123,7 +123,7 @@ main (int argc, char *argv[])
       if (amount < sizeof (random_bytes))
 	{
 	  com_err (argv[0], 0,
-		   "read only %u bytes instead of %u from a `%s' store",
+		   "read only %zu bytes instead of %zu from a `%s' store",
 		   amount, sizeof (random_bytes),
 		   chop_class_name ((chop_class_t *)*class));
 	  exit (5);

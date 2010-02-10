@@ -190,7 +190,7 @@ chop_cipher_set_key (chop_cipher_handle_t handle,
   gerr = gcry_cipher_setkey (handle->gcry_handle, key, key_size);
   if (gerr)
     chop_log_printf (&chop_cipher_log,
-		     "chop_cipher_set_key (%u bytes): %s [src: %s]",
+		     "chop_cipher_set_key (%zu bytes): %s [src: %s]",
 		     key_size,
 		     gcry_strerror (gerr), gcry_strsource (gerr));
 
@@ -242,7 +242,7 @@ chop_cipher_encrypt (chop_cipher_handle_t cipher,
 			      in, in_size);
   if (gerr)
     chop_log_printf (&chop_cipher_log,
-		     "chop_cipher_encrypt (in: %u bytes; out: %u bytes): "
+		     "chop_cipher_encrypt (in: %zu bytes; out: %zu bytes): "
 		     "%s [src: %s]\n",
 		     in_size, out_size,
 		     gcry_strerror (gerr), gcry_strsource (gerr));

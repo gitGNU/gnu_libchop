@@ -86,7 +86,7 @@ hih_serialize (const chop_object_t *object, chop_serial_method_t method,
 
 	/* Append a slash and the indexed block size.  */
 	hex[0] = '/';
-	sprintf (hex + 1, "%x", handle->block_size);
+	sprintf (hex + 1, "%zx", handle->block_size);
 	chop_buffer_append (buffer, hex, strlen (hex) + 1);
 
 	return 0;
@@ -231,8 +231,8 @@ hih_deserialize (const char *s_buffer, size_t size,
 
 	if (size - BINARY_SERIALIZATION_HEADER_SIZE < index_size)
 	  {
-	    printf ("expecting block size %u and "
-		    "index size %u but only %u bytes left",
+	    printf ("expecting block size %zu and "
+		    "index size %zu but only %zu bytes left",
 		    block_size, index_size,
 		    size - BINARY_SERIALIZATION_HEADER_SIZE);
 	    err = CHOP_DESERIAL_TOO_SHORT;
@@ -378,7 +378,7 @@ hash_block_fetch (chop_block_fetcher_t *block_fetcher,
 	  chop_buffer_to_hex_string (handle->content, handle->key_size, hex);
 
 	  chop_log_printf (&fetcher->log, "block %s: "
-			   "got %u bytes instead of %u",
+			   "got %zu bytes instead of %zu",
 			   hex, *size, handle->block_size);
 
 	  *size = 0;

@@ -116,7 +116,7 @@ iht_serialize (const chop_object_t *object, chop_serial_method_t method,
       {
 	char buf[50];
 
-	snprintf (buf, sizeof (buf), "%x", ti->indexes_per_block);
+	snprintf (buf, sizeof (buf), "%zx", ti->indexes_per_block);
 	err = chop_buffer_push (buffer, buf, strlen (buf) + 1);
 
 	break;
@@ -277,7 +277,7 @@ chop_key_block_flush (key_block_t *block,
   errcode_t err;
 
   chop_log_printf (block->log,
-		   "key_block_flush: block %p with %u keys being flushed "
+		   "key_block_flush: block %p with %zu keys being flushed "
 		   "to store %p\n",
 		   block, block->key_count, metadata);
 
@@ -530,7 +530,7 @@ chop_block_tree_flush (key_block_tree_t *tree,
 
   if (!err)
     chop_log_printf (tree->log,
-		     "block_tree_flush: hash tree depth: %u\n", depth);
+		     "block_tree_flush: hash tree depth: %zu\n", depth);
   else
     chop_log_printf (tree->log,
 		     "block_tree_flush: failed: %s\n",
@@ -920,7 +920,7 @@ chop_decoded_block_decode_header (decoded_block_t *block)
   block->offset = KEY_BLOCK_HEADER_SIZE;
   block->current_child_number = 0;
 
-  chop_log_printf (block->log, "decoded block: keys=%u, depth=%u",
+  chop_log_printf (block->log, "decoded block: keys=%zu, depth=%zu",
 		   block->key_count, block->depth);
 
   return 0;
@@ -1016,7 +1016,7 @@ chop_decoded_block_next_child (decoded_block_t *block,
 	{
 	  /* BLOCK is the top-level key block and there's nothing left in
 	     it.  */
-	  chop_log_printf (log, "root block: end of stream (offset: %u/%u)",
+	  chop_log_printf (log, "root block: end of stream (offset: %zu/%zu)",
 			   block->offset, chop_buffer_size (&block->buffer));
 	  return CHOP_STREAM_END;
 	}
@@ -1080,7 +1080,7 @@ chop_decoded_block_next_child (decoded_block_t *block,
       else
 	the_store = data_store;
 
-      chop_log_printf (log, "fetching new child block (current depth: %u)",
+      chop_log_printf (log, "fetching new child block (current depth: %zu)",
 		       block->is_key_block ? block->depth : 0);
       err = chop_decoded_block_fetch (the_store, index,
 				      fetcher,
@@ -1192,7 +1192,7 @@ chop_decoded_block_tree_read (decoded_block_tree_t *tree,
 {
   errcode_t err;
 
-  chop_log_printf (tree->log, "reading %u bytes", size);
+  chop_log_printf (tree->log, "reading %zu bytes", size);
   if (!tree->top_level)
     {
       /* Fetch the top-level key block (or "inode").  */

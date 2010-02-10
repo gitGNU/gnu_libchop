@@ -45,7 +45,7 @@ main (int argc, char *argv[])
   err = chop_init ();
   test_check_errcode (err, "initializing libchop");
 
-  test_stage ("%u class lookups by name",
+  test_stage ("%lu class lookups by name",
 	      (sizeof (class_names) / sizeof (*class_names)) - 1);
 
   for (name = class_names;

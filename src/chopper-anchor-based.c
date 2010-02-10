@@ -901,7 +901,7 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
 	    {
 	      /* Flush the data we're about to discard.  */
 	      assert (discarded >= start_offset);
-	      chop_log_printf (&anchor->log, "appending %u bytes to block",
+	      chop_log_printf (&anchor->log, "appending %zu bytes to block",
 			       discarded - start_offset);
 	      err = chop_buffer_append (buffer, window_dest + start_offset,
 					discarded - start_offset);
@@ -915,7 +915,7 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
 	  err = read_sliding_window (anchor, window_dest,
 				     window_dest_size);
 	  chop_log_printf (&anchor->log, "reloaded sliding window, "
-			   "got %u bytes", *window_dest_size);
+			   "got %zu bytes", *window_dest_size);
 
 	  if (CHOP_EXPECT_FALSE (err))
 	    {
@@ -986,7 +986,7 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
 	      sliding_window_skip (window, window->window_size);
 
 	      chop_log_printf (&anchor->log,
-			       "found an anchor (fpr: 0x%x, block size: %u)",
+			       "found an anchor (fpr: 0x%x, block size: %zu)",
 			       window_fpr, chop_buffer_size (buffer));
 
 	      break;
@@ -1004,7 +1004,7 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
 
       /* Flush the remaining bytes.  */
       amount = sliding_window_end_offset (window) - start_offset;
-      chop_log_printf (&anchor->log, "end of stream, flushing %u bytes left",
+      chop_log_printf (&anchor->log, "end of stream, flushing %zu bytes left",
 		       amount);
 
       err = sliding_window_append_to_buffer (window, start_offset,

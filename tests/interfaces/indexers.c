@@ -165,7 +165,7 @@ main (int argc, char *argv[])
       size_t bytes_fetched = 0;
       chop_stream_t *fetched_stream;
 
-      test_stage ("indexer #%u", current_indexer - indexers + 1);
+      test_stage ("indexer #%lu", current_indexer - indexers + 1);
 
       if ((test_debug_mode ())
 	  && (chop_object_is_a ((chop_object_t *)*current_indexer,

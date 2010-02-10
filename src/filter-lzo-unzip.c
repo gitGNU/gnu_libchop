@@ -75,8 +75,8 @@ chop_lzo_unzip_pull (chop_filter_t *filter, int flush,
 									\
       chop_log_printf (&filter->log,					\
 		       STRINGIFY (_which)				\
-		       " buffer is too small (%u bytes "		\
-		       "but %u needed), growing to %u bytes",		\
+		       " buffer is too small (%zu bytes "		\
+		       "but %u needed), growing to %zu bytes",		\
 		       zfilter-> _which ## _buffer_size,		\
 		       (_size), new_size);				\
       new_buf =								\
@@ -96,7 +96,7 @@ chop_lzo_unzip_pull (chop_filter_t *filter, int flush,
 
   zfilter = (chop_lzo_unzip_filter_t *) filter;
 
-  chop_log_printf (&filter->log, "pulling %u bytes, flush=%s",
+  chop_log_printf (&filter->log, "pulling %zu bytes, flush=%s",
 		   size, (flush ? "yes" : "no"));
 
   *pulled = 0;
@@ -162,7 +162,7 @@ chop_lzo_unzip_pull (chop_filter_t *filter, int flush,
 	    {
 	      /* Fetch the (compressed) input data.  */
 	      chop_log_printf (&filter->log,
-			       "input fault: requesting %u bytes of "
+			       "input fault: requesting %zu bytes of "
 			       "compressed data",
 			       in32 - zfilter->avail_in);
 	      err = chop_filter_handle_input_fault (filter,
@@ -181,7 +181,7 @@ chop_lzo_unzip_pull (chop_filter_t *filter, int flush,
 	      /* Failed to get enough input data.  */
 	      chop_log_printf (&filter->log,
 			       "not enough input data ("
-			       "%u bytes available)",
+			       "%zu bytes available)",
 			       zfilter->avail_in);
 	      err = CHOP_FILTER_ERROR;
 	    }
@@ -189,7 +189,7 @@ chop_lzo_unzip_pull (chop_filter_t *filter, int flush,
 	    {
 	      /* Actually decompress.  */
 	      chop_log_printf (&filter->log,
-			       "pull: processing stream (input: %u@%u, "
+			       "pull: processing stream (input: %u@%zu, "
 			       "output: %u, flush: %s)",
 			       in32, zfilter->input_offset, out32,
 			       flush ? "yes" : "no");

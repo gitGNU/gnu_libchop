@@ -124,7 +124,7 @@ test_filter (chop_filter_t *filter,
 
       test_check_errcode (err, "pulling data from filter");
 
-      test_debug ("input size was: %u; output size was: %u",
+      test_debug ("input size was: %zu; output size was: %zu",
 		  input_size, *output_size);
 
       chop_filter_finish_input_from_buffer (filter, &bytes_read);
