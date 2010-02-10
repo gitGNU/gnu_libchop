@@ -70,4 +70,10 @@ then you'll need the following:
 And that's it.
 
 
-Ludovic Courtès <ludovic.courtes@laas.fr>.
+
+Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
+Copyright 2010  Ludovic CourtÃ¨s <ludo@gnu.org>
+
+  Copying and distribution of this file, with or without modification,
+  are permitted in any medium without royalty provided the copyright
+  notice and this notice are preserved.
