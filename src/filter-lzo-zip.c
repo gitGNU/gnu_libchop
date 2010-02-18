@@ -122,7 +122,7 @@ chop_lzo_zip_pull (chop_filter_t *filter, int flush,
 	    {
 	      chop_log_printf (&filter->log,
 			       "input fault unhandled: %s",
-			       error_message (err));
+			       chop_error_message (err));
 	      if (err == CHOP_FILTER_UNHANDLED_FAULT)
 		err = CHOP_FILTER_EMPTY;
 	    }

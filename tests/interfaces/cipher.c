@@ -72,8 +72,7 @@ open_cipher_handle (chop_cipher_algo_t algo,
 			    chop_cipher_algo_block_size (algo));
   if (err)
     {
-      com_err (program_name, err, "while setting a %lu-byte init. vector",
-	       sizeof (iv));
+      chop_error (err, "while setting a %lu-byte init. vector", sizeof (iv));
       exit (1);
     }
 
@@ -84,8 +83,7 @@ open_cipher_handle (chop_cipher_algo_t algo,
   err = chop_cipher_set_key (cipher_handle, the_key, key_size);
   if (err)
     {
-      com_err (program_name, err, "while setting a %zu-byte key",
-	       key_size);
+      chop_error (err, "while setting a %zu-byte key", key_size);
       exit (1);
     }
 
@@ -139,8 +137,8 @@ main (int argc, char *argv[])
 				 the_clear_text, sizeof (the_clear_text));
       if (err)
 	{
-	  com_err (argv[0], err, "while encrypting %zu bytes",
-		   sizeof (the_clear_text));
+	  chop_error (err, "while encrypting %zu bytes",
+		      sizeof (the_clear_text));
 	  DID_FAIL ();
 	  continue;
 	}
@@ -168,8 +166,8 @@ main (int argc, char *argv[])
 				 the_cipher_text, sizeof (the_cipher_text));
       if (err)
 	{
-	  com_err (argv[0], err, "while decrypting %zu bytes",
-		   sizeof (the_cipher_text));
+	  chop_error (err, "while decrypting %zu bytes",
+		      sizeof (the_cipher_text));
 	  DID_FAIL ();
 	  continue;
 	}

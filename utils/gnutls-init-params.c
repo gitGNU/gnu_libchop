@@ -69,8 +69,8 @@ INITIALIZE_PARAMS (PARAMS_KIND) (PARAMS_T *params,
 	  err = open_config_file (config_dir, filename,
 				  O_WRONLY | O_CREAT, &file);
 	  if (err)
-	    com_err (program_name, err, "while creating config file \"%s\"",
-		     filename);
+	    chop_error (err, "while creating config file \"%s\"",
+			filename);
 	  else
 	    {
 	      dump_to_file (file, (char *) export, export_size);
@@ -86,8 +86,7 @@ INITIALIZE_PARAMS (PARAMS_KIND) (PARAMS_T *params,
       err = file_content (file, &content, &size);
       if (err)
 	{
-	  com_err (program_name, err, "while reading config file \"%s\"",
-		   filename);
+	  chop_error (err, "while reading config file \"%s\"", filename);
 	  return err;
 	}
       else

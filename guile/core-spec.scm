@@ -55,7 +55,7 @@
 
 
 ;;
-;; The error code type `errcode_t' mapped to Guile exceptions.
+;; The error code type `chop_error_t' mapped to Guile exceptions.
 ;;
 
 (define-class <chop-errcode-type> (<gw-type>))
@@ -331,7 +331,7 @@
 
     (wrap-enum! ws
 		#:name 'errcode
-		#:c-type-name "errcode_t"
+		#:c-type-name "chop_error_t"
 		#:values (append
 
 			  (map (lambda (name)
@@ -363,7 +363,7 @@
   (wrap-function! ws
 		  #:name 'error-message
 		  #:returns '(mchars callee-owned)
-		  #:c-name "error_message"
+		  #:c-name "chop_error_message"
 		  #:arguments '((long code)))
 
   (add-type! ws (make <chop-input-buffer-type>

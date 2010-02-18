@@ -26,6 +26,8 @@
 #include <ctype.h>
 #include <assert.h>
 
+#include <errno.h> /* FIXME: Glibc-specific, for `program_invocation_name' */
+
 
 /* Define this to enable run-time tracking of the objects created and
    destroyed.  Among other things, this allows to check that an object about
@@ -625,6 +627,27 @@ chop_integer_to_hex_string (unsigned num, char *hex)
 }
 #endif
 
+
+/* Error reporting.  */
+
+const char *
+chop_error_message (chop_error_t err)
+{
+  return error_message (err);
+}
+
+void
+chop_error (chop_error_t err, const char *format, ...)
+{
+  va_list ap;
+
+  va_start (ap, format);
+
+  /* FIXME: Use Gnulib's `progname'.  */
+  com_err_va (program_invocation_name, err, format, ap);
+
+  va_end (ap);
+}
 
 
 /* Initialization.  */

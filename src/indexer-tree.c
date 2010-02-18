@@ -534,7 +534,7 @@ chop_block_tree_flush (key_block_tree_t *tree,
   else
     chop_log_printf (tree->log,
 		     "block_tree_flush: failed: %s\n",
-		     error_message (err));
+		     chop_error_message (err));
 
   if (depth)
     assert (last_depth == depth - 1);

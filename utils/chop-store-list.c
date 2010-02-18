@@ -145,8 +145,8 @@ main (int argc, char *argv[])
 				    store);
   if (err)
     {
-      com_err (argv[0], err, "while opening `%s' data file \"%s\"",
-	       chop_class_name (db_store_class), store_name);
+      chop_error (err, "while opening `%s' data file \"%s\"",
+		  chop_class_name (db_store_class), store_name);
       return 2;
     }
 
@@ -197,8 +197,8 @@ main (int argc, char *argv[])
 
   if ((err) && (err != CHOP_STORE_END))
     {
-      com_err (argv[0], err, "while traversing `%s' store \"%s\"",
-	       file_based_store_class_name, store_name);
+      chop_error (err, "while traversing `%s' store \"%s\"",
+		  file_based_store_class_name, store_name);
       exit (3);
     }
 

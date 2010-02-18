@@ -79,7 +79,7 @@ chop_dummy_block_store_block_exists (chop_block_store_t *store,
   if (err)
     chop_log_printf (&dummy->log,
 		     "dummy: block_exists: underlying store returned \"%s\"\n",
-		     error_message (err));
+		     chop_error_message (err));
   else
     chop_log_printf (&dummy->log,
 		     "dummy: block 0x%s does %sexist",
@@ -115,7 +115,7 @@ chop_dummy_block_store_read_block (chop_block_store_t *store,
   if (err)
     chop_log_printf (&dummy->log,
 		     "dummy: read_block: underlying store returned \"%s\"\n",
-		     error_message (err));
+		     chop_error_message (err));
 
   if ((!err) && (chop_buffer_size (buffer) != *size))
     chop_log_printf (&dummy->log,
@@ -149,7 +149,7 @@ chop_dummy_block_store_write_block (chop_block_store_t *store,
   if (err)
     chop_log_printf (&dummy->log,
 		     "dummy: write_block: underlying store returned \"%s\"\n",
-		     error_message (err));
+		     chop_error_message (err));
 
   return err;
 }
@@ -175,7 +175,7 @@ chop_dummy_block_store_delete_block (chop_block_store_t *store,
   if (err)
     chop_log_printf (&dummy->log,
 		     "dummy: delete_block: underlying store returned \"%s\"\n",
-		     error_message (err));
+		     chop_error_message (err));
 
   return err;
 }
@@ -196,7 +196,7 @@ chop_dummy_block_store_first_block (chop_block_store_t *store,
   if (err)
     chop_log_printf (&dummy->log,
 		     "dummy: first_block: underlying store returned \"%s\"\n",
-		     error_message (err));
+		     chop_error_message (err));
   else
     {
       const chop_block_key_t *key;
@@ -228,7 +228,7 @@ chop_dummy_block_store_sync (chop_block_store_t *store)
   if (err)
     chop_log_printf (&dummy->log,
 		     "dummy: sync: underlying store returned \"%s\"\n",
-		     error_message (err));
+		     chop_error_message (err));
 
   return err;
 }

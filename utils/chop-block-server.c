@@ -333,7 +333,7 @@ handle_write_block (block_store_write_block_args *argp, struct svc_req *req)
 
 	default:
 	  info ("underlying store returned unexpectedly (%i: %s)",
-		(int) err, error_message (err));
+		(int) err, chop_error_message (err));
 
 	  /* Ignore the problem and try to write to LOCAL_STORE.  This makes
 	     sense since, for instance, the dummy block store can return
@@ -447,8 +447,8 @@ open_db_store (const chop_file_based_store_class_t *class,
 				    O_RDWR | O_CREAT, S_IRUSR | S_IWUSR,
 				    store);
   if (err)
-    com_err (program_name, err, "while opening `%s' data file \"%s\"",
-	     chop_class_name ((chop_class_t *)class), file);
+    chop_error (err, "while opening `%s' data file \"%s\"",
+		chop_class_name ((chop_class_t *) class), file);
 
   return err;
 }
@@ -1154,7 +1154,7 @@ main (int argc, char *argv[])
   err = chop_init ();
   if (err)
     {
-      com_err (argv[0], err, "while initializing libchop");
+      chop_error (err, "while initializing libchop");
       return 1;
     }
 
@@ -1221,7 +1221,7 @@ main (int argc, char *argv[])
 
       if (err)
 	{
-	  com_err (program_name, err, "while initializing zip/unzip filters");
+	  chop_error (err, "while initializing zip/unzip filters");
 	  exit (4);
 	}
 
@@ -1241,7 +1241,7 @@ main (int argc, char *argv[])
 				      local_store);
       if (err)
 	{
-	  com_err (program_name, err, "while initializing filtered store");
+	  chop_error (err, "while initializing filtered store");
 	  exit (5);
 	}
     }
@@ -1254,7 +1254,7 @@ main (int argc, char *argv[])
       err = publish_service ();
       if (err)
 	{
-	  com_err (program_name, err, "while trying to publish service");
+	  chop_error (err, "while trying to publish service");
 	  exit (6);
 	}
     }
@@ -1269,7 +1269,7 @@ main (int argc, char *argv[])
   err = chop_store_close ((chop_block_store_t *)local_store);
   if (err)
     {
-      com_err (argv[0], err, "while closing output block store");
+      chop_error (err, "while closing output block store");
       exit (7);
     }
 

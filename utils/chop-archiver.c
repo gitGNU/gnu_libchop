@@ -228,7 +228,7 @@ do_archive (chop_stream_t *stream, chop_block_store_t *data_store,
 				      block_indexer);
   if (err)
     {
-      com_err (program_name, err, "while opening hash block indexer");
+      chop_error (err, "while opening hash block indexer");
       return err;
     }
 #else
@@ -239,15 +239,15 @@ do_archive (chop_stream_t *stream, chop_block_store_t *data_store,
     block_indexer_class = chop_class_lookup (block_indexer_class_name);
     if (!block_indexer_class)
       {
-	com_err (program_name, err, "%s: not a valid block indexer class name",
-		 block_indexer_class_name);
+	chop_error (err, "%s: not a valid block indexer class name",
+		    block_indexer_class_name);
 	return err;
       }
 
     if (!chop_class_inherits (block_indexer_class, &chop_block_indexer_class))
       {
-	com_err (program_name, err, "%s: not a block indexer class",
-		 block_indexer_class_name);
+	chop_error (err, "%s: not a block indexer class",
+		    block_indexer_class_name);
 	return err;
       }
 
@@ -259,8 +259,8 @@ do_archive (chop_stream_t *stream, chop_block_store_t *data_store,
 				   &bytes_read);
     if (err)
       {
-	com_err (program_name, err, "%s: failed to deserialize block indexer",
-		 block_indexer_ascii);
+	chop_error (err, "%s: failed to deserialize block indexer",
+		    block_indexer_ascii);
 	return err;
       }
 
@@ -275,7 +275,7 @@ do_archive (chop_stream_t *stream, chop_block_store_t *data_store,
 				   data_store, metadata_store, handle);
   if ((err) && (err != CHOP_STREAM_END))
     {
-      com_err (program_name, err, "while indexing blocks");
+      chop_error (err, "while indexing blocks");
       return err;
     }
 
@@ -295,7 +295,7 @@ do_archive (chop_stream_t *stream, chop_block_store_t *data_store,
 					  &buffer);
   if (err)
     {
-      com_err (program_name, err, "while serializing index handle");
+      chop_error (err, "while serializing index handle");
       exit (8);
     }
 
@@ -336,7 +336,7 @@ do_retrieve (chop_index_handle_t *handle,
 				   stream);
   if (err)
     {
-      com_err (program_name, err, "while retrieving stream");
+      chop_error (err, "while retrieving stream");
       return err;
     }
 
@@ -352,7 +352,7 @@ do_retrieve (chop_index_handle_t *handle,
 					    0, unzip_filter);
       if (err)
 	{
-	  com_err (program_name, err, "while opening unzip filter");
+	  chop_error (err, "while opening unzip filter");
 	  exit (1);
 	}
 
@@ -361,7 +361,7 @@ do_retrieve (chop_index_handle_t *handle,
 				       stream);
       if (err)
 	{
-	  com_err (program_name, err, "while opening unzip-filtered stream");
+	  chop_error (err, "while opening unzip-filtered stream");
 	  exit (1);
 	}
 
@@ -381,7 +381,7 @@ do_retrieve (chop_index_handle_t *handle,
 
   if (err != CHOP_STREAM_END)
     {
-      com_err (program_name, err, "while reading stream");
+      chop_error (err, "while reading stream");
       return err;
     }
 
@@ -438,7 +438,7 @@ process_command (const char *argument,
       err = chop_file_stream_open (argument, stream);
       if (err)
 	{
-	  com_err (program_name, err, "while opening %s", argument);
+	  chop_error (err, "while opening %s", argument);
 	  exit (1);
 	}
 
@@ -456,7 +456,7 @@ process_command (const char *argument,
 					  0, zip_filter);
 	  if (err)
 	    {
-	      com_err (program_name, err, "failed to open zip filter");
+	      chop_error (err, "failed to open zip filter");
 	      exit (3);
 	    }
 
@@ -465,8 +465,7 @@ process_command (const char *argument,
 					   stream);
 	  if (err)
 	    {
-	      com_err (program_name, err,
-		       "failed to open zip-filtered input stream");
+	      chop_error (err, "failed to open zip-filtered input stream");
 	      exit (3);
 	    }
 
@@ -500,8 +499,8 @@ process_command (const char *argument,
 				     &bytes_read);
       if (err)
 	{
-	  com_err (program_name, err, "while deserializing `%s' instance",
-		   indexer_class_name);
+	  chop_error (err, "while deserializing `%s' instance",
+		      indexer_class_name);
 	  exit (1);
 	}
 
@@ -533,9 +532,8 @@ process_command (const char *argument,
 				       typical_block_size, chopper);
       if (err)
 	{
-	  com_err (program_name, err,
-		   "while initializing chopper of class `%s'",
-		   chopper_class_name);
+	  chop_error (err, "while initializing chopper of class `%s'",
+		      chopper_class_name);
 	  exit (2);
 	}
 
@@ -563,8 +561,7 @@ process_command (const char *argument,
 						   &bytes_read);
       if (err)
 	{
-	  com_err (program_name, err,
-		   "during stage 1 of the index deserialization");
+	  chop_error (err, "during stage 1 of the index deserialization");
 	  return err;
 	}
 
@@ -581,8 +578,7 @@ process_command (const char *argument,
 						   &bytes_read);
       if (err)
 	{
-	  com_err (program_name, err,
-		   "during stage 2 of the index deserialization");
+	  chop_error (err, "during stage 2 of the index deserialization");
 	  return err;
 	}
 
@@ -653,8 +649,8 @@ open_db_store (const chop_file_based_store_class_t *class,
 				    O_RDWR | O_CREAT, S_IRUSR | S_IWUSR,
 				    store);
   if (err)
-    com_err (program_name, err, "whileopening `%s' data file \"%s\"",
-	     chop_class_name ((chop_class_t *)class), file);
+    chop_error (err, "while opening `%s' data file \"%s\"",
+		chop_class_name ((chop_class_t *)class), file);
 
   return err;
 }
@@ -789,7 +785,7 @@ main (int argc, char *argv[])
   err = chop_init ();
   if (err)
     {
-      com_err (argv[0], err, "while initializing libchop");
+      chop_error (err, "while initializing libchop");
       return 1;
     }
 
@@ -830,8 +826,7 @@ main (int argc, char *argv[])
 
 	  if (err)
 	    {
-	      com_err (program_name, err,
-		       "while opening remote block store");
+	      chop_error (err, "while opening remote block store");
 	      exit (3);
 	    }
 
@@ -877,7 +872,7 @@ main (int argc, char *argv[])
 						store);
 	      if (err)
 		{
-		  com_err (program_name, err, "%s", db_file_name);
+		  chop_error (err, "%s", db_file_name);
 		  exit (3);
 		}
 
@@ -932,7 +927,7 @@ main (int argc, char *argv[])
 
       if (err)
 	{
-	  com_err (program_name, err, "while initializing zip filters");
+	  chop_error (err, "while initializing zip filters");
 	  exit (4);
 	}
 
@@ -952,7 +947,7 @@ main (int argc, char *argv[])
 				      store);
       if (err)
 	{
-	  com_err (program_name, err, "while initializing filtered store");
+	  chop_error (err, "while initializing filtered store");
 	  exit (5);
 	}
     }
@@ -982,7 +977,7 @@ main (int argc, char *argv[])
 
       if (err)
 	{
-	  com_err (program_name, err, "while initializing stat store");
+	  chop_error (err, "while initializing stat store");
 	  exit (5);
 	}
     }
@@ -1031,7 +1026,7 @@ main (int argc, char *argv[])
   err = chop_store_close ((chop_block_store_t *)store);
   if (err)
     {
-      com_err (argv[0], err, "while closing output block store");
+      chop_error (err, "while closing output block store");
       exit (7);
     }
   chop_object_destroy ((chop_object_t *)store);
@@ -1041,7 +1036,7 @@ main (int argc, char *argv[])
       err = chop_store_close ((chop_block_store_t *)metastore);
       if (err)
 	{
-	  com_err (argv[0], err, "while closing output meta-data block store");
+	  chop_error (err, "while closing output meta-data block store");
 	  exit (7);
 	}
       chop_object_destroy ((chop_object_t *)metastore);

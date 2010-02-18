@@ -87,6 +87,15 @@ extern chop_error_t chop_init (void);
 extern chop_error_t chop_init_with_allocator (chop_malloc_t, chop_realloc_t,
 					      chop_free_t);
 
+/* Return the error message associated with ERR.  */
+extern const char *chop_error_message (chop_error_t err);
+
+/* Display an error message associated with ERR.  */
+extern void chop_error (chop_error_t err, const char *format, ...)
+#ifdef __GNUC__
+  __attribute__ ((format (printf, 2, 3)))
+#endif
+  ;
 
 
 /* Internal memory management functions.  */

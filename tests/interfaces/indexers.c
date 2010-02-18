@@ -49,9 +49,9 @@ do									\
 				    store);				\
   if (err)								\
     {									\
-      com_err (argv[0], err, "while opening `%s' store `%s'",		\
-	       chop_class_name (store_class),				\
-	       STORE_FILE_NAME);					\
+      chop_error (err, "while opening `%s' store `%s'",			\
+		  chop_class_name (store_class),			\
+		  STORE_FILE_NAME);					\
       exit (2);								\
     }									\
 									\
@@ -69,7 +69,7 @@ do								\
 				      chopper);			\
   if (err)							\
     {								\
-      com_err (argv[0], err, "while initializing chopper");	\
+      chop_error (err, "while initializing chopper");		\
       exit (2);							\
     }								\
 }								\
@@ -251,7 +251,7 @@ main (int argc, char *argv[])
 
       if (err != CHOP_STREAM_END)
 	{
-	  com_err (argv[0], err, "while reading from fetched stream");
+	  chop_error (err, "while reading from fetched stream");
 	  exit (10);
 	}
 

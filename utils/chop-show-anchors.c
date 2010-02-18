@@ -212,7 +212,7 @@ main (int argc, char *argv[])
     e = stat (file_name, &st);
     if (e)
       {
-	com_err (argv[0], errno, "%s", file_name);
+	chop_error (errno, "%s", file_name);
 	return 1;
       }
 
@@ -222,7 +222,7 @@ main (int argc, char *argv[])
   err = chop_file_stream_open (file_name, stream);
   if (err)
     {
-      com_err (argv[0], err, "%s", file_name);
+      chop_error (err, "%s", file_name);
       return 1;
     }
 
@@ -230,7 +230,7 @@ main (int argc, char *argv[])
 					chopper);
   if (err)
     {
-      com_err (argv[0], err, "anchor-based-chopper");
+      chop_error (err, "anchor-based-chopper");
       return 1;
     }
 
@@ -250,7 +250,7 @@ main (int argc, char *argv[])
       err = chop_chopper_read_block (chopper, &buffer, &size);
       if ((err) && (err != CHOP_STREAM_END))
 	{
-	  com_err (argv[0], err, "while reading block");
+	  chop_error (err, "while reading block");
 	  return 2;
 	}
 

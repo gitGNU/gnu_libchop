@@ -68,7 +68,7 @@ ZIP_PUSH_METHOD (chop_filter_t *filter,
 	    {
 	      chop_log_printf (&filter->log,
 			       "push: filter-full event unhandled: %s",
-			       error_message (err));
+			       chop_error_message (err));
 	      if ((err != 0) && (err != CHOP_FILTER_UNHANDLED_FAULT))
 		return err;
 

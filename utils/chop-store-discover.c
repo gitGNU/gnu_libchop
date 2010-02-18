@@ -118,7 +118,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
     case 'H':
       if (chop_hash_method_lookup (arg, &hash_method))
 	{
-	  com_err (program_name, err, "%s: unknown hash method", arg);
+	  chop_error (err, "%s: unknown hash method", arg);
 	  exit (1);
 	}
       break;
@@ -209,7 +209,7 @@ main (int argc, char *argv[])
 				       browser);
   if (err)
     {
-      com_err (program_name, err, "while initializing Avahi store browser");
+      chop_error (err, "while initializing Avahi store browser");
       exit (1);
     }
 
@@ -235,13 +235,13 @@ main (int argc, char *argv[])
 
 	  if (gettimeofday (&before, NULL))
 	    {
-	      com_err (program_name, errno, "gettimeofday");
+	      chop_error (errno, "gettimeofday");
 	      exit (2);
 	    }
 	  err = chop_store_browser_iterate (browser, timeout);
 	  if (gettimeofday (&after, NULL))
 	    {
-	      com_err (program_name, errno, "gettimeofday");
+	      chop_error (errno, "gettimeofday");
 	      exit (2);
 	    }
 
@@ -260,7 +260,7 @@ main (int argc, char *argv[])
 
   if (err)
     {
-      com_err (program_name, err, "while browsing stores");
+      chop_error (err, "while browsing stores");
       exit (2);
     }
 

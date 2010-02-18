@@ -181,9 +181,9 @@ main (int argc, char *argv[])
 				    source);
   if (err)
     {
-      com_err (argv[0], err, "while opening `%s' data file \"%s\"",
-	       chop_class_name ((chop_class_t *)source_class),
-	       source_file_name);
+      chop_error (err, "while opening `%s' data file \"%s\"",
+		  chop_class_name ((chop_class_t *) source_class),
+		  source_file_name);
       return 2;
     }
 
@@ -194,9 +194,9 @@ main (int argc, char *argv[])
 				    dest);
   if (err)
     {
-      com_err (argv[0], err, "while opening `%s' data file \"%s\"",
-	       chop_class_name ((chop_class_t *)dest_class),
-	       dest_file_name);
+      chop_error (err, "while opening `%s' data file \"%s\"",
+		  chop_class_name ((chop_class_t *) dest_class),
+		  dest_file_name);
       return 2;
     }
 
@@ -224,8 +224,8 @@ main (int argc, char *argv[])
       err = chop_store_read_block (source, key, &buffer, &block_len);
       if (err)
 	{
-	  com_err (argv[0], err, "unexpected, while reading from `%s'",
-		   source_file_name);
+	  chop_error (err, "unexpected, while reading from `%s'",
+		      source_file_name);
 	  goto finish;
 	}
       assert (block_len == chop_buffer_size (&buffer));
@@ -236,8 +236,7 @@ main (int argc, char *argv[])
 				    chop_buffer_size (&buffer));
       if (err)
 	{
-	  com_err (argv[0], err, "while writing to `%s'",
-		   dest_file_name);
+	  chop_error (err, "while writing to `%s'", dest_file_name);
 	  goto finish;
 	}
 
@@ -256,8 +255,8 @@ main (int argc, char *argv[])
     chop_object_destroy ((chop_object_t *)it);
 
   if ((err) && (err != CHOP_STORE_END))
-    com_err (argv[0], err, "while traversing `%s' store \"%s\"",
-	     source_store_class_name, source_file_name);
+    chop_error (err, "while traversing `%s' store \"%s\"",
+		source_store_class_name, source_file_name);
 
   if (err == CHOP_STORE_END)
     err = 0;

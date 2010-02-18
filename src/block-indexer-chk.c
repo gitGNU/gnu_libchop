@@ -539,7 +539,7 @@ chk_block_fetch (chop_block_fetcher_t *block_fetcher,
 	  chop_buffer_to_hex_string (handle->block_id, handle->block_id_size,
 				     block_id);
 	  chop_log_printf (&fetcher->log, "block `%s': decryption error: %s",
-			   block_id, error_message (err));
+			   block_id, chop_error_message (err));
 	}
     }
 

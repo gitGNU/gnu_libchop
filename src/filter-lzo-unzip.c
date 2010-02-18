@@ -133,7 +133,7 @@ chop_lzo_unzip_pull (chop_filter_t *filter, int flush,
 	  if (err)
 	    chop_log_printf (&filter->log,
 			     "input fault unhandled: %s",
-			     error_message (err));
+			     chop_error_message (err));
 	}
       else
 	{
@@ -173,7 +173,7 @@ chop_lzo_unzip_pull (chop_filter_t *filter, int flush,
 	    {
 	      chop_log_printf (&filter->log,
 			       "unexpected input fault unhandled: %s",
-			       error_message (err));
+			       chop_error_message (err));
 	      err = CHOP_FILTER_ERROR;
 	    }
 	  else if (zfilter->avail_in < in32)

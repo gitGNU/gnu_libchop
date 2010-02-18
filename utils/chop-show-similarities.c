@@ -128,7 +128,7 @@ read_stream (chop_chopper_t *chopper, chop_hash_method_t method,
       err = chop_chopper_read_block (chopper, &buffer, &size);
       if ((err) && (err != CHOP_STREAM_END))
 	{
-	  com_err (program_name, err, "while reading block");
+	  chop_error (err, "while reading block");
 	  return 2;
 	}
 
@@ -280,7 +280,7 @@ main (int argc, char *argv[])
   err = chop_init ();
   if (err)
     {
-      com_err (argv[0], err, "while initializing libchop");
+      chop_error (err, "while initializing libchop");
       return 1;
     }
 
@@ -295,14 +295,14 @@ main (int argc, char *argv[])
   err = chop_file_stream_open (file_name1, stream1);
   if (err)
     {
-      com_err (argv[0], err, "%s", file_name1);
+      chop_error (err, "%s", file_name1);
       return 1;
     }
 
   err = chop_file_stream_open (file_name2, stream2);
   if (err)
     {
-      com_err (argv[0], err, "%s", file_name2);
+      chop_error (err, "%s", file_name2);
       return 1;
     }
 
@@ -310,7 +310,7 @@ main (int argc, char *argv[])
 					chopper1);
   if (err)
     {
-      com_err (argv[0], err, "anchor-based-chopper");
+      chop_error (err, "anchor-based-chopper");
       return 1;
     }
 
@@ -318,7 +318,7 @@ main (int argc, char *argv[])
 					chopper2);
   if (err)
     {
-      com_err (argv[0], err, "anchor-based-chopper");
+      chop_error (err, "anchor-based-chopper");
       return 1;
     }
 
@@ -332,14 +332,14 @@ main (int argc, char *argv[])
   err = read_stream (chopper1, CHOP_HASH_MD5, &blocks1);
   if ((err) && (err != CHOP_STREAM_END))
     {
-      com_err (argv[0], err, "while reading from chopper1");
+      chop_error (err, "while reading from chopper1");
       return 1;
     }
 
   err = read_stream (chopper2, CHOP_HASH_MD5, &blocks2);
   if ((err) && (err != CHOP_STREAM_END))
     {
-      com_err (argv[0], err, "while reading from chopper2");
+      chop_error (err, "while reading from chopper2");
       return 1;
     }
 

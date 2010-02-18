@@ -251,7 +251,7 @@ main (int argc, char *argv[])
 		   input. */
 		break;
 
-	      com_err (argv[0], err, "while pulling data");
+	      chop_error (err, "while pulling data");
 	      return 2;
 	    }
 	}
@@ -272,7 +272,7 @@ main (int argc, char *argv[])
 
       if ((err) && (err != CHOP_FILTER_EMPTY))
 	{
-	  com_err (argv[0], err, "while flushing filter's input");
+	  chop_error (err, "while flushing filter's input");
 	  exit (3);
 	}
 

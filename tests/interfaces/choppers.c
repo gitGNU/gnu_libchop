@@ -89,8 +89,8 @@ main (int argc, char *argv[])
 				       CHOPPER_BLOCK_SIZE, chopper);
       if (err)
 	{
-	  com_err (argv[0], err, "while initializing `%s' chopper",
-		   chop_class_name ((chop_class_t *)*class));
+	  chop_error (err, "while initializing `%s' chopper",
+		      chop_class_name ((chop_class_t *) *class));
 	  exit (1);
 	}
 
@@ -134,8 +134,8 @@ main (int argc, char *argv[])
 
       if (err != CHOP_STREAM_END)
 	{
-	  com_err (argv[0], err, "while reading block from a `%s' chopper",
-		   chop_class_name ((chop_class_t *)*class));
+	  chop_error (err, "while reading block from a `%s' chopper",
+		      chop_class_name ((chop_class_t *) *class));
 	  exit (3);
 	}
 

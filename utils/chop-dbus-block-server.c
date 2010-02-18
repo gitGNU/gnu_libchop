@@ -520,7 +520,7 @@ main (int argc, char *argv[])
 	      if (errno == EINTR)
 		continue;
 
-	      com_err (argv[0], errno, "poll");
+	      chop_error (errno, "poll");
 	    }
 	  else
 	    {

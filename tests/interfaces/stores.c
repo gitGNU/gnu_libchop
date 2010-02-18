@@ -88,8 +88,8 @@ main (int argc, char *argv[])
 					S_IRUSR | S_IWUSR, store);
       if (err)
 	{
-	  com_err (argv[0], err, "while opening `%s' store",
-		   chop_class_name ((chop_class_t *)*class));
+	  chop_error (err, "while opening `%s' store",
+		      chop_class_name ((chop_class_t *) *class));
 	  exit (1);
 	}
 
@@ -98,8 +98,8 @@ main (int argc, char *argv[])
 				    random_bytes, sizeof (random_bytes));
       if (err)
 	{
-	  com_err (argv[0], err, "while writing to a `%s' store",
-		   chop_class_name ((chop_class_t *)*class));
+	  chop_error (err, "while writing to a `%s' store",
+		      chop_class_name ((chop_class_t *) *class));
 	  exit (2);
 	}
 
@@ -107,8 +107,8 @@ main (int argc, char *argv[])
       err = chop_store_block_exists (store, &random_key, &exists);
       if (err)
 	{
-	  com_err (argv[0], err, "while querying a `%s' store",
-		   chop_class_name ((chop_class_t *)*class));
+	  chop_error (err, "while querying a `%s' store",
+		      chop_class_name ((chop_class_t *) *class));
 	  exit (3);
 	}
 
@@ -116,16 +116,16 @@ main (int argc, char *argv[])
       err = chop_store_read_block (store, &random_key, &buffer, &amount);
       if (err)
 	{
-	  com_err (argv[0], err, "while reading from a `%s' store",
-		   chop_class_name ((chop_class_t *)*class));
+	  chop_error (err, "while reading from a `%s' store",
+		      chop_class_name ((chop_class_t *) *class));
 	  exit (4);
 	}
       if (amount < sizeof (random_bytes))
 	{
-	  com_err (argv[0], 0,
-		   "read only %zu bytes instead of %zu from a `%s' store",
-		   amount, sizeof (random_bytes),
-		   chop_class_name ((chop_class_t *)*class));
+	  chop_error (0,
+		      "read only %zu bytes instead of %zu from a `%s' store",
+		      amount, sizeof (random_bytes),
+		      chop_class_name ((chop_class_t *) *class));
 	  exit (5);
 	}
 
@@ -166,8 +166,8 @@ main (int argc, char *argv[])
       err = chop_store_close (store);
       if (err)
 	{
-	  com_err (argv[0], err, "while closing a `%s' store",
-		   chop_class_name ((chop_class_t *)*class));
+	  chop_error (err, "while closing a `%s' store",
+		      chop_class_name ((chop_class_t *) *class));
 	  exit (6);
 	}
 

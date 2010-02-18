@@ -182,7 +182,7 @@ do								\
 {								\
   if ((_err))							\
     {								\
-      com_err (_test_program_name, (_err), "while " _string);	\
+      chop_error ((_err), "while " _string);			\
       exit (1);							\
     }								\
 }								\
