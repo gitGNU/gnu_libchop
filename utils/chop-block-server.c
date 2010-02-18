@@ -41,6 +41,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 
+#include <progname.h>
 #include <errno.h>
 #include <assert.h>
 
@@ -61,9 +62,6 @@
 #ifndef SIG_PF
 #define SIG_PF void(*)(int)
 #endif
-
-/* The program name.  */
-char *program_name = NULL;
 
 /* Whether to be verbose */
 static int verbose = 0;
@@ -1146,7 +1144,7 @@ main (int argc, char *argv[])
   chop_filter_t *input_filter = NULL, *output_filter = NULL;
   SVCXPRT *transp;
 
-  program_name = argv[0];
+  set_program_name (argv[0]);
 
   /* Parse arguments.  */
   argp_parse (&argp, argc, argv, 0, 0, 0);

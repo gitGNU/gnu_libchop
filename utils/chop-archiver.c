@@ -43,6 +43,7 @@
 #include <fcntl.h>
 
 #include <argp.h>
+#include <progname.h>
 
 const char *argp_program_version = "chop-archiver " PACKAGE_VERSION;
 const char *argp_program_bug_address = "<ludovic.courtes@laas.fr>";
@@ -65,8 +66,6 @@ on the fly.  Failing to do so, you will get the raw, zlib-compressed, file \
 and won't be able to do anything with it (`gunzip' won't work).  The same \
 goes for `--cipher'.";
 
-
-const char *program_name = NULL;
 
 /* Name of the directory for configuration files under `$HOME'.  */
 #define CONFIG_DIRECTORY ".chop-archiver"
@@ -777,7 +776,7 @@ main (int argc, char *argv[])
   chop_filter_t *input_filter = NULL, *output_filter = NULL;
   chop_cipher_handle_t cipher_handle = CHOP_CIPHER_HANDLE_NIL;
 
-  program_name = argv[0];
+  set_program_name (argv[0]);
 
   /* Parse arguments.  */
   argp_parse (&argp, argc, argv, 0, 0, 0);

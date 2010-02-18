@@ -38,6 +38,7 @@
 #include <stdio.h>
 
 #include <argp.h>
+#include <progname.h>
 
 /* Whether to debug.  */
 static int debug = 0;
@@ -81,8 +82,6 @@ static struct argp_option options[] =
 
 static char args_doc[] = "FILE1 FILE2";
 
-
-static const char *program_name = NULL;
 
 
 /* Information about a file block.  */
@@ -275,7 +274,7 @@ main (int argc, char *argv[])
   chop_log_t *chopper_log;
   block_info_vector_t blocks1, blocks2;
 
-  program_name = argv[0];
+  set_program_name (argv[0]);
 
   err = chop_init ();
   if (err)

@@ -32,7 +32,7 @@
 #include <chop/stores.h>
 
 #include <argp.h>
-
+#include <progname.h>
 
 const char *argp_program_version = "chop-store-convert 0.1";
 const char *argp_program_bug_address = "<ludovic.courtes@laas.fr>";
@@ -56,9 +56,6 @@ static struct argp_option options[] =
   };
 
 static char args_doc[] = "SOURCE DEST";
-
-static char *program_name = NULL;
-
 
 /* Block store classes.  */
 static char *source_store_class_name = NULL;
@@ -158,8 +155,9 @@ main (int argc, char *argv[])
   chop_block_iterator_t *it;
   chop_buffer_t buffer;
 
+  set_program_name (argv[0]);
+
   chop_init ();
-  program_name = argv[0];
 
   /* Parse arguments.  */
   argp_parse (&argp, argc, argv, 0, &arg_index, 0);

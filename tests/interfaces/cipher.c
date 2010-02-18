@@ -31,8 +31,6 @@
 
 #define SIZE_OF_INPUT  (4096)
 
-static char *program_name = NULL;
-
 /* The initialization vector.  */
 static const char iv[400] = { 0, };
 
@@ -106,7 +104,6 @@ main (int argc, char *argv[])
 
 
   /* Initialize.  */
-  program_name = argv[0];
   test_init (argv[0]);
 
   err = chop_init ();

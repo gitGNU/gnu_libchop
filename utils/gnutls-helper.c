@@ -30,9 +30,7 @@
 #include <sys/mman.h>
 
 #include <errno.h>
-
-/* We assume the availability of this variable once linked.  */
-extern const char *program_name;
+#include <progname.h>
 
 
 

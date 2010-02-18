@@ -35,6 +35,8 @@
 # include <stdarg.h>
 #endif
 
+#include <progname.h>
+
 #ifdef __GNUC__
 # define CHOP_TEST_PRINTF(x, y)  __attribute__ ((format (printf, x, y)))
 #else
@@ -42,15 +44,13 @@
 #endif
 
 
-static const char *_test_program_name = NULL;
-
 
 /* The basics.  */
 
 static inline void
 test_init (const char *prog_name)
 {
-  _test_program_name = prog_name;
+  set_program_name (prog_name);
   setvbuf (stdout, NULL, _IONBF, 0);
 }
 

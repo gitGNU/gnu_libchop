@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <argp.h>
+#include <progname.h>
 
 #ifdef TIME_WITH_SYS_TIME
 # include <sys/time.h>
@@ -74,8 +75,6 @@ static char args_doc[] = "FILE";
 
 
 /* Configuration.  */
-
-static char *program_name = NULL;
 
 /* Whether to output debugging info.  */
 static int debug = 0;
@@ -195,7 +194,7 @@ main (int argc, char *argv[])
   chop_error_t err;
   chop_store_browser_t *browser;
 
-  program_name = argv[0];
+  set_program_name (argv[0]);
 
   chop_init ();
 
