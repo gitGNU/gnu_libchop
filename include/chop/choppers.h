@@ -33,17 +33,17 @@ CHOP_DECLARE_RT_CLASS (chopper, object,
 		       chop_stream_t *stream;
 
 		       size_t typical_block_size;
-		       errcode_t (* read_block) (struct chop_chopper *,
-						 chop_buffer_t *, size_t *);
+		       chop_error_t (* read_block) (struct chop_chopper *,
+						    chop_buffer_t *, size_t *);
 		       /* The CLOSE method is optional.  */
 		       void (* close) (struct chop_chopper *););
 
 /* The `chop_chopper_class_t' metaclass which provides a generic chopper
    creation method (a "factory").  */
 CHOP_DECLARE_RT_CLASS (chopper_class, class,
-		       errcode_t (* generic_open) (chop_stream_t *,
-						   size_t,
-						   chop_chopper_t *););
+		       chop_error_t (* generic_open) (chop_stream_t *,
+						      size_t,
+						      chop_chopper_t *););
 
 /* These classes inherit from `chop_chopper_t'.  Both have
    `chop_chopper_class_t' as their class.  */
@@ -63,7 +63,7 @@ extern const chop_chopper_class_t chop_anchor_based_chopper_class;
    however, make sure that the average block size will be TYPICAL_BLOCK_SIZE
    bytes.  If TYPICAL_BLOCK_SIZE is zero, then the implementation of CLASS is
    free to choose any block size.  Return zero on success.  */
-static __inline__ errcode_t
+static __inline__ chop_error_t
 chop_chopper_generic_open (const chop_chopper_class_t *class,
 			   chop_stream_t *input,
 			   size_t typical_block_size,
@@ -80,7 +80,7 @@ chop_chopper_generic_open (const chop_chopper_class_t *class,
    input stream INPUT and cut it into blocks of BLOCK_SIZE bytes.  If
    PAD_BLOCKS is non-zero, the last block before CHOP_STREAM_END will be
    padded with zeros in order to be BLOCK_SIZE long.  */
-extern errcode_t
+extern chop_error_t
 chop_fixed_size_chopper_init (chop_stream_t *input,
 			      size_t block_size,
 			      int pad_blocks,
@@ -91,7 +91,7 @@ chop_fixed_size_chopper_init (chop_stream_t *input,
    contents of INPUT.  Consequently, this is very costly in terms of memory
    consumption.  Also, CHOP_WHOLE_STREAM_CHOPPER_CLASS does not honor at all
    the TYPICAL_BLOCK_SIZE argument of `chop_chopper_generic_open ()'.  */
-extern errcode_t
+extern chop_error_t
 chop_whole_stream_chopper_open (chop_stream_t *input,
 				chop_chopper_t *chopper);
 
@@ -109,7 +109,7 @@ chop_whole_stream_chopper_open (chop_stream_t *input,
    whether it should yield a block boundary.  The more bits are set in
    MAGIC_FPR_MASK, the less likely a fingerprint will match, and the larger
    the average block size will be.  */
-extern errcode_t
+extern chop_error_t
 chop_anchor_based_chopper_init (chop_stream_t *input, size_t window_size,
 				unsigned long magic_fpr_mask,
 				chop_chopper_t *chopper);
@@ -137,7 +137,7 @@ static __inline__ void chop_chopper_set_stream (chop_chopper_t *__chopper,
    BLOCK contains the exact contents of the block (i.e. the contents are
    "pushed"), SIZE contains the size of the block, and zero is returned.  On
    end of stream, *SIZE is set to zero and CHOP_STREAM_END is returned.  */
-static __inline__ errcode_t
+static __inline__ chop_error_t
 chop_chopper_read_block (chop_chopper_t *__chopper,
 			 chop_buffer_t *__block,
 			 size_t *__size)

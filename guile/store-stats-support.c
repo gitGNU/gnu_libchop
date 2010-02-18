@@ -28,13 +28,13 @@
 #include <assert.h>
 
 
-static inline errcode_t
+static inline chop_error_t
 chop_stat_block_store_open_alloc (const char *name,
 				  chop_block_store_t *backend,
 				  int close_backend,
 				  chop_block_store_t **store)
 {
-  errcode_t err;
+  chop_error_t err;
 
   *store =
     gwrap_chop_malloc (&chop_stat_block_store_class);
@@ -58,7 +58,7 @@ chop_stat_block_store_open_alloc (const char *name,
 static inline chop_block_store_stats_t *
 chop_stat_block_store_stats_alloc (chop_block_store_t *store)
 {
-  errcode_t err;
+  chop_error_t err;
   const chop_block_store_stats_t *stats;
   chop_block_store_stats_t *result;
 

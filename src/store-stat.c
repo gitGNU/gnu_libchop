@@ -81,12 +81,12 @@ CHOP_DEFINE_RT_CLASS (stat_block_store, block_store,
 
 /* The block store methods.  */
 
-static errcode_t
+static chop_error_t
 chop_stat_block_store_block_exists (chop_block_store_t *store,
 				    const chop_block_key_t *key,
 				    int *exists)
 {
-  errcode_t err = 0;
+  chop_error_t err = 0;
   chop_stat_block_store_t *stat =
     (chop_stat_block_store_t *)store;
 
@@ -98,13 +98,13 @@ chop_stat_block_store_block_exists (chop_block_store_t *store,
   return err;
 }
 
-static errcode_t
+static chop_error_t
 chop_stat_block_store_read_block (chop_block_store_t *store,
 				  const chop_block_key_t *key,
 				  chop_buffer_t *buffer,
 				  size_t *size)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_stat_block_store_t *stat =
     (chop_stat_block_store_t *)store;
 
@@ -118,12 +118,12 @@ chop_stat_block_store_read_block (chop_block_store_t *store,
   return err;
 }
 
-static errcode_t
+static chop_error_t
 chop_stat_block_store_write_block (chop_block_store_t *store,
 				   const chop_block_key_t *key,
 				   const char *block, size_t size)
 {
-  errcode_t err = 0;
+  chop_error_t err = 0;
   int exists = 0;
   chop_stat_block_store_t *stat =
     (chop_stat_block_store_t *)store;
@@ -143,11 +143,11 @@ chop_stat_block_store_write_block (chop_block_store_t *store,
   return err;
 }
 
-static errcode_t
+static chop_error_t
 chop_stat_block_store_delete_block (chop_block_store_t *store,
 				    const chop_block_key_t *key)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_stat_block_store_t *stat =
     (chop_stat_block_store_t *)store;
 
@@ -159,11 +159,11 @@ chop_stat_block_store_delete_block (chop_block_store_t *store,
   return err;
 }
 
-static errcode_t
+static chop_error_t
 chop_stat_block_store_first_block (chop_block_store_t *store,
 				   chop_block_iterator_t *it)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_stat_block_store_t *stat =
     (chop_stat_block_store_t *)store;
 
@@ -175,10 +175,10 @@ chop_stat_block_store_first_block (chop_block_store_t *store,
   return err;
 }
 
-static errcode_t
+static chop_error_t
 chop_stat_block_store_sync (chop_block_store_t *store)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_stat_block_store_t *stat =
     (chop_stat_block_store_t *)store;
 
@@ -190,10 +190,10 @@ chop_stat_block_store_sync (chop_block_store_t *store)
   return err;
 }
 
-static errcode_t
+static chop_error_t
 chop_stat_block_store_close (chop_block_store_t *store)
 {
-  errcode_t err = 0;
+  chop_error_t err = 0;
   chop_stat_block_store_t *stat =
     (chop_stat_block_store_t *)store;
 
@@ -221,13 +221,13 @@ chop_stat_block_store_close (chop_block_store_t *store)
 
 /* Initializing a stat block store.  */
 
-errcode_t
+chop_error_t
 chop_stat_block_store_open (const char *name,
 			    chop_block_store_t *backend,
 			    chop_proxy_semantics_t bps,
 			    chop_block_store_t *store)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_stat_block_store_t *stat =
     (chop_stat_block_store_t *)store;
 
@@ -270,7 +270,7 @@ chop_stat_block_store_stats (const chop_block_store_t *store)
 
 /* The `chop_block_store_stats_t' class.  */
 
-static errcode_t
+static chop_error_t
 stats_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_block_store_stats_t *stats =
@@ -297,7 +297,7 @@ stats_dtor (chop_object_t *object)
   chop_block_store_stats_clear (stats);
 }
 
-static errcode_t
+static chop_error_t
 bss_copy (const chop_object_t *src, chop_object_t *dst)
 {
   const chop_block_store_stats_t *source = (chop_block_store_stats_t *)src;
@@ -333,11 +333,11 @@ CHOP_DEFINE_RT_CLASS (block_store_stats, object,
 
 /* The `chop_block_store_stats_t' methods.  */
 
-errcode_t
+chop_error_t
 chop_block_store_stats_init (const char *name,
 			     chop_block_store_stats_t *stats)
 {
-  errcode_t err;
+  chop_error_t err;
 
   err = chop_object_initialize ((chop_object_t *)stats,
 				&chop_block_store_stats_class);

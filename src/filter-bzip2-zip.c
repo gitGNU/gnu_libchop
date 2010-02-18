@@ -40,11 +40,11 @@ CHOP_DECLARE_RT_CLASS_WITH_METACLASS (bzip2_zip_filter, filter,
 
 
 
-static errcode_t
+static chop_error_t
 chop_bzip2_zip_push (chop_filter_t *filter,
 		    const char *buffer, size_t size, size_t *pushed);
 
-static errcode_t
+static chop_error_t
 chop_bzip2_zip_pull (chop_filter_t *filter, int flush,
 		    char *buffer, size_t size, size_t *pulled);
 
@@ -55,7 +55,7 @@ static void
 custom_free (void *opaque, void *address);
 
 
-static errcode_t
+static chop_error_t
 bzip2_zip_filter_ctor (chop_object_t *object,
 		      const chop_class_t *class)
 {
@@ -103,7 +103,7 @@ bzip2_zip_filter_dtor (chop_object_t *object)
   chop_object_destroy ((chop_object_t *)&zfilter->filter.log);
 }
 
-static errcode_t
+static chop_error_t
 bzf_open (int compression_level, size_t input_size,
 	  chop_filter_t *filter)
 {
@@ -130,11 +130,11 @@ CHOP_DEFINE_RT_CLASS_WITH_METACLASS (bzip2_zip_filter, filter,
 				     NULL, NULL, /* No copy, equalp */
 				     NULL, NULL  /* No serial, deserial */);
 
-errcode_t
+chop_error_t
 chop_bzip2_zip_filter_init (size_t block_count_100k, size_t work_factor,
 			    size_t input_size, chop_filter_t *filter)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_bzip2_zip_filter_t *zfilter;
 
   zfilter = (chop_bzip2_zip_filter_t *)filter;

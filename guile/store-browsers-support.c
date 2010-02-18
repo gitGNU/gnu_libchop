@@ -76,7 +76,7 @@ ssb_removal_trampoline (chop_store_browser_t *browser,
   return 0;
 }
 
-static errcode_t
+static chop_error_t
 ssb_iterate (chop_store_browser_t *browser, unsigned msecs)
 {
   chop_scheme_store_browser_t *scm;
@@ -88,7 +88,7 @@ ssb_iterate (chop_store_browser_t *browser, unsigned msecs)
     return chop_store_browser_iterate (scm->backend, msecs);
 }
 
-static errcode_t
+static chop_error_t
 ssb_loop (chop_store_browser_t *browser)
 {
   chop_scheme_store_browser_t *scm;
@@ -103,12 +103,12 @@ ssb_loop (chop_store_browser_t *browser)
 
 /* The constructor.  */
 
-static errcode_t
+static chop_error_t
 chop_avahi_store_browser_open_alloc (const char *domain,
 				     SCM discovery, SCM removal,
 				     chop_store_browser_t **browser)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_store_browser_t *backend;
   chop_scheme_store_browser_t *scm;
 

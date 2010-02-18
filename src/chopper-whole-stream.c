@@ -25,7 +25,7 @@ CHOP_DECLARE_RT_CLASS_WITH_METACLASS (whole_stream_chopper, chopper,
 				      /* stateless */);
 
 /* A generic `open' method that chooses default parameters.  */
-static errcode_t
+static chop_error_t
 wsc_generic_open (chop_stream_t *input, size_t block_size,
 		  chop_chopper_t *chopper)
 {
@@ -44,11 +44,11 @@ CHOP_DEFINE_RT_CLASS_WITH_METACLASS (whole_stream_chopper, chopper,
 				     NULL, NULL  /* No serial/deserial */);
 
 
-static errcode_t
+static chop_error_t
 read_whole_stream  (chop_chopper_t *chopper,
 		    chop_buffer_t *buffer, size_t *size)
 {
-  errcode_t err = 0;
+  chop_error_t err = 0;
   char local_buffer[4096];
 
   *size = 0;
@@ -84,11 +84,11 @@ read_whole_stream  (chop_chopper_t *chopper,
   return err;
 }
 
-errcode_t
+chop_error_t
 chop_whole_stream_chopper_open (chop_stream_t *input,
 				chop_chopper_t *chopper)
 {
-  errcode_t err;
+  chop_error_t err;
 
   err = chop_object_initialize ((chop_object_t *)chopper,
 				(chop_class_t *)

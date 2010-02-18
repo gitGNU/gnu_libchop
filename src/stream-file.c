@@ -65,14 +65,14 @@ CHOP_DEFINE_RT_CLASS (file_stream, stream,
 
 
 static void chop_file_stream_close (chop_stream_t *);
-static errcode_t chop_file_stream_read (chop_stream_t *,
-					char *, size_t, size_t *);
+static chop_error_t chop_file_stream_read (chop_stream_t *,
+					   char *, size_t, size_t *);
 
-errcode_t
+chop_error_t
 chop_file_stream_open (const char *path,
 		       chop_stream_t *raw_stream)
 {
-  errcode_t err;
+  chop_error_t err;
   int fd;
   void *map;
   struct stat file_stats;
@@ -115,7 +115,7 @@ chop_file_stream_open (const char *path,
   return 0;
 }
 
-static errcode_t
+static chop_error_t
 chop_file_stream_read (chop_stream_t *stream,
 		       char *buffer, size_t howmuch, size_t *bytes_read)
 {

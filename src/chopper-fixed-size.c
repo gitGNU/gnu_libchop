@@ -40,8 +40,8 @@ CHOP_DEFINE_RT_CLASS (chopper_class, class,
 
 /* Class definitions.  */
 
-static errcode_t fixed_size_chopper_ctor (chop_object_t *object,
-					  const chop_class_t *class);
+static chop_error_t fixed_size_chopper_ctor (chop_object_t *object,
+					     const chop_class_t *class);
 
 
 /* Declare `chop_fixed_size_chopper_t' which inherits from
@@ -52,7 +52,7 @@ CHOP_DECLARE_RT_CLASS_WITH_METACLASS (fixed_size_chopper, chopper,
 				      int pad_blocks;);
 
 /* A generic `open' method that chooses default parameters.  */
-static errcode_t
+static chop_error_t
 chop_fs_generic_open (chop_stream_t *input, size_t block_size,
 		      chop_chopper_t *chopper)
 {
@@ -76,12 +76,12 @@ CHOP_DEFINE_RT_CLASS_WITH_METACLASS (fixed_size_chopper, chopper,
 
 
 
-static errcode_t chop_fixed_chopper_read_block (chop_chopper_t *,
-						chop_buffer_t *block,
-						size_t *);
+static chop_error_t chop_fixed_chopper_read_block (chop_chopper_t *,
+						   chop_buffer_t *block,
+						   size_t *);
 
 /* The constructor.  */
-static errcode_t
+static chop_error_t
 fixed_size_chopper_ctor (chop_object_t *object,
 			 const chop_class_t *class)
 {
@@ -96,7 +96,7 @@ fixed_size_chopper_ctor (chop_object_t *object,
   return 0;
 }
 
-errcode_t
+chop_error_t
 chop_fixed_size_chopper_init (chop_stream_t *input,
 			      size_t block_size,
 			      int pad_blocks,
@@ -116,12 +116,12 @@ chop_fixed_size_chopper_init (chop_stream_t *input,
   return 0;
 }
 
-static errcode_t
+static chop_error_t
 chop_fixed_chopper_read_block (chop_chopper_t *chopper,
 			       chop_buffer_t *buffer,
 			       size_t *size)
 {
-  errcode_t err = 0;
+  chop_error_t err = 0;
   size_t amount;
   char *block;
   chop_fixed_size_chopper_t *fixed = (chop_fixed_size_chopper_t *)chopper;

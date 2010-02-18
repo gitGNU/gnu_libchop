@@ -33,24 +33,27 @@ struct chop_block_iterator;
 CHOP_DECLARE_RT_CLASS (block_store, object,
 		       char *name;
 
-		       errcode_t (* block_exists) (struct chop_block_store *,
-						   const chop_block_key_t *,
-						   int *);
+		       chop_error_t (* block_exists) (struct
+						      chop_block_store *,
+						      const chop_block_key_t *,
+						      int *);
 
-		       errcode_t (* read_block) (struct chop_block_store *,
-						 const chop_block_key_t *,
-						 chop_buffer_t *, size_t *);
-		       errcode_t (* write_block) (struct chop_block_store *,
-						  const chop_block_key_t *,
-						  const char *, size_t);
-		       errcode_t (* delete_block) (struct chop_block_store *,
-						   const chop_block_key_t *);
+		       chop_error_t (* read_block) (struct chop_block_store *,
+						    const chop_block_key_t *,
+						    chop_buffer_t *, size_t *);
+		       chop_error_t (* write_block) (struct chop_block_store *,
+						     const chop_block_key_t *,
+						     const char *, size_t);
+		       chop_error_t (* delete_block) (struct
+						      chop_block_store *,
+						      const chop_block_key_t *);
 
 		       const chop_class_t *iterator_class;
-		       errcode_t (* first_block) (struct chop_block_store *,
-						  struct chop_block_iterator *);
-		       errcode_t (* close) (struct chop_block_store *);
-		       errcode_t (* sync) (struct chop_block_store *););
+		       chop_error_t (* first_block) (struct chop_block_store *,
+						     struct
+						     chop_block_iterator *);
+		       chop_error_t (* close) (struct chop_block_store *);
+		       chop_error_t (* sync) (struct chop_block_store *););
 
 
 
@@ -126,7 +129,7 @@ chop_block_key_equal (const chop_block_key_t *__key1,
 /* Block iterators.  */
 
 CHOP_DECLARE_RT_CLASS (block_iterator, object,
-		       errcode_t (* next) (struct chop_block_iterator *);
+		       chop_error_t (* next) (struct chop_block_iterator *);
 
 		       int nil;
 		       chop_block_store_t *store;
@@ -150,7 +153,7 @@ chop_block_iterator_key (const chop_block_iterator_t *__it)
 /* Update block iterator IT so that it points to the next block.  On success,
    zero is returned.  If no next block is available, CHOP_STORE_END is
    returned and IT becomes nil.  */
-static __inline__ errcode_t
+static __inline__ chop_error_t
 chop_block_iterator_next (chop_block_iterator_t *__it)
 {
   return __it->next (__it);
@@ -169,11 +172,13 @@ chop_block_iterator_next (chop_block_iterator_t *__it)
    by `chop_file_based_store_open ()'.  This declares
    CHOP_FILE_BASED_STORE_CLASS_CLASS and `chop_file_based_store_class_t'.  */
 CHOP_DECLARE_RT_CLASS (file_based_store_class, class,
-		       errcode_t (* generic_open) (const chop_class_t *class,
-						   const char *file,
-						   int open_flags,
-						   mode_t mode,
-						   chop_block_store_t *store););
+		       chop_error_t (* generic_open) (const
+						      chop_class_t *class,
+						      const char *file,
+						      int open_flags,
+						      mode_t mode,
+						      chop_block_store_t
+						      *store););
 
 
 extern const chop_class_t chop_dummy_block_store_class;
@@ -214,30 +219,30 @@ extern chop_log_t *chop_dummy_block_store_log (chop_block_store_t *store);
    function will be called.  On success, return zero and initialize the
    object pointed to by STORE.  STORE must point to enough memory to store an
    instance of type CHOP_GDBM_BLOCK_STORE_CLASS.  */
-extern errcode_t chop_gdbm_store_open (const char *name, size_t block_size,
-				       int open_flags, mode_t mode,
-				       void (* fatal_func) (const char *),
-				       chop_block_store_t *store);
+extern chop_error_t chop_gdbm_store_open (const char *name, size_t block_size,
+					  int open_flags, mode_t mode,
+					  void (* fatal_func) (const char *),
+					  chop_block_store_t *store);
 
 /* Open TDB (the Trivial Database) file NAME, etc, etc.  Availability of this
    function depends on whether you had TDB installed at compilation time.
    TDB databases are usually slightly smaller than GDBM ones.  */
-extern errcode_t chop_tdb_store_open (const char *name,
-				      int hash_size, int tdb_flags,
-				      int open_flags, mode_t mode,
-				      chop_block_store_t *store);
+extern chop_error_t chop_tdb_store_open (const char *name,
+					 int hash_size, int tdb_flags,
+					 int open_flags, mode_t mode,
+					 chop_block_store_t *store);
 
 /* Open a SleepyCat BDB store under file NAME.  DB_TYPE should be a BDB
    database type, e.g., `DB_HASH'.  The other parameters are just
    as usual. */
-extern errcode_t chop_bdb_store_open (const char *name, int db_type,
-				      int open_flags, mode_t mode,
-				      chop_block_store_t *s);
+extern chop_error_t chop_bdb_store_open (const char *name, int db_type,
+					 int open_flags, mode_t mode,
+					 chop_block_store_t *s);
 
 /* Same as `chop_gdbm_store_open ()' for a QDBM database.  */
-extern errcode_t chop_qdbm_store_open (const char *name, size_t block_size,
-				       int open_flags, mode_t mode,
-				       chop_block_store_t *store);
+extern chop_error_t chop_qdbm_store_open (const char *name, size_t block_size,
+					  int open_flags, mode_t mode,
+					  chop_block_store_t *store);
 
 /* XXX:  Implement a store for SkipDB,
    http://www.dekorte.com/projects/opensource/SkipDB/ .  */
@@ -245,7 +250,7 @@ extern errcode_t chop_qdbm_store_open (const char *name, size_t block_size,
 /* This function is a simple version of the GDBM/TDB block store open
    functions which it just calls.  The first argument gives the pointer to
    one of the database-based block store classes.  */
-extern errcode_t
+extern chop_error_t
 chop_file_based_store_open (const chop_file_based_store_class_t *class,
 			    const char *file, int open_flags, mode_t mode,
 			    chop_block_store_t *store);
@@ -256,7 +261,7 @@ chop_file_based_store_open (const chop_file_based_store_class_t *class,
    "udp", "tcp" or "tls/tcp" (TLS over TPC, with anonymous authentication).
    When PROTOCOL is "unix", HOST is interpreted as a named socket path and
    PORT is ignored.  Return 0 on success.  */
-extern errcode_t
+extern chop_error_t
 chop_sunrpc_block_store_open (const char *host, unsigned port,
 			      const char *protocol,
 			      chop_block_store_t *store);
@@ -265,7 +270,7 @@ chop_sunrpc_block_store_open (const char *host, unsigned port,
    PRIVKEY_FILE are non-null, then they are assumed to contain resp. an
    OpenPGP public key and an OpenPGP private key which are to be used during
    the TLS authentication; otherwise, anonymous authentication is used.  */
-extern errcode_t
+extern chop_error_t
 chop_sunrpc_tls_block_store_simple_open (const char *host, unsigned port,
 					 const char *pubkey_file,
 					 const char *privkey_file,
@@ -276,7 +281,7 @@ chop_sunrpc_tls_block_store_simple_open (const char *host, unsigned port,
    Initialize STORE as a D-BUS-based remote block store located at
    DBUS_ADDRESS.  DBUS_ADDRESS must be a D-BUS address string, such as
    `tcp:host=localhost,port=7777'.  */
-extern errcode_t
+extern chop_error_t
 chop_dbus_block_store_open (const char *dbus_address,
 			    chop_block_store_t *store);
 
@@ -284,8 +289,8 @@ chop_dbus_block_store_open (const char *dbus_address,
    only forward `write_block' requests to BACKEND is the block doesn't
    already exist in BACKEND.  This is particularly useful as a proxy to
    remote block stores.  */
-extern errcode_t chop_smart_block_store_open (chop_block_store_t *backend,
-					      chop_block_store_t *store);
+extern chop_error_t chop_smart_block_store_open (chop_block_store_t *backend,
+						 chop_block_store_t *store);
 
 /* Return the log attached to STORE, a smart block store.  If STORE is not an
    instance of CHOP_SMART_BLOCK_STORE_CLASS, then NULL is returned.  */
@@ -307,11 +312,11 @@ extern const chop_class_t chop_filtered_block_store_class;
    filter the contents of blocks as they are read from it, and uses BACKEND
    as the underlying block store.  BPS specify how STORE should behave as a
    proxy of BACKEND.  */
-extern errcode_t chop_filtered_store_open (chop_filter_t *input_filter,
-					   chop_filter_t *output_filter,
-					   chop_block_store_t *backend,
-					   chop_proxy_semantics_t bps,
-					   chop_block_store_t *store);
+extern chop_error_t chop_filtered_store_open (chop_filter_t *input_filter,
+					      chop_filter_t *output_filter,
+					      chop_block_store_t *backend,
+					      chop_proxy_semantics_t bps,
+					      chop_block_store_t *store);
 
 
 
@@ -320,7 +325,7 @@ extern errcode_t chop_filtered_store_open (chop_filter_t *input_filter,
 /* Check whether a block with key KEY is available in STORE.  On success,
    zero is returned and *EXISTS is set to zero if nothing is available under
    KEY, non-zero otherwise.  */
-static __inline__ errcode_t
+static __inline__ chop_error_t
 chop_store_block_exists (chop_block_store_t *__store,
 			 const chop_block_key_t *__key,
 			 int *__exists)
@@ -333,7 +338,7 @@ chop_store_block_exists (chop_block_store_t *__store,
 
 /* Store into BUFFER the data stored under key KEY in STORE.  On success,
    return zero and set *SIZE to the size in bytes of the data read.  */
-static __inline__ errcode_t
+static __inline__ chop_error_t
 chop_store_read_block (chop_block_store_t *__store,
 		       const chop_block_key_t *__key,
 		       chop_buffer_t *__buffer, size_t *__size)
@@ -344,7 +349,7 @@ chop_store_read_block (chop_block_store_t *__store,
 
 /* Write the SIZE bytes pointed to by BLOCK under key KEY in STORE.  Return
    zero on success.  */
-static __inline__ errcode_t
+static __inline__ chop_error_t
 chop_store_write_block (chop_block_store_t *__store,
 			const chop_block_key_t *__key,
 			const char *__block,
@@ -355,7 +360,7 @@ chop_store_write_block (chop_block_store_t *__store,
 
 /* Delete the block store under KEY from STORE.  If no data was stored under
    KEY in STORE then CHOP_STORE_BLOCK_UNAVAIL is returned.  */
-static __inline__ errcode_t
+static __inline__ chop_error_t
 chop_store_delete_block (chop_block_store_t *__store,
 			 const chop_block_key_t *__key)
 {
@@ -380,7 +385,7 @@ chop_store_iterator_class (const chop_block_store_t *__store)
    `chop_object_destroy ()'.  If STORE is empty, CHOP_STORE_END is returned.
    If STORE does not implement sequential block access, CHOP_ERR_NOT_IMPL is
    returned.  */
-static __inline__ errcode_t
+static __inline__ chop_error_t
 chop_store_first_block (chop_block_store_t *__store,
 			chop_block_iterator_t *__it)
 {
@@ -391,12 +396,12 @@ chop_store_first_block (chop_block_store_t *__store,
 }
 
 
-static __inline__ errcode_t chop_store_sync (chop_block_store_t *__store)
+static __inline__ chop_error_t chop_store_sync (chop_block_store_t *__store)
 {
   return (__store->sync (__store));
 }
 
-static __inline__ errcode_t chop_store_close (chop_block_store_t *__store)
+static __inline__ chop_error_t chop_store_close (chop_block_store_t *__store)
 {
   return (__store->close (__store));
 }

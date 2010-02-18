@@ -32,7 +32,7 @@ CHOP_DECLARE_RT_CLASS (filtered_stream, stream,
 		       int flushing;
 		       int finished;);
 
-static errcode_t
+static chop_error_t
 fs_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_filtered_stream_t *stream;
@@ -54,10 +54,10 @@ CHOP_DEFINE_RT_CLASS (filtered_stream, stream,
 
 
 
-static errcode_t
+static chop_error_t
 handle_input_fault (chop_filter_t *filter, size_t how_much, void *data)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_filtered_stream_t *stream;
   size_t read;
   char *buffer;
@@ -84,11 +84,11 @@ handle_input_fault (chop_filter_t *filter, size_t how_much, void *data)
   return err;
 }
 
-static errcode_t
+static chop_error_t
 filtered_stream_read (chop_stream_t *raw_stream,
 		      char *buffer, size_t howmuch, size_t *read)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_filtered_stream_t *stream;
 
   stream = (chop_filtered_stream_t *)raw_stream;
@@ -178,14 +178,14 @@ filtered_stream_close (chop_stream_t *raw_stream)
 
 
 
-errcode_t
+chop_error_t
 chop_filtered_stream_open (chop_stream_t *backend,
 			   chop_proxy_semantics_t bps,
 			   chop_filter_t *filter,
 			   int owns_filter,
 			   chop_stream_t *raw_stream)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_filtered_stream_t *stream;
 
   err = chop_object_initialize ((chop_object_t *)raw_stream,

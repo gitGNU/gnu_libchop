@@ -181,7 +181,7 @@ chop_cipher_algo_block_size (chop_cipher_algo_t algo)
   return (gcry_cipher_get_algo_blklen (cipher_algos[(int)algo].gcrypt_name));
 }
 
-errcode_t
+chop_error_t
 chop_cipher_set_key (chop_cipher_handle_t handle,
 		     const void *key, size_t key_size)
 {
@@ -200,7 +200,7 @@ chop_cipher_set_key (chop_cipher_handle_t handle,
   return (gerr ? CHOP_OUT_OF_RANGE_ARG : 0);
 }
 
-errcode_t
+chop_error_t
 chop_cipher_set_iv (chop_cipher_handle_t handle,
 		    const void *iv, size_t iv_size)
 {
@@ -220,9 +220,9 @@ chop_cipher_reset (chop_cipher_handle_t handle)
 
 #if 0
 /* Try to limit the overhead for the other functions...  */
-typedef errcode_t (* _crypt_func_t) (chop_cipher_handle_t,
-				     char *, size_t,
-				     const char *, size_t);
+typedef chop_error_t (* _crypt_func_t) (chop_cipher_handle_t,
+					char *, size_t,
+					const char *, size_t);
 
 _crypt_func_t chop_cipher_encrypt = (_crypt_func_t)gcry_cipher_encrypt;
 _crypt_func_t chop_cipher_decrypt = (_crypt_func_t)gcry_cipher_decrypt;
@@ -231,7 +231,7 @@ void (* chop_cipher_close) (chop_cipher_handle_t handle) =
   (void (*) (chop_cipher_handle_t)) gcry_cipher_close;
 #endif
 
-errcode_t
+chop_error_t
 chop_cipher_encrypt (chop_cipher_handle_t cipher,
 		     char *out, size_t out_size,
 		     const char *in, size_t in_size)
@@ -250,7 +250,7 @@ chop_cipher_encrypt (chop_cipher_handle_t cipher,
   return (gerr ? CHOP_INVALID_ARG : 0);
 }
 
-errcode_t
+chop_error_t
 chop_cipher_decrypt (chop_cipher_handle_t cipher,
 		     char *out, size_t out_size,
 		     const char *in, size_t in_size)
@@ -280,7 +280,7 @@ chop_randomize (char *buffer, size_t size)
 
 
 #if 0
-errcode_t
+chop_error_t
 chop_cipher_hash_encrypt (chop_cipher_handle_t cipher_handle,
 			  chop_hash_method_t hash_method,
 			  char *hash_key,
@@ -310,7 +310,7 @@ chop_cipher_hash_encrypt (chop_cipher_handle_t cipher_handle,
 }
 #endif
 
-errcode_t
+chop_error_t
 _chop_cipher_init ()
 {
   const char *version;

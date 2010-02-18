@@ -35,11 +35,11 @@
 #define ZIP_FILTER_TYPE  CONCAT5 (chop_, ZIP_TYPE, _, ZIP_DIRECTION, _filter_t)
 #define ZIP_FILTER_CLASS CONCAT5 (chop_, ZIP_TYPE, _, ZIP_DIRECTION, _filter_class)
 
-static errcode_t
+static chop_error_t
 ZIP_PUSH_METHOD (chop_filter_t *filter,
 		 const char *buffer, size_t size, size_t *pushed)
 {
-  errcode_t err;
+  chop_error_t err;
   ZIP_FILTER_TYPE *zfilter;
 
   zfilter = (ZIP_FILTER_TYPE *)filter;
@@ -87,12 +87,12 @@ ZIP_PUSH_METHOD (chop_filter_t *filter,
   return 0;
 }
 
-static errcode_t
+static chop_error_t
 ZIP_PULL_METHOD (chop_filter_t *filter, int flush,
 		 char *buffer, size_t size, size_t *pulled)
 {
   int zret = ZIP_OK;
-  errcode_t err = 0;
+  chop_error_t err = 0;
   ZIP_FILTER_TYPE *zfilter;
 
   zfilter = (ZIP_FILTER_TYPE *)filter;

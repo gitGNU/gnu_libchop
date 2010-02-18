@@ -24,12 +24,12 @@
 #include <assert.h>
 
 
-static inline errcode_t
+static inline chop_error_t
 chop_fixed_size_chopper_open_alloc (chop_stream_t *input,
 				    size_t block_size, int pad_blocks,
 				    chop_chopper_t **chopper)
 {
-  errcode_t err;
+  chop_error_t err;
 
   *chopper =
     gwrap_chop_malloc ((chop_class_t *)&chop_fixed_size_chopper_class);
@@ -48,13 +48,13 @@ chop_fixed_size_chopper_open_alloc (chop_stream_t *input,
   return err;
 }
 
-static inline errcode_t
+static inline chop_error_t
 chop_anchor_based_chopper_open_alloc (chop_stream_t *input,
 				      size_t window_size,
 				      unsigned long magic_fpr_mask,
 				      chop_chopper_t **chopper)
 {
-  errcode_t err;
+  chop_error_t err;
 
   *chopper =
     gwrap_chop_malloc ((chop_class_t *) &chop_anchor_based_chopper_class);
@@ -74,13 +74,13 @@ chop_anchor_based_chopper_open_alloc (chop_stream_t *input,
   return err;
 }
 
-static errcode_t
+static chop_error_t
 chop_chopper_generic_open_alloc (const char *class_nickname,
 				 chop_stream_t *input,
 				 unsigned long typical_block_size,
 				 chop_chopper_t **chopper)
 {
-  errcode_t err;
+  chop_error_t err;
   char *class_realname;
   const chop_class_t *class;
 
@@ -113,11 +113,11 @@ chop_chopper_generic_open_alloc (const char *class_nickname,
 }
 
 
-static inline errcode_t
+static inline chop_error_t
 chop_chopper_read_block_alloc_u8vector (chop_chopper_t *chopper,
 					SCM *result)
 {
-  errcode_t err;
+  chop_error_t err;
   size_t size;
   chop_buffer_t buffer;
 

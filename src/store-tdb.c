@@ -33,7 +33,7 @@ CHOP_DECLARE_RT_CLASS_WITH_METACLASS (tdb_block_store, block_store,
 				      TDB_CONTEXT *db;);
 
 /* A generic open method, common to all file-based block stores.  */
-static errcode_t
+static chop_error_t
 chop_tdb_generic_open (const chop_class_t *class,
 		       const char *file, int open_flags, mode_t mode,
 		       chop_block_store_t *store)
@@ -82,31 +82,31 @@ CHOP_DEFINE_RT_CLASS (tdb_block_iterator, block_iterator,
 		      NULL, NULL);
 
 
-static errcode_t chop_tdb_block_exists (chop_block_store_t *,
-					const chop_block_key_t *,
-					int *);
+static chop_error_t chop_tdb_block_exists (chop_block_store_t *,
+					   const chop_block_key_t *,
+					   int *);
 
-static errcode_t chop_tdb_read_block (chop_block_store_t *,
-				      const chop_block_key_t *,
-				      chop_buffer_t *,
-				      size_t *);
+static chop_error_t chop_tdb_read_block (chop_block_store_t *,
+					 const chop_block_key_t *,
+					 chop_buffer_t *,
+					 size_t *);
 
-static errcode_t chop_tdb_write_block (chop_block_store_t *,
-				       const chop_block_key_t *,
-				       const char *,
-				       size_t);
+static chop_error_t chop_tdb_write_block (chop_block_store_t *,
+					  const chop_block_key_t *,
+					  const char *,
+					  size_t);
 
-static errcode_t chop_tdb_delete_block (chop_block_store_t *,
-					const chop_block_key_t *);
+static chop_error_t chop_tdb_delete_block (chop_block_store_t *,
+					   const chop_block_key_t *);
 
-static errcode_t chop_tdb_first_block (chop_block_store_t *,
-				       chop_block_iterator_t *);
+static chop_error_t chop_tdb_first_block (chop_block_store_t *,
+					  chop_block_iterator_t *);
 
-static errcode_t chop_tdb_it_next (chop_block_iterator_t *);
+static chop_error_t chop_tdb_it_next (chop_block_iterator_t *);
 
-static errcode_t chop_tdb_sync (chop_block_store_t *);
+static chop_error_t chop_tdb_sync (chop_block_store_t *);
 
-static errcode_t chop_tdb_close (chop_block_store_t *);
+static chop_error_t chop_tdb_close (chop_block_store_t *);
 
 /* #define DEBUG 1 */
 
@@ -131,7 +131,7 @@ show_message (TDB_CONTEXT *db, enum tdb_debug_level level, const char *message, 
 }
 #endif
 
-errcode_t
+chop_error_t
 chop_tdb_store_open (const char *name,
 		     int hash_size, int tdb_flags,
 		     int open_flags, mode_t mode,

@@ -69,13 +69,13 @@ chop_smart_block_store_open_alloc (chop_block_store_t *backend)
 }
 
 
-static errcode_t
+static chop_error_t
 chop_file_based_store_open_alloc (const char *class_nickname,
 				  const char *file, int open_flags,
 				  mode_t mode,
 				  chop_block_store_t **store)
 {
-  errcode_t err;
+  chop_error_t err;
   char *class_realname;
   const chop_class_t *class;
 
@@ -106,12 +106,12 @@ chop_file_based_store_open_alloc (const char *class_nickname,
 }
 
 
-static inline errcode_t
+static inline chop_error_t
 chop_gdbm_block_store_open_alloc (const char *name, size_t block_size,
 				  int open_flags, mode_t mode,
 				  chop_block_store_t **store)
 {
-  errcode_t err;
+  chop_error_t err;
 
   *store =
     gwrap_chop_malloc ((chop_class_t *) &chop_gdbm_block_store_class);
@@ -129,12 +129,12 @@ chop_gdbm_block_store_open_alloc (const char *name, size_t block_size,
   return err;
 }
 
-static inline errcode_t
+static inline chop_error_t
 chop_tdb_block_store_open_alloc (const char *name, int hash_size,
 				 int open_flags, mode_t mode,
 				 chop_block_store_t **store)
 {
-  errcode_t err;
+  chop_error_t err;
 
   *store = gwrap_chop_malloc ((chop_class_t *) &chop_tdb_block_store_class);
 
@@ -151,12 +151,12 @@ chop_tdb_block_store_open_alloc (const char *name, int hash_size,
   return err;
 }
 
-static inline errcode_t
+static inline chop_error_t
 chop_sunrpc_block_store_open_alloc (const char *host, unsigned port,
 				    const char *protocol,
 				    chop_block_store_t **store)
 {
-  errcode_t err;
+  chop_error_t err;
 
   *store =
     gwrap_chop_malloc (&chop_sunrpc_block_store_class);
@@ -172,14 +172,14 @@ chop_sunrpc_block_store_open_alloc (const char *host, unsigned port,
   return err;
 }
 
-static inline errcode_t
+static inline chop_error_t
 chop_sunrpc_tls_block_store_simple_open_alloc (const char *host,
 					       unsigned port,
 					       const char *pubkey_file,
 					       const char *privkey_file,
 					       chop_block_store_t **store)
 {
-  errcode_t err;
+  chop_error_t err;
 
   *store =
     gwrap_chop_malloc (&chop_sunrpc_block_store_class);
@@ -197,12 +197,12 @@ chop_sunrpc_tls_block_store_simple_open_alloc (const char *host,
   return err;
 }
 
-static inline errcode_t
+static inline chop_error_t
 chop_store_read_block_alloc_u8vector (chop_block_store_t *store,
 				      const chop_block_key_t *key,
 				      SCM *result)
 {
-  errcode_t err;
+  chop_error_t err;
   size_t size;
   chop_buffer_t buffer;
 
@@ -238,13 +238,13 @@ chop_store_read_block_alloc_u8vector (chop_block_store_t *store,
 }
 
 
-static inline errcode_t
+static inline chop_error_t
 chop_filtered_store_open_alloc (chop_filter_t *input, chop_filter_t *output,
 				chop_block_store_t *backend,
 				int close_backend,
 				chop_block_store_t **store)
 {
-  errcode_t err;
+  chop_error_t err;
 
   *store =
     gwrap_chop_malloc (&chop_filtered_block_store_class);
@@ -270,11 +270,11 @@ chop_filtered_store_open_alloc (chop_filter_t *input, chop_filter_t *output,
 
 /* Block iterators.  */
 
-static inline errcode_t
+static inline chop_error_t
 chop_store_first_block_alloc (chop_block_store_t *store,
 			      chop_block_iterator_t **it)
 {
-  errcode_t err;
+  chop_error_t err;
   const chop_class_t *it_class;
 
   it_class = chop_store_iterator_class (store);
@@ -296,7 +296,7 @@ chop_store_first_block_alloc (chop_block_store_t *store,
   return err;
 }
 
-static inline errcode_t
+static inline chop_error_t
 chop_block_iterator_key_check_non_nil (chop_block_iterator_t *it,
 				       chop_block_key_t *key)
 {
@@ -341,7 +341,7 @@ CHOP_DECLARE_RT_CLASS_WITH_METACLASS (scheme_block_store, block_store,
 
 static SCM guile_chop_store_type = SCM_BOOL_F;
 
-static errcode_t
+static chop_error_t
 scm_store_block_exists (chop_block_store_t *store,
 			const chop_block_key_t *key, int *exists)
 {
@@ -349,12 +349,12 @@ scm_store_block_exists (chop_block_store_t *store,
   return CHOP_ERR_NOT_IMPL;  /* FIXME */
 }
 
-static errcode_t
+static chop_error_t
 scm_store_read_block (chop_block_store_t *store,
 		      const chop_block_key_t *key,
 		      chop_buffer_t *buffer, size_t *read)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_scheme_block_store_t *scm_store;
 
   scm_store = (chop_scheme_block_store_t *)store;
@@ -402,12 +402,12 @@ scm_store_read_block (chop_block_store_t *store,
   return err;
 }
 
-static errcode_t
+static chop_error_t
 scm_store_write_block (chop_block_store_t *store,
 		       const chop_block_key_t *key,
 		       const char *buffer, size_t size)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_scheme_block_store_t *scm_store;
 
   scm_store = (chop_scheme_block_store_t *)store;
@@ -439,14 +439,14 @@ scm_store_write_block (chop_block_store_t *store,
   return err;
 }
 
-static errcode_t
+static chop_error_t
 scm_store_delete_block (chop_block_store_t *store,
 			const chop_block_key_t *key)
 {
   return CHOP_ERR_NOT_IMPL;  /* FIXME */
 }
 
-static errcode_t
+static chop_error_t
 scm_store_first_block (chop_block_store_t *store,
 		       chop_block_iterator_t *it)
 {
@@ -454,17 +454,17 @@ scm_store_first_block (chop_block_store_t *store,
 }
 
 #if 0
-static errcode_t
+static chop_error_t
 scm_store_it_next (chop_block_iterator_t *it)
 {
   return CHOP_ERR_NOT_IMPL;  /* FIXME */
 }
 #endif
 
-static errcode_t
+static chop_error_t
 scm_store_close (chop_block_store_t *store)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_scheme_block_store_t *scm_store;
 
   scm_store = (chop_scheme_block_store_t *)store;
@@ -488,10 +488,10 @@ scm_store_close (chop_block_store_t *store)
   return err;
 }
 
-static errcode_t
+static chop_error_t
 scm_store_sync (chop_block_store_t *store)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_scheme_block_store_t *scm_store;
 
   scm_store = (chop_scheme_block_store_t *)store;
@@ -603,7 +603,7 @@ chop_make_scheme_block_store (SCM read_block, SCM write_block,
   return (s_store);
 }
 
-static errcode_t
+static chop_error_t
 sbs_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_scheme_block_store_t *store;

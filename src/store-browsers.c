@@ -94,7 +94,7 @@ CHOP_DEFINE_RT_CLASS (store_browser, object,
 		      NULL, NULL  /* serial/deserial */);
 
 
-errcode_t
+chop_error_t
 chop_store_browser_iterate (chop_store_browser_t *browser,
 			    unsigned timeout)
 {
@@ -104,7 +104,7 @@ chop_store_browser_iterate (chop_store_browser_t *browser,
   return CHOP_ERR_NOT_IMPL;
 }
 
-errcode_t
+chop_error_t
 chop_store_browser_loop (chop_store_browser_t *browser)
 {
   if (browser->loop)

@@ -45,15 +45,15 @@ CHOP_DECLARE_RT_CLASS_WITH_METACLASS (lzo_unzip_filter, filter,
 
 
 /* LZO global initialization.  */
-extern errcode_t chop_initialize_lzo (void);
+extern chop_error_t chop_initialize_lzo (void);
 
 
 
-static errcode_t
+static chop_error_t
 chop_lzo_unzip_pull (chop_filter_t *filter, int flush,
 		     char *buffer, size_t size, size_t *pulled)
 {
-  errcode_t err = 0;
+  chop_error_t err = 0;
   chop_lzo_unzip_filter_t *zfilter;
 
 #ifndef STRINGIFY
@@ -237,16 +237,16 @@ chop_lzo_unzip_pull (chop_filter_t *filter, int flush,
 
 
 
-static errcode_t lzo_unzip_filter_ctor (chop_object_t *object,
-					const chop_class_t *class);
+static chop_error_t lzo_unzip_filter_ctor (chop_object_t *object,
+					   const chop_class_t *class);
 static void lzo_unzip_filter_dtor (chop_object_t *object);
 
 
-errcode_t
+chop_error_t
 chop_lzo_unzip_filter_init (size_t input_size, chop_filter_t *filter);
 
 
-static errcode_t
+static chop_error_t
 luf_open (size_t input_size, chop_filter_t *filter)
 {
   return (chop_lzo_unzip_filter_init (input_size, filter));
@@ -263,10 +263,10 @@ CHOP_DEFINE_RT_CLASS_WITH_METACLASS (lzo_unzip_filter, filter,
 				     NULL, NULL, /* No copy, equalp */
 				     NULL, NULL  /* No serial, deserial */);
 
-errcode_t
+chop_error_t
 chop_lzo_unzip_filter_init (size_t input_size, chop_filter_t *filter)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_lzo_unzip_filter_t *zfilter;
 
   zfilter = (chop_lzo_unzip_filter_t *) filter;

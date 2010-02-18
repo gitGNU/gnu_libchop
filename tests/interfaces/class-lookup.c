@@ -38,7 +38,7 @@ main (int argc, char *argv[])
     };
   const char *const *name;
   unsigned passed = 0, failed = 0;
-  errcode_t err;
+  chop_error_t err;
 
   test_init (argv[0]);
 

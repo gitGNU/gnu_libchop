@@ -28,14 +28,14 @@
 
 _CHOP_BEGIN_DECLS
 
-typedef errcode_t (* chop_tls_session_initializer_t) (gnutls_session_t,
-						      void *);
+typedef chop_error_t (* chop_tls_session_initializer_t) (gnutls_session_t,
+							 void *);
 
 /* Open remote block store on port PORT of HOST using SunRPC over TLS.  INIT
    will be invoked, before the function returns, to initialize the GnuTLS
    session and will be passed CLOSURE as its second argument.  Upon success
    zero is returned and STORE is initialized.  */
-extern errcode_t
+extern chop_error_t
 chop_sunrpc_tls_block_store_open (const char *host, unsigned port,
 				  chop_tls_session_initializer_t init,
 				  void *closure,

@@ -60,7 +60,7 @@ CHOP_DECLARE_RT_CLASS (tree_indexer, indexer,
 		       /* For debugging purposes */
 		       chop_log_t         log;);
 
-static errcode_t
+static chop_error_t
 chop_tree_index_blocks (chop_indexer_t *indexer,
 			chop_chopper_t *input,
 			chop_block_indexer_t *block_indexer,
@@ -68,7 +68,7 @@ chop_tree_index_blocks (chop_indexer_t *indexer,
 			chop_block_store_t *metadata,
 			chop_index_handle_t *handle);
 
-static errcode_t
+static chop_error_t
 chop_tree_fetch_stream (struct chop_indexer *,
 			const chop_index_handle_t *,
 			chop_block_fetcher_t *,
@@ -78,7 +78,7 @@ chop_tree_fetch_stream (struct chop_indexer *,
 
 extern const chop_class_t chop_tree_stream_class;
 
-static errcode_t
+static chop_error_t
 iht_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_tree_indexer_t *htree;
@@ -103,11 +103,11 @@ iht_dtor (chop_object_t *object)
   chop_object_destroy ((chop_object_t *)&htree->log);
 }
 
-static errcode_t
+static chop_error_t
 iht_serialize (const chop_object_t *object, chop_serial_method_t method,
 	       chop_buffer_t *buffer)
 {
-  errcode_t err = 0;
+  chop_error_t err = 0;
   chop_tree_indexer_t *ti = (chop_tree_indexer_t *)object;
 
   switch (method)
@@ -129,11 +129,11 @@ iht_serialize (const chop_object_t *object, chop_serial_method_t method,
   return 0;
 }
 
-static errcode_t
+static chop_error_t
 iht_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 		 chop_object_t *object, size_t *bytes_read)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_tree_indexer_t *ti = (chop_tree_indexer_t *)object;
 
   switch (method)
@@ -268,13 +268,13 @@ chop_key_block_fill_header (key_block_t *block)
 
 /* Flush BLOCK to METADATA and return its index in INDEX.  The memory used by
    BLOCK can now be reused.  */
-static errcode_t
+static chop_error_t
 chop_key_block_flush (key_block_t *block,
 		      chop_block_indexer_t *block_indexer,
 		      chop_block_store_t *metadata,
 		      chop_index_handle_t *index)
 {
-  errcode_t err;
+  chop_error_t err;
 
   chop_log_printf (block->log,
 		   "key_block_flush: block %p with %zu keys being flushed "
@@ -296,12 +296,12 @@ chop_key_block_flush (key_block_t *block,
 }
 
 /* Initialize the key block pointed to by BLOCK.  */
-static inline errcode_t
+static inline chop_error_t
 chop_key_block_init (size_t indexes_per_block,
 		     chop_log_t *log,
 		     key_block_t *block)
 {
-  errcode_t err;
+  chop_error_t err;
   char fake_header[KEY_BLOCK_HEADER_SIZE] = { 0, };
 
   err = chop_buffer_init (&block->keys, indexes_per_block * 20);
@@ -339,12 +339,12 @@ chop_key_block_reinit (key_block_t *block)
 }
 
 /* Allocate and initialize a new key block and return it in BLOCK.  */
-static inline errcode_t
+static inline chop_error_t
 chop_key_block_new (size_t indexes_per_block,
 		    chop_log_t *log,
 		    key_block_t **block)
 {
-  errcode_t err;
+  chop_error_t err;
 
   /* XXX: Use obstacks.  */
   *block = (key_block_t *) chop_malloc (sizeof (key_block_t),
@@ -375,13 +375,13 @@ chop_key_block_destroy (key_block_t *block)
 
 /* Append INDEX to BLOCK which can contain at most INDEXES_PER_BLOCK block keys.
    When full, BLOCK is written to METADATA and its contents are reset.  */
-static errcode_t
+static chop_error_t
 chop_key_block_add_index (key_block_t *block, size_t indexes_per_block,
 			  chop_block_store_t *metadata,
 			  chop_block_indexer_t *block_indexer,
 			  const chop_index_handle_t *index)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_buffer_t buffer;
 
   if (block->key_count + 1 >= indexes_per_block)
@@ -466,12 +466,12 @@ chop_key_block_add_index (key_block_t *block, size_t indexes_per_block,
 }
 
 /* Append INDEX to TREE.  */
-static errcode_t
+static chop_error_t
 chop_block_tree_add_index (key_block_tree_t *tree,
 			   chop_block_indexer_t *block_indexer,
 			   const chop_index_handle_t *index)
 {
-  errcode_t err = 0;
+  chop_error_t err = 0;
   key_block_t *current;
 
   if (!tree->current)
@@ -497,12 +497,12 @@ chop_block_tree_add_index (key_block_tree_t *tree,
 
 /* Flush all the pending key blocks of TREE and return the key of the
    top-level key block in ROOT_INDEX.  */
-static errcode_t
+static chop_error_t
 chop_block_tree_flush (key_block_tree_t *tree,
 		       chop_block_indexer_t *block_indexer,
 		       chop_index_handle_t *root_index)
 {
-  errcode_t err = 0;
+  chop_error_t err = 0;
   key_block_t *block;
   size_t depth = 0, last_depth = 0;
 
@@ -562,19 +562,19 @@ chop_block_tree_free (key_block_tree_t *tree)
 /* Implementation of the indexer interface.  */
 
 
-static errcode_t tree_stream_read (chop_stream_t *, char *,
-					size_t, size_t *);
+static chop_error_t tree_stream_read (chop_stream_t *, char *,
+				      size_t, size_t *);
 
 static void tree_stream_close (chop_stream_t *);
 
 extern const chop_class_t chop_tree_stream_class;
 
 
-errcode_t
+chop_error_t
 chop_tree_indexer_open (size_t indexes_per_block,
 			chop_indexer_t *indexer)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_tree_indexer_t *htree;
 
   err = chop_object_initialize ((chop_object_t *)indexer,
@@ -612,7 +612,7 @@ chop_tree_indexer_log (chop_indexer_t *indexer)
 }
 
 
-static errcode_t
+static chop_error_t
 chop_tree_index_blocks (chop_indexer_t *indexer,
 			chop_chopper_t *input,
 			chop_block_indexer_t *block_indexer,
@@ -620,7 +620,7 @@ chop_tree_index_blocks (chop_indexer_t *indexer,
 			chop_block_store_t *metadata,
 			chop_index_handle_t *index)
 {
-  errcode_t err = 0;
+  chop_error_t err = 0;
   int first = 1;
   chop_tree_indexer_t *htree = (chop_tree_indexer_t *)indexer;
   size_t amount, total_amount = 0;
@@ -749,7 +749,7 @@ CHOP_DECLARE_RT_CLASS (tree_stream, stream,
 
 
 
-static inline errcode_t
+static inline chop_error_t
 chop_decoded_block_tree_init (decoded_block_tree_t *tree,
 			      chop_block_store_t *data_store,
 			      chop_block_store_t *metadata_store,
@@ -757,7 +757,7 @@ chop_decoded_block_tree_init (decoded_block_tree_t *tree,
 			      chop_block_fetcher_t *fetcher,
 			      chop_log_t *log)
 {
-  errcode_t err;
+  chop_error_t err;
   const chop_class_t *handle_class =
     chop_object_get_class ((chop_object_t *)handle);
 
@@ -813,7 +813,7 @@ chop_decoded_block_tree_free (decoded_block_tree_t *tree)
 
 
 /* Constructor.  */
-static errcode_t
+static chop_error_t
 tree_stream_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_tree_stream_t *stream = (chop_tree_stream_t *)object;
@@ -846,7 +846,7 @@ CHOP_DEFINE_RT_CLASS (tree_stream, stream,
 /* The entry point.  On success, return zero and set OUTPUT to a stream
    representing the contents of the hash-tree-encoded stream pointed to by
    HANDLE.  */
-static errcode_t
+static chop_error_t
 chop_tree_fetch_stream (struct chop_indexer *indexer,
 			     const chop_index_handle_t *handle,
 			     chop_block_fetcher_t *fetcher,
@@ -854,7 +854,7 @@ chop_tree_fetch_stream (struct chop_indexer *indexer,
 			     chop_block_store_t *metadata,
 			     chop_stream_t *output)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_tree_stream_t *tstream;
   chop_tree_indexer_t *htree = (chop_tree_indexer_t *)indexer;
 
@@ -881,7 +881,7 @@ chop_tree_fetch_stream (struct chop_indexer *indexer,
 /* Decode BLOCK's header (which was created by CHOP_KEY_BLOCK_FILL_HEADER).
    BLOCK is assumed to be a key block.  This functions sets BLOCK's KEY_COUNT
    and DEPTH fields.  */
-static inline errcode_t
+static inline chop_error_t
 chop_decoded_block_decode_header (decoded_block_t *block)
 {
   char magic[2];
@@ -926,10 +926,10 @@ chop_decoded_block_decode_header (decoded_block_t *block)
   return 0;
 }
 
-static inline errcode_t
+static inline chop_error_t
 chop_decoded_block_new (decoded_block_t **block, chop_log_t *log)
 {
-  errcode_t err;
+  chop_error_t err;
 
   *block = chop_malloc (sizeof (decoded_block_t),
 			&chop_tree_stream_class);
@@ -955,13 +955,13 @@ chop_decoded_block_new (decoded_block_t **block, chop_log_t *log)
 /* Fetch block with index INDEX from STORE and update BLOCK accordingly.
    PARENT, if not NULL, is assumed to be the parent of the block being
    fetched.  */
-static errcode_t
+static chop_error_t
 chop_decoded_block_fetch (chop_block_store_t *store,
 			  const chop_index_handle_t *index,
 			  chop_block_fetcher_t *fetcher,
 			  decoded_block_t *parent, decoded_block_t *block)
 {
-  errcode_t err;
+  chop_error_t err;
   size_t block_size;
   int is_key_block;
 
@@ -998,13 +998,13 @@ chop_decoded_block_fetch (chop_block_store_t *store,
    further block.  This propagates the request recursively to BLOCK's
    parents.  However, no new block object is allocated: they are simply
    reused.  */
-static errcode_t
+static chop_error_t
 chop_decoded_block_next_child (decoded_block_t *block,
 			       chop_block_fetcher_t *fetcher,
 			       chop_block_store_t *metadata_store,
 			       chop_block_store_t *data_store)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_log_t *log = block->log;
 
  start:
@@ -1103,14 +1103,14 @@ chop_decoded_block_next_child (decoded_block_t *block,
    much as possible from it and ask its parents to jump to the next data
    block (without allocating new block objects) if BLOCK has been read
    entirely.  */
-static errcode_t
+static chop_error_t
 chop_decoded_block_read (decoded_block_t *block,
 			 chop_block_store_t *metadata_store,
 			 chop_block_store_t *data_store,
 			 chop_block_fetcher_t *fetcher,
 			 char *buffer, size_t size, size_t *read)
 {
-  errcode_t err = 0;
+  chop_error_t err = 0;
 
   if (block->is_key_block)
     {
@@ -1185,12 +1185,12 @@ chop_decoded_block_read (decoded_block_t *block,
 /* Read at most SIZE bytes from TREE's underlying metadata block store.  On
    success, zero is returned and READ is set to the number of bytes actually
    read.  CHOP_STREAM_END is returned on end-of-stream.  */
-static errcode_t
+static chop_error_t
 chop_decoded_block_tree_read (decoded_block_tree_t *tree,
 			      char *buffer, size_t size,
 			      size_t *read)
 {
-  errcode_t err;
+  chop_error_t err;
 
   chop_log_printf (tree->log, "reading %zu bytes", size);
   if (!tree->top_level)
@@ -1220,7 +1220,7 @@ chop_decoded_block_tree_read (decoded_block_tree_t *tree,
 
 
 /* The stream `read' method for hash tree streams.  */
-static errcode_t
+static chop_error_t
 tree_stream_read (chop_stream_t *stream, char *buffer, size_t size,
 		       size_t *read)
 {

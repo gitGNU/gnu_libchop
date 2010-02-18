@@ -37,7 +37,7 @@ chop_ ## _type ## _gcrypt_name (chop_ ## _type ## _t method)		\
   return ((_map)[(int)method].gcrypt_name);				\
 }									\
 									\
-errcode_t								\
+chop_error_t								\
 chop_ ## _type ## _lookup (const char *name,				\
 			   chop_ ## _type ## _t *method)		\
 {									\

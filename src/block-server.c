@@ -73,7 +73,7 @@ chop_block_server_wait_for_requests (SVCXPRT *transport,
 
 /* Service publishers.  */
 
-static errcode_t
+static chop_error_t
 publisher_ctor (chop_object_t *object,
 		const chop_class_t *class)
 {
@@ -121,7 +121,7 @@ CHOP_DEFINE_RT_CLASS (store_publisher, object,
 		      NULL, NULL  /* serial/deserial */);
 
 
-errcode_t
+chop_error_t
 chop_store_publisher_iterate (chop_store_publisher_t *publisher,
 			      unsigned timeout)
 {
@@ -131,7 +131,7 @@ chop_store_publisher_iterate (chop_store_publisher_t *publisher,
   return CHOP_ERR_NOT_IMPL;
 }
 
-errcode_t
+chop_error_t
 chop_store_publisher_loop (chop_store_publisher_t *publisher)
 {
   if (publisher->loop)

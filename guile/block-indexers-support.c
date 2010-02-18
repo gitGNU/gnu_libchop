@@ -31,11 +31,11 @@
 
 /* Constructors.  */
 
-static inline errcode_t
+static inline chop_error_t
 chop_block_indexer_make_fetcher_alloc (chop_block_indexer_t *indexer,
 				       chop_block_fetcher_t **fetcher)
 {
-  errcode_t err;
+  chop_error_t err;
   const chop_class_t *fetcher_class;
 
   fetcher_class = chop_block_indexer_fetcher_class (indexer);
@@ -50,11 +50,11 @@ chop_block_indexer_make_fetcher_alloc (chop_block_indexer_t *indexer,
   return err;
 }
 
-static inline errcode_t
+static inline chop_error_t
 chop_hash_block_indexer_open_alloc (chop_hash_method_t hash_method,
 				    chop_block_indexer_t **bi)
 {
-  errcode_t err;
+  chop_error_t err;
 
   *bi = gwrap_chop_malloc (&chop_hash_block_indexer_class);
   err = chop_hash_block_indexer_open (hash_method, *bi);
@@ -68,13 +68,13 @@ chop_hash_block_indexer_open_alloc (chop_hash_method_t hash_method,
   return err;
 }
 
-static inline errcode_t
+static inline chop_error_t
 chop_chk_block_indexer_open_alloc (chop_cipher_handle_t cipher_handle,
 				   chop_hash_method_t key_hash_method,
 				   chop_hash_method_t block_id_hash_method,
 				   chop_block_indexer_t **bi)
 {
-  errcode_t err;
+  chop_error_t err;
 
   *bi = gwrap_chop_malloc (&chop_chk_block_indexer_class);
   err = chop_chk_block_indexer_open (cipher_handle,
@@ -92,12 +92,12 @@ chop_chk_block_indexer_open_alloc (chop_cipher_handle_t cipher_handle,
   return err;
 }
 
-static inline errcode_t
+static inline chop_error_t
 chop_uuid_block_indexer_open_alloc (chop_block_indexer_t **bi)
 {
 #ifdef HAVE_LIBUUID
 
-  errcode_t err;
+  chop_error_t err;
 
   *bi = gwrap_chop_malloc (&chop_uuid_block_indexer_class);
   err = chop_uuid_block_indexer_open (*bi);
@@ -119,11 +119,11 @@ chop_uuid_block_indexer_open_alloc (chop_block_indexer_t **bi)
 #endif /* !HAVE_LIBUUID */
 }
 
-static inline errcode_t
+static inline chop_error_t
 chop_integer_block_indexer_open_alloc (unsigned long start,
 				       chop_block_indexer_t **bi)
 {
-  errcode_t err;
+  chop_error_t err;
 
   *bi = gwrap_chop_malloc (&chop_integer_block_indexer_class);
   err = chop_integer_block_indexer_open (start, *bi);
@@ -140,13 +140,13 @@ chop_integer_block_indexer_open_alloc (unsigned long start,
 
 /* Methods.  */
 
-static inline errcode_t
+static inline chop_error_t
 chop_block_indexer_index_alloc (chop_block_indexer_t *block_indexer,
 				chop_block_store_t *store,
 				const char *buffer, size_t size,
 				chop_index_handle_t **handle)
 {
-  errcode_t err;
+  chop_error_t err;
   const chop_class_t *handle_class;
 
   handle_class = chop_block_indexer_index_handle_class (block_indexer);
@@ -163,13 +163,13 @@ chop_block_indexer_index_alloc (chop_block_indexer_t *block_indexer,
   return err;
 }
 
-static inline errcode_t
+static inline chop_error_t
 chop_block_fetcher_fetch_alloc_u8vector (chop_block_fetcher_t *block_fetcher,
 					 const chop_index_handle_t *index,
 					 chop_block_store_t *store,
 					 SCM *vector)
 {
-  errcode_t err;
+  chop_error_t err;
   size_t size;
   chop_buffer_t buffer;
 
@@ -206,11 +206,11 @@ chop_block_fetcher_fetch_alloc_u8vector (chop_block_fetcher_t *block_fetcher,
 
 /* Convenience functions.  */
 
-static inline errcode_t
+static inline chop_error_t
 chop_index_handle_ascii_serialize (const chop_index_handle_t *handle,
 				   char **serialization)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_buffer_t buffer;
 
   chop_buffer_init (&buffer, 0);
@@ -231,12 +231,12 @@ chop_index_handle_ascii_serialize (const chop_index_handle_t *handle,
   return err;
 }
 
-static inline errcode_t
+static inline chop_error_t
 chop_index_handle_ascii_deserialize (const chop_class_t *handle_class,
 				     const char *ascii_handle,
 				     chop_index_handle_t **handle)
 {
-  errcode_t err;
+  chop_error_t err;
   size_t bytes_read;
 
   *handle = gwrap_chop_malloc (handle_class);

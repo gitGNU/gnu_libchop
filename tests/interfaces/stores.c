@@ -49,7 +49,7 @@ main (int argc, char *argv[])
     };
   static const char db_file[] = ",,t-stores.db";
 
-  errcode_t err;
+  chop_error_t err;
   const chop_file_based_store_class_t **class;
   char random_bytes[256];
   chop_block_key_t random_key;
@@ -70,7 +70,7 @@ main (int argc, char *argv[])
        *class != NULL;
        class++)
     {
-      errcode_t err;
+      chop_error_t err;
       int exists = 0;
       size_t amount = 0;
       chop_block_store_t *store;

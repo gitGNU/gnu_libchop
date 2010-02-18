@@ -22,7 +22,7 @@
 
 /* Definition of the `chop_stream_t' class.  */
 
-static errcode_t
+static chop_error_t
 stream_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_stream_t *stream;

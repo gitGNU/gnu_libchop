@@ -55,11 +55,11 @@ chk_equalp (const chop_object_t *h1, const chop_object_t *h2)
 
 #define BINARY_SERIALIZATION_HEADER_SIZE  12
 
-static errcode_t
+static chop_error_t
 chk_serialize (const chop_object_t *object, chop_serial_method_t method,
 	       chop_buffer_t *buffer)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_chk_index_handle_t *handle =
     (chop_chk_index_handle_t *)object;
 
@@ -92,7 +92,7 @@ chk_serialize (const chop_object_t *object, chop_serial_method_t method,
 
     case CHOP_SERIAL_BINARY:
       {
-	errcode_t err;
+	chop_error_t err;
 	size_t orig_size;
 	unsigned char size[12];
 
@@ -136,11 +136,11 @@ chk_serialize (const chop_object_t *object, chop_serial_method_t method,
   return CHOP_ERR_NOT_IMPL;
 }
 
-static errcode_t
+static chop_error_t
 chk_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 		 chop_object_t *object, size_t *bytes_read)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_chk_index_handle_t *handle =
     (chop_chk_index_handle_t *)object;
 
@@ -286,13 +286,13 @@ CHOP_DECLARE_RT_CLASS (chk_block_fetcher, block_fetcher,
 		       int owns_cipher_handle;
 		       chop_log_t log;);
 
-static errcode_t chk_block_fetch (chop_block_fetcher_t *,
-				  const chop_index_handle_t *,
-				  chop_block_store_t *,
-				  chop_buffer_t *,
-				  size_t *);
+static chop_error_t chk_block_fetch (chop_block_fetcher_t *,
+				     const chop_index_handle_t *,
+				     chop_block_store_t *,
+				     chop_buffer_t *,
+				     size_t *);
 
-static errcode_t
+static chop_error_t
 cbf_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_chk_block_fetcher_t *fetcher;
@@ -323,11 +323,11 @@ cbf_dtor (chop_object_t *object)
   chop_object_destroy ((chop_object_t *)&fetcher->log);
 }
 
-static errcode_t
+static chop_error_t
 cbf_serialize (const chop_object_t *object, chop_serial_method_t method,
 	       chop_buffer_t *buffer)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_chk_block_fetcher_t *fetcher;
   chop_cipher_algo_t algo;
   chop_cipher_mode_t mode;
@@ -376,11 +376,11 @@ cbf_serialize (const chop_object_t *object, chop_serial_method_t method,
   return err;
 }
 
-static errcode_t
+static chop_error_t
 cbf_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 		 chop_object_t *object, size_t *bytes_read)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_chk_block_fetcher_t *fetcher;
   const char *comma, *punct;
   chop_cipher_algo_t algo;
@@ -443,13 +443,13 @@ CHOP_DEFINE_RT_CLASS (chk_block_fetcher, block_fetcher,
 		      NULL, NULL,
 		      cbf_serialize, cbf_deserialize);
 
-static errcode_t
+static chop_error_t
 chk_block_fetch (chop_block_fetcher_t *block_fetcher,
 		 const chop_index_handle_t *index,
 		 chop_block_store_t *store,
 		 chop_buffer_t *buffer, size_t *size)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_chk_index_handle_t *handle;
   chop_chk_block_fetcher_t *fetcher;
   chop_buffer_t ciphertext;
@@ -560,11 +560,11 @@ CHOP_DECLARE_RT_CLASS (chk_block_indexer, block_indexer,
 		       chop_hash_method_t block_id_hash_method;
 		       chop_log_t log;);
 
-static errcode_t
+static chop_error_t
 chk_indexer_init_fetcher (const chop_block_indexer_t *block_indexer,
 			  chop_block_fetcher_t *block_fetcher)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_chk_block_indexer_t *indexer;
   chop_chk_block_fetcher_t *fetcher;
 
@@ -582,14 +582,14 @@ chk_indexer_init_fetcher (const chop_block_indexer_t *block_indexer,
   return err;
 }
 
-static errcode_t
+static chop_error_t
 chk_index_block (chop_block_indexer_t *indexer,
 		 chop_block_store_t *store,
 		 const char *buffer,
 		 size_t size,
 		 chop_index_handle_t *handle);
 
-static errcode_t
+static chop_error_t
 cbi_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_chk_block_indexer_t *indexer;
@@ -624,18 +624,18 @@ cbi_dtor (chop_object_t *object)
   indexer->cipher_handle = CHOP_CIPHER_HANDLE_NIL;
 }
 
-static errcode_t
+static chop_error_t
 cbi_serialize (const chop_object_t *object, chop_serial_method_t method,
 	       chop_buffer_t *buffer)
 {
   return CHOP_ERR_NOT_IMPL;
 }
 
-static errcode_t
+static chop_error_t
 cbi_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 		 chop_object_t *object, size_t *bytes_read)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_chk_block_indexer_t *indexer;
 
   err = chop_object_initialize (object, &chop_chk_block_indexer_class);
@@ -745,14 +745,14 @@ cipher_make_suitable_key (char *key, size_t key_size,
     }
 }
 
-static errcode_t
+static chop_error_t
 chk_index_block (chop_block_indexer_t *indexer,
 		 chop_block_store_t *store,
 		 const char *buffer,
 		 size_t size,
 		 chop_index_handle_t *handle)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_cipher_handle_t cipher_handle;
   chop_chk_block_indexer_t *chk_indexer;
   chop_chk_index_handle_t *chk_handle;
@@ -852,14 +852,14 @@ chk_index_block (chop_block_indexer_t *indexer,
   return err;
 }
 
-errcode_t
+chop_error_t
 chop_chk_block_indexer_open (chop_cipher_handle_t cipher_handle,
 			     int owns_cipher_handle,
 			     chop_hash_method_t key_hash_method,
 			     chop_hash_method_t block_id_hash_method,
 			     chop_block_indexer_t *block_indexer)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_chk_block_indexer_t *indexer;
 
   if ((key_hash_method == CHOP_HASH_NONE) ||

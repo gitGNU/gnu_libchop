@@ -27,11 +27,11 @@ CHOP_DECLARE_RT_CLASS (mem_stream, stream,
 		       void (* free_func) (void *););
 
 static void chop_mem_stream_close (chop_stream_t *);
-static errcode_t chop_mem_stream_read (chop_stream_t *,
-				       char *, size_t, size_t *);
+static chop_error_t chop_mem_stream_read (chop_stream_t *,
+					  char *, size_t, size_t *);
 
 /* The constructor.  */
-static errcode_t
+static chop_error_t
 mem_stream_ctor (chop_object_t *object,
 		 const chop_class_t *class)
 {
@@ -85,7 +85,7 @@ chop_mem_stream_close (chop_stream_t *stream)
   mem_stream->offset = mem_stream->size = 0;
 }
 
-static errcode_t
+static chop_error_t
 chop_mem_stream_read (chop_stream_t *stream,
 		      char *buffer, size_t howmuch, size_t *read)
 {

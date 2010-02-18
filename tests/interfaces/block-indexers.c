@@ -40,7 +40,7 @@
 int
 main (int argc, char *argv[])
 {
-  errcode_t err;
+  chop_error_t err;
   const chop_file_based_store_class_t *store_class;
   chop_block_store_t *store;
   chop_block_indexer_t *block_indexers[40];

@@ -212,12 +212,12 @@ static struct argp_option options[] =
 
 /* Archive STREAM onto DATA_STORE and METADATA_STORE.  Use CHOPPER and
    INDEXER in order to chop STREAM into blocks and then index blocks.  */
-static errcode_t
+static chop_error_t
 do_archive (chop_stream_t *stream, chop_block_store_t *data_store,
 	    chop_block_store_t *metadata_store,
 	    chop_chopper_t *chopper, chop_indexer_t *indexer)
 {
-  errcode_t err = 0;
+  chop_error_t err = 0;
   chop_buffer_t buffer;
   chop_block_indexer_t *block_indexer;
   chop_index_handle_t *handle;
@@ -320,13 +320,13 @@ do_archive (chop_stream_t *stream, chop_block_store_t *data_store,
 
 /* Retrieve data pointed to by HANDLE from DATA_STORE and METADATA_STORE
    using INDEXER and display it.  */
-static errcode_t
+static chop_error_t
 do_retrieve (chop_index_handle_t *handle,
 	     chop_indexer_t *indexer, chop_block_fetcher_t *fetcher,
 	     chop_block_store_t *data_store,
 	     chop_block_store_t *metadata_store)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_stream_t *stream;
   char buffer[3577];  /* Dummy size chosen on purpose */
 
@@ -401,12 +401,12 @@ log_indexer (chop_indexer_t *indexer)
     chop_log_attach (indexer_log, 2, 0);
 }
 
-static errcode_t
+static chop_error_t
 process_command (const char *argument,
 		 chop_block_store_t *data_store,
 		 chop_block_store_t *metadata_store)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_block_store_t *data_proxy, *metadata_proxy;
   chop_indexer_t *indexer;
 
@@ -623,11 +623,11 @@ process_command (const char *argument,
   return err;
 }
 
-static errcode_t
+static chop_error_t
 open_db_store (const chop_file_based_store_class_t *class,
 	       const char *base, chop_block_store_t *store)
 {
-  errcode_t err;
+  chop_error_t err;
   char *file;
   const char *suffix, *suffix_end;
   size_t file_len, home_len, base_len, suffix_len;
@@ -776,7 +776,7 @@ static struct argp argp = { options, parse_opt, 0, doc };
 int
 main (int argc, char *argv[])
 {
-  errcode_t err;
+  chop_error_t err;
   chop_block_store_t *store, *metastore;
   chop_filter_t *input_filter = NULL, *output_filter = NULL;
   chop_cipher_handle_t cipher_handle = CHOP_CIPHER_HANDLE_NIL;

@@ -35,11 +35,11 @@ CHOP_DECLARE_RT_CLASS_WITH_METACLASS (zlib_unzip_filter, filter,
 
 
 
-static errcode_t
+static chop_error_t
 chop_zlib_unzip_push (chop_filter_t *filter,
 		    const char *buffer, size_t size, size_t *pushed);
 
-static errcode_t
+static chop_error_t
 chop_zlib_unzip_pull (chop_filter_t *filter, int flush,
 		      char *buffer, size_t size, size_t *pulled);
 
@@ -50,7 +50,7 @@ static void
 custom_free (voidpf opaque, voidp address);
 
 
-static errcode_t
+static chop_error_t
 zlib_unzip_filter_ctor (chop_object_t *object,
 		      const chop_class_t *class)
 {
@@ -93,7 +93,7 @@ zlib_unzip_filter_dtor (chop_object_t *object)
   chop_object_destroy ((chop_object_t *)&zfilter->filter.log);
 }
 
-static errcode_t
+static chop_error_t
 zuf_open (size_t input_size, chop_filter_t *filter)
 {
   return (chop_zlib_unzip_filter_init (input_size, filter));
@@ -111,11 +111,11 @@ CHOP_DEFINE_RT_CLASS_WITH_METACLASS (zlib_unzip_filter, filter,
 				     NULL, NULL);
 
 
-errcode_t
+chop_error_t
 chop_zlib_unzip_filter_init (size_t input_size,
 			     chop_filter_t *filter)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_zlib_unzip_filter_t *zfilter;
 
   zfilter = (chop_zlib_unzip_filter_t *)filter;

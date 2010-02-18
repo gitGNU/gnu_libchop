@@ -60,25 +60,26 @@ CHOP_DECLARE_RT_CLASS (block_indexer, object,
 		       const chop_class_t *index_handle_class;
 		       const chop_class_t *block_fetcher_class;
 
-		       errcode_t (* index_block) (struct chop_block_indexer *,
-						  chop_block_store_t *,
-						  const char *,
-						  size_t,
-						  chop_index_handle_t *);
+		       chop_error_t (* index_block) (struct
+						     chop_block_indexer *,
+						     chop_block_store_t *,
+						     const char *,
+						     size_t,
+						     chop_index_handle_t *);
 
-		       errcode_t (* init_fetcher) (const struct
-						   chop_block_indexer *,
-						   struct
-						   chop_block_fetcher *););
+		       chop_error_t (* init_fetcher) (const struct
+						      chop_block_indexer *,
+						      struct
+						      chop_block_fetcher *););
 
 CHOP_DECLARE_RT_CLASS (block_fetcher, object,
 		       const chop_class_t *index_handle_class;
 
-		       errcode_t (* fetch_block) (struct chop_block_fetcher *,
-						  const chop_index_handle_t *,
-						  chop_block_store_t *,
-						  chop_buffer_t *,
-						  size_t *););
+		       chop_error_t (* fetch_block) (struct chop_block_fetcher *,
+						     const chop_index_handle_t *,
+						     chop_block_store_t *,
+						     chop_buffer_t *,
+						     size_t *););
 
 
 
@@ -131,7 +132,7 @@ chop_block_indexer_fetcher_class (const chop_block_indexer_t *__indexer)
 /* Initialize FETCHER as a block fetcher corresponding to block indexer
    INDEXER.  FETCHER must point to a memory area large enough to contain an
    instance of the fetcher class associated to INDEXER's class.  */
-static __inline__ errcode_t
+static __inline__ chop_error_t
 chop_block_indexer_initialize_fetcher (const chop_block_indexer_t *__indexer,
 				       chop_block_fetcher_t *__fetcher)
 {
@@ -142,7 +143,7 @@ chop_block_indexer_initialize_fetcher (const chop_block_indexer_t *__indexer,
    STORE.  On success, return zero and initialize HANDLE with an index handle
    sufficient to restore that block from STORE using the corresponding
    fetcher.  Otherwise, an error is returned.  */
-static __inline__ errcode_t
+static __inline__ chop_error_t
 chop_block_indexer_index (chop_block_indexer_t *__indexer,
 			  chop_block_store_t *__store,
 			  const char *__buffer, size_t __size,
@@ -155,7 +156,7 @@ chop_block_indexer_index (chop_block_indexer_t *__indexer,
 /* Using FETCHER, fetch from STORE the data block whose index handle is
    HANDLE.  On success, fill in BUFFER with its contents and set SIZE to its
    size in bytes.  */
-static __inline__ errcode_t
+static __inline__ chop_error_t
 chop_block_fetcher_fetch (chop_block_fetcher_t *__fetcher,
 			  const chop_index_handle_t *__handle,
 			  chop_block_store_t *__store,
@@ -206,7 +207,7 @@ extern const chop_class_t chop_integer_block_fetcher_class;
    when storing the block.  It leaves the block contents unchanged.  This
    technique is known as ``content-based addressing'', or
    ``compare-by-hash''.   */
-extern errcode_t
+extern chop_error_t
 chop_hash_block_indexer_open (chop_hash_method_t hash_method,
 			      chop_block_indexer_t *indexer);
 
@@ -217,7 +218,7 @@ chop_hash_block_indexer_open (chop_hash_method_t hash_method,
    using BLOCK_ID_HASH_METHOD.  This technique is known as ``convergent
    encryption'' and the index yielded is sometimes referred to as a
    ``content-hash key'' (in GNUnet/FreeNet terminology).  */
-extern errcode_t
+extern chop_error_t
 chop_chk_block_indexer_open (chop_cipher_handle_t cipher_handle,
 			     int owns_cipher_handle,
 			     chop_hash_method_t key_hash_method,
@@ -230,12 +231,12 @@ chop_chk_block_indexer_open (chop_cipher_handle_t cipher_handle,
    compilation time).  Therefore, BLOCK_INDEXER will not have a
    single-instance storage property, unlike the `chk' and `hash' block
    indexers.  */
-extern errcode_t
+extern chop_error_t
 chop_uuid_block_indexer_open (chop_block_indexer_t *block_indexer);
 
 /* Initialize INDEXER as an indexer that will simply return consecutive
    32-bit integers as block IDs, starting from START.  */
-extern errcode_t
+extern chop_error_t
 chop_integer_block_indexer_open (unsigned long start,
 				 chop_block_indexer_t *indexer);
 

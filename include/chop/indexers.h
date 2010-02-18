@@ -33,19 +33,20 @@
    Note that indexers have no `close ()' method:  they must eventually be
    destroyed using `chop_object_destroy ()'.  */
 CHOP_DECLARE_RT_CLASS (indexer, object,
-		       errcode_t (* index_blocks) (struct chop_indexer *,
-						   chop_chopper_t *,
-						   chop_block_indexer_t *,
-						   chop_block_store_t *,
-						   chop_block_store_t *,
-						   chop_index_handle_t *);
+		       chop_error_t (* index_blocks) (struct chop_indexer *,
+						      chop_chopper_t *,
+						      chop_block_indexer_t *,
+						      chop_block_store_t *,
+						      chop_block_store_t *,
+						      chop_index_handle_t *);
 
-		       errcode_t (* fetch_stream) (struct chop_indexer *,
-						   const chop_index_handle_t *,
-						   chop_block_fetcher_t *,
-						   chop_block_store_t *,
-						   chop_block_store_t *,
-						   chop_stream_t *);
+		       chop_error_t (* fetch_stream) (struct chop_indexer *,
+						      const
+						      chop_index_handle_t *,
+						      chop_block_fetcher_t *,
+						      chop_block_store_t *,
+						      chop_block_store_t *,
+						      chop_stream_t *);
 
 		       const chop_class_t *stream_class;);
 
@@ -60,7 +61,7 @@ CHOP_DECLARE_RT_CLASS (indexer, object,
    DATASTORE.  HANDLE must point to an (uninitialized) memory area whose size
    should that of instances of the class returned by the
    CHOP_BLOCK_INDEXER_INDEX_HANDLE_CLASS for BLOCK_INDEXER.  */
-static __inline__ errcode_t
+static __inline__ chop_error_t
 chop_indexer_index_blocks (chop_indexer_t *__indexer,
 			   chop_chopper_t *__input,
 			   chop_block_indexer_t *__block_indexer,
@@ -79,7 +80,7 @@ chop_indexer_index_blocks (chop_indexer_t *__indexer,
    corresponding stream object.  OUTPUT must point to an (uninitialized)
    memory area whose size should that of instances of the class returned by
    the CHOP_INDEXER_STREAM_CLASS for INDEXER.  */
-static __inline__ errcode_t
+static __inline__ chop_error_t
 chop_indexer_fetch_stream (chop_indexer_t *__indexer,
 			   const chop_index_handle_t *__handle,
 			   chop_block_fetcher_t *__fetcher,
@@ -119,7 +120,7 @@ chop_indexer_stream_class (const chop_indexer_t *__indexer)
    process with stage 2 of the deserialization by (i) allocating instances of
    INDEXER_CLASS, FETCHER_CLASS and HANDLE_CLASS and (ii) start stage 2 at
    BUFFER + BYTES_READ.  */
-errcode_t
+extern chop_error_t
 chop_ascii_deserialize_index_tuple_s1 (const char *buffer, size_t size,
 				       const chop_class_t **indexer_class,
 				       const chop_class_t **fetcher_class,
@@ -130,7 +131,7 @@ chop_ascii_deserialize_index_tuple_s1 (const char *buffer, size_t size,
    deserialize an instance of INDEXER_CLASS into INDEXER, an instance of
    FETCHER_CLASS into FETCHER and an instance of INDEX_CLASS into INDEX (see
    above).  */
-errcode_t
+extern chop_error_t
 chop_ascii_deserialize_index_tuple_s2 (const char *buffer, size_t size,
 				       const chop_class_t *indexer_class,
 				       const chop_class_t *fetcher_class,
@@ -143,7 +144,7 @@ chop_ascii_deserialize_index_tuple_s2 (const char *buffer, size_t size,
 /* Fill in BUFFER with an ASCII serialization of a block fetcher
    corresponding to BLOCK_INDEXER and a serialization of index handle
    INDEX.  */
-extern errcode_t
+extern chop_error_t
 chop_ascii_serialize_index_tuple (const chop_index_handle_t *index,
 				  const chop_indexer_t *indexer,
 				  const chop_block_indexer_t *block_indexer,
@@ -166,8 +167,8 @@ extern const chop_class_t chop_tree_indexer_class;
    CIPHER_HANDLE may be either CHOP_CIPHER_HANDLE_NIL, in which case blocks
    will not be ciphered, or an open cipher handle in which case it will be
    used to cipher blocks individually.  */
-extern errcode_t chop_tree_indexer_open (size_t indexes_per_block,
-					 chop_indexer_t *htree);
+extern chop_error_t chop_tree_indexer_open (size_t indexes_per_block,
+					    chop_indexer_t *htree);
 
 /* Return the log attached to INDEXER, assuming INDEXER's class is
    CHOP_TREE_INDEXER_CLASS.  */

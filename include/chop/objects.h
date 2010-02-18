@@ -47,23 +47,23 @@ enum chop_serial_method
 
 typedef struct chop_class chop_class_t;
 typedef struct chop_object chop_object_t;
-typedef errcode_t (* chop_serializer_t) (const chop_object_t *,
-					 chop_serial_method_t,
-					 chop_buffer_t *);
+typedef chop_error_t (* chop_serializer_t) (const chop_object_t *,
+					    chop_serial_method_t,
+					    chop_buffer_t *);
 /* FIXME:  There should be a `size_t *offset' stating where deserialization
    ended within BUFFER and a CHOP_SERIAL_TOO_SHORT error when BUFFER is not
    long enough.  */
-typedef errcode_t (* chop_deserializer_t) (const char *buffer,
-					   size_t size,
-					   chop_serial_method_t,
-					   chop_object_t *,
-					   size_t *bytes_read);
-typedef errcode_t (* chop_constructor_t) (chop_object_t *,
-					  const chop_class_t *);
+typedef chop_error_t (* chop_deserializer_t) (const char *buffer,
+					      size_t size,
+					      chop_serial_method_t,
+					      chop_object_t *,
+					      size_t *bytes_read);
+typedef chop_error_t (* chop_constructor_t) (chop_object_t *,
+					     const chop_class_t *);
 typedef void (* chop_destructor_t) (chop_object_t *);
 
-typedef errcode_t (* chop_copy_constructor_t) (const chop_object_t *,
-					       chop_object_t *);
+typedef chop_error_t (* chop_copy_constructor_t) (const chop_object_t *,
+						  chop_object_t *);
 typedef int (* chop_equality_predicate_t) (const chop_object_t *,
 					   const chop_object_t *);
 
@@ -200,15 +200,15 @@ chop_ ## _name ## _t;
    "virtual constructors" in C++ terms.  This means that it can also be
    relativey costly since it may yield several function calls.  If
    initialization fails, an error is returned.  */
-extern errcode_t chop_object_initialize (chop_object_t *object,
-					 const chop_class_t *class);
+extern chop_error_t chop_object_initialize (chop_object_t *object,
+					    const chop_class_t *class);
 
 /* Initialize OBJECT, which is expected to be of type CLASS, by deserializing
    BUFFER (of SIZE bytes), according to METHOD.  On success, zero is returned
    and OBJECT is initialized.  Otherwise, OBJECT is left in an undefined
    state.  On success, BYTES_READ is set to the number of bytes that were
    read from BUFFER in order to deserialize OBJECT.  */
-static __inline__ errcode_t
+static __inline__ chop_error_t
 chop_object_deserialize (chop_object_t *__object,
 			 const chop_class_t *__class,
 			 chop_serial_method_t __method,
@@ -362,13 +362,13 @@ chop_object_equal (const chop_object_t *__o1, const chop_object_t *__o2)
    copy constructor it is not necessary to call `chop_object_initialize ()'
    since this is handled by the copy constructors of the parent classes,
    including that of CHOP_OBJECT_CLASS.  */
-extern errcode_t chop_object_copy (const chop_object_t *source,
-				   chop_object_t *dest);
+extern chop_error_t chop_object_copy (const chop_object_t *source,
+				      chop_object_t *dest);
 
 /* Serialize OBJECT according to serialization method METHOD into BUFFER.  If
    not serializer exists for OBJECT's class, CHOP_ERR_NOT_IMPL is returned.
    On success, zero is returned.  */
-static __inline__ errcode_t
+static __inline__ chop_error_t
 chop_object_serialize (const chop_object_t *__object,
 		       chop_serial_method_t __method,
 		       chop_buffer_t *__buffer)

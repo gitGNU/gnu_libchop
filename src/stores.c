@@ -19,7 +19,7 @@
 #include <chop/stores.h>
 
 
-static errcode_t
+static chop_error_t
 store_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_block_store_t *store =
@@ -72,7 +72,7 @@ CHOP_DEFINE_RT_CLASS (file_based_store_class, class,
 		      NULL, NULL);
 
 
-errcode_t
+chop_error_t
 chop_file_based_store_open (const chop_file_based_store_class_t *db_class,
 			    const char *file, int open_flags, mode_t mode,
 			    chop_block_store_t *store)
@@ -87,7 +87,7 @@ chop_file_based_store_open (const chop_file_based_store_class_t *db_class,
 
 /* Block iterators.  */
 
-static errcode_t
+static chop_error_t
 bi_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_block_iterator_t *bi = (chop_block_iterator_t *)object;

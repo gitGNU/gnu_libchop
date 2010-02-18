@@ -188,7 +188,7 @@ static struct argp argp = { options, parse_opt, args_doc, doc };
 int
 main (int argc, char *argv[])
 {
-  errcode_t err;
+  chop_error_t err;
   size_t source_size, chopped_size = 0;
   chop_stream_t *stream;
   chop_chopper_t *chopper;

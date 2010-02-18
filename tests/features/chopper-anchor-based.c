@@ -72,7 +72,7 @@ read_blocks_from_chopper (chop_chopper_t *chopper,
 			  size_t *offset_vector, size_t offset_vector_size,
 			  size_t *block_count)
 {
-  errcode_t err;
+  chop_error_t err;
   size_t block_size;
   chop_buffer_t buffer;
 
@@ -177,7 +177,7 @@ compare_block_boundaries (size_t *ref_offsets, size_t ref_block_count,
 static int
 do_test (void)
 {
-  errcode_t err;
+  chop_error_t err;
   int succeeded = 0;
   chop_stream_t *stream;
   chop_chopper_t *chopper;
@@ -244,7 +244,7 @@ do_test (void)
 int
 main (int argc, char *argv[])
 {
-  errcode_t err;
+  chop_error_t err;
   size_t iterations;
   int succeeded = 0;
 

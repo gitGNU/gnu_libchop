@@ -261,15 +261,15 @@ client_callback (AvahiClient *c, AvahiClientState state, void *userdata)
 
 /* Class definition.  */
 
-static errcode_t
+static chop_error_t
 avahi_publisher_iterate (chop_store_publisher_t *publisher,
 			 unsigned timeout);
 
-static errcode_t
+static chop_error_t
 avahi_publisher_loop (chop_store_publisher_t *publisher);
 
 
-static errcode_t
+static chop_error_t
 avahi_ctor (chop_object_t *object, const chop_class_t *class)
 {
   int err;
@@ -330,7 +330,7 @@ CHOP_DEFINE_RT_CLASS (avahi_store_publisher, store_publisher,
 
 /* Methods.  */
 
-static errcode_t
+static chop_error_t
 avahi_publisher_iterate (chop_store_publisher_t *publisher,
 			 unsigned timeout)
 {
@@ -358,7 +358,7 @@ avahi_publisher_iterate (chop_store_publisher_t *publisher,
 }
 
 /* Run the main loop */
-static errcode_t
+static chop_error_t
 avahi_publisher_loop (chop_store_publisher_t *publisher)
 {
   int err;
@@ -385,7 +385,7 @@ avahi_publisher_loop (chop_store_publisher_t *publisher)
   return 0;
 }
 
-errcode_t
+chop_error_t
 chop_avahi_store_publisher_open (const char *service_name,
 				 const char *host, unsigned int port,
 				 chop_hash_method_spec_t spec,
@@ -395,7 +395,7 @@ chop_avahi_store_publisher_open (const char *service_name,
 				 chop_store_publisher_t *publisher)
 {
   int ret;
-  errcode_t err;
+  chop_error_t err;
   chop_avahi_store_publisher_t *avahi;
 
   err = chop_object_initialize ((chop_object_t *) publisher,

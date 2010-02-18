@@ -28,12 +28,12 @@
 #define TOSTRING(x)  TOSTRING_ (x)
 
 
-errcode_t
+chop_error_t
 INITIALIZE_PARAMS (PARAMS_KIND) (PARAMS_T *params,
 				 const char *config_dir,
 				 const char *filename)
 {
-  errcode_t err = 0;
+  chop_error_t err = 0;
   int file;
 
   PARAMS_INIT (params);

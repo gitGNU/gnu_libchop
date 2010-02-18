@@ -91,7 +91,7 @@ static int
 initialize_store (const chop_file_based_store_class_t *store_class,
 		  chop_block_store_t *store)
 {
-  errcode_t err;
+  chop_error_t err;
 
   unlink (STORE_FILE_NAME);
   err = chop_file_based_store_open (store_class, STORE_FILE_NAME,
@@ -112,7 +112,7 @@ test_configuration (chop_indexer_t *indexer, chop_block_indexer_t *bi,
 #define CLASS_NAME(_o)							\
   (chop_class_name (chop_object_get_class ((chop_object_t *)(_o))))
 
-  errcode_t err;
+  chop_error_t err;
   const chop_file_based_store_class_t *store_class;
   chop_block_store_t *store;
   chop_index_handle_t *index;
@@ -199,7 +199,7 @@ main (int argc, char *argv[])
 {
   static char random_data[1789987];
 
-  errcode_t err;
+  chop_error_t err;
   unsigned chopper_it, indexer_it, bi_it;
   size_t bytes_read = 0;
   chop_stream_t *stream;

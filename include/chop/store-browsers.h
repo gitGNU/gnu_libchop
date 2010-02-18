@@ -85,9 +85,9 @@ CHOP_DECLARE_RT_CLASS (store_browser, object,
 		       void *discovery_data;
 		       chop_store_browser_removal_handler_t removal;
 		       void *removal_data;
-		       errcode_t (* iterate) (struct chop_store_browser *,
-					      unsigned timeout);
-		       errcode_t (* loop) (struct chop_store_browser *););
+		       chop_error_t (* iterate) (struct chop_store_browser *,
+						 unsigned timeout);
+		       chop_error_t (* loop) (struct chop_store_browser *););
 
 
 _CHOP_BEGIN_DECLS
@@ -128,10 +128,10 @@ const char *chop_hash_method_spec_to_string (chop_hash_method_spec_t spec);
 
 /* Interface.  */
 
-extern errcode_t chop_store_browser_iterate (chop_store_browser_t *browser,
-					     unsigned timeout);
+extern chop_error_t chop_store_browser_iterate (chop_store_browser_t *browser,
+						unsigned timeout);
 
-extern errcode_t chop_store_browser_loop (chop_store_browser_t *browser);
+extern chop_error_t chop_store_browser_loop (chop_store_browser_t *browser);
 
 
 /* Implementations.  */
@@ -142,7 +142,7 @@ extern const chop_class_t chop_avahi_store_browser_class;
    e.g., `.local', or `.laas.fr.') and invokes DISCOVERY upon new service
    discoveries and REMOVAL upon disappearance of a service.  DOMAIN may be
    NULL in which case it defaults to the local domain.  */
-extern errcode_t
+extern chop_error_t
 chop_avahi_store_browser_open (const char *domain,
 			       chop_store_browser_discovery_handler_t discovery,
 			       void *discovery_data,

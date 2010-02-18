@@ -27,13 +27,13 @@
 
 _CHOP_BEGIN_DECLS
 
-extern errcode_t chop_tls_initialize_dh_params (gnutls_dh_params_t *,
-						const char *config_dir,
-						const char *filename);
+extern chop_error_t chop_tls_initialize_dh_params (gnutls_dh_params_t *,
+						   const char *config_dir,
+						   const char *filename);
 
-extern errcode_t chop_tls_initialize_rsa_params (gnutls_rsa_params_t *,
-						 const char *config_dir,
-						 const char *filename);
+extern chop_error_t chop_tls_initialize_rsa_params (gnutls_rsa_params_t *,
+						    const char *config_dir,
+						    const char *filename);
 
 _CHOP_END_DECLS
 

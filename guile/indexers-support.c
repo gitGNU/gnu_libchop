@@ -28,11 +28,11 @@
 #endif
 
 
-static inline errcode_t
+static inline chop_error_t
 chop_tree_indexer_open_alloc (size_t keys_per_block,
 			      chop_indexer_t **indexer)
 {
-  errcode_t err;
+  chop_error_t err;
 
   *indexer = gwrap_chop_malloc (&chop_tree_indexer_class);
 
@@ -47,7 +47,7 @@ chop_tree_indexer_open_alloc (size_t keys_per_block,
   return err;
 }
 
-static inline errcode_t
+static inline chop_error_t
 chop_indexer_index_blocks_alloc  (chop_indexer_t *indexer,
 				  chop_chopper_t *input,
 				  chop_block_indexer_t *block_indexer,
@@ -55,7 +55,7 @@ chop_indexer_index_blocks_alloc  (chop_indexer_t *indexer,
 				  chop_block_store_t *metadatastore,
 				  chop_index_handle_t **handle)
 {
-  errcode_t err;
+  chop_error_t err;
   const chop_class_t *handle_class;
 
   handle_class = chop_block_indexer_index_handle_class (block_indexer);
@@ -78,7 +78,7 @@ chop_indexer_index_blocks_alloc  (chop_indexer_t *indexer,
   return err;
 }
 
-static inline errcode_t
+static inline chop_error_t
 chop_indexer_fetch_stream_alloc (chop_indexer_t *indexer,
 				 const chop_index_handle_t *handle,
 				 chop_block_fetcher_t *fetcher,
@@ -86,7 +86,7 @@ chop_indexer_fetch_stream_alloc (chop_indexer_t *indexer,
 				 chop_block_store_t *metadatastore,
 				 chop_stream_t **stream)
 {
-  errcode_t err;
+  chop_error_t err;
   const chop_class_t *stream_class;
 
   stream_class = chop_indexer_stream_class (indexer);
@@ -105,13 +105,13 @@ chop_indexer_fetch_stream_alloc (chop_indexer_t *indexer,
 }
 
 
-static inline errcode_t
+static inline chop_error_t
 chop_ascii_serialize_index_tuple_alloc (chop_index_handle_t *index,
 					chop_indexer_t *indexer,
 					chop_block_indexer_t *block_indexer,
 					char **serial)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_buffer_t buffer;
 
   err = chop_buffer_init (&buffer, 200);
@@ -131,14 +131,14 @@ chop_ascii_serialize_index_tuple_alloc (chop_index_handle_t *index,
   return err;
 }
 
-static inline errcode_t
+static inline chop_error_t
 chop_ascii_deserialize_index_tuple_alloc (const char *serial,
 					  chop_index_handle_t **index,
 					  chop_indexer_t **indexer,
 					  chop_block_fetcher_t **fetcher,
 					  unsigned *bytes_read)
 {
-  errcode_t err;
+  chop_error_t err;
   size_t offset = 0;
   const chop_class_t *indexer_class, *fetcher_class, *handle_class;
 

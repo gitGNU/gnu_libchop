@@ -60,7 +60,7 @@ test_filter (chop_filter_t *filter,
 	     const char *input, size_t input_size,
 	     char *output, size_t *output_size)
 {
-  errcode_t err = 0;
+  chop_error_t err = 0;
   size_t bytes_read = 0, prev_bytes_read = 0;
   unsigned int iteration = 0;
   const chop_class_t *filter_class;
@@ -145,7 +145,7 @@ test_filter (chop_filter_t *filter,
 
 /* Non-nominal test case.  */
 
-static errcode_t
+static chop_error_t
 badly_handle_input_fault (chop_filter_t *filter, size_t how_much, void *data)
 {
   /* Raise a non-filter related exception.  This may happen, for instance,
@@ -157,7 +157,7 @@ badly_handle_input_fault (chop_filter_t *filter, size_t how_much, void *data)
 static int
 test_filter_non_nominal (chop_filter_t *filter)
 {
-  errcode_t err;
+  chop_error_t err;
   char buf[1234];
   size_t pulled;
   const chop_class_t *filter_class;
@@ -207,7 +207,7 @@ main (int argc, char *argv[])
       { NULL, NULL }
     };
 
-  errcode_t err;
+  chop_error_t err;
   int succeeded = 1;
   const zip_implementation_t *implementation;
 

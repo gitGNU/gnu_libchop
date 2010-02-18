@@ -98,7 +98,7 @@ static char *domain_name = NULL;
 static error_t
 parse_opt (int key, char *arg, struct argp_state *state)
 {
-  errcode_t err = 0;
+  chop_error_t err = 0;
 
   switch (key)
     {
@@ -192,7 +192,7 @@ handle_removal (chop_store_browser_t *browser,
 int
 main (int argc, char *argv[])
 {
-  errcode_t err;
+  chop_error_t err;
   chop_store_browser_t *browser;
 
   program_name = argv[0];

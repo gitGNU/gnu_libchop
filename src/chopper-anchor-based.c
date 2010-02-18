@@ -168,7 +168,7 @@ CHOP_DECLARE_RT_CLASS_WITH_METACLASS (anchor_based_chopper, chopper,
 		       chop_log_t log;);
 
 /* A generic `open' method that chooses default values.  */
-static errcode_t
+static chop_error_t
 ab_generic_open (chop_stream_t *input, size_t average_size,
 		 chop_chopper_t *chopper)
 {
@@ -190,7 +190,7 @@ ab_generic_open (chop_stream_t *input, size_t average_size,
 					  chopper));
 }
 
-static errcode_t ab_ctor (chop_object_t *, const chop_class_t *);
+static chop_error_t ab_ctor (chop_object_t *, const chop_class_t *);
 static void ab_dtor (chop_object_t *);
 
 CHOP_DEFINE_RT_CLASS_WITH_METACLASS (anchor_based_chopper, chopper,
@@ -216,7 +216,7 @@ CHOP_DEFINE_RT_CLASS_WITH_METACLASS (anchor_based_chopper, chopper,
 
 
 
-static errcode_t
+static chop_error_t
 chop_anchor_chopper_read_block (chop_chopper_t *, chop_buffer_t *,
 				size_t *);
 
@@ -345,11 +345,11 @@ compile_multiplication_function (unsigned long prime_to_the_ws)
 
 /* Read a whole window (ie. ANCHOR->WINDOW_SIZE bytes) from ANCHOR's input
    stream and store it into BUFFER.  */
-static inline errcode_t
+static inline chop_error_t
 read_sliding_window (chop_anchor_based_chopper_t *anchor,
 		     uint8_t *buffer, size_t *size)
 {
-  errcode_t err = 0;
+  chop_error_t err = 0;
   chop_stream_t *input = anchor->chopper.stream;
 
   *size = 0;
@@ -548,12 +548,12 @@ sliding_window_increment_offset (sliding_window_t *window)
 }
 
 /* Append SIZE bytes starting at START_OFFSET from WINDOW to BUFFER.  */
-static inline errcode_t
+static inline chop_error_t
 sliding_window_append_to_buffer (sliding_window_t *window,
 				 size_t start_offset, size_t size,
 				 chop_buffer_t *buffer)
 {
-  errcode_t err;
+  chop_error_t err;
 
   if (start_offset < window->window_size)
     {
@@ -631,7 +631,7 @@ sliding_window_clear (sliding_window_t *window)
 
 /* Initialize WINDOW to be a sliding window of size SIZE.  Memory is
    allocated on the stack.  Returns an error code.  */
-static inline errcode_t
+static inline chop_error_t
 sliding_window_init (sliding_window_t *window, size_t size)
 {
   window->raw_window =
@@ -772,7 +772,7 @@ compute_window_fingerprint (chop_anchor_based_chopper_t *anchor,
 
 
 /* Initialization code.  */
-static errcode_t
+static chop_error_t
 ab_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_anchor_based_chopper_t *chopper =
@@ -809,13 +809,13 @@ ab_dtor (chop_object_t *object)
 #endif
 }
 
-errcode_t
+chop_error_t
 chop_anchor_based_chopper_init (chop_stream_t *input,
 				size_t window_size,
 				unsigned long magic_fpr_mask,
 				chop_chopper_t *uchopper)
 {
-  errcode_t err;
+  chop_error_t err;
   size_t i;
   chop_anchor_based_chopper_t *chopper =
     (chop_anchor_based_chopper_t *)uchopper;
@@ -852,7 +852,7 @@ chop_anchor_based_chopper_init (chop_stream_t *input,
 
 
 
-static errcode_t
+static chop_error_t
 chop_anchor_chopper_read_block (chop_chopper_t *chopper,
 				chop_buffer_t *buffer, size_t *size)
 {
@@ -872,7 +872,7 @@ chop_anchor_chopper_read_block (chop_chopper_t *chopper,
 /* Return true if FPR should be chosen as an anchor point.  */
 #define IS_ANCHOR_FINGERPRINT(_fpr)   (((_fpr) & magic_fpr_mask) == 0)
 
-  errcode_t err;
+  chop_error_t err;
   sliding_window_t *window;
   int first = 1;
   uint8_t *window_dest;

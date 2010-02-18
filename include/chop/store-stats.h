@@ -50,10 +50,10 @@ extern const chop_class_t chop_stat_block_store_class;
    `read_block ()' is called.  If BACKEND is not NULL, the follow the proxy
    semantics defined by BPS.  NAME is the name that will be used to identify
    the underlying block store statistics.  */
-extern errcode_t chop_stat_block_store_open (const char *name,
-					     chop_block_store_t *backend,
-					     chop_proxy_semantics_t bps,
-					     chop_block_store_t *store);
+extern chop_error_t chop_stat_block_store_open (const char *name,
+						chop_block_store_t *backend,
+						chop_proxy_semantics_t bps,
+						chop_block_store_t *store);
 
 /* Return the statistics gathered by STAT_STORE which must be a instance of
    CHOP_STAT_BLOCK_STORE_CLASS.  Recall that the data pointed to by the
@@ -65,8 +65,9 @@ chop_stat_block_store_stats (const chop_block_store_t *stat_store);
 
 /* Manipulating statistics.  */
 
-extern errcode_t chop_block_store_stats_init (const char *name,
-					      chop_block_store_stats_t *stats);
+extern chop_error_t chop_block_store_stats_init (const char *name,
+						 chop_block_store_stats_t
+						 *stats);
 
 extern void chop_block_store_stats_update (chop_block_store_stats_t *stats,
 					   size_t block_size, int virgin_write);

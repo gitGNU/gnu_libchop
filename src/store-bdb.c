@@ -31,7 +31,7 @@ CHOP_DECLARE_RT_CLASS_WITH_METACLASS (bdb_block_store, block_store,
 				      DB *db;);
 
 /* A generic open method, common to all file-based block stores.  */
-static errcode_t
+static chop_error_t
 chop_bdb_generic_open (const chop_class_t *class,
 		       const char *file, int open_flags, mode_t mode,
 		       chop_block_store_t *store)
@@ -61,9 +61,9 @@ CHOP_DEFINE_RT_CLASS_WITH_METACLASS (bdb_block_store, block_store,
 CHOP_DECLARE_RT_CLASS (bdb_block_iterator, block_iterator,
 		       DBC *cursor;);
 
-static errcode_t chop_bdb_it_next (chop_block_iterator_t *);
+static chop_error_t chop_bdb_it_next (chop_block_iterator_t *);
 
-static errcode_t
+static chop_error_t
 bbi_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_bdb_block_iterator_t *it = (chop_bdb_block_iterator_t *)object;
@@ -99,7 +99,7 @@ do_free (char *ptr, void *thing)
   free (ptr);
 }
 
-static __inline__ errcode_t
+static __inline__ chop_error_t
 bdb_cursor_nextify (DBC *cursor, chop_block_key_t *key)
 {
   int err;
@@ -178,7 +178,7 @@ bdb_cursor_nextify (DBC *cursor, chop_block_key_t *key)
   return err;
 }
 
-static errcode_t
+static chop_error_t
 chop_bdb_first_block (chop_block_store_t *store,
 		      chop_block_iterator_t *it)
 {
@@ -209,10 +209,10 @@ chop_bdb_first_block (chop_block_store_t *store,
   return 0;
 }
 
-static errcode_t
+static chop_error_t
 chop_bdb_it_next (chop_block_iterator_t *it)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_bdb_block_iterator_t *bdb_it = (chop_bdb_block_iterator_t *)it;
 
   if ((chop_block_iterator_is_nil (it)) || (!bdb_it->cursor))
@@ -229,35 +229,35 @@ chop_bdb_it_next (chop_block_iterator_t *it)
 
 
 
-static errcode_t chop_bdb_block_exists (chop_block_store_t *,
-					const chop_block_key_t *,
-					int *);
+static chop_error_t chop_bdb_block_exists (chop_block_store_t *,
+					   const chop_block_key_t *,
+					   int *);
 
-static errcode_t chop_bdb_read_block (chop_block_store_t *,
-				      const chop_block_key_t *,
-				      chop_buffer_t *,
-				      size_t *);
+static chop_error_t chop_bdb_read_block (chop_block_store_t *,
+					 const chop_block_key_t *,
+					 chop_buffer_t *,
+					 size_t *);
 
-static errcode_t chop_bdb_write_block (chop_block_store_t *,
-				       const chop_block_key_t *,
-				       const char *,
-				       size_t);
+static chop_error_t chop_bdb_write_block (chop_block_store_t *,
+					  const chop_block_key_t *,
+					  const char *,
+					  size_t);
 
-static errcode_t chop_bdb_delete_block (chop_block_store_t *,
-					const chop_block_key_t *);
+static chop_error_t chop_bdb_delete_block (chop_block_store_t *,
+					   const chop_block_key_t *);
 
-static errcode_t chop_bdb_first_block (chop_block_store_t *,
-				       chop_block_iterator_t *);
+static chop_error_t chop_bdb_first_block (chop_block_store_t *,
+					  chop_block_iterator_t *);
 
-static errcode_t chop_bdb_sync (chop_block_store_t *);
+static chop_error_t chop_bdb_sync (chop_block_store_t *);
 
-static errcode_t chop_bdb_close (chop_block_store_t *);
+static chop_error_t chop_bdb_close (chop_block_store_t *);
 
 
 /* XXX: We could either make this function further configurable, or provide a
    `chop_bdb_store_db ()' that would return a pointer to the underlying
    database.  */
-errcode_t
+chop_error_t
 chop_bdb_store_open (const char *name, int db_type,
 		     int open_flags, mode_t mode,
 		     chop_block_store_t *s)
@@ -323,7 +323,7 @@ chop_bdb_store_open (const char *name, int db_type,
 
 /* Method implementations.  */
 
-static errcode_t
+static chop_error_t
 chop_bdb_block_exists (chop_block_store_t *store,
 		       const chop_block_key_t *key,
 		       int *exists)
@@ -357,7 +357,7 @@ chop_bdb_block_exists (chop_block_store_t *store,
   return CHOP_STORE_ERROR;
 }
 
-static errcode_t
+static chop_error_t
 chop_bdb_read_block (chop_block_store_t *store,
 		     const chop_block_key_t *key, chop_buffer_t *buffer,
 		     size_t *size)
@@ -392,7 +392,7 @@ chop_bdb_read_block (chop_block_store_t *store,
   return err;
 }
 
-static errcode_t
+static chop_error_t
 chop_bdb_write_block (chop_block_store_t *store,
 		      const chop_block_key_t *key,
 		      const char *buffer, size_t size)
@@ -419,7 +419,7 @@ chop_bdb_write_block (chop_block_store_t *store,
   return 0;
 }
 
-static errcode_t
+static chop_error_t
 chop_bdb_delete_block (chop_block_store_t *store,
 		       const chop_block_key_t *key)
 {
@@ -442,7 +442,7 @@ chop_bdb_delete_block (chop_block_store_t *store,
   return 0;
 }
 
-static errcode_t
+static chop_error_t
 chop_bdb_sync (chop_block_store_t *store)
 {
   int err;
@@ -455,7 +455,7 @@ chop_bdb_sync (chop_block_store_t *store)
   return 0;
 }
 
-static errcode_t
+static chop_error_t
 chop_bdb_close (chop_block_store_t *store)
 {
   chop_bdb_block_store_t *bdb = (chop_bdb_block_store_t *)store;

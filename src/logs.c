@@ -27,7 +27,7 @@
 #include <errno.h>
 
 
-static errcode_t
+static chop_error_t
 log_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_log_t *log = (chop_log_t *)object;
@@ -45,7 +45,7 @@ log_ctor (chop_object_t *object, const chop_class_t *class)
   return 0;
 }
 
-static errcode_t
+static chop_error_t
 log_copy (const chop_object_t *s, chop_object_t *d)
 {
   chop_log_t *source, *dest;
@@ -80,10 +80,10 @@ CHOP_DEFINE_RT_CLASS (log, object,
 		      NULL, NULL);
 
 
-errcode_t
+chop_error_t
 chop_log_init (const char *name, chop_log_t *log)
 {
-  errcode_t err;
+  chop_error_t err;
   char *log_name;
 
   log_name = chop_strdup (name, &chop_log_class);
@@ -102,7 +102,7 @@ chop_log_init (const char *name, chop_log_t *log)
   return 0;
 }
 
-errcode_t
+chop_error_t
 chop_log_set_name (chop_log_t *log, const char *name)
 {
   if (log->name)

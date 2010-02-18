@@ -20,7 +20,7 @@
 
 #include <libguile.h>
 
-static inline errcode_t
+static inline chop_error_t
 chop_avahi_store_publisher_open_alloc (const char *service_name,
 				       const char *host, unsigned int port,
 				       int use_tls,
@@ -31,7 +31,7 @@ chop_avahi_store_publisher_open_alloc (const char *service_name,
   static chop_hash_method_spec_t hash_spec =
     { CHOP_HASH_SPEC_NONE, CHOP_HASH_NONE };
 
-  errcode_t err;
+  chop_error_t err;
 
   *publisher =
     gwrap_chop_malloc (&chop_avahi_store_publisher_class);
@@ -63,12 +63,12 @@ do_publisher_loop (void *data)
   return ((void *) chop_store_publisher_loop (publisher));
 }
 
-static inline errcode_t
+static inline chop_error_t
 chop_scm_store_publisher_loop (chop_store_publisher_t *publisher)
 {
-  errcode_t err;
+  chop_error_t err;
 
-  err = (errcode_t) scm_without_guile (do_publisher_loop, publisher);
+  err = (chop_error_t) scm_without_guile (do_publisher_loop, publisher);
 
   return err;
 }
@@ -90,17 +90,17 @@ do_publisher_iterate (void *data)
 						 args->timeout));
 }
 
-static inline errcode_t
+static inline chop_error_t
 chop_scm_store_publisher_iterate (chop_store_publisher_t *publisher,
 				  unsigned int timeout)
 {
-  errcode_t err;
+  chop_error_t err;
   struct iterate_args args;
 
   args.publisher = publisher;
   args.timeout   = timeout;
 
-  err = (errcode_t) scm_without_guile (do_publisher_iterate, &args);
+  err = (chop_error_t) scm_without_guile (do_publisher_iterate, &args);
 
   return err;
 }

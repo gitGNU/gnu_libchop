@@ -89,7 +89,7 @@ chop_object_tracker_init (void)
   memset (recently_untracked, 0, sizeof (recently_untracked));
 }
 
-static inline errcode_t
+static inline chop_error_t
 chop_track_object (chop_object_t *object)
 {
   uintptr_t bucket;
@@ -273,7 +273,7 @@ show_leaks (void)
 
 
 /* The constructor of class objects.  */
-static errcode_t
+static chop_error_t
 _class_primitive_init (chop_object_t *object,
 		       const chop_class_t *metaclass)
 {
@@ -299,14 +299,14 @@ _class_primitive_destroy (chop_object_t *object)
 }
 
 /* Primitive object constructor.  */
-static errcode_t
+static chop_error_t
 _object_primitive_init (chop_object_t *object, const chop_class_t *class)
 {
   object->class = class;
 
 #ifdef USE_OBJECT_TRACKER
   {
-    errcode_t err;
+    chop_error_t err;
 
     err = chop_track_object (object);
     if (err)
@@ -317,14 +317,14 @@ _object_primitive_init (chop_object_t *object, const chop_class_t *class)
   return 0;
 }
 
-static errcode_t
+static chop_error_t
 _object_primitive_copy (const chop_object_t *source, chop_object_t *dest)
 {
   dest->class = source->class;
 
 #ifdef USE_OBJECT_TRACKER
   {
-    errcode_t err;
+    chop_error_t err;
 
     err = chop_track_object (dest);
     if (err)
@@ -380,11 +380,11 @@ const chop_class_t chop_object_class =
 
 /* Run-time object system support code.  */
 
-errcode_t
+chop_error_t
 chop_object_initialize (chop_object_t *object,
 			const chop_class_t *class)
 {
-  errcode_t err = 0;
+  chop_error_t err = 0;
   int parentcnt = 0;
   const chop_class_t *parent, *parents[256];
 
@@ -424,10 +424,10 @@ chop_object_initialize (chop_object_t *object,
   return err;
 }
 
-errcode_t
+chop_error_t
 chop_object_copy (const chop_object_t *source, chop_object_t *dest)
 {
-  errcode_t err = 0;
+  chop_error_t err = 0;
   int parentcnt = 0;
   size_t last_size_copied = 0;
   const chop_class_t *class, *parent, *parents[256];
@@ -633,10 +633,10 @@ chop_malloc_t   chop_internal_malloc = NULL;
 chop_realloc_t  chop_internal_realloc = NULL;
 chop_free_t     chop_internal_free = NULL;
 
-errcode_t
+chop_error_t
 chop_init (void)
 {
-  errcode_t err;
+  chop_error_t err;
 
   initialize_chop_error_table ();
 
@@ -656,7 +656,7 @@ chop_init (void)
   return err;
 }
 
-errcode_t
+chop_error_t
 chop_init_with_allocator (chop_malloc_t malloc, chop_realloc_t realloc,
 			  chop_free_t free)
 {

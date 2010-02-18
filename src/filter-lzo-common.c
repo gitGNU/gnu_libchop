@@ -40,11 +40,11 @@
 #define ZIP_FILTER_DTOR  CONCAT3 (lzo_, ZIP_DIRECTION, _filter_dtor)
 #define ZIP_FILTER_CLASS CONCAT3 (chop_lzo_, ZIP_DIRECTION, _filter_class)
 
-static errcode_t
+static chop_error_t
 ZIP_PUSH_METHOD (chop_filter_t *filter,
 		 const char *buffer, size_t size, size_t *pushed)
 {
-  errcode_t err = 0;
+  chop_error_t err = 0;
   size_t offset;
   ZIP_FILTER_TYPE *zfilter;
 
@@ -105,7 +105,7 @@ ZIP_PUSH_METHOD (chop_filter_t *filter,
 
 /* Constructor and destructor.  */
 
-static errcode_t
+static chop_error_t
 ZIP_FILTER_CTOR (chop_object_t *object, const chop_class_t *class)
 {
   ZIP_FILTER_TYPE *zfilter;

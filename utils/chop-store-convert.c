@@ -150,7 +150,7 @@ main (int argc, char *argv[])
 {
 #define PROGRESS_DISPLAY_MODULO  2000
 
-  errcode_t err;
+  chop_error_t err;
   int arg_index;
   size_t count;
   const chop_file_based_store_class_t *source_class, *dest_class;

@@ -38,7 +38,7 @@ extern const char *program_name;
 
 /* File system helpers.  */
 
-static errcode_t
+static chop_error_t
 open_config_file (const char *dir, const char *name,
 		  int flags, int *file)
 {
@@ -83,7 +83,7 @@ open_config_file (const char *dir, const char *name,
   return 0;
 }
 
-static errcode_t
+static chop_error_t
 dump_to_file (int fd, const char *buf, size_t size)
 {
   const char *p;
@@ -111,7 +111,7 @@ dump_to_file (int fd, const char *buf, size_t size)
   return 0;
 }
 
-static errcode_t
+static chop_error_t
 file_content (int fd, void **content, size_t *size)
 {
   struct stat st;

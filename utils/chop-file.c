@@ -34,7 +34,7 @@
 int
 main (int argc, char *argv[])
 {
-  errcode_t err;
+  chop_error_t err;
   chop_stream_t *stream;
   chop_block_store_t *store, *metastore;
   chop_chopper_t *chopper;

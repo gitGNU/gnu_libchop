@@ -24,7 +24,7 @@
 
 /* Define the `chop_filter_t' class.  */
 
-static errcode_t
+static chop_error_t
 filter_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_filter_t *filter = (chop_filter_t *)object;
@@ -54,11 +54,11 @@ typedef struct
   chop_filter_fault_handler_t prev_handler;
 } input_buffer_t;
 
-static errcode_t
+static chop_error_t
 handle_input_fault_from_buffer (chop_filter_t *filter, size_t amount,
 				void *data)
 {
-  errcode_t err;
+  chop_error_t err;
   size_t pushed;
   input_buffer_t *ibuffer = (input_buffer_t *)data;
 
@@ -77,7 +77,7 @@ handle_input_fault_from_buffer (chop_filter_t *filter, size_t amount,
   return err;
 }
 
-errcode_t
+chop_error_t
 chop_filter_set_input_from_buffer (chop_filter_t *filter,
 				   const char *input, size_t input_size)
 {
@@ -120,12 +120,12 @@ chop_filter_finish_input_from_buffer (chop_filter_t *filter,
   chop_free (ibuffer, &chop_filter_class);
 }
 
-errcode_t
+chop_error_t
 chop_filter_through (chop_filter_t *filter,
 		     const char *input, size_t input_size,
 		     chop_buffer_t *output)
 {
-  errcode_t err;
+  chop_error_t err;
   size_t bytes_read;
   int flush = 0;
 

@@ -56,7 +56,7 @@ uih_equalp (const chop_object_t *h1, const chop_object_t *h2)
   return (!uuid_compare (uih1->uuid, uih2->uuid));
 }
 
-static errcode_t
+static chop_error_t
 uih_copy (const chop_object_t *s, chop_object_t *d)
 {
   chop_uuid_index_handle_t *source, *dest;
@@ -70,11 +70,11 @@ uih_copy (const chop_object_t *s, chop_object_t *d)
   return 0;
 }
 
-static errcode_t
+static chop_error_t
 uih_serialize (const chop_object_t *object, chop_serial_method_t method,
 	       chop_buffer_t *buffer)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_uuid_index_handle_t *uuid =
     (chop_uuid_index_handle_t *)object;
   char out[CHOP_UUID_SIZE];
@@ -97,11 +97,11 @@ uih_serialize (const chop_object_t *object, chop_serial_method_t method,
   return err;
 }
 
-static errcode_t
+static chop_error_t
 uih_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 		 chop_object_t *object, size_t *bytes_read)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_uuid_index_handle_t *uuid =
     (chop_uuid_index_handle_t *)object;
 
@@ -148,13 +148,13 @@ CHOP_DECLARE_RT_CLASS (uuid_block_fetcher, block_fetcher,
 		       /* Nothing, easy.  */
 		       chop_log_t log;);
 
-static errcode_t uuid_block_fetch (chop_block_fetcher_t *,
-				   const chop_index_handle_t *,
-				   chop_block_store_t *,
-				   chop_buffer_t *,
-				   size_t *);
+static chop_error_t uuid_block_fetch (chop_block_fetcher_t *,
+				      const chop_index_handle_t *,
+				      chop_block_store_t *,
+				      chop_buffer_t *,
+				      size_t *);
 
-static errcode_t
+static chop_error_t
 ubf_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_uuid_block_fetcher_t *fetcher;
@@ -178,7 +178,7 @@ ubf_dtor (chop_object_t *object)
   chop_object_destroy ((chop_object_t *)&fetcher->log);
 }
 
-static errcode_t
+static chop_error_t
 ubf_serialize (const chop_object_t *object, chop_serial_method_t method,
 	       chop_buffer_t *buffer)
 {
@@ -186,11 +186,11 @@ ubf_serialize (const chop_object_t *object, chop_serial_method_t method,
   return 0;
 }
 
-static errcode_t
+static chop_error_t
 ubf_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 		 chop_object_t *object, size_t *bytes_read)
 {
-  errcode_t err;
+  chop_error_t err;
 
   err = chop_object_initialize (object, &chop_uuid_block_fetcher_class);
 
@@ -218,13 +218,13 @@ chop_uuid_block_fetcher_log (chop_block_fetcher_t *fetcher)
   return (&hfetcher->log);
 }
 
-static errcode_t
+static chop_error_t
 uuid_block_fetch (chop_block_fetcher_t *block_fetcher,
 		  const chop_index_handle_t *index,
 		  chop_block_store_t *store,
 		  chop_buffer_t *buffer, size_t *size)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_uuid_index_handle_t *handle;
   chop_uuid_block_fetcher_t *fetcher;
   char uuid[CHOP_UUID_SIZE];
@@ -269,7 +269,7 @@ uuid_block_fetch (chop_block_fetcher_t *block_fetcher,
 CHOP_DECLARE_RT_CLASS (uuid_block_indexer, block_indexer,
 		       /* Stateless.  */);
 
-static errcode_t
+static chop_error_t
 uuid_indexer_init_fetcher (const chop_block_indexer_t *block_indexer,
 			   chop_block_fetcher_t *fetcher)
 {
@@ -279,14 +279,14 @@ uuid_indexer_init_fetcher (const chop_block_indexer_t *block_indexer,
 				 &chop_uuid_block_fetcher_class);
 }
 
-static errcode_t
+static chop_error_t
 uuid_block_index (chop_block_indexer_t *indexer,
 		  chop_block_store_t *store,
 		  const char *buffer,
 		  size_t size,
 		  chop_index_handle_t *handle);
 
-static errcode_t
+static chop_error_t
 ubi_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_uuid_block_indexer_t *indexer;
@@ -310,7 +310,7 @@ ubi_dtor (chop_object_t *object)
   indexer->block_indexer.block_fetcher_class = NULL;
 }
 
-static errcode_t
+static chop_error_t
 ubi_serialize (const chop_object_t *object, chop_serial_method_t method,
 	       chop_buffer_t *buffer)
 {
@@ -318,7 +318,7 @@ ubi_serialize (const chop_object_t *object, chop_serial_method_t method,
   return 0;
 }
 
-static errcode_t
+static chop_error_t
 ubi_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 		 chop_object_t *object, size_t *bytes_read)
 {
@@ -334,14 +334,14 @@ CHOP_DEFINE_RT_CLASS (uuid_block_indexer, block_indexer,
 		      ubi_serialize, ubi_deserialize);
 
 
-static errcode_t
+static chop_error_t
 uuid_block_index (chop_block_indexer_t *indexer,
 		  chop_block_store_t *store,
 		  const char *buffer,
 		  size_t size,
 		  chop_index_handle_t *handle)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_uuid_block_indexer_t *uuid_indexer;
   chop_uuid_index_handle_t *uuid_handle;
   char uuid[CHOP_UUID_SIZE];
@@ -371,7 +371,7 @@ uuid_block_index (chop_block_indexer_t *indexer,
   return err;
 }
 
-errcode_t
+chop_error_t
 chop_uuid_block_indexer_open (chop_block_indexer_t *indexer)
 {
   return chop_object_initialize ((chop_object_t *)indexer,

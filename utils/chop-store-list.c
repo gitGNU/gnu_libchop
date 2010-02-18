@@ -98,7 +98,7 @@ static struct argp argp = { options, parse_opt, args_doc, doc };
 int
 main (int argc, char *argv[])
 {
-  errcode_t err;
+  chop_error_t err;
   int arg_index;
   size_t count = 0;
   const chop_class_t *db_store_class;

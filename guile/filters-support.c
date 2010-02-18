@@ -30,11 +30,11 @@
 
 /* Constructors.  */
 
-static inline errcode_t
+static inline chop_error_t
 chop_zlib_zip_filter_init_alloc (int compression, size_t input_size,
 				 chop_filter_t **filter)
 {
-  errcode_t err;
+  chop_error_t err;
 
   *filter =
     gwrap_chop_malloc ((chop_class_t *) &chop_zlib_zip_filter_class);
@@ -51,11 +51,11 @@ chop_zlib_zip_filter_init_alloc (int compression, size_t input_size,
   return err;
 }
 
-static inline errcode_t
+static inline chop_error_t
 chop_zlib_unzip_filter_init_alloc (size_t input_size,
 				   chop_filter_t **filter)
 {
-  errcode_t err;
+  chop_error_t err;
 
   *filter =
     gwrap_chop_malloc ((chop_class_t *) &chop_zlib_unzip_filter_class);
@@ -75,12 +75,12 @@ chop_zlib_unzip_filter_init_alloc (size_t input_size,
 
 /* Generic zip/unzip filters.  */
 
-static errcode_t
+static chop_error_t
 chop_generic_zip_filter_open_alloc (const char *class_nickname,
 				    int compression_level, size_t input_size,
 				    chop_filter_t **filter)
 {
-  errcode_t err;
+  chop_error_t err;
   char *class_name;
   chop_zip_filter_class_t *klass;
 
@@ -106,12 +106,12 @@ chop_generic_zip_filter_open_alloc (const char *class_nickname,
   return err;
 }
 
-static errcode_t
+static chop_error_t
 chop_generic_unzip_filter_open_alloc (const char *class_nickname,
 				      size_t input_size,
 				      chop_filter_t **filter)
 {
-  errcode_t err;
+  chop_error_t err;
   char *class_name;
   chop_unzip_filter_class_t *klass;
 

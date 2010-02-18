@@ -30,7 +30,7 @@ CHOP_DEFINE_RT_CLASS (indexer, object,
 		      NULL, NULL  /* No serializer/deserializer */);
 
 
-errcode_t
+chop_error_t
 chop_ascii_serialize_index_tuple (const chop_index_handle_t *index,
 				  const chop_indexer_t *indexer,
 				  const chop_block_indexer_t *block_indexer,
@@ -41,7 +41,7 @@ chop_ascii_serialize_index_tuple (const chop_index_handle_t *index,
   if (err)					\
     goto finish;
 
-  errcode_t err;
+  chop_error_t err;
   chop_buffer_t ascii_object;
   chop_block_fetcher_t *block_fetcher;
   const chop_class_t *block_indexer_class, *fetcher_class, *indexer_class;
@@ -142,7 +142,7 @@ chop_ascii_serialize_index_tuple (const chop_index_handle_t *index,
 #undef APPEND_COLON
 }
 
-errcode_t
+chop_error_t
 chop_ascii_deserialize_index_tuple_s1 (const char *buffer, size_t size,
 				       const chop_class_t **indexer_class,
 				       const chop_class_t **fetcher_class,
@@ -210,7 +210,7 @@ chop_ascii_deserialize_index_tuple_s1 (const char *buffer, size_t size,
   return 0;
 }
 
-errcode_t
+chop_error_t
 chop_ascii_deserialize_index_tuple_s2 (const char *buffer, size_t size,
 				       const chop_class_t *indexer_class,
 				       const chop_class_t *fetcher_class,
@@ -220,7 +220,7 @@ chop_ascii_deserialize_index_tuple_s2 (const char *buffer, size_t size,
 				       chop_index_handle_t *handle,
 				       size_t *bytes_read)
 {
-  errcode_t err;
+  chop_error_t err;
   size_t count;
   char *colon;
 

@@ -56,7 +56,7 @@ CHOP_DECLARE_RT_CLASS (avahi_store_browser, store_browser,
 #endif
 		       );
 
-static errcode_t
+static chop_error_t
 asb_ctor (chop_object_t *object, const chop_class_t *class)
 {
 #ifdef HAVE_AVAHI
@@ -334,7 +334,7 @@ client_callback (AvahiClient *c, AvahiClientState state,
     }
 }
 
-static errcode_t
+static chop_error_t
 asb_iterate (chop_store_browser_t *browser, unsigned timeout)
 {
   int err;
@@ -360,7 +360,7 @@ asb_iterate (chop_store_browser_t *browser, unsigned timeout)
   return 0;
 }
 
-static errcode_t
+static chop_error_t
 asb_loop (chop_store_browser_t *browser)
 {
   int err;
@@ -386,7 +386,7 @@ asb_loop (chop_store_browser_t *browser)
 }
 
 
-errcode_t
+chop_error_t
 chop_avahi_store_browser_open (const char *domain,
 			       chop_store_browser_discovery_handler_t discovery,
 			       void *discovery_data,
@@ -396,7 +396,7 @@ chop_avahi_store_browser_open (const char *domain,
 {
   int error;
   chop_avahi_store_browser_t *avahi;
-  errcode_t ret = CHOP_INVALID_ARG;
+  chop_error_t ret = CHOP_INVALID_ARG;
 
   avahi = (chop_avahi_store_browser_t *)browser;
 
@@ -466,7 +466,7 @@ chop_avahi_store_browser_open (const char *domain,
 
 #else /* !HAVE_AVAHI */
 
-errcode_t
+chop_error_t
 chop_avahi_store_browser_open (const char *domain,
 			       chop_store_browser_discovery_handler_t d,
 			       void *discovery_data,

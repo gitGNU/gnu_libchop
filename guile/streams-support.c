@@ -25,10 +25,10 @@
 #include <fcntl.h>
 #include <errno.h>
 
-static errcode_t
+static chop_error_t
 chop_file_stream_open_alloc (const char *path, chop_stream_t **stream)
 {
-  errcode_t err;
+  chop_error_t err;
 
   *stream = gwrap_chop_malloc (&chop_file_stream_class);
 
@@ -70,13 +70,13 @@ chop_mem_stream_open_alloc (SCM u8vector)
   return stream;
 }
 
-static errcode_t
+static chop_error_t
 chop_filtered_stream_open_alloc (chop_stream_t *backend,
 				 chop_filter_t *filter,
 				 int close_backend,
 				 chop_stream_t **stream)
 {
-  errcode_t err;
+  chop_error_t err;
 
   *stream = gwrap_chop_malloc (&chop_filtered_stream_class);
   err = chop_filtered_stream_open (backend,
@@ -167,7 +167,7 @@ fill_stream_port_input (SCM port)
   if (CHOP_EXPECT_TRUE (c_port->read_pos >= c_port->read_end))
     {
       SCM stream;
-      errcode_t err;
+      chop_error_t err;
       chop_stream_t *c_stream;
       size_t c_read;
 

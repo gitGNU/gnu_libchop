@@ -369,7 +369,7 @@ main (int argc, char *argv[])
     }
 
   int err;
-  errcode_t cerr;
+  chop_error_t cerr;
   gnutls_openpgp_key_t pubkey;
   gnutls_openpgp_privkey_t privkey;
 

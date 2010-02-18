@@ -261,7 +261,7 @@ static int *
 handle_block_exists (chop_rblock_key_t *argp, struct svc_req *req)
 {
   static int result = 0;
-  errcode_t err;
+  chop_error_t err;
   int exists;
   chop_block_key_t key;
 
@@ -282,7 +282,7 @@ static int *
 handle_write_block (block_store_write_block_args *argp, struct svc_req *req)
 {
   static int result;
-  errcode_t err;
+  chop_error_t err;
   chop_block_key_t key;
 
   display_request_info ("write_block", req);
@@ -361,7 +361,7 @@ static block_store_read_block_ret *
 handle_read_block (chop_rblock_key_t *argp, struct svc_req *req)
 {
   static block_store_read_block_ret result;
-  errcode_t err;
+  chop_error_t err;
   size_t read;
   chop_block_key_t key;
   chop_buffer_t buffer;
@@ -410,7 +410,7 @@ static int *
 handle_sync (void *unused, struct svc_req *req)
 {
   static int result;
-  errcode_t err;
+  chop_error_t err;
 
   display_request_info ("sync", req);
 
@@ -424,7 +424,7 @@ static int *
 handle_close (void *unused, struct svc_req *req)
 {
   static int result = 0;
-  errcode_t err;
+  chop_error_t err;
 
   display_request_info ("close", req);
 
@@ -437,11 +437,11 @@ handle_close (void *unused, struct svc_req *req)
 
 
 /* Local store management.  */
-static errcode_t
+static chop_error_t
 open_db_store (const chop_file_based_store_class_t *class,
 	       const char *file, chop_block_store_t *store)
 {
-  errcode_t err;
+  chop_error_t err;
 
   err = chop_file_based_store_open (class, file,
 				    O_RDWR | O_CREAT, S_IRUSR | S_IWUSR,
@@ -638,7 +638,7 @@ finalize_tls_session (gnutls_session_t session, void *closure)
 static void
 initialize_tls_parameters (void)
 {
-  errcode_t err;
+  chop_error_t err;
 
   err = chop_tls_initialize_dh_params (&server_dh_params,
 				       CONFIG_DIRECTORY,
@@ -1056,10 +1056,10 @@ publishing_thread_entry_point (void *pub)
   return NULL;
 }
 
-static errcode_t
+static chop_error_t
 publish_service (void)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_hash_method_spec_t hash_spec;
   chop_store_publisher_t *publisher;
 
@@ -1142,7 +1142,7 @@ publish_service (void)
 int
 main (int argc, char *argv[])
 {
-  errcode_t err;
+  chop_error_t err;
   chop_filter_t *input_filter = NULL, *output_filter = NULL;
   SVCXPRT *transp;
 

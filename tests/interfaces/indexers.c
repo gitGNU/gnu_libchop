@@ -82,7 +82,7 @@ main (int argc, char *argv[])
 {
   static char mem_stream_contents[1000007];
 
-  errcode_t err;
+  chop_error_t err;
   chop_stream_t *stream;
   chop_class_t *store_class;
   chop_block_store_t *store, *metastore;

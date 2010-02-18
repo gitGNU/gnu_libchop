@@ -53,8 +53,8 @@ extern int chop_hash_method_gcrypt_name (chop_hash_method_t method)
 
 /* Return the hash method whose name is NAME (case-insensitive).  On error,
    CHOP_ERR_NOT_FOUND is returned and METHOD is kept unmodified.  */
-extern errcode_t chop_hash_method_lookup (const char *name,
-					  chop_hash_method_t *method);
+extern chop_error_t chop_hash_method_lookup (const char *name,
+					     chop_hash_method_t *method);
 
 /* Compute the hash of BUFFER (of size SIZE) using the algorithm METHOD.
    Store the result in DIGEST which must be large enough to hold a digest

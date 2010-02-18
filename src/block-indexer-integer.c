@@ -52,7 +52,7 @@ iih_equalp (const chop_object_t *h1, const chop_object_t *h2)
   return (iih1->id == iih2->id);
 }
 
-static errcode_t
+static chop_error_t
 iih_copy (const chop_object_t *s, chop_object_t *d)
 {
   chop_integer_index_handle_t *source, *dest;
@@ -65,11 +65,11 @@ iih_copy (const chop_object_t *s, chop_object_t *d)
   return 0;
 }
 
-static errcode_t
+static chop_error_t
 iih_serialize (const chop_object_t *object, chop_serial_method_t method,
 	      chop_buffer_t *buffer)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_integer_index_handle_t *iih =
     (chop_integer_index_handle_t *) object;
 
@@ -98,11 +98,11 @@ iih_serialize (const chop_object_t *object, chop_serial_method_t method,
   return err;
 }
 
-static errcode_t
+static chop_error_t
 iih_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 		 chop_object_t *object, size_t *bytes_read)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_integer_index_handle_t *iih =
     (chop_integer_index_handle_t *) object;
 
@@ -166,13 +166,13 @@ CHOP_DECLARE_RT_CLASS (integer_block_fetcher, block_fetcher,
 		       /* Nothing, easy.  */
 		       chop_log_t log;);
 
-static errcode_t integer_block_fetch (chop_block_fetcher_t *,
-				      const chop_index_handle_t *,
-				      chop_block_store_t *,
-				      chop_buffer_t *,
-				      size_t *);
+static chop_error_t integer_block_fetch (chop_block_fetcher_t *,
+					 const chop_index_handle_t *,
+					 chop_block_store_t *,
+					 chop_buffer_t *,
+					 size_t *);
 
-static errcode_t
+static chop_error_t
 ibf_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_integer_block_fetcher_t *fetcher;
@@ -196,7 +196,7 @@ ibf_dtor (chop_object_t *object)
   chop_object_destroy ((chop_object_t *)&fetcher->log);
 }
 
-static errcode_t
+static chop_error_t
 ibf_serialize (const chop_object_t *object, chop_serial_method_t method,
 	       chop_buffer_t *buffer)
 {
@@ -204,11 +204,11 @@ ibf_serialize (const chop_object_t *object, chop_serial_method_t method,
   return 0;
 }
 
-static errcode_t
+static chop_error_t
 ibf_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 		 chop_object_t *object, size_t *bytes_read)
 {
-  errcode_t err;
+  chop_error_t err;
 
   err = chop_object_initialize (object, &chop_integer_block_fetcher_class);
 
@@ -236,13 +236,13 @@ chop_integer_block_fetcher_log (chop_block_fetcher_t *fetcher)
   return (&hfetcher->log);
 }
 
-static errcode_t
+static chop_error_t
 integer_block_fetch (chop_block_fetcher_t *block_fetcher,
 		     const chop_index_handle_t *index,
 		     chop_block_store_t *store,
 		     chop_buffer_t *buffer, size_t *size)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_integer_index_handle_t *iih;
   chop_integer_block_fetcher_t *fetcher;
   uint32_t id;
@@ -268,7 +268,7 @@ integer_block_fetch (chop_block_fetcher_t *block_fetcher,
 CHOP_DECLARE_RT_CLASS (integer_block_indexer, block_indexer,
 		       uint32_t id; /* the current block ID */);
 
-static errcode_t
+static chop_error_t
 integer_indexer_init_fetcher (const chop_block_indexer_t *block_indexer,
 			      chop_block_fetcher_t *fetcher)
 {
@@ -278,14 +278,14 @@ integer_indexer_init_fetcher (const chop_block_indexer_t *block_indexer,
 				 &chop_integer_block_fetcher_class);
 }
 
-static errcode_t
+static chop_error_t
 integer_block_index (chop_block_indexer_t *indexer,
 		     chop_block_store_t *store,
 		     const char *buffer,
 		     size_t size,
 		     chop_index_handle_t *handle);
 
-static errcode_t
+static chop_error_t
 ibi_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_integer_block_indexer_t *indexer;
@@ -310,7 +310,7 @@ ibi_dtor (chop_object_t *object)
   indexer->block_indexer.block_fetcher_class = NULL;
 }
 
-static errcode_t
+static chop_error_t
 ibi_serialize (const chop_object_t *object, chop_serial_method_t method,
 	       chop_buffer_t *buffer)
 {
@@ -318,11 +318,11 @@ ibi_serialize (const chop_object_t *object, chop_serial_method_t method,
   return 0;
 }
 
-static errcode_t
+static chop_error_t
 ibi_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 		 chop_object_t *object, size_t *bytes_read)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_integer_block_indexer_t *ibi =
     (chop_integer_block_indexer_t *) object;
 
@@ -368,14 +368,14 @@ CHOP_DEFINE_RT_CLASS (integer_block_indexer, block_indexer,
 		      ibi_serialize, ibi_deserialize);
 
 
-static errcode_t
+static chop_error_t
 integer_block_index (chop_block_indexer_t *indexer,
 		     chop_block_store_t *store,
 		     const char *buffer,
 		     size_t size,
 		     chop_index_handle_t *handle)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_integer_block_indexer_t *ibi;
   chop_integer_index_handle_t *iih;
   chop_block_key_t key;
@@ -406,11 +406,11 @@ integer_block_index (chop_block_indexer_t *indexer,
   return err;
 }
 
-errcode_t
+chop_error_t
 chop_integer_block_indexer_open (unsigned long start,
 				 chop_block_indexer_t *indexer)
 {
-  errcode_t err;
+  chop_error_t err;
 
   err = chop_object_initialize ((chop_object_t *)indexer,
 				&chop_integer_block_indexer_class);

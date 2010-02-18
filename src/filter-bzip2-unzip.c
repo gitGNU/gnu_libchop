@@ -39,11 +39,11 @@ CHOP_DECLARE_RT_CLASS_WITH_METACLASS (bzip2_unzip_filter, filter,
 
 
 
-static errcode_t
+static chop_error_t
 chop_bzip2_unzip_push (chop_filter_t *filter,
 		       const char *buffer, size_t size, size_t *pushed);
 
-static errcode_t
+static chop_error_t
 chop_bzip2_unzip_pull (chop_filter_t *filter, int flush,
 		      char *buffer, size_t size, size_t *pulled);
 
@@ -54,7 +54,7 @@ static void
 custom_free (void *opaque, void *address);
 
 
-static errcode_t
+static chop_error_t
 bzip2_unzip_filter_ctor (chop_object_t *object,
 			 const chop_class_t *class)
 {
@@ -99,7 +99,7 @@ bzip2_unzip_filter_dtor (chop_object_t *object)
 }
 
 
-static errcode_t
+static chop_error_t
 buf_open (size_t input_size, chop_filter_t *filter)
 {
   return (chop_bzip2_unzip_filter_init (0, input_size, filter));
@@ -117,11 +117,11 @@ CHOP_DEFINE_RT_CLASS_WITH_METACLASS (bzip2_unzip_filter, filter,
 				     NULL, NULL);
 
 
-errcode_t
+chop_error_t
 chop_bzip2_unzip_filter_init (int small, size_t input_size,
 			      chop_filter_t *filter)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_bzip2_unzip_filter_t *zfilter;
 
   zfilter = (chop_bzip2_unzip_filter_t *)filter;

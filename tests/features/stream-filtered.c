@@ -59,7 +59,7 @@ main (int argc, char *argv[])
       { NULL, NULL }
     };
 
-  errcode_t err;
+  chop_error_t err;
   const zip_implementation_t *implementation;
 
   test_init (argv[0]);

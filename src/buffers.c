@@ -66,7 +66,7 @@ find_buffer_in_pool (size_t size, chop_buffer_t *found)
 #endif
 
 
-errcode_t
+chop_error_t
 chop_buffer_init (chop_buffer_t *buffer, size_t size)
 {
 #ifdef ENABLE_POOL
@@ -87,7 +87,7 @@ chop_buffer_init (chop_buffer_t *buffer, size_t size)
   return 0;
 }
 
-static errcode_t
+static chop_error_t
 chop_buffer_grow (chop_buffer_t *buffer, size_t size)
 {
   size_t new_size = buffer->real_size;
@@ -122,11 +122,11 @@ chop_buffer_grow (chop_buffer_t *buffer, size_t size)
   return 0;
 }
 
-errcode_t
+chop_error_t
 chop_buffer_push (chop_buffer_t *buffer,
 		  const char *buf, size_t size)
 {
-  errcode_t err;
+  chop_error_t err;
 
   if (size > buffer->real_size)
     {
@@ -141,11 +141,11 @@ chop_buffer_push (chop_buffer_t *buffer,
   return 0;
 }
 
-errcode_t
+chop_error_t
 chop_buffer_append (chop_buffer_t *buffer,
 		    const char *buf, size_t size)
 {
-  errcode_t err;
+  chop_error_t err;
   size_t new_size = buffer->size + size;
 
   if (new_size > buffer->real_size)

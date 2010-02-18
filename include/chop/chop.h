@@ -63,6 +63,7 @@
 _CHOP_BEGIN_DECLS
 
 /* Basic types.  */
+typedef errcode_t chop_error_t;
 typedef struct chop_block_key chop_block_key_t;
 typedef enum chop_hash_method chop_hash_method_t;
 typedef enum chop_proxy_semantics chop_proxy_semantics_t;
@@ -79,12 +80,12 @@ typedef void   (* chop_free_t) (void *, const struct chop_class *);
 
 /* Initialize the Chop library.  This function must be called before using
    the library.  */
-extern errcode_t chop_init (void);
+extern chop_error_t chop_init (void);
 
 /* Initialize the Chop library using the specified memory allocation
    functions.  */
-extern errcode_t chop_init_with_allocator (chop_malloc_t, chop_realloc_t,
-					   chop_free_t);
+extern chop_error_t chop_init_with_allocator (chop_malloc_t, chop_realloc_t,
+					      chop_free_t);
 
 
 

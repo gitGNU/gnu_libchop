@@ -66,19 +66,19 @@ CHOP_DECLARE_RT_CLASS (store_publisher, object,
 		       char *openpgp_fingerprint;
 		       size_t openpgp_fingerprint_size;
 
-		       errcode_t (* iterate) (struct chop_store_publisher *,
-					      unsigned timeout);
-		       errcode_t (* loop) (struct chop_store_publisher *););
+		       chop_error_t (* iterate) (struct chop_store_publisher *,
+						 unsigned timeout);
+		       chop_error_t (* loop) (struct chop_store_publisher *););
 
 
 /* Have PUBLISHER iterate for at most TIMEOUT msec.  */
-extern errcode_t
+extern chop_error_t
 chop_store_publisher_iterate (chop_store_publisher_t *publisher,
 			      unsigned timeout);
 
 /* Have PUBLISHER run in loop.  This function only returns when an error
    occurs.  */
-extern errcode_t
+extern chop_error_t
 chop_store_publisher_loop (chop_store_publisher_t *publisher);
 
 
@@ -92,7 +92,7 @@ extern const chop_class_t chop_avahi_store_publisher_class;
    service name that will be visible by service browsers; HOST and PORT
    should specify how to reach the service (over TCP).  If HOST is NULL, then
    a default value will be used.  */
-extern errcode_t
+extern chop_error_t
 chop_avahi_store_publisher_open (const char *service_name,
 				 const char *host, unsigned int port,
 				 chop_hash_method_spec_t spec,

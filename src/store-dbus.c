@@ -44,7 +44,7 @@ CHOP_DECLARE_RT_CLASS (dbus_block_store, block_store,
 		       DBusConnection *connection;
 		       char *object_path;)
 
-static errcode_t
+static chop_error_t
 dbus_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_dbus_block_store_t *remote;
@@ -86,36 +86,36 @@ CHOP_DEFINE_RT_CLASS (dbus_block_store, block_store,
 
 
 
-static errcode_t chop_dbus_block_exists (chop_block_store_t *,
+static chop_error_t chop_dbus_block_exists (chop_block_store_t *,
+					    const chop_block_key_t *,
+					    int *);
+
+static chop_error_t chop_dbus_read_block  (struct chop_block_store *,
 					   const chop_block_key_t *,
-					   int *);
+					   chop_buffer_t *, size_t *);
 
-static errcode_t chop_dbus_read_block  (struct chop_block_store *,
-					  const chop_block_key_t *,
-					  chop_buffer_t *, size_t *);
+static chop_error_t chop_dbus_write_block (struct chop_block_store *,
+					   const chop_block_key_t *,
+					   const char *, size_t);
 
-static errcode_t chop_dbus_write_block (struct chop_block_store *,
-					  const chop_block_key_t *,
-					  const char *, size_t);
+static chop_error_t chop_dbus_delete_block (chop_block_store_t *,
+					    const chop_block_key_t *);
 
-static errcode_t chop_dbus_delete_block (chop_block_store_t *,
-					   const chop_block_key_t *);
+static chop_error_t chop_dbus_first_it (chop_block_store_t *,
+					chop_block_iterator_t *);
 
-static errcode_t chop_dbus_first_it (chop_block_store_t *,
-				     chop_block_iterator_t *);
+static chop_error_t chop_dbus_it_next (chop_block_iterator_t *);
 
-static errcode_t chop_dbus_it_next (chop_block_iterator_t *);
+static chop_error_t chop_dbus_close (struct chop_block_store *);
 
-static errcode_t chop_dbus_close (struct chop_block_store *);
-
-static errcode_t chop_dbus_sync (struct chop_block_store *);
+static chop_error_t chop_dbus_sync (struct chop_block_store *);
 
 
-static errcode_t
+static chop_error_t
 invoke_new_client_method (DBusConnection *connection, char **path,
 			  chop_log_t *log)
 {
-  errcode_t err = 0;
+  chop_error_t err = 0;
   DBusError derr;
   DBusMessage *call = NULL, *reply = NULL;
   DBusMessageIter iter;
@@ -184,11 +184,11 @@ invoke_new_client_method (DBusConnection *connection, char **path,
   return err;
 }
 
-errcode_t
+chop_error_t
 chop_dbus_block_store_open (const char *d_address,
 			    chop_block_store_t *store)
 {
-  errcode_t err;
+  chop_error_t err;
   DBusError d_err;
   DBusConnection *connection;
   chop_dbus_block_store_t *remote = (chop_dbus_block_store_t *)store;
@@ -233,12 +233,12 @@ chop_dbus_block_store_open (const char *d_address,
 }
 
 
-static errcode_t
+static chop_error_t
 chop_dbus_block_exists (chop_block_store_t *store,
 			const chop_block_key_t *key,
 			int *exists)
 {
-  errcode_t err = 0;
+  chop_error_t err = 0;
   chop_dbus_block_store_t *remote = (chop_dbus_block_store_t *)store;
 
   DBusError derr;
@@ -306,12 +306,12 @@ chop_dbus_block_exists (chop_block_store_t *store,
   return err;
 }
 
-static errcode_t
+static chop_error_t
 chop_dbus_read_block (chop_block_store_t *store,
 		      const chop_block_key_t *key,
 		      chop_buffer_t *buffer, size_t *read)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_dbus_block_store_t *remote = (chop_dbus_block_store_t *)store;
   DBusError derr;
 
@@ -385,12 +385,12 @@ chop_dbus_read_block (chop_block_store_t *store,
   return err;
 }
 
-static errcode_t
+static chop_error_t
 chop_dbus_write_block (chop_block_store_t *store,
 		       const chop_block_key_t *key,
 		       const char *buffer, size_t size)
 {
-  errcode_t err;
+  chop_error_t err;
   const char *key_buffer;
   chop_dbus_block_store_t *remote = (chop_dbus_block_store_t *)store;
   DBusError derr;
@@ -465,14 +465,14 @@ chop_dbus_write_block (chop_block_store_t *store,
   return err;
 }
 
-static errcode_t
+static chop_error_t
 chop_dbus_delete_block (chop_block_store_t *store,
 			  const chop_block_key_t *key)
 {
   return CHOP_ERR_NOT_IMPL;
 }
 
-static errcode_t
+static chop_error_t
 chop_dbus_first_it (chop_block_store_t *store,
 		    chop_block_iterator_t *it)
 {
@@ -480,13 +480,13 @@ chop_dbus_first_it (chop_block_store_t *store,
   return CHOP_ERR_NOT_IMPL;
 }
 
-static errcode_t
+static chop_error_t
 chop_dbus_it_next (chop_block_iterator_t *it)
 {
   return CHOP_ERR_NOT_IMPL;
 }
 
-static errcode_t
+static chop_error_t
 chop_dbus_close (chop_block_store_t *store)
 {
   chop_dbus_block_store_t *remote = (chop_dbus_block_store_t *)store;
@@ -499,7 +499,7 @@ chop_dbus_close (chop_block_store_t *store)
   return 0;
 }
 
-static errcode_t
+static chop_error_t
 chop_dbus_sync (chop_block_store_t *store)
 {
   chop_dbus_block_store_t *remote = (chop_dbus_block_store_t *)store;

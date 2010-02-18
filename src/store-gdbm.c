@@ -32,7 +32,7 @@ CHOP_DECLARE_RT_CLASS_WITH_METACLASS (gdbm_block_store, block_store,
 				      GDBM_FILE db;);
 
 /* A generic open method, common to all file-based block stores.  */
-static errcode_t
+static chop_error_t
 chop_gdbm_generic_open (const chop_class_t *class,
 			const char *file, int open_flags, mode_t mode,
 			chop_block_store_t *store)
@@ -81,34 +81,34 @@ CHOP_DEFINE_RT_CLASS (gdbm_block_iterator, block_iterator,
 
 
 
-static errcode_t chop_gdbm_block_exists (chop_block_store_t *,
-					 const chop_block_key_t *,
-					 int *);
+static chop_error_t chop_gdbm_block_exists (chop_block_store_t *,
+					    const chop_block_key_t *,
+					    int *);
 
-static errcode_t chop_gdbm_read_block (chop_block_store_t *,
-				       const chop_block_key_t *,
-				       chop_buffer_t *,
-				       size_t *);
+static chop_error_t chop_gdbm_read_block (chop_block_store_t *,
+					  const chop_block_key_t *,
+					  chop_buffer_t *,
+					  size_t *);
 
-static errcode_t chop_gdbm_write_block (chop_block_store_t *,
-					const chop_block_key_t *,
-					const char *,
-					size_t);
+static chop_error_t chop_gdbm_write_block (chop_block_store_t *,
+					   const chop_block_key_t *,
+					   const char *,
+					   size_t);
 
-static errcode_t chop_gdbm_delete_block (chop_block_store_t *,
-					 const chop_block_key_t *);
+static chop_error_t chop_gdbm_delete_block (chop_block_store_t *,
+					    const chop_block_key_t *);
 
-static errcode_t chop_gdbm_first_block (chop_block_store_t *,
-					chop_block_iterator_t *);
+static chop_error_t chop_gdbm_first_block (chop_block_store_t *,
+					   chop_block_iterator_t *);
 
-static errcode_t chop_gdbm_it_next (chop_block_iterator_t *);
+static chop_error_t chop_gdbm_it_next (chop_block_iterator_t *);
 
-static errcode_t chop_gdbm_sync (chop_block_store_t *);
+static chop_error_t chop_gdbm_sync (chop_block_store_t *);
 
-static errcode_t chop_gdbm_close (chop_block_store_t *);
+static chop_error_t chop_gdbm_close (chop_block_store_t *);
 
 
-errcode_t
+chop_error_t
 chop_gdbm_store_open (const char *name, size_t block_size,
 		      int open_flags, mode_t mode,
 		      void (* fatal_func) (const char *),

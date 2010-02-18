@@ -65,7 +65,7 @@ hih_equalp (const chop_object_t *h1, const chop_object_t *h2)
 #endif
 
 
-static errcode_t
+static chop_error_t
 hih_serialize (const chop_object_t *object, chop_serial_method_t method,
 	       chop_buffer_t *buffer)
 {
@@ -94,7 +94,7 @@ hih_serialize (const chop_object_t *object, chop_serial_method_t method,
 
     case CHOP_SERIAL_BINARY:
       {
-	errcode_t err;
+	chop_error_t err;
 	size_t orig_size;
 	unsigned char size[8];
 
@@ -137,12 +137,12 @@ hih_serialize (const chop_object_t *object, chop_serial_method_t method,
   return CHOP_ERR_NOT_IMPL;
 }
 
-static errcode_t
+static chop_error_t
 hih_deserialize (const char *s_buffer, size_t size,
 		 chop_serial_method_t method,
 		 chop_object_t *object, size_t *bytes_read)
 {
-  errcode_t err;
+  chop_error_t err;
   const unsigned char *buffer = (unsigned char *)s_buffer;
   chop_hash_index_handle_t *handle =
     (chop_hash_index_handle_t *)object;
@@ -276,13 +276,13 @@ CHOP_DECLARE_RT_CLASS (hash_block_fetcher, block_fetcher,
 		       /* Nothing, easy.  */
 		       chop_log_t log;);
 
-static errcode_t hash_block_fetch (chop_block_fetcher_t *,
-				   const chop_index_handle_t *,
-				   chop_block_store_t *,
-				   chop_buffer_t *,
-				   size_t *);
+static chop_error_t hash_block_fetch (chop_block_fetcher_t *,
+				      const chop_index_handle_t *,
+				      chop_block_store_t *,
+				      chop_buffer_t *,
+				      size_t *);
 
-static errcode_t
+static chop_error_t
 hbf_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_hash_block_fetcher_t *fetcher;
@@ -306,7 +306,7 @@ hbf_dtor (chop_object_t *object)
   chop_object_destroy ((chop_object_t *)&fetcher->log);
 }
 
-static errcode_t
+static chop_error_t
 hbf_serialize (const chop_object_t *object, chop_serial_method_t method,
 	       chop_buffer_t *buffer)
 {
@@ -314,11 +314,11 @@ hbf_serialize (const chop_object_t *object, chop_serial_method_t method,
   return 0;
 }
 
-static errcode_t
+static chop_error_t
 hbf_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 		 chop_object_t *object, size_t *bytes_read)
 {
-  errcode_t err;
+  chop_error_t err;
 
   err = chop_object_initialize (object, &chop_hash_block_fetcher_class);
 
@@ -346,13 +346,13 @@ chop_hash_block_fetcher_log (chop_block_fetcher_t *fetcher)
   return (&hfetcher->log);
 }
 
-static errcode_t
+static chop_error_t
 hash_block_fetch (chop_block_fetcher_t *block_fetcher,
 		  const chop_index_handle_t *index,
 		  chop_block_store_t *store,
 		  chop_buffer_t *buffer, size_t *size)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_hash_index_handle_t *handle;
   chop_hash_block_fetcher_t *fetcher;
   chop_block_key_t key;
@@ -394,7 +394,7 @@ hash_block_fetch (chop_block_fetcher_t *block_fetcher,
 CHOP_DECLARE_RT_CLASS (hash_block_indexer, block_indexer,
 		       chop_hash_method_t hash_method;);
 
-static errcode_t
+static chop_error_t
 hash_indexer_init_fetcher (const chop_block_indexer_t *block_indexer,
 			   chop_block_fetcher_t *fetcher)
 {
@@ -404,14 +404,14 @@ hash_indexer_init_fetcher (const chop_block_indexer_t *block_indexer,
 				 &chop_hash_block_fetcher_class);
 }
 
-static errcode_t
+static chop_error_t
 hash_block_index (chop_block_indexer_t *indexer,
 		  chop_block_store_t *store,
 		  const char *buffer,
 		  size_t size,
 		  chop_index_handle_t *handle);
 
-static errcode_t
+static chop_error_t
 hbi_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_hash_block_indexer_t *indexer;
@@ -439,7 +439,7 @@ hbi_dtor (chop_object_t *object)
   indexer->hash_method = CHOP_HASH_NONE;
 }
 
-static errcode_t
+static chop_error_t
 hbi_serialize (const chop_object_t *object, chop_serial_method_t method,
 	       chop_buffer_t *buffer)
 {
@@ -467,11 +467,11 @@ hbi_serialize (const chop_object_t *object, chop_serial_method_t method,
   return 0;
 }
 
-static errcode_t
+static chop_error_t
 hbi_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 		 chop_object_t *object, size_t *bytes_read)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_hash_block_indexer_t *indexer;
 
   indexer = (chop_hash_block_indexer_t *)object;
@@ -518,14 +518,14 @@ CHOP_DEFINE_RT_CLASS (hash_block_indexer, block_indexer,
 		      hbi_serialize, hbi_deserialize);
 
 
-static errcode_t
+static chop_error_t
 hash_block_index (chop_block_indexer_t *indexer,
 		  chop_block_store_t *store,
 		  const char *buffer,
 		  size_t size,
 		  chop_index_handle_t *handle)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_hash_block_indexer_t *hash_indexer;
   chop_hash_index_handle_t *hash_handle;
   chop_block_key_t key;
@@ -568,7 +568,7 @@ hash_block_index (chop_block_indexer_t *indexer,
   return err;
 }
 
-errcode_t
+chop_error_t
 chop_hash_block_indexer_open (chop_hash_method_t hash_method,
 			      chop_block_indexer_t *indexer)
 {

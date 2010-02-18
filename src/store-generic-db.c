@@ -57,7 +57,7 @@ do_free_key (char *content, void *user)
 }
 
 
-static errcode_t
+static chop_error_t
 DB_BLOCK_EXISTS_METHOD (chop_block_store_t *store,
 			const chop_block_key_t *key,
 			int *exists)
@@ -71,12 +71,12 @@ DB_BLOCK_EXISTS_METHOD (chop_block_store_t *store,
   return 0;
 }
 
-static errcode_t
+static chop_error_t
 DB_READ_BLOCK_METHOD (chop_block_store_t *store,
 		      const chop_block_key_t *key, chop_buffer_t *buffer,
 		      size_t *size)
 {
-  errcode_t err;
+  chop_error_t err;
   DB_DATA_TYPE db_key, db_content;
   DB_STORE_TYPE *gdbm = (DB_STORE_TYPE *)store;
 
@@ -97,7 +97,7 @@ DB_READ_BLOCK_METHOD (chop_block_store_t *store,
   return err;
 }
 
-static errcode_t
+static chop_error_t
 DB_WRITE_BLOCK_METHOD (chop_block_store_t *store,
 		       const chop_block_key_t *key,
 		       const char *buffer, size_t size)
@@ -119,7 +119,7 @@ DB_WRITE_BLOCK_METHOD (chop_block_store_t *store,
   return 0;
 }
 
-static errcode_t
+static chop_error_t
 DB_DELETE_BLOCK_METHOD (chop_block_store_t *store,
 			const chop_block_key_t *key)
 {
@@ -135,11 +135,11 @@ DB_DELETE_BLOCK_METHOD (chop_block_store_t *store,
   return 0;
 }
 
-static errcode_t
+static chop_error_t
 DB_FIRST_BLOCK_METHOD (chop_block_store_t *store,
 		       chop_block_iterator_t *it)
 {
-  errcode_t err;
+  chop_error_t err;
   DB_DATA_TYPE db_key;
   DB_STORE_TYPE *db = (DB_STORE_TYPE *)store;
 
@@ -167,10 +167,10 @@ DB_FIRST_BLOCK_METHOD (chop_block_store_t *store,
   return (err);
 }
 
-static errcode_t
+static chop_error_t
 DB_NEXT_BLOCK_METHOD (chop_block_iterator_t *it)
 {
-  errcode_t err;
+  chop_error_t err;
   DB_DATA_TYPE db_key, db_next_key;
   DB_STORE_TYPE *db = (DB_STORE_TYPE *)it->store;
 
@@ -205,7 +205,7 @@ DB_NEXT_BLOCK_METHOD (chop_block_iterator_t *it)
 # define _CHOP_UNUSED
 #endif
 
-static errcode_t
+static chop_error_t
 DB_SYNC_METHOD (chop_block_store_t *store)
 {
   DB_STORE_TYPE *gdbm _CHOP_UNUSED = (DB_STORE_TYPE *)store;
@@ -217,7 +217,7 @@ DB_SYNC_METHOD (chop_block_store_t *store)
 
 #undef _CHOP_UNUSED
 
-static errcode_t
+static chop_error_t
 DB_CLOSE_METHOD (chop_block_store_t *store)
 {
   DB_STORE_TYPE *gdbm = (DB_STORE_TYPE *)store;

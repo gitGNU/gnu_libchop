@@ -60,7 +60,7 @@ static inline chop_cipher_handle_t
 open_cipher_handle (chop_cipher_algo_t algo,
 		    const char *the_key)
 {
-  errcode_t err;
+  chop_error_t err;
   size_t key_size;
   chop_cipher_handle_t cipher_handle;
 
@@ -96,7 +96,7 @@ open_cipher_handle (chop_cipher_algo_t algo,
 int
 main (int argc, char *argv[])
 {
-  errcode_t err;
+  chop_error_t err;
   size_t algo_count, failed = 0;
   const chop_cipher_algo_t *algo;
   chop_cipher_handle_t cipher_handle;

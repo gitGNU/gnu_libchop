@@ -40,7 +40,7 @@ struct chop_filter;
    attributes of `chop_filter_t' objects.  */
 typedef struct
 {
-  errcode_t (* handle) (struct chop_filter *, size_t, void *);
+  chop_error_t (* handle) (struct chop_filter *, size_t, void *);
   void *data;
 } chop_filter_fault_handler_t;
 
@@ -53,10 +53,10 @@ CHOP_DECLARE_RT_CLASS (filter, object,
 		       chop_filter_fault_handler_t output_fault_handler;
 		       int within_fault_handler;
 
-		       errcode_t (* push) (struct chop_filter *,
-					   const char *, size_t, size_t *);
-		       errcode_t (* pull) (struct chop_filter *, int,
-					   char *, size_t, size_t *););
+		       chop_error_t (* push) (struct chop_filter *,
+					      const char *, size_t, size_t *);
+		       chop_error_t (* pull) (struct chop_filter *, int,
+					      char *, size_t, size_t *););
 
 
 
@@ -73,7 +73,7 @@ static __inline__ chop_log_t *chop_filter_log (chop_filter_t *__filter)
    not a single byte was pushed in.  PUSHED is set to the number of bytes
    actually pushed.  Any other error returned by the fault handler may be
    returned by this function.  */
-static __inline__ errcode_t
+static __inline__ chop_error_t
 chop_filter_push (chop_filter_t *__filter,
 		  const char *__buffer, size_t __size, size_t *__pushed)
 {
@@ -88,7 +88,7 @@ chop_filter_push (chop_filter_t *__filter,
    has been processed, otherwise zero is returned and the function must be
    called again with FLUSH set.  Any other error returned by the fault
    handler may be returned by this function.  */
-static __inline__ errcode_t
+static __inline__ chop_error_t
 chop_filter_pull (chop_filter_t *__filter, int __flush,
 		  char *__buffer, size_t __size, size_t *__pulled)
 {
@@ -110,8 +110,8 @@ chop_filter_output_fault_handler (const chop_filter_t *__filter)
 
 static __inline__ void
 chop_filter_set_input_fault_handler (chop_filter_t *__filter,
-				     errcode_t (* __h) (chop_filter_t *,
-							size_t, void *),
+				     chop_error_t (* __h) (chop_filter_t *,
+							   size_t, void *),
 				     void *__hdata)
 {
   __filter->input_fault_handler.handle = __h;
@@ -120,8 +120,8 @@ chop_filter_set_input_fault_handler (chop_filter_t *__filter,
 
 static __inline__ void
 chop_filter_set_output_fault_handler (chop_filter_t *__filter,
-				      errcode_t (* __h) (chop_filter_t *,
-							 size_t, void *),
+				      chop_error_t (* __h) (chop_filter_t *,
+							    size_t, void *),
 				      void *__hdata)
 {
   __filter->output_fault_handler.handle = __h;
@@ -133,11 +133,11 @@ chop_filter_set_output_fault_handler (chop_filter_t *__filter,
    `push' method).  This function may return CHOP_FILTER_UNHANDLED_FAULT if
    no input fault handler was defined or if FILTER was already handling an
    output (presumably) fault.  */
-static __inline__ errcode_t
+static __inline__ chop_error_t
 chop_filter_handle_input_fault (chop_filter_t *__filter,
 				size_t __amount)
 {
-  errcode_t __err;
+  chop_error_t __err;
   void *__hdata = __filter->input_fault_handler.data;
 
   if ((!__filter->input_fault_handler.handle)
@@ -156,11 +156,11 @@ chop_filter_handle_input_fault (chop_filter_t *__filter,
    `push' method).  This function may return CHOP_FILTER_UNHANDLED_FAULT if
    no output fault handler was defined or if FILTER was already handling an
    input (presumably) fault.  */
-static __inline__ errcode_t
+static __inline__ chop_error_t
 chop_filter_handle_output_fault (chop_filter_t *__filter,
 				 size_t __amount)
 {
-  errcode_t __err;
+  chop_error_t __err;
   void *__hdata = __filter->output_fault_handler.data;
 
   if ((!__filter->output_fault_handler.handle)
@@ -179,7 +179,7 @@ chop_filter_handle_output_fault (chop_filter_t *__filter,
 
 /* Change FILTER's input fault handler so that if fetches its input data from
    INPUT which contains INPUT_SIZE bytes.  */
-extern errcode_t
+extern chop_error_t
 chop_filter_set_input_from_buffer (chop_filter_t *filter,
 				   const char *input, size_t input_size);
 
@@ -193,7 +193,7 @@ chop_filter_finish_input_from_buffer (chop_filter_t *filter,
 
 /* Filter INPUT (of INPUT_SIZE bytes) through FILTER and store the result in
    OUTPUT.  This function may temporarily modify FILTER's fault handlers.  */
-extern errcode_t chop_filter_through (chop_filter_t *filter,
+extern chop_error_t chop_filter_through (chop_filter_t *filter,
 				      const char *input, size_t input_size,
 				      chop_buffer_t *output);
 
@@ -202,12 +202,12 @@ extern errcode_t chop_filter_through (chop_filter_t *filter,
    zip/unzip filter creation method (a "factory").  */
 
 CHOP_DECLARE_RT_CLASS (zip_filter_class, class,
-		       errcode_t (* generic_open) (int, size_t,
-						   chop_filter_t *););
+		       chop_error_t (* generic_open) (int, size_t,
+						      chop_filter_t *););
 
 
 CHOP_DECLARE_RT_CLASS (unzip_filter_class, class,
-		       errcode_t (* generic_open) (size_t, chop_filter_t *););
+		       chop_error_t (* generic_open) (size_t, chop_filter_t *););
 
 
 /* The default zip filter compression level.  */
@@ -218,12 +218,12 @@ CHOP_DECLARE_RT_CLASS (unzip_filter_class, class,
    `CHOP_ZIP_FILTER_DEFAULT_COMPRESSION', in which case the implementation
    will choose some default compression level, or an integer between 0 and 9
    inclusive.  */
-static __inline__ errcode_t
+static __inline__ chop_error_t
 chop_zip_filter_generic_open (const chop_zip_filter_class_t *klass,
 			      int compression_level, size_t input_size,
 			      chop_filter_t *filter)
 {
-  errcode_t err;
+  chop_error_t err;
 
   if (CHOP_EXPECT_TRUE (klass->generic_open != NULL))
     err = klass->generic_open (compression_level, input_size, filter);
@@ -235,12 +235,12 @@ chop_zip_filter_generic_open (const chop_zip_filter_class_t *klass,
 
 /* Initialize FILTER as an instance of KLASS, using an input buffer of size
    INPUT_SIZE.  */
-static __inline__ errcode_t
+static __inline__ chop_error_t
 chop_unzip_filter_generic_open (const chop_unzip_filter_class_t *klass,
 				size_t input_size,
 				chop_filter_t *filter)
 {
-  errcode_t err;
+  chop_error_t err;
 
   if (CHOP_EXPECT_TRUE (klass->generic_open != NULL))
     err = klass->generic_open (input_size, filter);
@@ -262,13 +262,13 @@ extern const chop_unzip_filter_class_t chop_zlib_unzip_filter_class;
    of INPUT_SIZE bytes.  If ZLIB_COMPRESSION_LEVEL is -1, then zlib's default
    compression level is used.  If INPUT_SIZE is zero, then a default size is
    used.  */
-extern errcode_t
+extern chop_error_t
 chop_zlib_zip_filter_init (int zlib_compression_level, size_t input_size,
 			   chop_filter_t *filter);
 
 /* Initialize the zlib-based decompressiong filter with an input buffer of
    INPUT_SIZE bytes.  If INPUT_SIZE is zero, then a default size is used.  */
-extern errcode_t
+extern chop_error_t
 chop_zlib_unzip_filter_init (size_t input_size,
 			     chop_filter_t *filter);
 
@@ -285,7 +285,7 @@ extern const chop_unzip_filter_class_t chop_bzip2_unzip_filter_class;
    WORK_FACTOR to determine how compression behaves when presented the worst
    case repetitive input (see the `libbzip2' manual for details).  The
    returned filter will internally use a buffer of INPUT_SIZE bytes.  */
-extern errcode_t
+extern chop_error_t
 chop_bzip2_zip_filter_init (size_t block_count_100k, size_t work_factor,
 			    size_t input_size, chop_filter_t *filter);
 
@@ -293,7 +293,7 @@ chop_bzip2_zip_filter_init (size_t block_count_100k, size_t work_factor,
    INPUT_SIZE bytes.  If INPUT_SIZE is zero, then a default size is used.  If
    SMALL is non-zero, then `libbzip2' will use an alternate decompression
    algorithm that is slower but uses less memory.  */
-extern errcode_t
+extern chop_error_t
 chop_bzip2_unzip_filter_init (int small, size_t input_size,
 			      chop_filter_t *filter);
 
@@ -313,13 +313,13 @@ extern const chop_unzip_filter_class_t chop_lzo_unzip_filter_class;
    necessary to use a reasonably large buffer size to obtain reasonable
    compression.  If INPUT_SIZE is zero, a reasonable default is used.  The
    compression algorithm that is used is LZO1X.  */
-extern errcode_t chop_lzo_zip_filter_init (size_t input_size,
-					   chop_filter_t *filter);
+extern chop_error_t chop_lzo_zip_filter_init (size_t input_size,
+					      chop_filter_t *filter);
 
 /* Initialize FILTER as an LZO decompression buffer, using INPUT_SIZE as the
    default input buffer size.  In practice, the input buffer will be grown as
    needed anyway.  */
-extern errcode_t chop_lzo_unzip_filter_init (size_t input_size,
-					     chop_filter_t *filter);
+extern chop_error_t chop_lzo_unzip_filter_init (size_t input_size,
+						chop_filter_t *filter);
 
 #endif

@@ -106,11 +106,11 @@ typedef struct
 /* Read input stream throught CHOPPER and fill in VECTOR with block
    information using METHOD as the block hash method for `block_info_t'
    objects.  */
-static errcode_t
+static chop_error_t
 read_stream (chop_chopper_t *chopper, chop_hash_method_t method,
 	     block_info_vector_t *vector)
 {
-  errcode_t err;
+  chop_error_t err;
   block_info_t info;
   chop_buffer_t buffer;
   size_t offset = 0, hash_size;
@@ -269,7 +269,7 @@ static struct argp argp = { options, parse_opt, args_doc, doc };
 int
 main (int argc, char *argv[])
 {
-  errcode_t err;
+  chop_error_t err;
   chop_stream_t *stream1, *stream2;
   chop_chopper_t *chopper1, *chopper2;
   chop_log_t *chopper_log;

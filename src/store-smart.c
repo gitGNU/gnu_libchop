@@ -40,12 +40,12 @@ CHOP_DEFINE_RT_CLASS (smart_block_store, block_store,
 
 
 
-static errcode_t
+static chop_error_t
 chop_smart_block_store_block_exists (chop_block_store_t *store,
 				     const chop_block_key_t *key,
 				     int *exists)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_smart_block_store_t *smart =
     (chop_smart_block_store_t *)store;
 
@@ -55,13 +55,13 @@ chop_smart_block_store_block_exists (chop_block_store_t *store,
   return err;
 }
 
-static errcode_t
+static chop_error_t
 chop_smart_block_store_read_block (chop_block_store_t *store,
 				   const chop_block_key_t *key,
 				   chop_buffer_t *buffer,
 				   size_t *size)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_smart_block_store_t *smart =
     (chop_smart_block_store_t *)store;
 
@@ -72,12 +72,12 @@ chop_smart_block_store_read_block (chop_block_store_t *store,
   return err;
 }
 
-static errcode_t
+static chop_error_t
 chop_smart_block_store_write_block (chop_block_store_t *store,
 				    const chop_block_key_t *key,
 				    const char *block, size_t size)
 {
-  errcode_t err;
+  chop_error_t err;
   int exists = 0;
   char hex_key[1024];
   chop_smart_block_store_t *smart =
@@ -101,11 +101,11 @@ chop_smart_block_store_write_block (chop_block_store_t *store,
   return err;
 }
 
-static errcode_t
+static chop_error_t
 chop_smart_block_store_delete_block (chop_block_store_t *store,
 				     const chop_block_key_t *key)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_smart_block_store_t *smart =
     (chop_smart_block_store_t *)store;
 
@@ -114,11 +114,11 @@ chop_smart_block_store_delete_block (chop_block_store_t *store,
   return err;
 }
 
-static errcode_t
+static chop_error_t
 chop_smart_block_store_first_block (chop_block_store_t *store,
 				    chop_block_iterator_t *it)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_smart_block_store_t *smart =
     (chop_smart_block_store_t *)store;
 
@@ -128,10 +128,10 @@ chop_smart_block_store_first_block (chop_block_store_t *store,
 }
 
 
-static errcode_t
+static chop_error_t
 chop_smart_block_store_sync (chop_block_store_t *store)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_smart_block_store_t *smart =
     (chop_smart_block_store_t *)store;
 
@@ -140,7 +140,7 @@ chop_smart_block_store_sync (chop_block_store_t *store)
   return err;
 }
 
-static errcode_t
+static chop_error_t
 chop_smart_block_store_close (chop_block_store_t *store)
 {
 
@@ -148,11 +148,11 @@ chop_smart_block_store_close (chop_block_store_t *store)
 }
 
 
-errcode_t
+chop_error_t
 chop_smart_block_store_open (chop_block_store_t *backend,
 			     chop_block_store_t *store)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_smart_block_store_t *smart =
     (chop_smart_block_store_t *)store;
 

@@ -53,11 +53,11 @@ static size_t input_offset = 0;
 
 /* Handle input faults for FILTER (actually the zip filter) and provide it
    with random data taken from INPUT.  */
-static errcode_t
+static chop_error_t
 handle_random_input_fault (chop_filter_t *filter,
 			   size_t amount, void *data)
 {
-  errcode_t err;
+  chop_error_t err;
   size_t available, pushed = 0;
 
   if (input_offset >= SIZE_OF_INPUT)
@@ -85,11 +85,11 @@ typedef struct
 
 /* Handle input faults for UNZIP_FILTER, i.e. feed it with data from the zip
    filter.  */
-static errcode_t
+static chop_error_t
 handle_zipped_input_fault (chop_filter_t *unzip_filter,
 			   size_t amount, void *data)
 {
-  errcode_t err;
+  chop_error_t err;
   char *buffer;
   size_t pulled, pushed;
   zipped_input_fault_handler_data_t *zdata;
@@ -167,7 +167,7 @@ main (int argc, char *argv[])
       { NULL, NULL }
     };
 
-  errcode_t err;
+  chop_error_t err;
   const zip_implementation_t *implementation;
 
   test_init (argv[0]);

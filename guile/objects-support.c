@@ -62,13 +62,13 @@ chop_scm_object_is_a (SCM obj, const chop_class_t *c_class)
   return 0;
 }
 
-static inline errcode_t
+static inline chop_error_t
 chop_scm_serialize_object_ascii (SCM obj, char **c_str)
 {
   /* FIXME: We should check whether OBJ is an actual `object' WCP.  */
   if (CHOP_EXPECT_TRUE (gw_wcp_p (obj)))
     {
-      errcode_t err;
+      chop_error_t err;
       chop_buffer_t c_buf;
       const chop_object_t *c_obj;
 
@@ -96,13 +96,13 @@ chop_scm_serialize_object_ascii (SCM obj, char **c_str)
   return CHOP_INVALID_ARG;
 }
 
-static inline errcode_t
+static inline chop_error_t
 chop_scm_deserialize_object (const chop_class_t *c_class,
 			     chop_serial_method_t c_serial,
 			     const char *c_input, size_t c_input_len,
 			     SCM *object, size_t *c_bytes_read)
 {
-  errcode_t err;
+  chop_error_t err;
   chop_object_t *c_obj;
 
   c_obj = gwrap_chop_malloc (c_class);
@@ -118,7 +118,7 @@ chop_scm_deserialize_object (const chop_class_t *c_class,
   return err;
 }
 
-static inline errcode_t
+static inline chop_error_t
 chop_scm_deserialize_object_ascii (const chop_class_t *c_class,
 				   const char *c_input,
 				   SCM *object, size_t *c_bytes_read)

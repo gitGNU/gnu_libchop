@@ -53,7 +53,7 @@ CHOP_DECLARE_RT_CLASS (sunrpc_block_store, block_store,
 		       chop_log_t log;
 		       CLIENT *rpc_client;);
 
-static errcode_t
+static chop_error_t
 sunrpc_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_sunrpc_block_store_t *remote;
@@ -85,29 +85,29 @@ CHOP_DEFINE_RT_CLASS (sunrpc_block_store, block_store,
 
 
 
-static errcode_t chop_sunrpc_block_exists (chop_block_store_t *,
-					   const chop_block_key_t *,
-					   int *);
+static chop_error_t chop_sunrpc_block_exists (chop_block_store_t *,
+					      const chop_block_key_t *,
+					      int *);
 
-static errcode_t chop_sunrpc_read_block  (struct chop_block_store *,
-					  const chop_block_key_t *,
-					  chop_buffer_t *, size_t *);
+static chop_error_t chop_sunrpc_read_block  (struct chop_block_store *,
+					     const chop_block_key_t *,
+					     chop_buffer_t *, size_t *);
 
-static errcode_t chop_sunrpc_write_block (struct chop_block_store *,
-					  const chop_block_key_t *,
-					  const char *, size_t);
+static chop_error_t chop_sunrpc_write_block (struct chop_block_store *,
+					     const chop_block_key_t *,
+					     const char *, size_t);
 
-static errcode_t chop_sunrpc_delete_block (chop_block_store_t *,
-					   const chop_block_key_t *);
+static chop_error_t chop_sunrpc_delete_block (chop_block_store_t *,
+					      const chop_block_key_t *);
 
-static errcode_t chop_sunrpc_first_block (chop_block_store_t *,
-					  chop_block_iterator_t *);
+static chop_error_t chop_sunrpc_first_block (chop_block_store_t *,
+					     chop_block_iterator_t *);
 
-static errcode_t chop_sunrpc_it_next (chop_block_iterator_t *);
+static chop_error_t chop_sunrpc_it_next (chop_block_iterator_t *);
 
-static errcode_t chop_sunrpc_close (struct chop_block_store *);
+static chop_error_t chop_sunrpc_close (struct chop_block_store *);
 
-static errcode_t chop_sunrpc_sync (struct chop_block_store *);
+static chop_error_t chop_sunrpc_sync (struct chop_block_store *);
 
 
 /* Helper functions.  */
@@ -193,7 +193,7 @@ typedef struct
 
 /* Create a TLS session for communication over ENDPOINT.  On success, SESSION
    is initialized and zero is returned.  */
-static errcode_t
+static chop_error_t
 make_default_tls_session (gnutls_session_t session,
 			  void *params)
 {
@@ -216,7 +216,7 @@ make_default_tls_session (gnutls_session_t session,
     { GNUTLS_COMP_NULL, GNUTLS_COMP_DEFLATE, 0 };
 
 
-  errcode_t err = 0;
+  chop_error_t err = 0;
   chop_tls_params_t *tls_params = (chop_tls_params_t *)params;
 
   gnutls_set_default_priority (session);
@@ -288,7 +288,7 @@ make_default_tls_session (gnutls_session_t session,
 }
 #endif
 
-static errcode_t
+static chop_error_t
 sunrpc_block_store_open (const char *host, unsigned port,
 			 const char *protocol,
 #ifdef HAVE_GNUTLS
@@ -349,7 +349,7 @@ sunrpc_block_store_open (const char *host, unsigned port,
   if (use_tls)
     {
       int endpoint;
-      errcode_t err;
+      chop_error_t err;
       gnutls_session_t session;
 
       endpoint = connect_to_host (&addr, proto);
@@ -454,7 +454,7 @@ sunrpc_block_store_open (const char *host, unsigned port,
   return 0;
 }
 
-errcode_t
+chop_error_t
 chop_sunrpc_block_store_open (const char *host, unsigned port,
 			      const char *protocol,
 			      chop_block_store_t *store)
@@ -476,7 +476,7 @@ chop_sunrpc_block_store_open (const char *host, unsigned port,
 				  store);
 }
 
-errcode_t
+chop_error_t
 chop_sunrpc_tls_block_store_simple_open (const char *host, unsigned port,
 					 const char *pubkey_file,
 					 const char *privkey_file,
@@ -499,7 +499,7 @@ chop_sunrpc_tls_block_store_simple_open (const char *host, unsigned port,
 
 #ifdef HAVE_GNUTLS
 
-errcode_t
+chop_error_t
 chop_sunrpc_tls_block_store_open (const char *host, unsigned port,
 				  chop_tls_session_initializer_t init,
 				  void *closure,
@@ -512,7 +512,7 @@ chop_sunrpc_tls_block_store_open (const char *host, unsigned port,
 #else
 
 /* For binary compatibility.  */
-errcode_t
+chop_error_t
 chop_sunrpc_tls_block_store_open (const char *host, unsigned port,
 				  void *unused1, void *unused2,
 				  chop_block_store_t *store)
@@ -524,12 +524,12 @@ chop_sunrpc_tls_block_store_open (const char *host, unsigned port,
 
 
 
-static errcode_t
+static chop_error_t
 chop_sunrpc_block_exists (chop_block_store_t *store,
 			  const chop_block_key_t *key,
 			  int *exists)
 {
-  errcode_t err = 0;
+  chop_error_t err = 0;
   int *ret;
   chop_rblock_key_t rkey;
   chop_sunrpc_block_store_t *remote = (chop_sunrpc_block_store_t *)store;
@@ -551,12 +551,12 @@ chop_sunrpc_block_exists (chop_block_store_t *store,
   return err;
 }
 
-static errcode_t
+static chop_error_t
 chop_sunrpc_read_block (chop_block_store_t *store,
 			const chop_block_key_t *key,
 			chop_buffer_t *buffer, size_t *read)
 {
-  errcode_t err;
+  chop_error_t err;
   block_store_read_block_ret *ret;
   chop_rblock_key_t rkey;
   chop_sunrpc_block_store_t *remote = (chop_sunrpc_block_store_t *)store;
@@ -587,7 +587,7 @@ chop_sunrpc_read_block (chop_block_store_t *store,
   return err;
 }
 
-static errcode_t
+static chop_error_t
 chop_sunrpc_write_block (chop_block_store_t *store,
 			 const chop_block_key_t *key,
 			 const char *buffer, size_t size)
@@ -616,14 +616,14 @@ chop_sunrpc_write_block (chop_block_store_t *store,
   return 0;
 }
 
-static errcode_t
+static chop_error_t
 chop_sunrpc_delete_block (chop_block_store_t *store,
 			  const chop_block_key_t *key)
 {
   return CHOP_ERR_NOT_IMPL;
 }
 
-static errcode_t
+static chop_error_t
 chop_sunrpc_first_block (chop_block_store_t *store,
 			 chop_block_iterator_t *it)
 {
@@ -631,13 +631,13 @@ chop_sunrpc_first_block (chop_block_store_t *store,
   return CHOP_ERR_NOT_IMPL;
 }
 
-static errcode_t
+static chop_error_t
 chop_sunrpc_it_next (chop_block_iterator_t *it)
 {
   return CHOP_ERR_NOT_IMPL;
 }
 
-static errcode_t
+static chop_error_t
 chop_sunrpc_close (chop_block_store_t *store)
 {
   chop_sunrpc_block_store_t *remote = (chop_sunrpc_block_store_t *)store;
@@ -669,7 +669,7 @@ chop_sunrpc_close (chop_block_store_t *store)
   return 0;
 }
 
-static errcode_t
+static chop_error_t
 chop_sunrpc_sync (chop_block_store_t *store)
 {
   int *ret;

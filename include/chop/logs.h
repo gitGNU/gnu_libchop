@@ -61,7 +61,7 @@ CHOP_DECLARE_RT_CLASS (log, object,
 
 
 /* Initialize LOG with name NAME.  */
-extern errcode_t chop_log_init (const char *name, chop_log_t *log);
+extern chop_error_t chop_log_init (const char *name, chop_log_t *log);
 
 
 /* Detach LOG from any associated file descriptor or user-provided logging
@@ -149,7 +149,7 @@ chop_log_name (const chop_log_t *__log)
 }
 
 /* Change the name of LOG to NAME.  */
-extern errcode_t chop_log_set_name (chop_log_t *log, const char *name);
+extern chop_error_t chop_log_set_name (chop_log_t *log, const char *name);
 
 /* Return non-zero if LOG is attached.  */
 static __inline__ int

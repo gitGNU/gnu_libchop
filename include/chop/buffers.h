@@ -33,17 +33,17 @@ struct chop_buffer
 
 
 /* Initialize BUFFER with an initial buffer of SIZE bytes.  */
-extern errcode_t chop_buffer_init (chop_buffer_t *buffer,
-				   size_t size);
+extern chop_error_t chop_buffer_init (chop_buffer_t *buffer,
+				      size_t size);
 
 /* Overwrite BUFFER's contents by pushing in the data from BUF which is SIZE
    byte long.  */
-extern errcode_t chop_buffer_push (chop_buffer_t *buffer,
-				   const char *buf, size_t size);
+extern chop_error_t chop_buffer_push (chop_buffer_t *buffer,
+				      const char *buf, size_t size);
 
 /* Append BUF which is SIZE byte long to BUFFER.  */
-extern errcode_t chop_buffer_append (chop_buffer_t *buffer,
-				     const char *buf, size_t size);
+extern chop_error_t chop_buffer_append (chop_buffer_t *buffer,
+					const char *buf, size_t size);
 
 /* Return the size (in bytes) of BUFFER's contents.  */
 static __inline__ size_t chop_buffer_size (const chop_buffer_t *__buffer)
