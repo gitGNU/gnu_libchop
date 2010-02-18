@@ -184,7 +184,7 @@ while (0)
 #else
 
 /* Always make a function call.  */
-#define _chop_log_printf chop_log_printf
+#define chop_log_printf _chop_log_printf
 
 #endif
 
