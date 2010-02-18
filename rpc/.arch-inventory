@@ -1,4 +1,0 @@
-# `rpcgen'-generated files.
-precious ^(.*\.h)$
-
-# arch-tag: 38ef7153-d82f-4979-8110-dacc83c710a7

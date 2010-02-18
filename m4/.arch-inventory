@@ -1,6 +1,0 @@
-# All these files come from Gnulib and are installed/updated by `gnulib-tool'.
-# However, `gnulib-cache.m4' is to be versioned.
-
-precious ^(gnulib-(common|comp|tool)\.m4|(alloca|arpa_inet_h|eoverflow|float_h|include_next|intmax_t|inttypes_h|longlong|size_max|sockpfaf|stdint|stdint_h|stdio_h|sys_socket_h|ulonglong|vasnprintf|vasprintf|wchar|wchar_t|wint_t|xsize)\.m4)$
-
-# arch-tag: 616536f0-0919-446d-ab38-1a96ed4e9ded
