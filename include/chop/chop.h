@@ -20,7 +20,7 @@
 #ifndef __CHOP_H__
 #define __CHOP_H__
 
-#include <chop/chop-errors.h>
+#include <chop/errors.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
@@ -63,7 +63,6 @@
 _CHOP_BEGIN_DECLS
 
 /* Basic types.  */
-typedef errcode_t chop_error_t;
 typedef struct chop_block_key chop_block_key_t;
 typedef enum chop_hash_method chop_hash_method_t;
 typedef enum chop_proxy_semantics chop_proxy_semantics_t;

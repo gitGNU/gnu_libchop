@@ -45,7 +45,6 @@ Optional (but highly recommended) build dependency:
 
 Mandatory dependencies:
 
-  libcom_err
   GNU libgcrypt 1.2
   Sun/ONC RPC framework (part of the GNU C Library)
 
@@ -71,8 +70,8 @@ And that's it.
 
 
 
+Copyright (C) 2010  Ludovic Courtès <ludo@gnu.org>
 Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
-Copyright 2010  Ludovic Courtès <ludo@gnu.org>
 
   Copying and distribution of this file, with or without modification,
   are permitted in any medium without royalty provided the copyright

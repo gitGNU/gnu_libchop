@@ -21,7 +21,7 @@ nobase_include_HEADERS = chop/block-indexers.h	\
 			 chop/block_rstore.h	\
 			 chop/buffers.h		\
 			 chop/chop-config.h	\
-			 chop/chop-errors.h	\
+			 chop/errors.h		\
 			 chop/chop.h		\
 			 chop/choppers.h	\
 			 chop/filters.h		\
@@ -42,4 +42,4 @@ nobase_noinst_HEADERS   = chop/sunrpc-tls.h chop/store-sunrpc-tls.h
 endif
 
 # Built in `src/'.
-BUILT_SOURCES = chop/block_rstore.h chop/chop-errors.h
+BUILT_SOURCES = chop/block_rstore.h

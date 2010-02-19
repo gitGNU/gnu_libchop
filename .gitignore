@@ -76,3 +76,4 @@ stamp-h[0-9]
 /utils/chop-store-convert
 /utils/chop-store-discover
 /utils/chop-store-list
+/src/errors.c

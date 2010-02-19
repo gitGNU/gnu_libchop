@@ -632,22 +632,39 @@ chop_integer_to_hex_string (unsigned num, char *hex)
 
 /* Error reporting.  */
 
+/* Include the error table.  */
+#include <errors.c>
+
 const char *
 chop_error_message (chop_error_t err)
 {
-  return error_message (err);
+  if (err < 0)
+    return error_table[-err];
+  else
+    return strerror (err);
 }
 
 void
 chop_error (chop_error_t err, const char *format, ...)
 {
-  va_list ap;
+  va_list args;
+  char *long_format;
+  const char *message;
 
-  va_start (ap, format);
+  message = chop_error_message (err);
 
-  com_err_va (program_name, err, format, ap);
+  long_format = alloca (strlen (program_name) + strlen (message)
+			+ strlen (format) + 5);
+  strcpy (long_format, program_name);
+  strcat (long_format, ": ");
+  strcat (long_format, message);
+  strcat (long_format, " ");
+  strcat (long_format, format);
+  strcat (long_format, "\n");
 
-  va_end (ap);
+  va_start (args, format);
+  vfprintf (stderr, long_format, args);
+  va_end (args);
 }
 
 
@@ -661,8 +678,6 @@ chop_error_t
 chop_init (void)
 {
   chop_error_t err;
-
-  initialize_chop_error_table ();
 
 #ifdef USE_OBJECT_TRACKER
   chop_object_tracker_init ();

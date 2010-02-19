@@ -17,7 +17,7 @@
 
 EXTRA_DIST = filter-zip-push-pull.c store-generic-db.c	\
              extract-classes.sh gcrypt-enum-mapping.h	\
-	     chop-errors.et filter-lzo-common.c
+	     filter-lzo-common.c
 
 lib_LTLIBRARIES = libchop.la libchop-block-server.la \
                   libchop-store-browsers.la
@@ -26,7 +26,7 @@ libchop_la_LDFLAGS = -version-info 0:0:0
 libchop_block_server_la_LDFLAGS = -version-info 0:0:0
 libchop_store_browsers_la_LDFLAGS = -version-info 0:0:0
 
-libchop_la_SOURCES = chop.c chop-errors.c logs.c		\
+libchop_la_SOURCES = chop.c logs.c				\
 		     chopper-fixed-size.c			\
                      chopper-anchor-based.c			\
 		     chopper-whole-stream.c			\
@@ -136,12 +136,17 @@ if HAVE_GNUTLS
 AM_CFLAGS = $(LIBGNUTLS_CFLAGS) $(LIBGNUTLS_EXTRA_CFLAGS)
 endif
 
+BUILT_SOURCES += errors.c
 
-
-chop-errors.c chop-errors.h: chop-errors.et
-	$(COMPILE_ET) $^ &&				\
-	touch chop-errors.[ch] &&			\
-	mv chop-errors.h $(top_builddir)/include/chop
+errors.c: $(top_srcdir)/include/chop/errors.h
+	( echo "/* Automatically generated, do not edit.  */" ;			\
+	  echo "static const char *const error_table[] = {" ;			\
+	  cat "$^" | grep '^#define [A-Z_]\+.*-.*$$' |				\
+	  sed -e's|#define \([A-Z_]\+\).*/\* \(.*\) \*/$$|  [-\1] = "\2",|g' ;	\
+	  echo "  \"Unknown error code\"" ;					\
+	  echo "};" )								\
+	> "$@.tmp"
+	mv "$@.tmp" "$@"
 
 block_rstore_clnt.c: block_rstore.h
 	echo "#include \"block_rstore.h\"" > $@ &&	\

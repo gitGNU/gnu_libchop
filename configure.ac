@@ -60,17 +60,6 @@ AC_SUBST([RPCGEN])
 dnl Checkpoint the cache
 AC_CACHE_SAVE
 
-dnl libcom_err2.
-AC_PATH_PROG([COMPILE_ET], [compile_et])
-if test "x$COMPILE_ET" = "x"; then
-   AC_MSG_ERROR([Could not find `compile_et'.  Please, install `libcom_err' (part of e2fsprogs).])
-fi
-AC_SUBST([COMPILE_ET])
-PKG_CHECK_EXISTS([com_err],
-  [CPPFLAGS="$CPPFLAGS `$PKG_CONFIG com_err --cflags`"
-   LIBS="$LIBS `$PKG_CONFIG com_err --libs`"],
-  [AC_MSG_ERROR([`libcom_err' is not available.  Please, install it first (part of e2fsprogs).])])
-
 dnl Checks for libraries.
 AM_PATH_LIBGCRYPT([1.2.0], [has_libgcrypt=yes], [has_libgcrypt=no])
 if test "x$has_libgcrypt" != "xyes"; then
@@ -212,7 +201,7 @@ AC_MSG_RESULT([$have_avahi])
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_TIME
-AC_CHECK_HEADERS([stdlib.h stdarg.h argp.h gdbm.h gcrypt.h com_err.h zlib.h netinet/in.h lightning.h pthread.h])
+AC_CHECK_HEADERS([stdlib.h stdarg.h argp.h gdbm.h gcrypt.h zlib.h netinet/in.h lightning.h pthread.h])
 
 # libuuid (optional)
 AC_CHECK_HEADER([uuid/uuid.h], [have_libuuid=yes], [have_libuuid=no])

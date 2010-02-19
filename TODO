@@ -13,9 +13,6 @@ Copyright 2010  Ludovic Courtès <ludo@gnu.org>
   - varargs macros
   - statement as expression?
 
-** Get an external copy of libcom_err, as done in libtasn1 or Heimdal?
-   Or get rid of it?
-
 ** Write more documentation.
 
 ** Use fewer recursive makefiles.
