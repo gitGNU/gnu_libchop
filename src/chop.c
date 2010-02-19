@@ -49,7 +49,7 @@
 #endif
 
 /* A live object.  */
-typedef struct chop_tracked_object
+struct chop_tracked_object
 {
   struct chop_tracked_object *next;
 
@@ -61,14 +61,17 @@ typedef struct chop_tracked_object
   void  *backtrace[BACKTRACE_SIZE];
   size_t backtrace_size;
 #endif
-} chop_tracked_object_t;
+};
 
 /* An object that has been (recently) destroyed.  */
-typedef struct chop_untracked_object
+struct chop_untracked_object
 {
   const chop_class_t *klass;
   void               *address;
-} chop_untracked_object_t;
+};
+
+typedef struct chop_tracked_object chop_tracked_object_t;
+typedef struct chop_untracked_object chop_untracked_object_t;
 
 
 
