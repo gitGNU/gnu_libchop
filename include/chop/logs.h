@@ -30,6 +30,7 @@
 
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 _CHOP_BEGIN_DECLS
 
