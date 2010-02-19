@@ -44,7 +44,7 @@ static _chop_hash_method_info hash_methods[] =
   {
     _HASH_METHOD_INFO (NONE, 0),
     _HASH_METHOD_INFO (SHA1, 20),
-    _HASH_METHOD_INFO (RMD160, 60),
+    _HASH_METHOD_INFO (RMD160, 20),
     _HASH_METHOD_INFO (MD5, 16),
     _HASH_METHOD_INFO (MD4, 16),
     _HASH_METHOD_INFO (MD2, 0),
