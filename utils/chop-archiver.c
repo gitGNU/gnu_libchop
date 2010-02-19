@@ -771,6 +771,7 @@ static struct argp argp = { options, parse_opt, 0, doc };
 int
 main (int argc, char *argv[])
 {
+  int failed = 0;
   chop_error_t err;
   chop_block_store_t *store, *metastore;
   chop_filter_t *input_filter = NULL, *output_filter = NULL;
@@ -983,6 +984,8 @@ main (int argc, char *argv[])
 
   /* */
   err = process_command (option_argument, store, metastore);
+  if (err)
+    failed = 1;
 
   if ((archive_queried) && (show_stats))
     {
@@ -1041,6 +1044,5 @@ main (int argc, char *argv[])
       chop_object_destroy ((chop_object_t *)metastore);
     }
 
-  return 0;
+  return failed ? EXIT_FAILURE : EXIT_SUCCESS;
 }
-
