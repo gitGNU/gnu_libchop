@@ -427,15 +427,14 @@ cbf_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
       return CHOP_ERR_NOT_IMPL;
     }
 
+  err = chop_object_initialize (object, &chop_chk_block_fetcher_class);
   if (!err)
     {
-      err = chop_object_initialize (object, &chop_chk_block_fetcher_class);
-
       fetcher->cipher_handle = chop_cipher_open (algo, mode);
       fetcher->owns_cipher_handle = 1;
     }
 
-  return 0;
+  return err;
 }
 
 CHOP_DEFINE_RT_CLASS (chk_block_fetcher, block_fetcher,
