@@ -28,6 +28,10 @@
 #include <ctype.h>
 #include <assert.h>
 
+#ifdef HAVE_VALGRIND_MEMCHECK_H
+# include <valgrind/memcheck.h>
+#endif
+
 
 /* The index handle class.  */
 
@@ -841,9 +845,20 @@ chk_index_block (chop_block_indexer_t *indexer,
     }
 
   if (CHOP_EXPECT_TRUE (err == 0))
-    err = chop_cipher_encrypt (cipher_handle,
-			       block_content, total_size,
-			       buffer, total_size);
+    {
+#ifdef HAVE_VALGRIND_MEMCHECK_H
+      VALGRIND_CHECK_MEM_IS_DEFINED (buffer, size);
+#endif
+      err = chop_cipher_encrypt (cipher_handle,
+				 block_content, total_size,
+				 buffer, total_size);
+      if (err)
+	chop_log_printf (&chk_indexer->log, "cipher failed: %s",
+			 chop_error_message (err));
+    }
+  else
+    chop_log_printf (&chk_indexer->log, "failed to set encryption key: %s",
+		     chop_error_message (err));
 
   if (CHOP_EXPECT_TRUE (err == 0))
     {

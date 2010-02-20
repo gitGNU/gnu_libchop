@@ -47,7 +47,9 @@
 # error "Where can I find `htons ()'?"
 #endif
 
-
+#ifdef HAVE_VALGRIND_MEMCHECK_H
+# include <valgrind/memcheck.h>
+#endif
 
 
 /* Declare and define the `chop_tree_indexer_t' class and its run-time
@@ -654,6 +656,11 @@ chop_tree_index_blocks (chop_indexer_t *indexer,
       else
 	/* Destroy the index of the previous block.  */
 	chop_object_destroy ((chop_object_t *) index);
+
+#ifdef HAVE_VALGRIND_MEMCHECK_H
+      VALGRIND_CHECK_MEM_IS_DEFINED (chop_buffer_content (&buffer),
+				     chop_buffer_size (&buffer));
+#endif
 
       /* Store this block and get its index */
       err = chop_block_indexer_index (block_indexer, output,

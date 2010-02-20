@@ -21,6 +21,10 @@
 # error "This file is meant to be included in some other source file."
 #endif
 
+#ifdef HAVE_VALGRIND_MEMCHECK_H
+# include <valgrind/memcheck.h>
+#endif
+
 #ifndef TYPE_OF
 # ifdef __GNUC__
 #  define TYPE_OF(_what, _default)  typeof (_what)
@@ -109,6 +113,10 @@ DB_WRITE_BLOCK_METHOD (chop_block_store_t *store,
   CHOP_KEY_TO_DB (&db_key, key);
   db_content.dptr = (TYPE_OF (db_content.dptr, char *)) buffer;
   db_content.dsize = size;
+
+#ifdef HAVE_VALGRIND_MEMCHECK_H
+  VALGRIND_CHECK_MEM_IS_DEFINED (buffer, size);
+#endif
 
   err = DB_WRITE (gdbm->db,
 		  db_key, db_content,

@@ -200,7 +200,8 @@ AC_MSG_RESULT([$have_avahi])
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_TIME
-AC_CHECK_HEADERS([stdlib.h stdarg.h argp.h gdbm.h gcrypt.h zlib.h netinet/in.h lightning.h pthread.h])
+AC_CHECK_HEADERS([stdlib.h stdarg.h argp.h gdbm.h gcrypt.h zlib.h \
+  netinet/in.h lightning.h pthread.h valgrind/memcheck.h])
 
 # libuuid (optional)
 AC_CHECK_HEADER([uuid/uuid.h], [have_libuuid=yes], [have_libuuid=no])
