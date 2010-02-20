@@ -179,5 +179,7 @@ main (int argc, char *argv[])
   chop_object_destroy ((chop_object_t *) store);
   chop_buffer_return (&buffer);
 
+  unlink (STORE_FILE_NAME);
+
   return 0;
 }

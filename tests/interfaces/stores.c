@@ -176,6 +176,7 @@ main (int argc, char *argv[])
       test_stage_result (1);
     }
 
+  unlink (db_file);
+
   return 0;
 }
-

@@ -279,6 +279,7 @@ main (int argc, char *argv[])
   chop_object_destroy ((chop_object_t *) block_indexer);
   chop_object_destroy ((chop_object_t *) block_fetcher);
 
+  unlink (STORE_FILE_NAME);
+
   return 0;
 }
-

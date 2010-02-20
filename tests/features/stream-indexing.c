@@ -285,8 +285,7 @@ main (int argc, char *argv[])
       chop_object_destroy ((chop_object_t *)indexer);
     }
 
+  unlink (STORE_FILE_NAME);
+
   return 0;
 }
-
-/* arch-tag: bbeb7863-f72b-45b1-bca7-5a4e9cbe298c
- */
