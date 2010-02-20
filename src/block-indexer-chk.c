@@ -748,6 +748,10 @@ cipher_make_suitable_key (char *key, size_t key_size,
 #undef MIN
 }
 
+/* The threshold above which memory allocations are made on the heap rather
+   than on the stack, to avoid stack overflows.  */
+#define ALLOCA_THRESHOLD 4096
+
 static chop_error_t
 chk_index_block (chop_block_indexer_t *indexer,
 		 chop_block_store_t *store,
@@ -800,13 +804,17 @@ chk_index_block (chop_block_indexer_t *indexer,
 	 size.  */
       char *new_buffer;
 
-      new_buffer = alloca (total_size);
+      new_buffer = total_size > ALLOCA_THRESHOLD
+	? chop_malloc (total_size, &chop_chk_block_indexer_class)
+	: alloca (total_size);
       memcpy (new_buffer, buffer, size);
       memset (new_buffer + size, 0, padding_size);
       buffer = new_buffer;
     }
 
-  block_content = alloca (total_size);
+  block_content = total_size > ALLOCA_THRESHOLD
+    ? chop_malloc (total_size, &chop_chk_block_indexer_class)
+    : alloca (total_size);
   if (padding_size)
     /* Pad with zeros.  The actual size of the block will be stored in
        its index anyway.  */
@@ -864,6 +872,13 @@ chk_index_block (chop_block_indexer_t *indexer,
 
   if (CHOP_EXPECT_FALSE (err != 0))
     chop_object_destroy ((chop_object_t *) handle);
+
+  if (total_size > ALLOCA_THRESHOLD)
+    {
+      if (total_size > size)
+	chop_free ((char *) buffer, &chop_chk_block_indexer_class);
+      chop_free (block_content, &chop_chk_block_indexer_class);
+    }
 
   return err;
 }
