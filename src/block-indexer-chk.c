@@ -716,33 +716,37 @@ CHOP_DEFINE_RT_CLASS (chk_block_indexer, block_indexer,
 		      cbi_serialize, cbi_deserialize);
 
 /* Make KEY point to a ciphering key of at most KEY_SIZE bytes.  Fill KEY
-   with data from SOURCE, a SOURCESIZE-byte buffer, cycling if SOURCE is
-   smaller than ALGO's key size.  */
+   with data from SOURCE, a SOURCE_SIZE-byte buffer, cycling if SOURCE is
+   smaller than ALGO's key size and truncating SOURCE if SOURCE_SIZE is
+   larger than ALGO's key size.  */
 static inline void
 cipher_make_suitable_key (char *key, size_t key_size,
-			  const char *source, size_t sourcesize)
+			  const char *source, size_t source_size)
 {
-  size_t source_bytes_left = (sourcesize), source_offset = 0;
-  size_t key_offset = 0;
-
-  while (key_size)
+#define MIN(a, b)  (((a) < (b)) ? (a) : (b))
+  if (source_size >= key_size)
+    /* Keep only KEY_SIZE bytes from SOURCE.  */
+    memcpy (key, source, key_size);
+  else
     {
-      size_t amount;
+      size_t source_offset = 0, key_offset = 0;
 
-      amount = (key_size > source_bytes_left)
-	? source_bytes_left : key_size;
+      while (key_size > key_offset)
+	{
+	  size_t amount;
 
-      memcpy ((key) + key_offset,
-	      (source) + source_offset, amount);
-      source_bytes_left -= amount;
-      key_size -= amount;
-      source_offset += amount;
-      key_offset += amount;
+	  amount = MIN (source_size - source_offset,
+			key_size - key_offset);
 
-      if (!source_bytes_left)
-	/* Rewind.  */
-	source_offset = 0, source_bytes_left = (sourcesize);
+	  memcpy (key + key_offset,
+		  source + source_offset,
+		  amount);
+
+	  source_offset = (source_offset + amount) % source_size;
+	  key_offset += amount;
+	}
     }
+#undef MIN
 }
 
 static chop_error_t
