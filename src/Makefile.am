@@ -47,6 +47,8 @@ libchop_la_SOURCES = chop.c logs.c				\
 		     stream-file.c stream-mem.c			\
 		     stream-filtered.c
 
+libchop_la_CFLAGS =
+
 AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include	\
 	      -I$(top_srcdir)/lib     -I$(top_builddir)/lib
 
@@ -91,6 +93,7 @@ endif
 
 if HAVE_GNUTLS
 libchop_la_SOURCES += sunrpc-tls.c
+libchop_la_CFLAGS  += $(LIBGNUTLS_CFLAGS) $(LIBGNUTLS_EXTRA_CFLAGS)
 libchop_la_LDFLAGS += $(LIBGNUTLS_LIBS) $(LIBGNUTLS_EXTRA_LIBS)
 else
 EXTRA_DIST += sunrpc-tls.c

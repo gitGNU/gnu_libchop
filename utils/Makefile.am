@@ -44,6 +44,7 @@ chop_block_server_CPPFLAGS = $(AM_CPPFLAGS) $(AVAHI_CPPFLAGS)
 if HAVE_GNUTLS
 bin_PROGRAMS += chop-openpgp-tool
 
+chop_openpgp_tool_CFLAGS = $(LIBGNUTLS_CFLAGS) $(LIBGNUTLS_EXTRA_CFLAGS)
 chop_openpgp_tool_LDADD = $(LIBGNUTLS_LIBS) $(LIBGNUTLS_EXTRA_LIBS) \
 			  -L$(top_builddir)/src -lchop
 endif

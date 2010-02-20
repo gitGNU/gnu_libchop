@@ -156,13 +156,12 @@ else
 fi
 
 dnl GnuTLS (recommended).
-AM_PATH_LIBGNUTLS([2.2.0], [have_gnutls=yes], [have_gnutls=no])
-AM_PATH_LIBGNUTLS_EXTRA([2.2.0], [have_gnutls_extra=yes],
-				 [have_gnutls_extra=no])
+PKG_CHECK_MODULES([LIBGNUTLS], [gnutls], [have_gnutls=yes], [have_gnutls=no])
+PKG_CHECK_MODULES([LIBGNUTLS_EXTRA], [gnutls-extra], [have_gnutls_extra=yes], [have_gnutls_extra=no])
 AM_CONDITIONAL([HAVE_GNUTLS],
   test "x$have_gnutls" = "xyes" && test "x$have_gnutls_extra" = "xyes")
 if test "x$have_gnutls" = "xyes" && test "x$have_gnutls_extra" = "xyes"; then
-   AC_DEFINE([HAVE_GNUTLS], 1, [Tells whether GNUtls is available.])
+   AC_DEFINE([HAVE_GNUTLS], 1, [Tells whether GnuTLS is available.])
 fi
 
 # DBus (optional and experimental!).
