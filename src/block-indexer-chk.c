@@ -603,7 +603,7 @@ cbi_ctor (chop_object_t *object, const chop_class_t *class)
   indexer->cipher_handle = CHOP_CIPHER_HANDLE_NIL;
   indexer->owns_cipher_handle = 0;
 
-  return 0;
+  return chop_log_init ("chk-block-indexer", &indexer->log);
 }
 
 static void
