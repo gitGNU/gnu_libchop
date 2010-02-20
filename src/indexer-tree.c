@@ -661,7 +661,11 @@ chop_tree_index_blocks (chop_indexer_t *indexer,
 				      chop_buffer_size (&buffer),
 				      index);
       if (err)
-	break;
+	{
+	  chop_log_printf (&htree->log, "failed to index block: %s",
+			   chop_error_message (err));
+	  break;
+	}
 
       /* Add this block key to our block key tree */
       chop_block_tree_add_index (&tree, block_indexer, index);
