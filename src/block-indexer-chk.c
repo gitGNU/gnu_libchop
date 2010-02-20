@@ -793,6 +793,19 @@ chk_index_block (chop_block_indexer_t *indexer,
      their ciphering block size.  */
   padding_size = (size % block_size) ? (block_size - (size % block_size)) : 0;
   total_size = size + padding_size;
+
+  if (size < total_size)
+    {
+      /* Provide the ciphering routines with an input buffer of the right
+	 size.  */
+      char *new_buffer;
+
+      new_buffer = alloca (total_size);
+      memcpy (new_buffer, buffer, size);
+      memset (new_buffer + size, 0, padding_size);
+      buffer = new_buffer;
+    }
+
   block_content = alloca (total_size);
   if (padding_size)
     /* Pad with zeros.  The actual size of the block will be stored in
