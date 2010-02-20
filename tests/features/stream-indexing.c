@@ -122,13 +122,13 @@ test_configuration (chop_indexer_t *indexer, chop_block_indexer_t *bi,
   test_stage ("`%s', `%s', `%s'",
 	      CLASS_NAME (indexer), CLASS_NAME (bi), CLASS_NAME (chopper));
 
-  /* Get the store.  */
-#ifdef HAVE_TDB
-  store_class = &chop_tdb_block_store_class;
-#else
+  /* Use GDBM, not TDB, because TDB consumes huge amounts of disk space
+     (several hundreds of MiB) in the `whole_stream_chopper' tests.  However,
+     GDBM 1.8.3 makes Valgrind anxious so TDB is preferred when debugging
+     with Valgrind (XXX).  */
   store_class = &chop_gdbm_block_store_class;
-#endif
 
+  /* Get the store.  */
   store = chop_class_alloca_instance ((chop_class_t *)store_class);
   if (initialize_store (store_class, store))
     return -1;
