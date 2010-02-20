@@ -235,6 +235,9 @@ main (int argc, char *argv[])
       test_assert (bytes_read == strlen (indexer_serial));
       test_assert (chop_object_is_a ((chop_object_t *)indexer, indexer_class));
 
+      if (test_debug_mode () && indexer_class == &chop_tree_indexer_class)
+	chop_log_attach (chop_tree_indexer_log (indexer), 2, 0);
+
       for (chopper_it = 0;
 	   chopper_classes[chopper_it];
 	   chopper_it++)
