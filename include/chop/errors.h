@@ -20,7 +20,7 @@
 #ifndef CHOP_ERRORS_H
 #define CHOP_ERRORS_H
 
-/* POSIX says that error codes in <error.h> should be strictly positive.
+/* POSIX says that error codes in <errno.h> should be strictly positive.
    Thus negative numbers are used for libchop-specific errors, and positive
    `chop_error_t' values are interpreted as `errno'.  */
 typedef int chop_error_t;
