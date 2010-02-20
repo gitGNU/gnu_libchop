@@ -179,4 +179,4 @@ class-lookup.c: $(libchop_la_SOURCES)
 
 endif
 
-CLEANFILES = $(BUILT_SOURCES)
+CLEANFILES = $(BUILT_SOURCES) $(nodist_libchop_la_SOURCES)
