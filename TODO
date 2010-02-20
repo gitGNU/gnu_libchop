@@ -66,6 +66,7 @@ Though it may not be that useful...
 
 ** Experiment with simple erasure codes, like B-Codes.  Not sure this belong
    to libchop though.
+** Add support for Camellia, Serpent, etc.
 * User interface
 ** Have `chop-archiver' take fd numbers instead of paths, to honor POLA
 
@@ -74,3 +75,7 @@ Example: chop-archiver --archive-fd 5 5< /foo/bar
 ** Allow `chop-archiver' to read from stdin
 
 Example: echo foo | chop-archive --archive
+** Add an option to specify the format of OpenPGP keys (archiver/block-server)
+** chop-block-server: Add an option like `--restrict' but with OpenPGP fingerprints
+** Use base32 rather than raw hex strings
+** Return a meaningful error code in DB_WRITE_BLOCK_METHOD et al.
