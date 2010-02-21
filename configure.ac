@@ -272,7 +272,12 @@ if test "x$produce_guile_bindings" = "xyes"; then
   fi
 fi
 
-AM_CONDITIONAL(HAVE_GUILE, test "x$guile" != "x")
+if test "x$guile" != "x"; then
+   have_guile="yes"
+else
+   have_guile="no"
+fi
+AM_CONDITIONAL([HAVE_GUILE], [test "x$guile" != "x"])
 
 pkgdatadir="$datadir/$PACKAGE_NAME"
 if test "x$guilemoduledir" = "x"; then
@@ -289,6 +294,23 @@ if test "x$produce_guile_bindings" = "xyes"; then
      AC_MSG_WARN([or re-run `configure' with `--with-guilemoduledir=$GUILE_SITE'.])
   fi
 fi
+
+dnl Summary.
+AC_MSG_NOTICE([Storage])
+AC_MSG_NOTICE([  GNU dbm ........................ yes])
+AC_MSG_NOTICE([  tdb ............................ $have_libtdb])
+AC_MSG_NOTICE([  bdb ............................ $have_libbdb])
+AC_MSG_NOTICE([  qdbm ........................... $have_libqdbm])
+AC_MSG_NOTICE([  libuuid ........................ $have_libuuid])
+AC_MSG_NOTICE([Compression])
+AC_MSG_NOTICE([  zlib ........................... yes])
+AC_MSG_NOTICE([  libbz2 ......................... $have_libbz2])
+AC_MSG_NOTICE([  lzo ............................ $have_lzo])
+AC_MSG_NOTICE([Networking])
+AC_MSG_NOTICE([  GnuTLS ......................... $have_gnutls])
+AC_MSG_NOTICE([  Avahi .......................... $have_avahi])
+AC_MSG_NOTICE([Languages])
+AC_MSG_NOTICE([  GNU Guile ...................... $have_guile])
 
 AC_CONFIG_FILES([Makefile
 		 guile/pre-inst-guile
