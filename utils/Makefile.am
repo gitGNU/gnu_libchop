@@ -15,14 +15,26 @@
 # You should have received a copy of the GNU General Public License
 # along with libchop.  If not, see <http://www.gnu.org/licenses/>.
 
+EXTRA_DIST =
 
 bin_PROGRAMS = chop-archiver chop-store-list		\
                chop-show-anchors chop-show-similarities	\
-	       chop-block-server chop-store-convert	\
-	       chop-store-discover
+	       chop-block-server chop-store-convert
+
+if HAVE_AVAHI
+
+bin_PROGRAMS += chop-store-discover
+chop_store_discover_LDADD = -lchop-store-browsers $(LDADD)
+
+else !HAVE_AVAHI
+
+EXTRA_DIST += chop-store-discover.c
+
+endif !HAVE_AVAHI
+
 noinst_PROGRAMS = chop-file
 bin_SCRIPTS = chop-vcs
-EXTRA_DIST = gnutls-init-params.c gnutls-helper.h zip-helper.c
+EXTRA_DIST += gnutls-init-params.c gnutls-helper.h zip-helper.c
 
 AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include	\
 	      -I$(top_srcdir)/lib     -I$(top_builddir)/lib
@@ -56,5 +68,3 @@ noinst_PROGRAMS += chop-dbus-block-server
 chop_dbus_block_server_LDADD = -lchop $(AVAHI_LIBS)
 chop_dbus_block_server_CPPFLAGS = $(AM_CPPFLAGS)
 endif
-
-chop_store_discover_LDADD = -lchop-store-browsers $(LDADD)
