@@ -79,23 +79,28 @@ This document describes libchop version @value{VERSION}.
 @node Introduction
 @chapter Introduction
 
-Libchop is a file hashing, ciphering, and indexing library.  This
-library provides a framework which allows:
+Libchop is a file hashing, ciphering, and indexing library.  In a
+nutshell, libchop provides mechanisms to:
 
 @enumerate
-@item to cut a file into pieces, store each of these blocks into a block
-store, and then store sufficient information for later retrieval and
-rebuilding of the indexed file;
-@item to restore (rebuild) a file based on an abstract index, reading
-blocks from one (or several) block stores.
+@item
+cut a file into pieces, store each of these blocks into a block store,
+and return an @dfn{abstract index} containing all the information
+necessary to retrieve the file;
+
+@item
+restore (rebuild) a file based on an abstract index, reading blocks from
+one (or several) block stores and decoding them according to the methods
+specified by the abstract index.
 @end enumerate
 
 Libchop decomposes these task with a fine grain, providing generic
 interfaces for each of the sub-tasks involved.  It also comes with
-several implementations of each of these interfaces that allow to
-quickly experiment with various strategies.  Since each one of these
-interfaces is minimal, it is usually easy to provide your own
-implementation of one of them while reusing the others.
+several implementations of each of these interfaces, allowing various
+storage strategies to be quickly experimented and compared.
+Implementations of these interfaces provide storage techniques such as
+content-based addressing, content-hash keys, lossless compression, and
+similarity detection.
 
 The following section gives an overview of the various interfaces and
 how they fit together.  The next one will give an insight on typical
