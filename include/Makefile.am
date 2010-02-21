@@ -20,7 +20,6 @@ nobase_include_HEADERS = chop/block-indexers.h	\
 			 chop/block-server.h	\
 			 chop/block_rstore.h	\
 			 chop/buffers.h		\
-			 chop/chop-config.h	\
 			 chop/errors.h		\
 			 chop/chop.h		\
 			 chop/choppers.h	\
