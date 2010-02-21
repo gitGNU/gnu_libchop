@@ -247,6 +247,65 @@ files across different machines over the network.
 @node Input Streams
 @section Input Streams
 
+The @code{chop_stream_t} type provides a simple interface to input byte
+streams.  Data is read on-demand using the @code{chop_stream_read ()}
+function:
+
+@deftp {Type} chop_stream_t
+The type of an input byte stream.
+@end deftp
+
+@deftypevar chop_class_t chop_stream_class
+The class object for instances of type @code{chop_stream_t}.
+@end deftypevar
+
+@deftypefun chop_error_t chop_stream_read (chop_stream_t *@var{stream}, char *@var{buffer}, size_t @var{size}, size_t *@var{read})
+Read at most @var{size} bytes from @var{stream} into @var{buffer}.  On
+failure, return an error code (non-zero).  Otherwise, return in
+@var{read} the number of bytes actually read.
+@end deftypefun
+
+@deftypefun size_t chop_stream_preferred_block_size (const chop_stream_t *@var{stream})
+Return the preferred block size for reading @var{stream}.  This gives
+callers, such as choppers, a hint, which may improve read performance.
+@end deftypefun
+
+@subsection Input Stream Classes
+
+Several classes implement @code{chop_stream_t}:
+
+@deftypevar chop_class_t chop_file_stream_class
+@deftypevarx chop_class_t chop_mem_stream_class
+@deftypevarx chop_class_t chop_filtered_stream_class
+Classes that inherit from @var{chop_stream_class}.
+@end deftypevar
+
+These classes implement input streams backed by files, in-memory byte
+arrays, or by another stream passed through a filter (@pxref{Filters}).
+
+To create instances of these classes, use the constructors below.
+
+@deftypefun chop_error_t chop_file_stream_open (const char *@var{path}, chop_stream_t *@var{stream})
+Open file located at @var{path} and initialize @var{stream} as a file
+stream representing this file.  @var{stream} has to point to a
+large-enough memory area to hold an object whose class is
+@code{chop_file_stream_class}.
+@end deftypefun
+
+@deftypefun void chop_mem_stream_open (const char *@var{base}, size_t @var{size}, void (*@var{free_func}) (void *), chop_stream_t *@var{stream})
+Open a memory-backed stream, i.e. a stream whose input is read from
+@var{base} which is @var{size} byte-long.  If @var{free_func} is not
+@code{NULL}, it is called upon closing @var{stream}.
+@end deftypefun
+
+@deftypefun chop_error_t chop_filtered_stream_open (chop_stream_t *@var{backend}, chop_proxy_semantics_t @var{bps}, chop_filter_t *@var{filter}, int @var{owns_filter}, chop_stream_t *@var{stream})
+Initialize @var{stream} as a filtered stream that reads input data from
+@var{backend} through @var{filter}.  @var{bps} defines the semantics of
+@var{stream} as a proxy of @var{backend} (whether @var{backend} should
+eventually be destroyed, etc.).  Similarly, if @var{owns_filter} is
+true, then closing @var{stream} will destroy @var{filter}.
+@end deftypefun
+
 @node Stream Choppers
 @section Stream Choppers
 

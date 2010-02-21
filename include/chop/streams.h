@@ -84,8 +84,8 @@ extern chop_error_t chop_file_stream_open (const char *path,
 					   chop_stream_t *stream);
 
 /* Open a memory-backed stream, i.e. a stream whose input is read from BASE
-   which is SIZE byte-long.  If FREE_FUNC is NULL, it is called upon closing
-   STREAM.  */
+   which is SIZE byte-long.  If FREE_FUNC is not NULL, it is called upon
+   closing STREAM.  */
 extern void chop_mem_stream_open (const char *base, size_t size,
 				  void (* free_func) (void *),
 				  chop_stream_t *stream);
