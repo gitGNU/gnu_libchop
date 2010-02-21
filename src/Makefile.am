@@ -22,7 +22,7 @@ EXTRA_DIST = filter-zip-push-pull.c store-generic-db.c	\
 lib_LTLIBRARIES = libchop.la libchop-block-server.la \
                   libchop-store-browsers.la
 
-libchop_la_LDFLAGS = -version-info 0:0:0
+libchop_la_LDFLAGS = -version-info 0:0:0 $(LTLIBINTL)
 libchop_block_server_la_LDFLAGS = -version-info 0:0:0
 libchop_store_browsers_la_LDFLAGS = -version-info 0:0:0
 
