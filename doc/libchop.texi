@@ -374,7 +374,7 @@ stack (see @inforef{Variable Size Automatic, the GNU libc manual,
 libc}, for details).
 @end defmac
 
-@deftypefun errcode_t chop_object_initialize (chop_object_t *object, const chop_class_t *class)
+@deftypefun chop_error_t chop_object_initialize (chop_object_t *object, const chop_class_t *class)
 Initialize @var{object} as an instance of class @var{class}, thus
 invoking the constructor of @var{class} and the one of its parent
 classes.
@@ -407,7 +407,7 @@ Object}.
 Libchop's object system allows @dfn{deep copies} or @dfn{cloning} of
 objects.  Classes, however, may choose to not implement this feature.
 
-@deftypefun errcode_t chop_object_copy (const chop_object_t *source, chop_object_t *dest)
+@deftypefun chop_error_t chop_object_copy (const chop_object_t *source, chop_object_t *dest)
 Clone the object pointed to by @var{source} into @var{dest}.  As
 usual, @var{dest} must point to an (uninitialized) memory area large
 enough to hold an instance of @var{source}'s class.  If @var{source}'s
@@ -466,13 +466,13 @@ have any value.  This usually yields to significantly more compact
 representations.
 @end table
 
-@deftypefun errcode_t chop_object_serialize (const chop_object_t *object, chop_serial_method_t method, chop_buffer_t *buffer)
+@deftypefun chop_error_t chop_object_serialize (const chop_object_t *object, chop_serial_method_t method, chop_buffer_t *buffer)
 Serialize @var{object} according to serialization method @var{method}
 into @var{buffer}.  If no serializer exists for @var{object}'s class,
 @code{CHOP_ERR_NOT_IMPL} is returned.  On success, zero is returned.
 @end deftypefun
 
-@deftypefun errcode_t chop_object_deserialize (chop_object_t *object, const chop_class_t *class, chop_serial_method_t method, const char *buffer, size_t size, size_t *bytes_read)
+@deftypefun chop_error_t chop_object_deserialize (chop_object_t *object, const chop_class_t *class, chop_serial_method_t method, const char *buffer, size_t size, size_t *bytes_read)
 Initialize @var{object}, which is expected to be of type @var{class},
 by deserializing @var{buffer} (of @var{size} bytes), according to
 @var{method}.  On success, zero is returned and @var{object} is
