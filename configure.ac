@@ -184,18 +184,11 @@ AM_CONDITIONAL([HAVE_DBUS],
 
 # Avahi.
 AC_MSG_CHECKING([whether Avahi is available])
-PKG_CHECK_EXISTS([avahi-client], [
-   AVAHI_CPPFLAGS="$CPPFLAGS `$PKG_CONFIG avahi-client --cflags`"
-   AVAHI_LIBS="$LIBS `$PKG_CONFIG avahi-client --libs`"
-   have_avahi="yes"],
-   [have_avahi="no"])
+PKG_CHECK_MODULES([AVAHI], [avahi-client], [have_avahi="yes"], [have_avahi="no"])
 if test "x$have_avahi" = "xyes"; then
    AC_DEFINE([HAVE_AVAHI], 1, [Tells whether Avahi is available.])
-   AC_SUBST([AVAHI_CPPFLAGS])
-   AC_SUBST([AVAHI_LIBS])
 fi
 AM_CONDITIONAL([HAVE_AVAHI], test "x$have_avahi" = "xyes")
-AC_MSG_RESULT([$have_avahi])
 
 # Checks for header files.
 AC_HEADER_STDC

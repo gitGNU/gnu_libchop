@@ -38,8 +38,8 @@ chop_block_server_SOURCES += gnutls-helper.c
 else
 EXTRA_DIST += gnutls-helper.c
 endif
-chop_block_server_LDADD = -lchop-block-server -lchop $(AVAHI_LIBS) $(LDADD)
-chop_block_server_CPPFLAGS = $(AM_CPPFLAGS) $(AVAHI_CPPFLAGS)
+chop_block_server_LDADD = -lchop-block-server -lchop $(LDADD)
+chop_block_server_CPPFLAGS = $(AM_CPPFLAGS)
 
 if HAVE_GNUTLS
 bin_PROGRAMS += chop-openpgp-tool
@@ -54,7 +54,7 @@ if HAVE_DBUS
 
 noinst_PROGRAMS += chop-dbus-block-server
 chop_dbus_block_server_LDADD = -lchop $(AVAHI_LIBS)
-chop_dbus_block_server_CPPFLAGS = $(AM_CPPFLAGS) $(AVAHI_CPPFLAGS)
+chop_dbus_block_server_CPPFLAGS = $(AM_CPPFLAGS)
 endif
 
 chop_store_discover_LDADD = -lchop-store-browsers $(LDADD)

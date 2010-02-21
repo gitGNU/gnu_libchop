@@ -122,7 +122,7 @@ libchop_block_server_la_CPPFLAGS  = $(AM_CPPFLAGS)
 if HAVE_AVAHI
 libchop_block_server_la_SOURCES  += store-publisher-avahi.c
 libchop_block_server_la_LIBADD   += $(AVAHI_LIBS)
-libchop_block_server_la_CPPFLAGS += $(AVAHI_CPPFLAGS)
+libchop_block_server_la_CFLAGS    = $(AVAHI_CFLAGS)
 else
 EXTRA_DIST += store-publisher-avahi.c
 endif
@@ -131,8 +131,9 @@ if HAVE_AVAHI
 # Convenience library for service discovery.
 libchop_store_browsers_la_SOURCES = store-browsers.c		\
 				    store-browser-avahi.c
-libchop_store_browsers_la_LIBADD = $(AVAHI_LIBS) libchop.la $(AM_LIBS)
-libchop_store_browsers_la_CPPFLAGS = $(AVAHI_CPPFLAGS) $(AM_CPPFLAGS)
+libchop_store_browsers_la_LIBADD   = $(AVAHI_LIBS) libchop.la $(AM_LIBS)
+libchop_store_browsers_la_CPPFLAGS = $(AM_CPPFLAGS)
+libchop_store_browsers_la_CFLAGS   = $(AVAHI_CFLAGS)
 endif
 
 if HAVE_GNUTLS
