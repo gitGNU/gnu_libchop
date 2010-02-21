@@ -297,6 +297,7 @@ AC_CONFIG_FILES([Makefile
                  src/Makefile
 		 rpc/Makefile
 		 utils/Makefile
+		 utils/chop-vcs
 		 tests/Makefile
 		 tests/include/Makefile
 		 tests/interfaces/Makefile
@@ -305,6 +306,7 @@ AC_CONFIG_FILES([Makefile
 		 doc/Makefile])
 
 AC_CONFIG_COMMANDS([pre-inst-guile-exec], [chmod +x guile/pre-inst-guile])
+AC_CONFIG_COMMANDS([chop-vcs-exec], [chmod +x utils/chop-vcs])
 
 # The `config.h' file is needed by Gnulib modules.
 AC_CONFIG_LINKS(lib/config.h:include/chop/chop-config.h)

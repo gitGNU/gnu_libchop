@@ -20,14 +20,15 @@
 # This simple RCS uses `chop-archiver' and relies on content-based
 # addressing like Monotone, GIT, Bazaar 2, GNU Arch 2, etc.
 
+program_name="`basename $0`"
+
 [ $# -lt 1 ] && \
-  echo "Usage: `basename $0` COMMAND [OPTIONS] [FILES]" && \
+  echo "Usage: $program_name COMMAND [OPTIONS] [FILES]" && \
   exit 1
 
-chop_rcs_version="0.1"
-chop_archiver="./chop-archiver"
+chop_archiver="${CHOP_PATH:-@bindir@}/chop-archiver"
 
-metadata_dir=".chop-rcs"
+metadata_dir=".chop-vcs"
 tmp_file="${metadata_dir}/{tmp}"
 tree_root="${metadata_dir}/tree-root"
 file_list="${metadata_dir}/files"
@@ -57,7 +58,7 @@ find_tree_root ()
 initialize ()
 {
   if ! find_tree_root; then
-    echo "error: not in a chop-rcs directory"
+    echo "error: not in a chop-vcs directory"
     exit 1
   fi
   touch "${tree_root_val}/${prev_revision_cache}"
@@ -71,15 +72,21 @@ create_revision ()
   do
     ( echo -n "${file} " && \
       ( ${chop_archiver} --archive "${file}" )) || \
-    echo "`basename $0`: ${file}: failed to commit" >&2
+    echo "$program_name: ${file}: failed to commit" >&2
   done
 }
 	
 
 case "$1" in
-    help) echo "`basename $0` ${chop_rcs_version}"
+    --version)
+	  echo "$program_name (@PACKAGE_NAME@) @PACKAGE_VERSION@"
+	  exit 0
+	  ;;
+
+    help|--help)
+          echo "$program_name COMMAND ..."
           echo ""
-	  echo "Yet another revision control system (RCS), just for the fun of it!"
+	  echo "Yet another version control system (VCS), just for the fun of it!"
 	  echo "Implemented as a shell script that uses \`chop-archiver' to do the"
 	  echo "actual job."
 	  echo
@@ -115,7 +122,7 @@ case "$1" in
 	    if [ -f "$file" ]; then
 	      echo "`pwd`/$file" >> "$file_list"
 	    else
-	      echo "`basename $0`: $file: not found" >&2
+	      echo "$program_name: $file: not found" >&2
 	    fi
 	  done
 	  cat "$file_list" | sort | uniq > "${tmp_file}"
@@ -154,3 +161,8 @@ case "$1" in
 	 ;;
          
 esac
+
+# Local Variables:
+# mode: sh
+# coding: utf-8
+# End:
