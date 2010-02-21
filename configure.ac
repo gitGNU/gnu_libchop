@@ -5,7 +5,7 @@ AC_PREREQ(2.61)
 AC_INIT([libchop], [0.0], [libchop-devel@nongnu.org])
 AC_CONFIG_AUX_DIR([build-aux])
 
-AM_INIT_AUTOMAKE([1.11 gnu silent-rules std-options])
+AM_INIT_AUTOMAKE([1.11 gnu silent-rules std-options subdir-objects])
 
 AC_CONFIG_SRCDIR(src/chop.c)
 AC_CONFIG_HEADER(include/chop/chop-config.h)
@@ -321,9 +321,6 @@ AC_CONFIG_FILES([Makefile
 		 utils/Makefile
 		 utils/chop-vcs
 		 tests/Makefile
-		 tests/include/Makefile
-		 tests/interfaces/Makefile
-		 tests/features/Makefile
 		 guile/Makefile
 		 doc/Makefile])
 

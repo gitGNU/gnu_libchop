@@ -15,5 +15,31 @@
 # You should have received a copy of the GNU General Public License
 # along with libchop.  If not, see <http://www.gnu.org/licenses/>.
 
-SUBDIRS = include interfaces features
+noinst_HEADERS = include/testsuite.h
 
+check_PROGRAMS =				\
+  interfaces/filters				\
+  interfaces/stores				\
+  interfaces/choppers				\
+  interfaces/cipher				\
+  interfaces/block-indexers			\
+  interfaces/indexers
+
+if HAVE_GPERF
+check_PROGRAMS += interfaces/class-lookup
+endif
+
+check_PROGRAMS +=				\
+  features/filter-zip				\
+  features/stream-filtered			\
+  features/chopper-anchor-based			\
+  features/stream-indexing
+
+TESTS = $(check_PROGRAMS)
+
+AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include	\
+	      -I$(top_srcdir)/lib     -I$(top_builddir)/lib	\
+	      -I$(top_srcdir)/tests/include
+
+LIBS = $(top_builddir)/src/libchop.la		\
+       $(top_builddir)/lib/libgnu.la
