@@ -15,6 +15,8 @@
    You should have received a copy of the GNU General Public License
    along with libchop.  If not, see <http://www.gnu.org/licenses/>.  */
 
+#include <chop/chop-config.h>
+
 #include <chop/chop.h>
 #include <chop/streams.h>
 #include <chop/choppers.h>
@@ -31,8 +33,8 @@
 
 #include <assert.h>
 
-const char *argp_program_version = "chop-show-anchors 0.1";
-const char *argp_program_bug_address = "<ludovic.courtes@laas.fr>";
+const char *argp_program_version = "chop-show-anchors (" PACKAGE_NAME ") " PACKAGE_VERSION;
+const char *argp_program_bug_address = PACKAGE_BUGREPORT;
 
 static char doc[] =
 "chop-show-anchors -- show the anchors\

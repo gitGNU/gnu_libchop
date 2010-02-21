@@ -45,8 +45,8 @@
 #include <argp.h>
 #include <progname.h>
 
-const char *argp_program_version = "chop-archiver " PACKAGE_VERSION;
-const char *argp_program_bug_address = "<ludovic.courtes@laas.fr>";
+const char *argp_program_version = "chop-archiver (" PACKAGE_NAME ") " PACKAGE_VERSION;
+const char *argp_program_bug_address = PACKAGE_BUGREPORT;
 
 static char doc[] =
 "chop-archiver -- archives and restores different versions of a file\

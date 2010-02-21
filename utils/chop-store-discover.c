@@ -41,8 +41,8 @@
 #endif
 
 
-const char *argp_program_version = "chop-store-discover 0.0";
-const char *argp_program_bug_address = "<ludovic.courtes@laas.fr>";
+const char *argp_program_version = "chop-store-discover (" PACKAGE_NAME ") " PACKAGE_VERSION;
+const char *argp_program_bug_address = PACKAGE_BUGREPORT;
 
 static char doc[] =
 "chop-store-discover -- discover keyed block stores over the network\

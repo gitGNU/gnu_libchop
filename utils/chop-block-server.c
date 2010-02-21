@@ -861,8 +861,8 @@ register_rpc_handlers (void)
 
 #include <argp.h>
 
-const char *argp_program_version = "chop-block-server " PACKAGE_VERSION;
-const char *argp_program_bug_address = "<ludovic.courtes@laas.fr>";
+const char *argp_program_version = "chop-block-server (" PACKAGE_NAME ") " PACKAGE_VERSION;
+const char *argp_program_bug_address = PACKAGE_BUGREPORT;
 
 static const char doc[] =
 "chop-block-server -- serves block store RPCs\

@@ -34,8 +34,8 @@
 #include <argp.h>
 #include <progname.h>
 
-const char *argp_program_version = "chop-store-convert 0.1";
-const char *argp_program_bug_address = "<ludovic.courtes@laas.fr>";
+const char *argp_program_version = "chop-store-convert (" PACKAGE_NAME ") " PACKAGE_VERSION;
+const char *argp_program_bug_address = PACKAGE_BUGREPORT;
 
 static char doc[] =
 "chop-store-convert -- convert a keyed block store to another format\

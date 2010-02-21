@@ -19,6 +19,8 @@
    this programs cuts a file into blocks and stores them into a block
    store (i.e. a block database).  */
 
+#include <chop/chop-config.h>
+
 #include <chop/chop.h>
 #include <chop/streams.h>
 #include <chop/choppers.h>

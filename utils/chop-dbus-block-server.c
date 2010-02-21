@@ -20,6 +20,7 @@
    XXX: This server is far from fully functional and is still quite
    experimental.  Rather use the SunRPC-based server for the real thing.  */
 
+#include <chop/chop-config.h>
 
 #include <alloca.h>
 

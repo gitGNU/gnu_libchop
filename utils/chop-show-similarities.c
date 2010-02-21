@@ -27,6 +27,7 @@
        In Proceedings of the Usenix Winter 1994 Conference, pages 1--10,
        January, 1994, http://www.cs.arizona.edu/research/reports.html.  */
 
+#include <chop/chop-config.h>
 
 #include <chop/chop.h>
 #include <chop/streams.h>
@@ -53,8 +54,8 @@ static unsigned long magic_fpr_mask = 0x1fff; /* the 13 LSBs */
 static char *file_name1 = NULL, *file_name2 = NULL;
 
 
-const char *argp_program_version = "chop-show-similarities 0.1";
-const char *argp_program_bug_address = "<ludovic.courtes@laas.fr>";
+const char *argp_program_version = "chop-show-similarities (" PACKAGE_NAME ") " PACKAGE_VERSION;
+const char *argp_program_bug_address = PACKAGE_BUGREPORT;
 
 static char doc[] =
 "chop-show-similarities -- show the amount of similarity between two files\

@@ -37,7 +37,7 @@
 #include <argp.h>
 
 
-const char *argp_program_version = "chop-openpgp-tool " PACKAGE_VERSION;
+const char *argp_program_version = "chop-openpgp-tool (" PACKAGE_NAME ") " PACKAGE_VERSION;
 const char *argp_program_bug_address = PACKAGE_BUGREPORT;
 
 static char doc[] =

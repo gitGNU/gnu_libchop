@@ -30,8 +30,8 @@
 #include <argp.h>
 
 
-const char *argp_program_version = "chop-store-list 0.0";
-const char *argp_program_bug_address = "<ludovic.courtes@laas.fr>";
+const char *argp_program_version = "chop-store-list (" PACKAGE_NAME ") " PACKAGE_VERSION;
+const char *argp_program_bug_address = PACKAGE_BUGREPORT;
 
 static char doc[] =
 "chop-store-list -- list entries of a keyed block store\
