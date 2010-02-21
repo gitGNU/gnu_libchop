@@ -36,8 +36,8 @@ library), although porting it to other systems shouldn't be too hard
 
 If building from scratch:
 
-  Autoconf 2.59
-  Automake 1.9
+  GNU Autoconf 2.59
+  GNU Automake 1.11
 
 Optional (but highly recommended) build dependency:
 

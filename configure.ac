@@ -5,7 +5,8 @@ AC_PREREQ(2.61)
 AC_INIT([libchop], [0.0], [libchop-devel@nongnu.org])
 AC_CONFIG_AUX_DIR([build-aux])
 
-AM_INIT_AUTOMAKE([1.11 gnu silent-rules std-options subdir-objects])
+AM_INIT_AUTOMAKE([1.11 gnu silent-rules std-options subdir-objects \
+ color-tests parallel-tests])
 
 AC_CONFIG_SRCDIR(src/chop.c)
 AC_CONFIG_HEADER(include/chop/chop-config.h)
