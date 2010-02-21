@@ -41,6 +41,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 
+#include <argp.h>
 #include <progname.h>
 #include <errno.h>
 #include <assert.h>
