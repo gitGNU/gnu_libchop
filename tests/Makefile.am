@@ -33,7 +33,8 @@ check_PROGRAMS +=				\
   features/filter-zip				\
   features/stream-filtered			\
   features/chopper-anchor-based			\
-  features/stream-indexing
+  features/stream-indexing			\
+  features/base32
 
 TESTS = $(check_PROGRAMS)
 

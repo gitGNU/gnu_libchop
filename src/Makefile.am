@@ -45,7 +45,8 @@ libchop_la_SOURCES = chop.c logs.c				\
 		     filters.c					\
 		     filter-zlib-zip.c filter-zlib-unzip.c	\
 		     stream-file.c stream-mem.c			\
-		     stream-filtered.c
+		     stream-filtered.c				\
+		     base32.c
 
 libchop_la_CFLAGS =
 

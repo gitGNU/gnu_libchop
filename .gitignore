@@ -89,3 +89,4 @@ stamp-h[0-9]
 /utils/chop-vcs
 /tests/features/.dirstamp
 /tests/interfaces/.dirstamp
+/tests/features/base32

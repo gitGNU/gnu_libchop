@@ -204,6 +204,13 @@ extern void chop_hex_string_to_buffer (const char *hex, size_t size,
 				       char *buf, const char **end);
 
 
+/* Convert BUFFER which is SIZE byte long into its base32 (RFC 4648)
+   representation and store the result in B32.  B32 must be large enough to
+   hold the result, including trailing zero.  */
+extern void
+chop_buffer_to_base32_string (const char *buffer, size_t size, char *b32);
+
+
 _CHOP_END_DECLS
 
 #endif
