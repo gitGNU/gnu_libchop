@@ -318,7 +318,6 @@ AC_CONFIG_FILES([Makefile
 		 lib/Makefile
                  include/Makefile
                  src/Makefile
-		 rpc/Makefile
 		 utils/Makefile
 		 utils/chop-vcs
 		 tests/Makefile
