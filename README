@@ -53,7 +53,7 @@ Optional dependencies:
 
   GNU GDBM
   libtdb
-  SleepyCat's Berkeley DB (BDB) 4.4 (4.3 should work too)
+  SleepyCat's Berkeley DB (BDB) 4.x (x >= 3)
   zlib
   libbz2
   liblzo2
