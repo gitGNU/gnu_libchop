@@ -21,8 +21,6 @@
    arch-tag: 55b0ce3e-83aa-4802-8311-b42b2d32395a
    */
 
-#include <chop/chop-config.h>
-
 #include <stdlib.h>
 #include <errno.h>
 #include <assert.h>

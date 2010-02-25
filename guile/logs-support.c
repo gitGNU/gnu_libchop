@@ -17,8 +17,6 @@
 
 /* Support functions for the log interface wrapping.  */
 
-#include <chop/chop-config.h>
-
 #include <stdlib.h>
 #include <stdio.h>
 

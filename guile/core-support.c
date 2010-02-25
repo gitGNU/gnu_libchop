@@ -17,6 +17,8 @@
 
 /* Support for the common functionality defined in `core-spec.scm'.  */
 
+#include <chop/chop-config.h>
+
 #include <libguile.h>
 #include <g-wrap/guile-runtime.h>
 

@@ -18,8 +18,6 @@
 /* Contructors with a functional style that perform memory allocation by
    themselves.  */
 
-#include <chop/chop-config.h>
-
 #include <errno.h>
 #include <assert.h>
 

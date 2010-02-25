@@ -17,8 +17,6 @@
 
 /* Support routines for (chop hash).  */
 
-#include <chop/chop-config.h>
-
 #include <libguile.h>
 
 /* Directly return a ready-to-use Scheme u8vector.  */

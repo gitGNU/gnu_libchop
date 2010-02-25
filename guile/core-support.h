@@ -20,7 +20,6 @@
 #ifndef __CHOP_CORE_SUPPORT_H__
 #define __CHOP_CORE_SUPPORT_H__
 
-#include <chop/chop-config.h>
 #include <chop/chop.h>
 #include <chop/objects.h>
 

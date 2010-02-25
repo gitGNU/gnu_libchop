@@ -22,8 +22,6 @@
    adding an `allocate-value-cg' method (counterpart of `destroy-value-cg')
    for `<gw-value>' objects.  */
 
-#include <chop/chop-config.h>
-
 #include <stdlib.h>
 #include <errno.h>
 #include <assert.h>
