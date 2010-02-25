@@ -211,6 +211,16 @@ extern void
 chop_buffer_to_base32_string (const char *buffer, size_t size, char *b32);
 
 
+/* Read the SIZE bytes of base32-encoded data pointed to by B32 and fill
+   BUFFER with the decoded binary data.  Set *END to point past the last
+   character that was successfully read.  Return the size in bytes of binary
+   data written to BUFFER.  BUFFER must be large enough to hold the
+   result.  B32 may or may not be padded with `='.  */
+extern size_t
+chop_base32_string_to_buffer (const char *b32, size_t size, char *buffer,
+			      const char **end);
+
+
 _CHOP_END_DECLS
 
 #endif

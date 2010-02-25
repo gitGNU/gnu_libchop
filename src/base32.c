@@ -21,10 +21,15 @@
 #include <chop/chop.h>
 
 #include <stdint.h>
+#include <ctype.h>
+
 
 /* Return a mask for bits from FIRST to LAST included.  */
 #define BIT_MASK(first, last)				\
   (((1 << ((last) - (first) + 1)) - 1) << (first))
+
+
+/* Encoding.  */
 
 /* The base32 alphabet.  */
 static const char base32_chars[] = "abcdefghijklmnopqrstuvwxyz234567";
@@ -105,4 +110,111 @@ chop_buffer_to_base32_string (const char *buffer, size_t size, char *b32)
     b32[quintets + j] = '=';
 
   b32[quintets + padding] = '\0';
+}
+
+
+/* Decoding.  */
+
+static inline int
+is_base32 (char c)
+{
+  c = toupper (c);
+  return ((c >= 'A' && c <= 'Z')
+	  || (c >= '2' && c <= '7'));
+}
+
+#define B32(c, v)  [ (int) c ] = (v)
+
+static const uint8_t base32_values[] =
+  {
+    B32 ('A', 0), B32 ('B', 1), B32 ('C', 2), B32 ('D', 3),
+    B32 ('E', 4), B32 ('F', 5), B32 ('G', 6), B32 ('H', 7),
+    B32 ('I', 8), B32 ('J', 9), B32 ('K', 10), B32 ('L', 11),
+    B32 ('M', 12), B32 ('N', 13), B32 ('O', 14), B32 ('P', 15),
+    B32 ('Q', 16), B32 ('R', 17), B32 ('S', 18), B32 ('T', 19),
+    B32 ('U', 20), B32 ('V', 21), B32 ('W', 22), B32 ('X', 23),
+    B32 ('Y', 24), B32 ('Z', 25),
+    B32 ('2', 26), B32 ('3', 27), B32 ('4', 28), B32 ('5', 29),
+    B32 ('6', 30), B32 ('7', 31)
+  };
+
+#undef B32
+
+static inline uint8_t
+base32_value (char c)
+{
+  return base32_values[toupper (c)];
+}
+
+size_t
+chop_base32_string_to_buffer (const char *b32, size_t size, char *buffer,
+			      const char **end)
+{
+#define CONSUME_QUINTET(array, index)		\
+  /* Input sanitizing.  */			\
+  if ((array)[(index)] == '=')			\
+    {						\
+      i = (index);				\
+      goto skip_padding;			\
+    }						\
+  else if (!is_base32 ((array)[(index)]))	\
+    {						\
+      i = (index);				\
+      break;					\
+    }						\
+  value = base32_value ((array)[(index)])
+
+  uint8_t value;
+  size_t left, i, j;
+  uint8_t *out = (uint8_t *) buffer;
+
+  j = 0;
+  for (i = 0, left = size;
+       i < size && left >= 8;
+       i += 8, left -= 8)
+    {
+      CONSUME_QUINTET (b32, i);
+      out[j] = value << 3U;
+
+      CONSUME_QUINTET (b32, i + 1);
+      out[j++] |= (value & BIT_MASK (2, 4)) >> 2U;
+      out[j] = (value & BIT_MASK (0, 1)) << 6U;
+
+      CONSUME_QUINTET (b32, i + 2);
+      out[j] |= value << 1U;
+
+      CONSUME_QUINTET (b32, i + 3);
+      out[j++] |= (value & BIT_MASK (4, 4)) >> 4U;
+      out[j] = (value & BIT_MASK (0, 3)) << 4U;
+
+      CONSUME_QUINTET (b32, i + 4);
+      out[j++] |= (value & BIT_MASK (1, 4)) >> 1U;
+      out[j] = (value & BIT_MASK (0, 0)) << 7U;
+
+      CONSUME_QUINTET (b32, i + 5);
+      out[j] |= value << 2U;
+
+      CONSUME_QUINTET (b32, i + 6);
+      out[j++] |= (value & BIT_MASK (3, 4)) >> 3U;
+      out[j] = (value & BIT_MASK (0, 2)) << 5U;
+
+      CONSUME_QUINTET (b32, i + 7);
+      out[j++] |= value;
+    }
+
+  for (;
+       (i % 8) && left > 0;
+       i++, left--)
+    {
+    skip_padding:
+      if (b32[i] != '=')
+	/* We expected padding but got something else.  */
+	break;
+    }
+
+  *end = &b32[i];
+
+  return j;
+
+#undef CONSUME_QUINTET
 }
