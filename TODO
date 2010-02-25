@@ -11,6 +11,7 @@ Copyright 2010  Ludovic Courtès <ludo@gnu.org>
 
   - the `inline' keyword
   - varargs macros
+  - int array[x]; instead of alloca()
   - statement as expression?
 
 ** Write more documentation.
@@ -79,3 +80,6 @@ Example: echo foo | chop-archive --archive
 ** chop-block-server: Add an option like `--restrict' but with OpenPGP fingerprints
 ** Use base32 rather than raw hex strings
 ** Return a meaningful error code in DB_WRITE_BLOCK_METHOD et al.
+
+* Guile bindings
+** Rewrite using `(system foreign)'
