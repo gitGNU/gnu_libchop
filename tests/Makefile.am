@@ -36,7 +36,26 @@ check_PROGRAMS +=				\
   features/stream-indexing			\
   features/base32
 
-TESTS = $(check_PROGRAMS)
+check_SCRIPTS =					\
+  utils/archiver				\
+  utils/block-server
+
+EXTRA_DIST =					\
+  $(check_SCRIPTS)				\
+  utils/lib.sh					\
+  utils/tls-dh-params				\
+  utils/tls-rsa-params				\
+  utils/test-key.dsa.pub			\
+  utils/test-key.dsa.sec			\
+  utils/test-key.rsa.pub			\
+  utils/test-key.rsa.sec
+
+TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
+
+# The test scripts need this environment.
+TESTS_ENVIRONMENT =						\
+  PATH="$(top_builddir)/utils:$$PATH"				\
+  top_srcdir="$(abs_top_srcdir)" srcdir="$(abs_srcdir)/utils"
 
 AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include	\
 	      -I$(top_srcdir)/lib     -I$(top_builddir)/lib	\

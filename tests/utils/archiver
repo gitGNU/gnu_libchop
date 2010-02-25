@@ -1,0 +1,56 @@
+# libchop -- a utility library for distributed storage and data backup
+# Copyright (C) 2010  Ludovic Courtès <ludo@gnu.org>
+#
+# Libchop is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Libchop is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with libchop.  If not, see <http://www.gnu.org/licenses/>.
+
+# Test the `chop-archiver' command.
+
+source "${srcdir:-$PWD}/lib.sh"
+
+DB_FILE=",,archiver.db"
+TMP_FILE=",,archiver.tmp"
+
+chop_CLEANFILES="$DB_FILE $TMP_FILE"
+
+# chop_test_archive_restore INPUT-FILE OUTPUT-FILE ARCHIVE-OPTS RESTORE-OPTS
+chop_test_archive_restore()
+{
+    rm -f "$DB_FILE"
+    { chop_fail_if ! chop-archiver -f "$DB_FILE" $3 -a "$1" ; } | \
+    { read index
+      chop_fail_if test "x$index" = x
+      { chop_fail_if ! chop-archiver -f "$DB_FILE" $4 -r "$index" ; } > "$2"
+      chop_fail_if ! cmp "$1" "$2"
+    }
+}
+
+for options in "" "-C anchor_based_chopper" \
+               "-i chk_block_indexer -I blowfish,cbc,sha1,sha1"
+do
+    chop_test_archive_restore "${srcdir:-$PWD}/archiver" "$TMP_FILE" \
+	"$options"
+done
+
+for options in "-Zzlib" "-zzlib"
+do
+    chop_test_archive_restore "${srcdir:-$PWD}/archiver" "$TMP_FILE" \
+	"$options" "$options"
+done
+
+chop_fail_if chop-archiver -C "does-not-exist" -f "$DB_FILE"	\
+    "${srcdir:-$PWD}/archiver"
+
+chop_fail_if chop-archiver -f "$DB_FILE" -a "/does-not-exist"
+
+chop_cleanup

@@ -1,0 +1,103 @@
+# libchop -- a utility library for distributed storage and data backup
+# Copyright (C) 2010  Ludovic Courtès <ludo@gnu.org>
+#
+# Libchop is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Libchop is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with libchop.  If not, see <http://www.gnu.org/licenses/>.
+
+# Test the `chop-block-server' command.
+
+source "${srcdir:-$PWD}/lib.sh"
+
+DB_FILE=",,block-server.db"
+TMP_FILE=",,block-server.tmp"
+ADDRESS="127.0.0.1"
+PORT=8884
+
+chop_CLEANFILES="$DB_FILE $TMP_FILE"
+
+# chop_run_server OPTIONS
+chop_run_server()
+{
+    rm -f "$DB_FILE"
+    chop_fail_if ! chop-block-server -a "$ADDRESS" -p "$PORT" \
+	$1 "$DB_FILE" '&'
+    server_pid="$!"
+    chop_fail_if test "x$server_pid" = "x"
+}
+
+chop_kill_server()
+{
+    if test "x$server_pid" != "x"
+    then
+	kill "$server_pid"
+
+	# Change the port number so that the next server we run
+	# doesn't get `EADDRINUSE'.
+	PORT="`expr $PORT + 1`"
+    fi
+}
+
+chop_CLEANUP_HOOK="chop_kill_server"
+
+# chop_test_archive_restore INPUT-FILE OUTPUT-FILE ARCHIVE-OPTS RESTORE-OPTS
+chop_test_archive_restore()
+{
+    { chop_fail_if ! chop-archiver $3 -a "$1" ; } | \
+    { read index
+      chop_fail_if test "x$index" = x
+      { chop_fail_if ! chop-archiver $4 -r "$index" ; } > "$2"
+      chop_fail_if ! cmp "$1" "$2"
+    }
+}
+
+chop_run_server
+sleep 2
+chop_test_archive_restore "${srcdir:-$PWD}/block-server" "$TMP_FILE" \
+    "-R $ADDRESS:$PORT" "-R $ADDRESS:$PORT"
+
+# If we try to store the zipped blocks under the same keys, the server
+# should detect the collision.
+chop_fail_if chop-archiver -R "$ADDRESS:$PORT" --zip	\
+    -a "${srcdir:-$PWD}/block-server"
+
+chop_kill_server
+
+if chop-block-server --help | grep openpgp && chop-archiver --help | grep tls
+then
+    # Copy pre-computed DH and RSA parameters, since generating them
+    # would take some time.
+    mkdir -p ".chop-block-server"
+    ln -s "${srcdir:-$PWD}/tls-dh-params" ".chop-block-server/"
+    ln -s "${srcdir:-$PWD}/tls-rsa-params" ".chop-block-server/"
+    HOME="$PWD"
+    export HOME
+
+    for alg in rsa dsa
+    do
+	rm -f "$DB_FILE"
+	openpgp_opts="--openpgp-pubkey=${srcdir:-$PWD}/test-key.$alg.pub \
+                      --openpgp-privkey=${srcdir:-$PWD}/test-key.$alg.sec"
+	chop_run_server "--tls $openpgp_opts"
+	sleep 2
+
+	archiver_opts="-R $ADDRESS:$PORT -p tls/tcp $openpgp_opts"
+	chop_test_archive_restore "${srcdir:-$PWD}/block-server" "$TMP_FILE" \
+	    "$archiver_opts" "$archiver_opts"
+
+	chop_kill_server
+    done
+
+    rm -rf ".chop-block-server"
+fi
+
+chop_cleanup
