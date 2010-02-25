@@ -78,8 +78,6 @@ static int gnutls_initialized = 0;
 
 
 #ifdef DEBUG_TLS
-extern int _gnutls_log_level;
-extern void (* _gnutls_log_func) (int, const char *);
 
 static void
 log_gnutls (int level, const char *str)
@@ -88,8 +86,8 @@ log_gnutls (int level, const char *str)
 }
 
 # define ENABLE_GNUTLS_LOGGING()		\
-        _gnutls_log_level = 3;			\
-        _gnutls_log_func = log_gnutls;
+  gnutls_global_set_log_level (3);		\
+  gnutls_global_set_log_function (log_gnutls);
 
 #else /* !DEBUG_TLS */
 
