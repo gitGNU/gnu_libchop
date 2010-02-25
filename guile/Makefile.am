@@ -36,8 +36,7 @@ built_scm_files =							\
 chopguilemoduledir          = $(guilemoduledir)/chop
 nodist_chopguilemodule_DATA = $(built_scm_files)
 
-libguile_chop_la_SOURCES =				\
-  core-support.c $(support_c_files) $(support_h_files)
+libguile_chop_la_SOURCES = core-support.c
 
 # Crap.  We can't use $(built_c_files) here because Automake will
 # fail to compute the right $(libguile_chop_la_OBJECTS) if we do so.
@@ -73,7 +72,8 @@ support_c_files = block-indexers-support.c	\
 
 support_h_files = core-support.h
 
-EXTRA_DIST = $(binding_specs) README $(TESTS)
+EXTRA_DIST = $(binding_specs) README $(TESTS)		\
+             $(support_c_files) $(support_h_files)
 CLEANFILES = $(built_c_files) $(built_h_files) $(built_scm_files)
 
 
