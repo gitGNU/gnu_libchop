@@ -90,13 +90,13 @@ chop_buffer_to_base32_string (const char *buffer, size_t size, char *b32)
 	  value = (ubuf[i--] & BIT_MASK (6, 7)) >> 6U;
 
 	case 3:
-	  value |= (ubuf[i] & BIT_MASK (0, 3)) << 2U;
+	  value |= (ubuf[i] & BIT_MASK (0, 2)) << 2U;
 	  b32[--j] = base32_chars[value];
 
 	  value = (ubuf[i--] & BIT_MASK (3, 7)) >> 3U;
 	  b32[--j] = base32_chars[value];
 	}
-      while (j > 8);
+      while (j >= 8);
     }
 
   padding = quintets % 8 ? 8 - (quintets % 8) : 0;
