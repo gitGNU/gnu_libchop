@@ -669,7 +669,7 @@ initialize_tls_parameters (void)
       err = gnutls_certificate_set_openpgp_key_file (server_certcred,
 						     tls_openpgp_pubkey_file,
 						     tls_openpgp_privkey_file,
-						     GNUTLS_OPENPGP_FMT_RAW);
+						     GNUTLS_OPENPGP_FMT_BASE64);
       if (err)
 	{
 	  info ("failed to use OpenPGP key pair: %s", gnutls_strerror (err));
@@ -724,7 +724,7 @@ tls_authorizer (gnutls_session_t session, void *unused)
     goto failed;
 
   err = gnutls_openpgp_key_import (peer_key, peer_cert,
-				   GNUTLS_OPENPGP_FMT_RAW);
+				   GNUTLS_OPENPGP_FMT_BASE64);
   if (err)
     goto handle_error;
 

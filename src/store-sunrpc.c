@@ -247,7 +247,7 @@ make_default_tls_session (gnutls_session_t session,
 	gnutls_certificate_set_openpgp_key_file (certcred,
 						 tls_params->pubkey_file,
 						 tls_params->privkey_file,
-						 GNUTLS_OPENPGP_FMT_RAW);
+						 GNUTLS_OPENPGP_FMT_BASE64);
       if (err)
 	{
 	  gnutls_perror (err);
