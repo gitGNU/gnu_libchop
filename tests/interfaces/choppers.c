@@ -143,7 +143,7 @@ main (int argc, char *argv[])
 
       if (bytes_read != input_size)
 	{
-	  fprintf (stderr, "%s: `%s' chopper gave %zu bytes instead of %u\n",
+	  fprintf (stderr, "%s: `%s' chopper gave %zu bytes instead of %zu\n",
 		   argv[0], chop_class_name ((chop_class_t *)*class),
 		   bytes_read, input_size);
 	  exit (4);

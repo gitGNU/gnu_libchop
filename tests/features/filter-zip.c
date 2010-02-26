@@ -278,7 +278,7 @@ main (int argc, char *argv[])
 
 
       /* We're done.  */
-      test_debug ("input size was: %zu; output size was: %zu",
+      test_debug ("input size was: %i; output size was: %zu",
 		  SIZE_OF_INPUT, output_size);
 
       test_assert (output_size == SIZE_OF_INPUT);
