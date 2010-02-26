@@ -17,8 +17,8 @@
 
 /* Stream choppers.  */
 
-#ifndef __CHOP_CHOPPERS_H__
-#define __CHOP_CHOPPERS_H__
+#ifndef CHOP_CHOPPERS_H
+#define CHOP_CHOPPERS_H
 
 #include <chop/chop.h>
 #include <chop/buffers.h>

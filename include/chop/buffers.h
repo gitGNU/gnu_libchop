@@ -16,8 +16,8 @@
    along with libchop.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef __CHOP_BUFFERS_H__
-#define __CHOP_BUFFERS_H__
+#ifndef CHOP_BUFFERS_H
+#define CHOP_BUFFERS_H
 
 #include <chop/chop.h>
 #include <string.h>

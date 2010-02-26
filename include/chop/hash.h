@@ -16,8 +16,8 @@
    along with libchop.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef __CHOP_HASH_H__
-#define __CHOP_HASH_H__
+#ifndef CHOP_HASH_H
+#define CHOP_HASH_H
 
 #include <chop/chop.h>
 

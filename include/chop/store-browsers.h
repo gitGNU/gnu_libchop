@@ -17,8 +17,8 @@
 
 /* Service discovery for remote block stores.  */
 
-#ifndef __CHOP_STORE_BROWSERS_H__
-#define __CHOP_STORE_BROWSERS_H__
+#ifndef CHOP_STORE_BROWSERS_H
+#define CHOP_STORE_BROWSERS_H
 
 #include <chop/chop.h>
 #include <chop/objects.h>

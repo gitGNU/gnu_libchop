@@ -15,8 +15,8 @@
    You should have received a copy of the GNU General Public License
    along with libchop.  If not, see <http://www.gnu.org/licenses/>.  */
 
-#ifndef __CHOP_SERIALIZABLE_H__
-#define __CHOP_SERIALIZABLE_H__
+#ifndef CHOP_SERIALIZABLE_H
+#define CHOP_SERIALIZABLE_H
 
 /* Definition of a mini run-time object system that is used as the basis of a
    serializable object framework.  The point of this system was originally to

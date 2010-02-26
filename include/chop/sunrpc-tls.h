@@ -15,8 +15,8 @@
    You should have received a copy of the GNU General Public License
    along with libchop.  If not, see <http://www.gnu.org/licenses/>.  */
 
-#ifndef __SUNRPC_TLS_H__
-#define __SUNRPC_TLS_H__
+#ifndef SUNRPC_TLS_H
+#define SUNRPC_TLS_H
 
 /* Support for Sun/ONC RPC over TLS.  This module is actually independent of
    the rest of libchop.  It relies on the RPC code written by Sun and found

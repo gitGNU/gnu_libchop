@@ -15,8 +15,8 @@
    You should have received a copy of the GNU General Public License
    along with libchop.  If not, see <http://www.gnu.org/licenses/>.  */
 
-#ifndef __CHOP_FILTERS_H__
-#define __CHOP_FILTERS_H__
+#ifndef CHOP_FILTERS_H
+#define CHOP_FILTERS_H
 
 /* Filters, as in GStreamer's `GstElement', `GstBin' and `GstPipeline',
    `GstPad' also.

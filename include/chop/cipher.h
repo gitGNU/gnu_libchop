@@ -15,8 +15,8 @@
    You should have received a copy of the GNU General Public License
    along with libchop.  If not, see <http://www.gnu.org/licenses/>.  */
 
-#ifndef __CHOP_CIPHER_H__
-#define __CHOP_CIPHER_H__
+#ifndef CHOP_CIPHER_H
+#define CHOP_CIPHER_H
 
 #include <chop/chop.h>
 

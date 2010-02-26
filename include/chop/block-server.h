@@ -15,8 +15,8 @@
    You should have received a copy of the GNU General Public License
    along with libchop.  If not, see <http://www.gnu.org/licenses/>.  */
 
-#ifndef __CHOP_BLOCK_SERVER_H__
-#define __CHOP_BLOCK_SERVER_H__
+#ifndef CHOP_BLOCK_SERVER_H
+#define CHOP_BLOCK_SERVER_H
 
 /* RPC block server stubs.  This is provided as part of
    `libchop-block-server'.  */

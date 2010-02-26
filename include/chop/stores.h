@@ -16,8 +16,8 @@
    along with libchop.  If not, see <http://www.gnu.org/licenses/>.  */
 
 
-#ifndef __CHOP_STORES_H__
-#define __CHOP_STORES_H__
+#ifndef CHOP_STORES_H
+#define CHOP_STORES_H
 
 /* Block stores.  */
 

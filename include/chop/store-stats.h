@@ -15,8 +15,8 @@
    You should have received a copy of the GNU General Public License
    along with libchop.  If not, see <http://www.gnu.org/licenses/>.  */
 
-#ifndef __CHOP_STORE_STATS_H__
-#define __CHOP_STORE_STATS_H__
+#ifndef CHOP_STORE_STATS_H
+#define CHOP_STORE_STATS_H
 
 #include <chop/chop.h>
 #include <chop/logs.h>

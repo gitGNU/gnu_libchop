@@ -17,8 +17,8 @@
 
 /* Chop! */
 
-#ifndef __CHOP_H__
-#define __CHOP_H__
+#ifndef CHOP_H
+#define CHOP_H
 
 #include <chop/errors.h>
 #include <unistd.h>
