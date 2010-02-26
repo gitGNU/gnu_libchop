@@ -70,8 +70,8 @@ goes for `--cipher'.";
 /* Name of the directory for configuration files under `$HOME'.  */
 #define CONFIG_DIRECTORY ".chop-archiver"
 
-#define DB_DATA_FILE_BASE       CONFIG_DIRECTORY "/archive-data"
-#define DB_META_DATA_FILE_BASE  CONFIG_DIRECTORY "/archive-meta-data"
+#define DB_DATA_FILE_BASE       "archive-data"
+#define DB_META_DATA_FILE_BASE  "archive-meta-data"
 
 
 /* Whether archival or retrieval is to be performed.  */
@@ -623,26 +623,42 @@ open_db_store (const chop_file_based_store_class_t *class,
 	       const char *base, chop_block_store_t *store)
 {
   chop_error_t err;
-  char *file;
-  const char *suffix, *suffix_end;
+  char *file, *suffix;
+  const char *class_name;
   size_t file_len, home_len, base_len, suffix_len;
 
   base_len = strlen (base);
-  suffix = chop_class_name ((chop_class_t *)class);
-  suffix_end = strchr (suffix, '_');
-  suffix_len = suffix_end - suffix;
+
+  class_name = chop_class_name ((chop_class_t *) class);
+  suffix_len = strchr (class_name, '_') - class_name;
+  suffix = alloca (suffix_len + 1);
+  strncpy (suffix, class_name, suffix_len);
+  suffix[suffix_len] = '\0';
+
   home_len = strlen (getenv ("HOME"));
-  file_len = home_len + 1 + base_len + 1 + suffix_len;
+  file_len = home_len + 1 + sizeof (CONFIG_DIRECTORY) + 1
+    + base_len + 1 + suffix_len;
   file = alloca (file_len + 1);
-  if (!file)
-    return ENOMEM;
 
   strcpy (file, getenv ("HOME"));
-  file[home_len] = '/';
-  strcpy (&file[home_len + 1], base);
-  strcpy (&file[home_len + 1 + base_len], ".");
-  strncpy (&file[home_len + 1 + base_len + 1], suffix, suffix_len);
-  file[file_len] = '\0';
+  strcat (file, "/");
+  strcat (file, CONFIG_DIRECTORY);
+
+  /* Create CONFIG_DIRECTORY if it doesn't already exist.  */
+  if (mkdir (file, 0700))
+    {
+      /* When we get EEXIST, assume it's actually a directory.  */
+      if (errno != EEXIST)
+	{
+	  chop_error (errno, "while creating directory `%s'", file);
+	  exit (EXIT_FAILURE);
+	}
+    }
+
+  strcat (file, "/");
+  strcat (file, base);
+  strcat (file, ".");
+  strcat (file, suffix);
 
   err = chop_file_based_store_open (class, file,
 				    O_RDWR | O_CREAT, S_IRUSR | S_IWUSR,
