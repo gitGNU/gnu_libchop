@@ -72,24 +72,24 @@ chk_serialize (const chop_object_t *object, chop_serial_method_t method,
     case CHOP_SERIAL_ASCII:
       {
 	/* Return something like
-	   "eabe1ca1f3c7ca148ce2fe5954f52ef9a0f0082a,eabe1ca1f3c7ca148ce2fe5954f52ef9a0f0082a/39a".  */
-	char *hex_key, *hex_block_id;
+	   "772daoefadfptnzpfnawob5yke======,oq564axk7sz36sym4yj26vzetfbym3iv/75a".  */
+	char *b32_key, *b32_block_id;
 
-	hex_key = alloca ((handle->key_size * 2) + 1);
-	hex_block_id = alloca ((handle->block_id_size * 2) + 1);
-	chop_buffer_to_hex_string (handle->key, handle->key_size, hex_key);
-	chop_buffer_to_hex_string (handle->block_id, handle->block_id_size,
-				   hex_block_id);
+	b32_key = alloca ((handle->key_size * 2) + 1);
+	b32_block_id = alloca ((handle->block_id_size * 2) + 1);
+	chop_buffer_to_base32_string (handle->key, handle->key_size, b32_key);
+	chop_buffer_to_base32_string (handle->block_id, handle->block_id_size,
+				      b32_block_id);
 
-	chop_buffer_push (buffer, hex_key,
-			  strlen (hex_key) /* strip trailing \0 */);
+	chop_buffer_push (buffer, b32_key,
+			  strlen (b32_key) /* strip trailing \0 */);
 	chop_buffer_append (buffer, ",", 1);
-	chop_buffer_append (buffer, hex_block_id, strlen (hex_block_id));
+	chop_buffer_append (buffer, b32_block_id, strlen (b32_block_id));
 
 	/* Append a slash and the indexed block size.  */
-	hex_key[0] = '/';
-	sprintf (hex_key + 1, "%zx", handle->block_size);
-	err = chop_buffer_append (buffer, hex_key, strlen (hex_key) + 1);
+	b32_key[0] = '/';
+	sprintf (b32_key + 1, "%zx", handle->block_size);
+	err = chop_buffer_append (buffer, b32_key, strlen (b32_key) + 1);
 
 	return err;
       }
@@ -170,12 +170,12 @@ chk_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 
 	  /* Read the key.  */
 	  assert (comma - buffer <= sizeof (handle->key));
-	  chop_hex_string_to_buffer (buffer, comma - buffer,
-				     handle->key, &end);
+	  handle->key_size =
+	    chop_base32_string_to_buffer (buffer, comma - buffer,
+					  handle->key, &end);
 	  if (end != comma)
 	    return CHOP_DESERIAL_CORRUPT_INPUT;
 
-	  handle->key_size = (comma - buffer) / 2;
 	  end++; /* skip the comma */
 
 	  /* Read the block ID.  */
@@ -184,12 +184,12 @@ chk_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 	    return CHOP_DESERIAL_CORRUPT_INPUT;
 
 	  assert (slash - comma + 1 <= sizeof (handle->block_id));
-	  chop_hex_string_to_buffer (end, slash - end,
-				     handle->block_id, &end);
+	  handle->block_id_size =
+	    chop_base32_string_to_buffer (end, slash - end,
+					  handle->block_id, &end);
 	  if (end != slash)
 	    return CHOP_DESERIAL_CORRUPT_INPUT;
 
-	  handle->block_id_size = (slash - comma - 1) / 2;
 	  end++; /* skip the slash */
 
 	  {
