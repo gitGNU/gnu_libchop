@@ -129,7 +129,7 @@ this framework are the following:
 
 @itemize
 @cindex stream
-@item the @dfn{stream} interface, which delivers input data (e.g. file
+@item the @dfn{stream} interface, which delivers input data (e.g., file
 contents) as a stream;
 @cindex chopper
 @item the @dfn{chopper} interface, given an input stream, splits this
@@ -166,7 +166,7 @@ produces meta-data (individual block indices) which is fed back to the
 stream indexer in order to be eventually stored and indexed as if it
 were ``normal'' data.
 
-When doing the opposite operation, i.e. restoring a data stream, the
+When doing the opposite operation, i.e., restoring a data stream, the
 data flow looks like this:
 
 @verbatim
@@ -217,7 +217,7 @@ these classes has its own particularities.
 Anonymous peer-to-peer file sharing systems like GNUnet and FreeNet both
 use the same particular configurations of the above pipeline
 (@pxref{References, GNUnet}).  Roughly, they use a fixed-size stream
-chopper (e.g. in GNUnet 0.7, input files are chopped into 32 kB blocks)
+chopper (e.g., in GNUnet 0.7, input files are chopped into 32 kB blocks)
 and some form of a CHK@footnote{@dfn{CHK} means ``content-hash key''.
 @xref{Stream Choppers}, for details.} block indexer.  GNUnet uses a
 tree stream indexer.  In GNUnet, this whole encoding configuration is
@@ -313,7 +313,7 @@ large-enough memory area to hold an object whose class is
 @end deftypefun
 
 @deftypefun void chop_mem_stream_open (const char *@var{base}, size_t @var{size}, void (*@var{free_func}) (void *), chop_stream_t *@var{stream})
-Open a memory-backed stream, i.e. a stream whose input is read from
+Open a memory-backed stream, i.e., a stream whose input is read from
 @var{base} which is @var{size} byte-long.  If @var{free_func} is not
 @code{NULL}, it is called upon closing @var{stream}.
 @end deftypefun
@@ -359,7 +359,7 @@ flexibility (@pxref{Invoking chop-archiver}).
 Libchop's object system can be used to provide binary compatibility with
 little overhead: the size of a given class' instances can be known at
 run-time, which allows for caller allocation.  Callers can allocate
-objects of a given class as they prefer (e.g. on the stack) while
+objects of a given class as they prefer (e.g., on the stack) while
 remaining binary-compatible should the class layout
 change.@footnote{Conversely, the Glib family of libraries achieves
 binary compatibility at the cost of removing the possibility for caller
@@ -453,7 +453,7 @@ classes.
 
 As a user, you will not usually call this function directly.  Instead,
 you will call a particular constructor for @var{class} that can take
-additional arguments (e.g. @code{chop_file_stream_open ()}) and which
+additional arguments (e.g., @code{chop_file_stream_open ()}) and which
 will in turn call this function behind the scenes.
 @end deftypefun
 
