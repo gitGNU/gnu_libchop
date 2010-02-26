@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
-AC_INIT([libchop], [0.0], [libchop-devel@nongnu.org])
+AC_INIT([libchop], [0.2], [libchop-devel@nongnu.org])
 AC_CONFIG_AUX_DIR([build-aux])
 
 AM_INIT_AUTOMAKE([1.11 gnu silent-rules std-options subdir-objects \
