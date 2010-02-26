@@ -65,15 +65,15 @@ Free Documentation License''.
 This document describes libchop version @value{VERSION}.
 
 @menu
-* Introduction::                
-* API Reference::               
-* Libchop's Object System::     
-* Utilities::                   
-* Guile Bindings::              
-* References::                  
+* Introduction::                Rationale and overview.
+* API Reference::               Using libchop from C.
+* Object System::               Object, classes, serialization, etc.
+* Utilities::                   Command-line interface to libchop.
+* Guile Bindings::              Using libchop from GNU Guile.
+* References::                  Worthy readings.
 * GNU Free Documentation License::  The license of this manual
-* Concept Index::               
-* Function Index::              
+* Concept Index::               Concepts.
+* Function Index::              Functions.
 @end menu
 
 @node Introduction
@@ -328,8 +328,8 @@ true, then closing @var{stream} will destroy @var{filter}.
 
 
 @c *********************************************************************
-@node Libchop's Object System
-@chapter Libchop's Object System
+@node Object System
+@chapter Object System
 
 @cindex object system
 Libchop comes with its own lightweight reflexive object system defined
