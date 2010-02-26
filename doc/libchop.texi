@@ -70,7 +70,7 @@ This document describes libchop version @value{VERSION}.
 * Libchop's Object System::     
 * Utilities::                   
 * Guile Bindings::              
-
+* References::                  
 * GNU Free Documentation License::  The license of this manual
 * Concept Index::               
 * Function Index::              
@@ -554,10 +554,141 @@ Libchop comes with a number of utilities that exercise all its API.
 Using them is actually a good way to become familiar with libchop's
 interfaces and their implementations.
 
+The first tool, @code{chop-archiver}, exposes all of libchop's storage
+pipeline, which makes it the main entry point to libchop from the
+command line.  The @code{chop-block-server} tool implements a dumb
+@dfn{block server}, which listens to remote procedure calls (RPCs) to
+read and write data blocks.
+
+@menu
+* Invoking chop-archiver::      Storing and restoring data using libchop.
+* Invoking chop-block-server::  Remote data block storage.
+@end menu
+
+@node Invoking chop-archiver
+@section Invoking @code{chop-archiver}
+
+@node Invoking chop-block-server
+@section Invoking @code{chop-block-server}
+
+The @code{chop-block-server} tool is an ONC RPC server that serves
+requests from the network to read and write data blocks.  It it similar
+in spirit to Plan 9's Venti (@pxref{References, Venti}).  By default, it
+is completely oblivious to the encoding and naming scheme of incoming
+data blocks: it doesn't know what block indexer was used to index them,
+doesn't require content-based indexing, and of course doesn't know how
+these data blocks relate to each other.
+
+The server is invoked like this:
+
+@example
+chop-block-server [@var{options}] @var{local-block-store}
+@end example
+
+This command starts a block store server listening to block store remote
+procedure calls (RPCs) and applying them to the store from file
+@var{local-block-store} (the type of store in this file is determined by
+the @code{--store} option; see below.)  @var{options} can contain any
+options from the following list:
+
+@table @option
+@item --help
+Print a summary of the command-line options and exit.
+
+@item --version
+Print the version number of libchop and exit.
+
+@item --address=@var{address}
+@itemx -a @var{address}
+Bind to @var{address} and listen to connections there.
+
+@item --port=@var{port}
+@itemx -p @var{port}
+Run the service on port @var{port}.
+
+@item --protocol=@var{proto}
+@itemx -P @var{proto}
+Serve RPCs over PROTO, either @code{tcp} or @code{udp}.
+
+@item --no-collision-check
+@itemx -C
+Turn off block/key collision checks.  By default, when a request to
+write a block under a given key is received, @code{chop-block-server}
+returns an error if there's already a block associated with that key and
+that block differs from the new one.
+
+@item --enforce-hash=@var{algo}
+@itemx -H
+Enforce content-hash algorithm @var{algo}.  That is, return an error if
+the key under which a block is to be written is not the @var{algo} hash
+of this block.
+
+@item --zip[=@var{zip-type}]
+@itemx -z[@var{zip-type}]
+Pass data blocks through a @var{zip-type} filter to compress
+(resp. decompress) data when writing (resp. reading) to (resp. from) the
+block store.  @var{zip-type} may be one of @code{zlib}, @code{bzip2}, or
+@code{lzo}, for instance.
+
+@item --service-name=@var{name}
+@itemx -s @var{name}
+Choose @var{name} as the service name to be published via Avahi.  This
+option is only available when Avahi was detected at configure time.
+
+@item --no-publication
+@itemx -n
+Turn off service publication on the LAN via Avahi.  This option is only
+available when Avahi was detected at configure time.
+
+@item --tls
+@itemx -t
+Use RPCs over TLS (recommended).  This option is only available when
+GnuTLS was detected at configure time.
+
+@item --openpgp-pubkey=@var{pubkey-file}
+@itemx -o @var{pubkey-file}
+@itemx --openpgp-privkey=@var{privkey-file}
+@itemx -O @var{privkey-file}
+Use the OpenPGP public key from @var{pubkey-file} and the corresponding
+private key from @var{privkey-file} for TLS authentication.  These files
+must contain a base64-encoded OpenPGP key.  These options are available
+when GnuTLS was detected at configure time.
+
+@item --store=@var{class}
+@itemx -S @var{class}
+Use @var{class} as the underlying file-based block
+store (@pxref{Block Stores}).
+
+@item --debug
+@itemx -d
+Produce debugging output and use a dummy block store (i.e., a block
+store that does nothing but print messages).
+
+@item --verbose
+@itemx -v
+Produce verbose output.
+
+@end table
+
 
 @c *********************************************************************
 @node Guile Bindings
 @chapter Guile Bindings
+
+@c *********************************************************************
+@node References
+@chapter References
+
+@table @asis
+
+@item Plan 9's Venti archival storage server
+@url{http://plan9.bell-labs.com/magic/man2html/8/venti}
+
+@item Venti: a new approach to archival storage
+Sean Quinlan and Sean Dorward,
+@url{http://plan9.bell-labs.com/sys/doc/venti/venti.html}
+
+@end table
 
 
 @c *********************************************************************
