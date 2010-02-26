@@ -27,3 +27,14 @@ endif
 SUBDIRS += tests
 
 EXTRA_DIST = rpc/block_rstore.x
+
+dist-hook: gen-ChangeLog
+
+.PHONY: gen-ChangeLog
+gen-ChangeLog:
+	if test -d .git; then				\
+	  $(top_srcdir)/build-aux/gitlog-to-changelog	\
+	    --since=2004 > $(distdir)/cl-t;		\
+	  rm -f $(distdir)/ChangeLog;			\
+	  mv $(distdir)/cl-t $(distdir)/ChangeLog;	\
+	fi
