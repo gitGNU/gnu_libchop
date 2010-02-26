@@ -76,18 +76,18 @@ hih_serialize (const chop_object_t *object, chop_serial_method_t method,
     {
     case CHOP_SERIAL_ASCII:
       {
-	/* Return something like
-	   "eabe1ca1f3c7ca148ce2fe5954f52ef9a0f0082a/39a".  */
-	char *hex;
+	/* Return something like "n57k2jlivui6pufs6qijfqsfbyoqryy6/44e".  */
+	char *serial;
 
-	hex = alloca ((handle->key_size * 2) + 1);
-	chop_buffer_to_hex_string (handle->content, handle->key_size, hex);
-	chop_buffer_push (buffer, hex, strlen (hex) /* strip trailing \0 */);
+	serial = alloca ((handle->key_size * 2) + 1);
+	chop_buffer_to_base32_string (handle->content, handle->key_size,
+				      serial);
+	chop_buffer_push (buffer, serial, strlen (serial) /* strip trailing \0 */);
 
 	/* Append a slash and the indexed block size.  */
-	hex[0] = '/';
-	sprintf (hex + 1, "%zx", handle->block_size);
-	chop_buffer_append (buffer, hex, strlen (hex) + 1);
+	serial[0] = '/';
+	sprintf (serial + 1, "%zx", handle->block_size);
+	chop_buffer_append (buffer, serial, strlen (serial) + 1);
 
 	return 0;
       }
@@ -165,12 +165,13 @@ hih_deserialize (const char *s_buffer, size_t size,
 
 	  /* Read the block ID.  */
 	  assert (slash - buffer <= sizeof (handle->content));
-	  chop_hex_string_to_buffer ((char *)buffer, slash - buffer,
-				     handle->content, (const char **)&end);
+	  handle->key_size =
+	    chop_base32_string_to_buffer ((char *) buffer, slash - buffer,
+					  handle->content,
+					  (const char **) &end);
 	  if (end != slash)
 	    return CHOP_DESERIAL_CORRUPT_INPUT;
 
-	  handle->key_size = (slash - buffer) / 2;
 	  end++; /* skip the slash */
 
 	  {
