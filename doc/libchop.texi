@@ -568,8 +568,210 @@ read and write data blocks.
 @node Invoking chop-archiver
 @section Invoking @code{chop-archiver}
 
+@cindex @code{chop-archiver}
+
+The @code{chop-archiver} tool is a @dfn{storage client} that exposes
+most of the libchop programming interface at the command line.  It
+stores and retrieves individual files through the libchop storage
+pipeline (@pxref{Overview}).  Users can choose each component of the
+pipeline, thanks to libchop's introspection capabilities (@pxref{Object
+System}).
+
+The tool can be used in one of two modes:
+
+@enumerate
+@item
+In @emph{archival mode}, with the @code{--archive} option,
+@code{chop-archiver} stores the given file and returns the resulting
+index (@pxref{Block Indexers & Fetchers}):
+
+@example
+$ chop-archiver --archive README
+tree_indexer:hash_block_fetcher:hash_index_handle:64::6jmb3wrbzyqpsngxybt4r4rxtctdo4o2/26
+@end example
+
+@cindex index handle
+The above command stored the file @file{README} in a local block store
+under @code{$HOME/.chop-archiver} and printed an @dfn{index} that can
+later be used to restore the file.
+
+@item
+In @emph{retrieval mode}, with the @code{--restore} option,
+@code{chop-archiver} retrieves data pointed to by the given index:
+
+@example
+$ chop-archiver --restore \
+    tree_indexer:hash_block_fetcher:hash_index_handle:64::6jmb3wrbzyqpsngxybt4r4rxtctdo4o2/26
+@end example
+
+This command retrieves and decodes the data pointed by the given index
+and prints it on the standard output.
+
+@end enumerate
+
+The available options allow the customization of the storage process:
+
+@example
+chop-archiver --block-indexer sha256 -a README
+@end example
+
+The command above instructs @code{chop-archiver} to store the given file
+with content-based addressing, using @code{sha256} hashes of individual
+data blocks as their key.
+
+@example
+chop-archiver -i chk_block_indexer -I aes256,cbc,sha256,sha1 -a README
+@end example
+
+@cindex content-hash keys
+@cindex CHK
+This command uses content-hash keys (CHKs) to encrypt and name
+individual data blocks.  Data blocks are encrypted with the
+@code{aes256} symmetric cipher algorithm in @dfn{cipher block chaining}
+mode; the encryption key is the @code{sha256} hash of the cleartext data
+block.  Finally, the key associated with the resulting (encrypted) data
+block is the @code{sha1} hash of that block.
+
+The following command specifies that the input data should be chopped
+into data blocks using Udi Manber's chopping algorithm, trying to obtain
+blocks of 512 bytes on average:
+
+@example
+chop-archiver --chopper anchor_based_chopper --block-size 512 -a README
+@end example
+
+Finally, @code{chop-archiver} can be told to use a remote block store
+rather than a local on-disk store.  In that case requests to read and
+write data blocks are sent as @dfn{remote procedure calls} (RPCs) over
+the network:
+
+@example
+chop-archiver --remote `chop-store-discover -D1 | cut -f2` -a README
+@end example
+
+The above command sends data to whichever remote block store is found on
+the local network (assuming Avahi was available at compile time).  An
+implementation of a remote block store server is the
+@code{chop-block-server} tool (@pxref{Invoking chop-block-server}).
+
+The long list of available options follows:
+
+@table @option
+@item --archive=@var{file}
+@itemx -a @var{file}
+Archive @var{file} and print an @dfn{index handle}.  This index can be
+used for later retrieval with the @code{--restore} option.
+
+@item --restore=@var{index}
+@itemx -r @var{index}
+Restore a file's revision from @var{handle}, an index handle pointing to
+an archived data stream.
+
+@item --block-size=@var{size}
+@itemx -b @var{size}
+Choose a typical size of @var{size} bytes for the blocks produced by the
+chopper.
+
+@item --chopper=@var{chopper}
+@itemx -C @var{chopper}
+Use an instance of the class named @var{chopper} as the input stream
+chopper (@pxref{Stream Choppers}).
+
+@item --db-file=@var{file}
+@itemx -f @var{file}
+Write the block database to @var{file}.  By default,
+@code{chop-archiver} uses a block store under
+@code{$HOME/.chop-archiver}.
+
+@item --block-indexer-class=@var{bi-class}
+@itemx -i @var{bi-class}
+Use @var{bi-class} as the block-indexer class (@pxref{Block Indexers &
+Fetchers}).  This implies @code{-I}.  By default @code{chop-archiver}
+uses an instance of the @code{hash_block_indexer} class, which provides
+content-based addressing without encryption.
+
+@item --block-indexer=@var{bi}
+@itemx -I @var{bi}
+Deserialize @var{bi} as an instance of @var{bi-class} and use it.
+
+@item --indexer-class=@var{i-class}
+@itemx -k @var{i-class}
+Use @var{i-class} as the indexer class (@pxref{Stream Indexers}).  This
+implies @code{-K}.
+
+@item --indexer=@var{i}
+@itemx -K @var{i}
+Deserialize @var{i} as an instance of @var{i-class} and use it.
+
+@item --openpgp-pubkey=@var{pubkey-file}
+@itemx -o @var{pubkey-file}
+@itemx --openpgp-privkey=@var{privkey-file}
+@itemx -O @var{privkey-file}
+Use @var{pubkey-file} and @var{privkey-file} as the OpenPGP key pair to
+be used during TLS mutual authentication.  The files should contain
+base64-encoded OpenPGP keys.  This option is only available when GnuTLS
+was detected at configure time.
+
+@item --protocol=@var{proto}
+@itemx -p @var{proto}
+Use @var{proto} (one of @code{tls/tcp}, @code{tcp}, @code{udp} or
+@code{unix}) when communicating with the remote store specified with
+@code{--remote}.  Note that @code{tls/tcp} is only available when GnuTLS
+was detected at configure time.
+
+@item --remote=@var{host}
+@itemx -R @var{host}
+Use the remote block store located at @var{host} for both data and
+meta-data blocks; @var{host} may contain @code{:} followed by a port
+number.
+
+@item --show-stats
+@itemx -s
+Show statistics about the blocks that have been written (in archival
+mode).
+
+@item --store=@var{class}
+@itemx -S @var{class}
+Use @var{class} as the underlying file-based block store (@pxref{Block
+Stores}).
+
+@item --zip[=@var{zip-type}]
+@itemx -z@var{zip-type}
+Pass data blocks through a zip filter to compress (resp. decompress)
+data when writing (resp.  reading) to (resp. from) the archive
+(@pxref{Filters}).  @var{zip-type} should be one of @code{zlib},
+@code{bzip2}, or @code{lzo}.
+
+@item --zip-input[=@var{zip-type}]
+@itemx -Z@var{zip-type}
+Same as above, except that the zip filter is applied to the input data
+stream.
+
+@item --debug
+@itemx -d
+Produce debugging output and use a dummy block store (i.e., a block
+store that does nothing but print messages).
+
+@item --verbose
+@itemx -v
+Produce verbose output.
+
+@item --help
+Print a help message.
+
+@item --usage
+Print a short usage message.
+
+@item --version
+@itemx -V
+Print the program and libchop version.
+@end table
+
+
 @node Invoking chop-block-server
 @section Invoking @code{chop-block-server}
+
+@cindex @code{chop-block-server}
 
 The @code{chop-block-server} tool is an ONC RPC server that serves
 requests from the network to read and write data blocks.  It it similar
@@ -650,9 +852,9 @@ GnuTLS was detected at configure time.
 @itemx --openpgp-privkey=@var{privkey-file}
 @itemx -O @var{privkey-file}
 Use the OpenPGP public key from @var{pubkey-file} and the corresponding
-private key from @var{privkey-file} for TLS authentication.  These files
-must contain a base64-encoded OpenPGP key.  These options are available
-when GnuTLS was detected at configure time.
+private key from @var{privkey-file} for TLS mutual authentication.
+These files must contain a base64-encoded OpenPGP key.  These options
+are available when GnuTLS was detected at configure time.
 
 @item --store=@var{class}
 @itemx -S @var{class}
