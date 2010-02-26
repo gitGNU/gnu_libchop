@@ -37,7 +37,8 @@ dnl Checks for programs.
 AC_PROG_CC
 gl_EARLY
 AM_PROG_CC_C_O
-AC_PROG_LIBTOOL
+
+LT_INIT([disable-static])
 
 # Gnulib
 gl_INIT
