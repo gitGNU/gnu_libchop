@@ -40,6 +40,8 @@
 #include <sys/poll.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <setjmp.h>
+#include <signal.h>
 
 #include <argp.h>
 #include <progname.h>
@@ -66,6 +68,9 @@
 
 /* Whether to be verbose */
 static int verbose = 0;
+
+/* Continuation of the main program.  */
+static jmp_buf main_continuation;
 
 /* Name of the directory for configuration files under `$HOME'.  */
 #define CONFIG_DIRECTORY ".chop-block-server"
@@ -1136,6 +1141,34 @@ publish_service (void)
 #endif /* HAVE_AVAHI */
 
 
+/* Graceful exit.  */
+
+static void
+terminate (void)
+{
+  if (local_store != NULL)
+    {
+      chop_error_t err;
+
+      err = chop_store_close (local_store);
+      local_store = NULL;
+
+      if (err)
+	{
+	  chop_error (err, "while closing output block store");
+	  exit (EXIT_FAILURE);
+	}
+    }
+}
+
+static void
+signal_handler (int signum)
+{
+  /* Jump back to main ().  */
+  longjmp (main_continuation, 1);
+}
+
+
 /* The program.  */
 
 int
@@ -1245,6 +1278,9 @@ main (int argc, char *argv[])
 	}
     }
 
+  /* Register a termination handler.  */
+  atexit (terminate);
+
   transp = register_rpc_handlers ();
 
 #ifdef USE_AVAHI
@@ -1261,16 +1297,17 @@ main (int argc, char *argv[])
 
   /* Go ahead.  */
   info ("server is up and running");
-  svc_run ();
 
-  /* Never reached.  */
-  /* XXX:  Move to a signal handler?  */
-  err = chop_store_close ((chop_block_store_t *)local_store);
-  if (err)
+  if (!setjmp (main_continuation))
     {
-      chop_error (err, "while closing output block store");
-      exit (7);
+      signal (SIGINT, signal_handler);
+      signal (SIGTERM, signal_handler);
+
+      /* Never returns.  */
+      svc_run ();
     }
 
-  return 0;
+  terminate ();
+
+  return EXIT_SUCCESS;
 }
