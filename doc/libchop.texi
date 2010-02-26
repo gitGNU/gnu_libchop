@@ -36,7 +36,7 @@ Free Documentation License''.
 @titlepage
 @title The Libchop Data Storage Library
 @subtitle for Libchop @value{VERSION}
-@author Ludovic Courtès
+@author Ludovic Court@`es
 
 @page
 @vskip 0pt plus 1filll
@@ -71,7 +71,7 @@ This document describes libchop version @value{VERSION}.
 * Utilities::                   Command-line interface to libchop.
 * Guile Bindings::              Using libchop from GNU Guile.
 * References::                  Worthy readings.
-* GNU Free Documentation License::  The license of this manual
+* GNU Free Documentation License::  The license of this manual.
 * Concept Index::               Concepts.
 * Function Index::              Functions.
 @end menu
@@ -107,14 +107,16 @@ how they fit together.  The next one will give an insight on typical
 use cases of the techniques and algorithms implemented by Libchop.
 
 @menu
-* Overview::                    
-* Use Cases::                   
+* Overview::                    What libchop provides.
+* Use Cases::                   Applications that could use libchop.
 @end menu
 
 @node Overview
 @section Overview
 
 @cindex pipeline
+@cindex index handle
+
 Libchop, as a file chopping and indexing framework, defines several
 fine-grain interfaces for that purpose.  Objects implementing those
 interfaces may be composed together to form a @dfn{file chopping
@@ -133,28 +135,28 @@ contents) as a stream;
 @item the @dfn{chopper} interface, given an input stream, splits this
 input and returns block(s);
 @cindex block indexer
-@item the @dfn{block indexer} (resp. the @dfn{block fetcher}) interface which
-allows to name and store a single block of data (resp. to retrieve a
-single block of data given its name);
+@item the @dfn{block indexer} (resp. the @dfn{block fetcher}) interface
+deals with the naming and storage a single data block (resp. the
+retrieval of a single data block given its name);
 @cindex stream indexer
 @cindex indexer
-@item the @dfn{stream indexer} interface which allows to name and
-store a whole byte stream cut into pieces (resp. to retrieve a byte
-stream given its name and a block store);
+@item the @dfn{stream indexer} is responsible for the
+storage of a series of data blocks along with meta-data describing how
+these blocks relate to each other; when retrieving a byte stream, the
+stream indexers reads the meta-data and assembles data blocks
+accordingly;
 @cindex block store
 @cindex store
-@item the @dfn{block store} interface which allows to store single
-data blocks under a specific name (or to restore a single block given
-its name).
+@item the @dfn{block store} is an interface for the storage of key/data
+pairs, allowing the contents of data blocks to be associated with a key.
 @end itemize
 
-Typically, the data flow in a stream indexing pipeline will look like
-this:
+The data flow in a stream indexing pipeline will look like this:
 
 @verbatim
                        ,--  block indexer --.
                        |         ^          |
-                       |         |          |
+                       v         |          |
 stream ----> chopper --+-> stream indexer --+-> block store
 @end verbatim
 
@@ -200,45 +202,58 @@ under Unix.  Libchop provides a number of filters that may be used for
 this purpose, such as zlib/bz2 unzip/zip filters, or public-key
 ciphering filters.  The user can then create a filtered stream (via
 @code{chop_filtered_stream_open ()}) or a filtered block store (via
-@code{chop_filtered_store_open ()}) in order to make use of them.
+@code{chop_filtered_store_open ()}) in order to make use of them
+(@pxref{Filters}).
 
 @node Use Cases
 @section Use Cases
 
 File chopping and indexing techniques are used in a wide range of
-applications, including distributed storage, peer-to-peer file
-sharing, archival, backup, and revision control.  Each of these
-classes of application has specific requirements, and each particular
-design in these classes adds its own specificities.
+applications, including distributed storage, peer-to-peer file sharing,
+archival, backup, and revision control.  Each of these classes of
+application has specific requirements, and each particular design in
+these classes has its own particularities.
 
-Anonymous peer-to-peer file sharing systems like GNUnet and FreeNet
-both use the same particular configurations of the above pipeline.
-Roughly, they use a fixed-size stream chopper (e.g. in GNUnet 0.7,
-input files are chopped into 32 kB blocks) and some form of a
-CHK@footnote{@dfn{CHK} means ``content-hash key''.  See @xref{Stream
-Choppers}, for details.} block indexer.  GNUnet uses a tree stream
-indexer.  In GNUnet, this whole encoding configuration is called
-@dfn{ECRS}.  Obviously, both projects use a completely distributed
+Anonymous peer-to-peer file sharing systems like GNUnet and FreeNet both
+use the same particular configurations of the above pipeline
+(@pxref{References, GNUnet}).  Roughly, they use a fixed-size stream
+chopper (e.g. in GNUnet 0.7, input files are chopped into 32 kB blocks)
+and some form of a CHK@footnote{@dfn{CHK} means ``content-hash key''.
+@xref{Stream Choppers}, for details.} block indexer.  GNUnet uses a
+tree stream indexer.  In GNUnet, this whole encoding configuration is
+called @dfn{ECRS}.  The Tahoe-LAFS distributed file system uses similar
+techniques, with the addition of erasure coding as the ``chopper'', an
+option currently not available in libchop (@pxref{References,
+Tahoe-LAFS}).  Obviously, these projects use a completely distributed
 block store underneath.
 
 The @dfn{write-once read many} (WORM) archival system Venti (used in
 Plan 9) uses a tree indexer and a content-based block indexer.  Venti
-chops files into fixed-size blocks.
+chops files into fixed-size blocks (@pxref{References, Venti}).
 
-Recent revision control systems (like Monotone, GIT, Mercurial,
-@code{revc}, Bazaar 2, etc.) do not cut file into pieces.  Therefore,
-they do not require a stream indexer since each input file yields one
-block.  However, they index files using a content-based block indexer,
-which guarantees single-instance storage and integrity verification.
+Recent distributed version control systems (such as Monotone, Git,
+Mercurial, Bazaar, etc.) typically do not cut file into pieces.
+Therefore, they do not require a stream indexer since each input file
+yields one block.  However, they index files using a content-based block
+indexer, which guarantees single-instance storage and integrity
+verification.
 
 Rsync uses content-based indexing as well in order to reduce the
 amount of data to be transferred when synchronizing copies of a set of
 files across different machines over the network.
 
+Libchop is modular, which makes it possible to combine various storage
+techniques such as those described above.  For a detailed discussion of
+the trade-offs involved, @ref{References, Documents related to libchop}.
+
 
 @c *********************************************************************
 @node API Reference
 @chapter API Reference
+
+@c FIXME
+This chapter is currently largely incomplete.  Please refer to the
+documentation in the libchop header files.
 
 @menu
 * Input Streams::               
@@ -335,29 +350,22 @@ true, then closing @var{stream} will destroy @var{filter}.
 Libchop comes with its own lightweight reflexive object system defined
 in the @code{<chop/objects.h>} header file.  Given that it is a
 reflexive object system, type information is available at run-time.
-While this may seem, at first, like a lot of overhead for little
-benefits, it certainly offers some advantages compared to Glib's
-object system.
+With little overhead, this object system greatly improves the
+flexibility of the library.  The @code{chop-archiver} command line tool
+illustrates how type introspection can be leveraged to provide more
+flexibility (@pxref{Invoking chop-archiver}).
 
 @cindex binary compatibility
-In particular, libchop's object system can be used to provide binary
-compatibility with almost no gratuitous overhead: the size of a given
-class' instances can be known at run-time, which allows for caller
-allocation.  Callers can allocate objects of a given class as they
-prefer (e.g. on the stack) while still having binary compatilibity
-accross changes of a class' fields layout.
-
-This is, a lightweight approach compared to the Glib family of
-libraries where binary compatibility is achieved at the cost of
-removing the possibility for caller memory allocation: constructors do
-not only initialize an object, they also allocate its storage on the
-heap.
-
-That said, libchop's object system have a lot in common with C++,
-except that it cannot benefit from the compiler's help (e.g. to manage
-type inheritance at compile-time, to automatically generate the
-invocation of an object's destructor when needed, etc.).  On the other
-hand, it provides real reflection and gives more flexibility.
+Libchop's object system can be used to provide binary compatibility with
+little overhead: the size of a given class' instances can be known at
+run-time, which allows for caller allocation.  Callers can allocate
+objects of a given class as they prefer (e.g. on the stack) while
+remaining binary-compatible should the class layout
+change.@footnote{Conversely, the Glib family of libraries achieves
+binary compatibility at the cost of removing the possibility for caller
+memory allocation: constructors do not only initialize an object, they
+also allocate its storage on the heap.  The situation in C++ is often
+similar, but C++ has the advantage of having compiler support.}
 
 Let's have a closer look at it.
 
@@ -459,7 +467,7 @@ It is important to note that all libchop objects must be destroyed
 using @code{chop_object_destroy ()}, regardless of where they are
 stored in memory.
 
-Another way to instantiate an object is described in @xref{Cloning an
+Another way to instantiate an object is described in @ref{Cloning an
 Object}.
 
 
@@ -881,14 +889,45 @@ Produce verbose output.
 @node References
 @chapter References
 
+Free software related to libchop:
+
 @table @asis
 
 @item Plan 9's Venti archival storage server
 @url{http://plan9.bell-labs.com/magic/man2html/8/venti}
 
-@item Venti: a new approach to archival storage
-Sean Quinlan and Sean Dorward,
-@url{http://plan9.bell-labs.com/sys/doc/venti/venti.html}
+@item GNUnet, GNU's decentralized anonymous and censorship-resistant peer-to-peer framework
+@url{http://gnunet.org/}
+
+@item Tahoe-LAFS, a secure, decentralized, data store
+@url{http://allmydata.org/trac/tahoe-lafs}
+
+@end table
+
+Documents related to libchop:
+
+@table @asis
+
+@item Cooperative Data Backup for Mobile Devices
+Ludovic Court@`es (PhD thesis), 2007,
+@url{http://tel.archives-ouvertes.fr/tel-00196822/en/}.  Chapter 4
+discusses the design of libchop.  It contains an evaluation of several
+storage strategies using libchop in terms of storage efficiency and
+computational cost, for various types of input files.
+
+@item Storage Tradeoffs in a Collaborative Backup Service for Mobile Devices
+Ludovic Court@`es et al., 2006,
+@url{http://hal.archives-ouvertes.fr/hal-00187069/en/}.  This paper
+provides a summary of the above.
+
+@end table
+
+Other readings:
+
+@table @asis
+
+@item @url{http://plan9.bell-labs.com/sys/doc/venti/venti.html, Venti: a new approach to archival storage}
+Sean Quinlan and Sean Dorward.
 
 @end table
 
