@@ -1,0 +1,67 @@
+Libchop is a file hashing, ciphering, and indexing library, available
+under the terms of the [[http://www.gnu.org/licenses/gpl.html][GNU General Public License]].  In a nutshell,
+libchop provides mechanisms to:
+
+  1. cut a file into pieces, store each of these blocks into a block
+     store, and return an "abstract index" containing all the
+     information necessary to retrieve the file;
+
+  2. restore (rebuild) a file based on an abstract index, reading
+     blocks from one (or several) block stores and decoding them
+     according to the methods specified by the abstract index.
+
+Libchop decomposes these task with a fine grain, providing generic
+interfaces for each of the sub-tasks involved.  It also comes with
+several implementations of each of these interfaces, allowing various
+storage strategies to be quickly experimented and compared.
+Implementations of these interfaces provide storage techniques such as
+content-based addressing, content-hash keys, lossless compression, and
+similarity detection.
+
+Libchop was initially developed as part of the author's [[http://tel.archives-ouvertes.fr/tel-00196822/en/][PhD thesis]] in
+the [[http://www.laas.fr/mosaic/][MoSAIC project]].
+
+* Releases
+
+Releases are available from [[http://download.savannah.gnu.org/releases/libchop/][your nearest Savannah mirror]] (or from
+[[http://download.savannah.gnu.org/releases-noredirect/libchop/][Savannah itself]]).
+
+* Documentation
+
+  - The (incomplete) reference manual is part of the source distribution
+    in GNU Texinfo form.  It can also be [[./manual/libchop.html][browsed on-line]].
+
+  - [[http://hal.archives-ouvertes.fr/hal-00187069/en/][/Storage Tradeoffs in a Collaborative Backup Service for Mobile
+    Devices/]] presents the motivation behind libchop along with
+    experimental results comparing several storage strategies.
+
+  - Chapter 4 of [[http://tel.archives-ouvertes.fr/tel-00196822/en/][/Cooperative Data Backup for Mobile Devices/]] provides
+    additional details and results, for the insatiable.
+
+* Mailing List
+
+A mailing list for bug reports and general discussion is available at
+[[mailto:libchop-devel@nongnu.org][<libchop-devel@nongnu.org>]]. You can [[http://lists.nongnu.org/mailman/listinfo/libchop-devel][subscribe]] to the mailing list and
+[[http://lists.gnu.org/pipermail/libchop-devel/][view the list archive]].
+
+* Development
+
+Development occurs using the Git distributed revision control system.  A
+copy of the source code repository can be obtained using the following
+command:
+
+#+BEGIN_SRC sh
+git clone git://git.sv.gnu.org/libchop.git
+#+END_SRC
+
+The repository can be [[http://git.savannah.gnu.org/cgit/libchop.git][browsed on-line]].
+
+Additional information is available from the [[http://savannah.nongnu.org/projects/libchop][Savannah project page]]. 
+
+Test coverage information is [[./coverage/][available here]].
+
+[[http://www.gnu.org/graphics/gplv3-127x51.png]]
+
+#+TITLE: libchop, a utility library for distributed storage and data backup
+#+OPTIONS: toc:nil num:nil author:nil timestamp:nil creator:nil
+#+LANGUAGE: en
