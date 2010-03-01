@@ -1,1 +1,13 @@
-No news.
+-*- Org -*-
+
+Changes in 0.3 (since 0.2)
+
+* Packaging
+** GNU gperf is now required
+
+
+Copyright (C) 2010  Ludovic Courtès <ludo@gnu.org>
+
+  Copying and distribution of this file, with or without modification,
+  are permitted in any medium without royalty provided the copyright
+  notice and this notice are preserved.
