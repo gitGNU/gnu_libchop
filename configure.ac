@@ -224,15 +224,12 @@ AC_CHECK_FUNCS([cuserid])
 # Checkpoint the cache
 AC_CACHE_SAVE
 
-# Look for GNU Gperf (used for O(1) class lookup).
-AC_PATH_PROG([gperf], [gperf], [not-found])
-AM_CONDITIONAL([HAVE_GPERF], [test "x$gperf" != "xnot-found"])
-if test "x$gperf" != "xnot-found"; then
-  AC_SUBST([GPERF], [$gperf])
-  AC_DEFINE([HAVE_GPERF], 1, [Tells whether GNU Gperf is available.])   
-else
-  AC_MSG_WARN([Class lookup by name will not be compiled in])
+dnl Look for GNU Gperf (used for O(1) class lookup).
+AC_PATH_PROG([GPERF], [gperf])
+if test "x$ac_cv_path_GPERF" = "x"; then
+   AC_MSG_ERROR([GNU Gperf not found.  Please install it.])
 fi
+AC_SUBST([GPERF])
 
 if test "x$produce_guile_bindings" = "xyes"; then
   # Check for Guile and G-Wrap

@@ -171,14 +171,11 @@ $(top_builddir)/include/chop/block_rstore.h: block_rstore.h
 block_rstore.h: $(rpc_interface)
 	$(RPCGEN) -h < $^ > $@
 
-if HAVE_GPERF
 
 BUILT_SOURCES += class-lookup.c
 
 class-lookup.c: $(libchop_la_SOURCES)
 	$(srcdir)/extract-classes.sh $^ | \
 	$(GPERF) -t -C -N chop_lookup_class_entry > $@
-
-endif
 
 CLEANFILES = $(BUILT_SOURCES) $(nodist_libchop_la_SOURCES)

@@ -886,9 +886,7 @@ static const chop_zip_filter_class_t   *zip_filter_class = NULL;
 static const chop_unzip_filter_class_t *unzip_filter_class = NULL;
 
 
-#ifdef HAVE_GPERF
 static char *file_based_store_class_name = "gdbm_block_store";
-#endif
 
 static struct argp_option options[] =
   {
@@ -900,10 +898,9 @@ static struct argp_option options[] =
       "Pass data through a ZIP-TYPE filter to compress (resp. decompress) "
       "data when writing (resp. reading) to (resp. from) the archive.  "
       "ZIP-TYPE may be one of `zlib', `bzip2' or `lzo', for instance." },
-#ifdef HAVE_GPERF
     { "store",   'S', "CLASS", 0,
       "Use CLASS as the underlying file-based block store" },
-#endif
+
     /* Content hashing.  */
     { "enforce-hash", 'H', "ALGO", 0,
       "Enforce content-hash algorithm ALGO" },
@@ -995,11 +992,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
       service_port = atoi (arg);
       break;
 
-#ifdef HAVE_GPERF
     case 'S':
       file_based_store_class_name = arg;
       break;
-#endif
 
     case 'C':
       no_collision_check = 1;
@@ -1194,7 +1189,7 @@ main (int argc, char *argv[])
     {
       /* Use two GDBM stores.  */
       const chop_file_based_store_class_t *db_store_class;
-#ifdef HAVE_GPERF
+
       db_store_class = (chop_file_based_store_class_t *)
 	chop_class_lookup (file_based_store_class_name);
       if (!db_store_class)
@@ -1209,9 +1204,6 @@ main (int argc, char *argv[])
 		file_based_store_class_name);
 	  exit (1);
 	}
-#else
-      db_store_class = &chop_gdbm_block_store_class;
-#endif
 
       local_store = (chop_block_store_t *)
 	chop_class_alloca_instance ((chop_class_t *)db_store_class);

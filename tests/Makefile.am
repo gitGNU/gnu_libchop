@@ -23,11 +23,8 @@ check_PROGRAMS =				\
   interfaces/choppers				\
   interfaces/cipher				\
   interfaces/block-indexers			\
-  interfaces/indexers
-
-if HAVE_GPERF
-check_PROGRAMS += interfaces/class-lookup
-endif
+  interfaces/indexers				\
+  interfaces/class-lookup
 
 check_PROGRAMS +=				\
   features/filter-zip				\

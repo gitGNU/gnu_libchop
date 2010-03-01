@@ -35,17 +35,9 @@ Libchop primarily targets the GNU system (i.e. GNU C compiler and GNU C
 library), although porting it to other systems shouldn't be too hard
 (especially with the help of Gnulib).
 
-If building from scratch:
-
-  GNU Autoconf 2.59
-  GNU Automake 1.11
-
-Optional (but highly recommended) build dependency:
-
-  GNU Gperf
-
 Mandatory dependencies:
 
+  GNU gperf
   GNU libgcrypt 1.2
   Sun/ONC RPC framework (part of the GNU C Library)
 
@@ -66,6 +58,13 @@ then you'll need the following:
 
   GNU Guile 1.8
   G-Wrap 1.9.7 or later
+
+If building from a fresh checkout:
+
+  GNU Autoconf 2.59
+  GNU Automake 1.11
+  GNU Libtool
+  GNU Gnulib
 
 And that's it.
 

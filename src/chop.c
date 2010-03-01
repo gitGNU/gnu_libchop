@@ -511,8 +511,6 @@ chop_object_destroy (chop_object_t *object)
 
 /* Class lookup by name (when GPerf is available).  */
 
-#ifdef HAVE_GPERF
-
 /* The following header declares a class.  */
 #include <chop/store-stats.h>
 
@@ -561,10 +559,6 @@ chop_class_lookup (const char *name)
 
   return ((chop_class_t *)entry->class);
 }
-
-#else
-# warning "`chop_class_lookup ()' not compiled in."
-#endif
 
 
 /* Block keys helper functions.  */

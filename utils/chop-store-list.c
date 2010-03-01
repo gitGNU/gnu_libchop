@@ -41,18 +41,14 @@ block store available in FILE.\n";
 
 static struct argp_option options[] =
   {
-#ifdef HAVE_GPERF
     { "store",   'S', "CLASS", 0,
       "Use CLASS as the underlying file-based block store" },
-#endif
     { 0, 0, 0, 0, 0 }
   };
 
 static char args_doc[] = "FILE";
 
-#ifdef HAVE_GPERF
 static char *file_based_store_class_name = "gdbm_block_store";
-#endif
 
 /* File name for the store being examined.  */
 static char *store_name = NULL;
@@ -65,11 +61,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
 {
   switch (key)
     {
-#ifdef HAVE_GPERF
     case 'S':
       file_based_store_class_name = arg;
       break;
-#endif
     case ARGP_KEY_ARG:
       if (state->arg_num >= 1)
 	/* Too many arguments. */
@@ -113,7 +107,6 @@ main (int argc, char *argv[])
   argp_parse (&argp, argc, argv, 0, &arg_index, 0);
 
 
-#ifdef HAVE_GPERF
   /* Lookup the user-specified store class.  */
   db_store_class = chop_class_lookup (file_based_store_class_name);
   if (!db_store_class)
@@ -130,10 +123,6 @@ main (int argc, char *argv[])
 	       argv[0], file_based_store_class_name);
       exit (1);
     }
-#else
-  /* Default:  Use the GDBM store.  */
-  db_store_class = (chop_class_t *)&chop_gdbm_block_store_class;
-#endif
 
   store = (chop_block_store_t *)
     chop_class_alloca_instance ((chop_class_t *)db_store_class);

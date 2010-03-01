@@ -127,14 +127,12 @@ static int use_dbus = 0;
 #endif
 
 
-#ifdef HAVE_GPERF
 static char *file_based_store_class_name = "gdbm_block_store";
 static char *chopper_class_name = "fixed_size_chopper";
 static char *indexer_class_name = "tree_indexer";
 static char *indexer_ascii = "64"; /* 100 keys per block */
 static char *block_indexer_class_name = "hash_block_indexer";
 static char *block_indexer_ascii = "SHA1";
-#endif
 
 static struct argp_option options[] =
   {
@@ -177,7 +175,7 @@ static struct argp_option options[] =
       "Use PRIVKEY-FILE as the OpenPGP key to be used during TLS "
       "authentication" },
 #endif
-#ifdef HAVE_GPERF
+
     { "store",   'S', "CLASS", 0,
       "Use CLASS as the underlying file-based block store" },
     { "chopper", 'C', "CHOPPER", 0,
@@ -190,7 +188,6 @@ static struct argp_option options[] =
       "Use BI-CLASS as the block-indexer class.  This implies `-I'." },
     { "block-indexer", 'I', "BI", 0,
       "Deserialize BI as an instance of BI-CLASS and use it." },
-#endif
 
 #ifdef HAVE_DBUS
     { "dbus", 'D', 0, 0,
@@ -221,16 +218,6 @@ do_archive (chop_stream_t *stream, chop_block_store_t *data_store,
   chop_block_indexer_t *block_indexer;
   chop_index_handle_t *handle;
 
-#ifndef HAVE_GPERF
-  block_indexer = chop_class_alloca_instance (&chop_hash_block_indexer_class);
-  err = chop_hash_block_indexer_open (CHOP_HASH_SHA1,
-				      block_indexer);
-  if (err)
-    {
-      chop_error (err, "while opening hash block indexer");
-      return err;
-    }
-#else
   {
     size_t bytes_read = 0;
     const chop_class_t *block_indexer_class;
@@ -267,7 +254,6 @@ do_archive (chop_stream_t *stream, chop_block_store_t *data_store,
       fprintf (stderr, "%s: warning: %zu: trailing garbage in block-indexer\n",
 	       program_name, bytes_read);
   }
-#endif
 
   handle = chop_block_indexer_alloca_index_handle (block_indexer);
   err = chop_indexer_index_blocks (indexer, chopper, block_indexer,
@@ -472,7 +458,6 @@ process_command (const char *argument,
 	    chop_log_attach (chop_filter_log (zip_filter), 2, 0);
 	}
 
-#ifdef HAVE_GPERF
       indexer_class = chop_class_lookup (indexer_class_name);
       if (!indexer_class)
 	{
@@ -487,9 +472,6 @@ process_command (const char *argument,
 		   program_name, indexer_class_name);
 	  exit (1);
 	}
-#else
-      indexer_class = &chop_tree_indexer_class;
-#endif
 
       indexer = chop_class_alloca_instance (indexer_class);
       err = chop_object_deserialize ((chop_object_t *)indexer,
@@ -506,7 +488,6 @@ process_command (const char *argument,
       if (verbose)
 	log_indexer (indexer);
 
-#ifdef HAVE_GPERF
       chopper_class =
 	(chop_chopper_class_t *)chop_class_lookup (chopper_class_name);
       if (!chopper_class)
@@ -522,9 +503,6 @@ process_command (const char *argument,
 		   program_name, chopper_class_name);
 	  exit (1);
 	}
-#else
-      chopper_class = &chop_fixed_size_chopper_class;
-#endif
 
       chopper = chop_class_alloca_instance ((chop_class_t *)chopper_class);
       err = chop_chopper_generic_open (chopper_class, stream,
@@ -748,7 +726,6 @@ parse_opt (int key, char *arg, struct argp_state *state)
       break;
 #endif
 
-#ifdef HAVE_GPERF
     case 'S':
       file_based_store_class_name = arg;
       break;
@@ -767,7 +744,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
     case 'I':
       block_indexer_ascii = arg;
       break;
-#endif
+
 #ifdef HAVE_DBUS
     case 'D':
       use_dbus = 1;
@@ -852,7 +829,7 @@ main (int argc, char *argv[])
 	{
 	  /* Use two GDBM stores.  */
 	  const chop_file_based_store_class_t *db_store_class;
-#ifdef HAVE_GPERF
+
 	  db_store_class = (chop_file_based_store_class_t *)
 	    chop_class_lookup (file_based_store_class_name);
 	  if (!db_store_class)
@@ -869,9 +846,6 @@ main (int argc, char *argv[])
 		       argv[0], file_based_store_class_name);
 	      exit (1);
 	    }
-#else
-	  db_store_class = &chop_gdbm_block_store_class;
-#endif
 
 	  store = (chop_block_store_t *)
 	    chop_class_alloca_instance ((chop_class_t *)db_store_class);

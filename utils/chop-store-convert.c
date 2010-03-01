@@ -21,8 +21,6 @@
 
 #include <chop/chop.h>
 
-#ifdef HAVE_GPERF
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
@@ -267,21 +265,3 @@ main (int argc, char *argv[])
 
   return (err ? 1 : 0);
 }
-
-
-#else /* HAVE_GPERF */
-
-#include <stdlib.h>
-#include <stdio.h>
-
-int
-main (int argc, char *argv[])
-{
-  fprintf (stderr, "chop-store-convert:  Sorry, you need `gperf' at "
-	   "compile-time to\n");
-  fprintf (stderr, "                     compile this program.\n\n");
-
-  return 1;
-}
-
-#endif /* HAVE_GPERF */
