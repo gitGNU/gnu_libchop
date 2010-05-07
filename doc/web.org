@@ -1,6 +1,11 @@
-Libchop is a file hashing, ciphering, and indexing library, available
-under the terms of the [[http://www.gnu.org/licenses/gpl.html][GNU General Public License]].  In a nutshell,
-libchop provides mechanisms to:
+[[file:libchop-icon.png][file:libchop-icon.png]]
+
+Libchop is a library for distributed storage and data backup, available
+under the terms of the [[http://www.gnu.org/licenses/gpl.html][GNU General Public License]].  It was initially
+designed as a building block for a [[http://tel.archives-ouvertes.fr/tel-00196822/en/][cooperative data backup system]].
+
+Libchop features file hashing, ciphering, and indexing. In a nutshell,
+it provides mechanisms to:
 
   1. cut a file into pieces, store each of these blocks into a block
      store, and return an "abstract index" containing all the
@@ -65,3 +70,4 @@ Test coverage information is [[./coverage/][available here]].
 #+TITLE: libchop, a utility library for distributed storage and data backup
 #+OPTIONS: toc:nil num:nil author:nil timestamp:nil creator:nil
 #+LANGUAGE: en
+#+INFOJS_OPT: view:showall toc:nil
