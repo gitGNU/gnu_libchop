@@ -18,6 +18,8 @@
 /* Convergent encryption.  The resulting index is also referred to as a
    ``content hash key'' in GNUnet/FreeNet terms.  */
 
+#include <chop/chop-config.h>
+
 #include <alloca.h>
 
 #include <chop/chop.h>

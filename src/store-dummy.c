@@ -17,6 +17,8 @@
 
 /* A dummy block store for debugging purposes.  */
 
+#include <chop/chop-config.h>
+
 #include <alloca.h>
 
 #include <chop/chop.h>
