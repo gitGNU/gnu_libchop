@@ -51,3 +51,9 @@ xsize.m4
 /strnlen.m4
 /sysexits.m4
 /vsnprintf.m4
+/asm-underscore.m4
+/safe-read.m4
+/safe-write.m4
+/ssize_t.m4
+/wchar_h.m4
+/write.m4
