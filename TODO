@@ -19,6 +19,7 @@ Copyright 2010  Ludovic Courtès <ludo@gnu.org>
 ** Publish `archival-server' perhaps under the name "Anemoi"
 * Storage
 ** Use Gnulib's `full_read' in stream-file.c
+** Have `hash_block_fetch' actually check data integrity when possible
 ** Add recursive directory archival to `chop-archiver' [0/2]
 
   - [ ] Add support in `chop-archiver', a `--recursive' option.
@@ -52,6 +53,8 @@ chop_directory_stream_open (int dirfd,
 			    void *closure);
 #+END_SRC
 
+    See ideas from [[http://repo.or.cz/w/git.git/blob/HEAD:/Documentation/technical/api-tree-walking.txt][Git]].
+
 ** Implement a file system based block store (à la Git).
 
 Possibly have it work over FTP, SFTP, etc., though we don't want to
@@ -67,8 +70,17 @@ Though it may not be that useful...
 
 ** Experiment with simple erasure codes, like B-Codes.  Not sure this belong
    to libchop though.
+
+Could try with [[http://www.ka9q.net/code/fec/][FEC]] (LGPL).
+
+See also [[http://itpp.sourceforge.net/current/reedsolomon.html][IT++]].
+
 ** Add support for Camellia, Serpent, etc.
 ** Add a GPGME encryption/decryption filter
+** Borrow ideas from Git's packs?
+
+http://repo.or.cz/w/git.git?a=blob;f=Documentation/technical/pack-format.txt
+
 * User interface
 ** Have `chop-archiver' take fd numbers instead of paths, to honor POLA
 
