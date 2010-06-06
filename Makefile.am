@@ -27,7 +27,7 @@ SUBDIRS += tests
 
 EXTRA_DIST = rpc/block_rstore.x
 
-dist-hook: gen-ChangeLog
+dist-hook: gen-ChangeLog gen-tarball-version
 
 .PHONY: gen-ChangeLog
 gen-ChangeLog:
@@ -37,3 +37,10 @@ gen-ChangeLog:
 	  rm -f $(distdir)/ChangeLog;			\
 	  mv $(distdir)/cl-t $(distdir)/ChangeLog;	\
 	fi
+
+BUILT_SOURCES = $(top_srcdir)/.version
+$(top_srcdir)/.version:
+	echo $(VERSION) > $@-t && mv $@-t $@
+gen-tarball-version:
+	echo $(VERSION) > $(distdir)/.tarball-version
+.PHONY: gen-tarball-version
