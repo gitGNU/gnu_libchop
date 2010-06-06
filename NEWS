@@ -2,8 +2,21 @@
 
 Changes in 0.3 (since 0.2)
 
+* New features
+
+** New file system based block store
+
+The `chop_fs_block_store' stores data blocks as a tree of files in the
+user's file system, in a way similar to what Git does.  The main
+advantage is its file system interface.  It makes it easy to rsync it to
+a remote site, for instance, which can be useful when the remote site
+cannot run `chop-block-server' or similar.
+
 * Packaging
+
 ** GNU gperf is now required
+
+** A C99 compiler is now required (instead of C89)
 
 
 Copyright (C) 2010  Ludovic Courtès <ludo@gnu.org>
