@@ -186,6 +186,7 @@ extern const chop_file_based_store_class_t chop_gdbm_block_store_class;
 extern const chop_file_based_store_class_t chop_tdb_block_store_class;
 extern const chop_file_based_store_class_t chop_bdb_block_store_class;
 extern const chop_file_based_store_class_t chop_qdbm_block_store_class;
+extern const chop_file_based_store_class_t chop_fs_block_store_class;
 extern const chop_class_t chop_sunrpc_block_store_class;
 extern const chop_class_t chop_dbus_block_store_class;
 extern const chop_class_t chop_smart_block_store_class;
@@ -246,6 +247,14 @@ extern chop_error_t chop_qdbm_store_open (const char *name, size_t block_size,
 
 /* XXX:  Implement a store for SkipDB,
    http://www.dekorte.com/projects/opensource/SkipDB/ .  */
+
+/* Open a file system based block store rooted at DIR_FD, an open file
+   descriptor to a directory.  On success, return 0 and initialize STORE.  If
+   EVENTUALLY_CLOSE is non-zero, close DIR_FD when the returned store is
+   closed or destroyed.  */
+extern chop_error_t chop_fs_store_open (int dir_fd,
+					int eventually_close,
+					chop_block_store_t *store);
 
 /* This function is a simple version of the GDBM/TDB block store open
    functions which it just calls.  The first argument gives the pointer to

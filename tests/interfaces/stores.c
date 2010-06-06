@@ -36,6 +36,7 @@ main (int argc, char *argv[])
   static const chop_file_based_store_class_t *classes[] =
     {
       &chop_gdbm_block_store_class,
+      &chop_fs_block_store_class,
 #ifdef HAVE_TDB
       &chop_tdb_block_store_class,
 #endif
@@ -51,7 +52,7 @@ main (int argc, char *argv[])
 
   chop_error_t err;
   const chop_file_based_store_class_t **class;
-  char random_bytes[256];
+  char random_bytes[64];
   chop_block_key_t random_key;
   chop_buffer_t buffer;
 
