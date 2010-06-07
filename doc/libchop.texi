@@ -595,7 +595,7 @@ index (@pxref{Block Indexers & Fetchers}):
 
 @example
 $ chop-archiver --archive README
-tree_indexer:hash_block_fetcher:hash_index_handle:64::6jmb3wrbzyqpsngxybt4r4rxtctdo4o2/26
+tree_indexer:hash_block_fetcher:hash_index_handle:64:sha1:6jmb3wrbzyqpsngxybt4r4rxtctdo4o2/26
 @end example
 
 @cindex index handle
@@ -609,7 +609,7 @@ In @emph{retrieval mode}, with the @code{--restore} option,
 
 @example
 $ chop-archiver --restore \
-    tree_indexer:hash_block_fetcher:hash_index_handle:64::6jmb3wrbzyqpsngxybt4r4rxtctdo4o2/26
+    tree_indexer:hash_block_fetcher:hash_index_handle:64:sha1:6jmb3wrbzyqpsngxybt4r4rxtctdo4o2/26
 @end example
 
 This command retrieves and decodes the data pointed by the given index

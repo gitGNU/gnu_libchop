@@ -18,6 +18,8 @@
 /* Content-based addressing, also sometimes referred to as
    ``compare-by-hash''.  */
 
+#include <chop/chop-config.h>
+
 #include <alloca.h>
 
 #include <chop/chop.h>
@@ -274,7 +276,7 @@ CHOP_DEFINE_RT_CLASS (hash_index_handle, index_handle,
 
 /* The fetcher class.  */
 CHOP_DECLARE_RT_CLASS (hash_block_fetcher, block_fetcher,
-		       /* Nothing, easy.  */
+		       chop_hash_method_t hash_method;
 		       chop_log_t log;);
 
 static chop_error_t hash_block_fetch (chop_block_fetcher_t *,
@@ -288,9 +290,11 @@ hbf_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_hash_block_fetcher_t *fetcher;
 
-  fetcher = (chop_hash_block_fetcher_t *)object;
+  fetcher = (chop_hash_block_fetcher_t *) object;
   fetcher->block_fetcher.fetch_block = hash_block_fetch;
   fetcher->block_fetcher.index_handle_class = &chop_hash_index_handle_class;
+
+  fetcher->hash_method = CHOP_HASH_NONE;
 
   return chop_log_init ("hash-block-fetcher", &fetcher->log);
 }
@@ -311,8 +315,33 @@ static chop_error_t
 hbf_serialize (const chop_object_t *object, chop_serial_method_t method,
 	       chop_buffer_t *buffer)
 {
-  /* Stateless.  */
-  return 0;
+  chop_error_t err;
+  chop_hash_block_fetcher_t *fetcher;
+
+  fetcher = (chop_hash_block_fetcher_t *) object;
+
+  switch (method)
+    {
+    case CHOP_SERIAL_ASCII:
+      if (fetcher->hash_method != CHOP_HASH_NONE)
+	{
+	  char *name, *p;
+
+	  name = strdupa (chop_hash_method_name (fetcher->hash_method));
+	  for (p = name; *p; p++)
+	    *p = tolower (*p);
+
+	  err = chop_buffer_push (buffer, name, strlen (name) + 1);
+	}
+      else
+	err = 0;
+      break;
+
+    default:
+      err = CHOP_ERR_NOT_IMPL;
+    }
+
+  return err;
 }
 
 static chop_error_t
@@ -320,13 +349,55 @@ hbf_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 		 chop_object_t *object, size_t *bytes_read)
 {
   chop_error_t err;
+  chop_hash_block_fetcher_t *fetcher;
+
+  fetcher = (chop_hash_block_fetcher_t *) object;
 
   err = chop_object_initialize (object, &chop_hash_block_fetcher_class);
 
-  /* Stateless.  */
-  *bytes_read = 0;
+  if (err == 0)
+    switch (method)
+      {
+      case CHOP_SERIAL_ASCII:
+	{
+	  const char *bound;
 
-  return 0;
+	  /* Get a non-graph token.  */
+	  for (bound = buffer;
+	       *bound && (!ispunct (*bound)) && (!isspace (*bound));
+	       bound++);
+
+	  if (bound != buffer)
+	    {
+	      /* Hash method information is available.  */
+	      char name[bound - buffer + 1];
+	      chop_hash_method_t hash_method;
+
+	      strncpy (name, buffer, bound - buffer);
+	      name[bound - buffer] = '\0';
+
+	      err = chop_hash_method_lookup (name, &hash_method);
+	      if (err)
+		err = CHOP_DESERIAL_CORRUPT_INPUT;
+	      else
+		{
+		  fetcher->hash_method = hash_method;
+		  *bytes_read = bound - buffer;
+		}
+	    }
+	  else
+	    /* Hash method is unknown, so integrity checks won't be
+	       performed.  */
+	    *bytes_read = 0;
+
+	  break;
+	}
+
+      default:
+	err = CHOP_ERR_NOT_IMPL;
+      }
+
+  return err;
 }
 
 CHOP_DEFINE_RT_CLASS (hash_block_fetcher, block_fetcher,
@@ -370,21 +441,56 @@ hash_block_fetch (chop_block_fetcher_t *block_fetcher,
   err = chop_store_read_block (store, &key, buffer, size);
   if (!err)
     {
+      char key_hex[handle->key_size * 2 + 1];
+      chop_buffer_to_hex_string (handle->content, handle->key_size, key_hex);
+
+
       /* Did we get as much data as expected?  */
       if (*size != handle->block_size)
 	{
-	  char *hex;
-
-	  hex = alloca (handle->key_size * 2 + 1);
-	  chop_buffer_to_hex_string (handle->content, handle->key_size, hex);
-
 	  chop_log_printf (&fetcher->log, "block %s: "
 			   "got %zu bytes instead of %zu",
-			   hex, *size, handle->block_size);
+			   key_hex, *size, handle->block_size);
 
 	  *size = 0;
-	  return CHOP_BLOCK_INDEXER_ERROR;
+	  err = CHOP_BLOCK_INDEXER_ERROR;
 	}
+      /* Has the block been tampered with?  */
+      else if (fetcher->hash_method != CHOP_HASH_NONE)
+	{
+	  if (handle->key_size == chop_hash_size (fetcher->hash_method))
+	    {
+	      char hash[chop_hash_size (fetcher->hash_method)];
+
+	      chop_hash_buffer (fetcher->hash_method,
+				chop_buffer_content (buffer),
+				chop_buffer_size (buffer),
+				hash);
+	      if (memcmp (hash, handle->content,
+			  chop_hash_size (fetcher->hash_method)))
+		{
+		  chop_log_printf (&fetcher->log, "block %s: "
+				   "wrong `%s' hash", key_hex,
+				   chop_hash_method_name (fetcher->hash_method));
+
+		  *size = 0;
+		  err = CHOP_BLOCK_INDEXER_ERROR;
+		}
+	    }
+	  else
+	    {
+	      chop_log_printf (&fetcher->log, "block %s: "
+			       "wrong `%s' key size (got %zi; expected %zi)",
+			       key_hex,
+			       chop_hash_method_name (fetcher->hash_method),
+			       handle->key_size,
+			       chop_hash_size (fetcher->hash_method));
+	      err = CHOP_BLOCK_INDEXER_ERROR;
+	    }
+	}
+      else
+	chop_log_printf (&fetcher->log, "block %s: hash method unknown, "
+			 "cannot check integrity", key_hex);
     }
 
   return err;
@@ -399,10 +505,20 @@ static chop_error_t
 hash_indexer_init_fetcher (const chop_block_indexer_t *block_indexer,
 			   chop_block_fetcher_t *fetcher)
 {
-  /* Our fetchers are stateless so there is nothing special to initialize
-     here.  */
-  return chop_object_initialize ((chop_object_t *)fetcher,
-				 &chop_hash_block_fetcher_class);
+  chop_error_t err;
+  chop_hash_block_indexer_t *hash_indexer =
+    (chop_hash_block_indexer_t *) block_indexer;
+  chop_hash_block_fetcher_t *hash_fetcher =
+    (chop_hash_block_fetcher_t *) fetcher;
+
+  err = chop_object_initialize ((chop_object_t *) fetcher,
+				&chop_hash_block_fetcher_class);
+
+  /* Tell FETCHER which hash method is used so it can check block integrity
+     upon retrieval.  */
+  hash_fetcher->hash_method = hash_indexer->hash_method;
+
+  return err;
 }
 
 static chop_error_t

@@ -31,7 +31,8 @@ check_PROGRAMS +=				\
   features/stream-filtered			\
   features/chopper-anchor-based			\
   features/stream-indexing			\
-  features/base32
+  features/base32				\
+  features/block-indexer-hash
 
 check_SCRIPTS =					\
   utils/archiver				\

@@ -93,3 +93,4 @@ stamp-h[0-9]
 /tests/features/.dirstamp
 /tests/interfaces/.dirstamp
 /tests/features/base32
+/tests/features/block-indexer-hash
