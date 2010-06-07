@@ -19,7 +19,6 @@ Copyright 2010  Ludovic Courtès <ludo@gnu.org>
 ** Publish `archival-server' perhaps under the name "Anemoi"
 * Storage
 ** Use Gnulib's `full_read' in stream-file.c
-** Have `hash_block_fetch' actually check data integrity when possible
 ** Add recursive directory archival to `chop-archiver' [0/2]
 
   - [ ] Add support in `chop-archiver', a `--recursive' option.
