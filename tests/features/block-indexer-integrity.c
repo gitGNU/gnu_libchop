@@ -14,8 +14,9 @@
    You should have received a copy of the GNU General Public License
    along with libchop.  If not, see <http://www.gnu.org/licenses/>.  */
 
-/* Verify the `hash_block_fetcher' integrity checks.  The test makes sure the
-   fetcher notices altered data blocks upon retrieval.  */
+/* Verify the `hash_block_fetcher' and `chk_block_fetcher' integrity checks.
+   The test makes sure the fetcher notices altered data blocks upon
+   retrieval.  */
 
 #include <chop/chop-config.h>
 
@@ -55,6 +56,7 @@ test_index_and_fetch (chop_block_store_t *store,
       chop_log_t *log;
 
       log = chop_hash_block_fetcher_log (fetcher);
+      log = log ?: chop_chk_block_fetcher_log (fetcher);
       if (log != NULL)
 	chop_log_attach (log, 2, 0);
     }
@@ -123,6 +125,10 @@ main (int argc, char *argv[])
       &chop_hash_block_indexer_class,
       &chop_hash_block_indexer_class,
       &chop_hash_block_indexer_class,
+      &chop_chk_block_indexer_class,
+      &chop_chk_block_indexer_class,
+      &chop_chk_block_indexer_class,
+      &chop_chk_block_indexer_class,
       NULL
     };
 
@@ -132,6 +138,10 @@ main (int argc, char *argv[])
       "sha1",
       "rmd160",
       "sha256",
+      "blowfish,cbc,sha1,sha1",
+      "aes256,cbc,sha256,md4",
+      "des,cbc,md4,md5",
+      "twofish,cbc,sha256,tiger",
       NULL
     };
 

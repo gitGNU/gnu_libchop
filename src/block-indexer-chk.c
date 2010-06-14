@@ -290,6 +290,7 @@ CHOP_DEFINE_RT_CLASS (chk_index_handle, index_handle,
 CHOP_DECLARE_RT_CLASS (chk_block_fetcher, block_fetcher,
 		       chop_cipher_handle_t cipher_handle;
 		       int owns_cipher_handle;
+		       chop_hash_method_t block_id_hash_method;
 		       chop_log_t log;);
 
 static chop_error_t chk_block_fetch (chop_block_fetcher_t *,
@@ -303,12 +304,13 @@ cbf_ctor (chop_object_t *object, const chop_class_t *class)
 {
   chop_chk_block_fetcher_t *fetcher;
 
-  fetcher = (chop_chk_block_fetcher_t *)object;
+  fetcher = (chop_chk_block_fetcher_t *) object;
   fetcher->block_fetcher.fetch_block = chk_block_fetch;
   fetcher->block_fetcher.index_handle_class = &chop_chk_index_handle_class;
 
   fetcher->cipher_handle = CHOP_CIPHER_HANDLE_NIL;
   fetcher->owns_cipher_handle = 0;
+  fetcher->block_id_hash_method = CHOP_HASH_NONE;
 
   return chop_log_init ("chk-block-fetcher", &fetcher->log);
 }
@@ -337,40 +339,50 @@ cbf_serialize (const chop_object_t *object, chop_serial_method_t method,
   chop_chk_block_fetcher_t *fetcher;
   chop_cipher_algo_t algo;
   chop_cipher_mode_t mode;
-  const char *algo_name, *mode_name;
+  char *algo_name, *mode_name;
 
-  fetcher = (chop_chk_block_fetcher_t *)object;
+  fetcher = (chop_chk_block_fetcher_t *) object;
   switch (method)
     {
       case CHOP_SERIAL_ASCII:
 	{
-	  const char *p;
-	  char *algo_name_lc, *mode_name_lc, *q;
+	  char *p;
 
 	  algo = chop_cipher_algorithm (fetcher->cipher_handle);
 	  mode = chop_cipher_mode (fetcher->cipher_handle);
 
-	  algo_name = chop_cipher_algo_name (algo);
-	  mode_name = chop_cipher_mode_name (mode);
+	  algo_name = strdupa (chop_cipher_algo_name (algo));
+	  mode_name = strdupa (chop_cipher_mode_name (mode));
 
-	  algo_name_lc = alloca (strlen (algo_name) + 1);
-	  mode_name_lc = alloca (strlen (mode_name) + 1);
+	  for (p = algo_name; *p; p++)
+	    *p = tolower (*p);
+	  for (p = mode_name; *p; p++)
+	    *p = tolower (*p);
 
-	  for (p = algo_name, q = algo_name_lc; *p; p++, q++)
-	    *q = tolower (*p);
-	  *q = *p;
-
-	  for (p = mode_name, q = mode_name_lc; *p; p++, q++)
-	    *q = tolower (*p);
-	  *q = *p;
-
-	  err = chop_buffer_push (buffer, algo_name_lc,
-				  strlen (algo_name_lc));
+	  err = chop_buffer_push (buffer, algo_name, strlen (algo_name));
 	  if (!err)
-	    chop_buffer_append (buffer, ",", 1);
+	    err = chop_buffer_append (buffer, ",", 1);
 	  if (!err)
-	    chop_buffer_append (buffer, mode_name_lc,
-				strlen (mode_name_lc) + 1);
+	    err = chop_buffer_append (buffer, mode_name,
+				      strlen (mode_name));
+
+	  if (fetcher->block_id_hash_method != CHOP_HASH_NONE)
+	    {
+	      char *block_id_hash;
+
+	      block_id_hash =
+		strdupa (chop_hash_method_name (fetcher->block_id_hash_method));
+	      for (p = block_id_hash; *p; p++)
+		*p = tolower (*p);
+
+	      if (!err)
+		err = chop_buffer_append (buffer, ",", 1);
+	      if (!err)
+		err = chop_buffer_append (buffer, block_id_hash,
+					  strlen (block_id_hash));
+	    }
+
+	  err = chop_buffer_append (buffer, "\0", 1);
 
 	  break;
 	}
@@ -392,52 +404,78 @@ cbf_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
   chop_cipher_algo_t algo;
   chop_cipher_mode_t mode;
 
-  fetcher = (chop_chk_block_fetcher_t *)object;
-  switch (method)
-    {
-      case CHOP_SERIAL_ASCII:
-	{
-	  char *name;
-
-	  comma = (const char *)memchr (buffer, ',', size);
-	  if (!comma)
-	    return CHOP_DESERIAL_CORRUPT_INPUT;
-
-	  name = alloca (comma - buffer + 1);
-	  strncpy (name, buffer, comma - buffer);
-	  name[comma - buffer] = '\0';
-
-	  err = chop_cipher_algo_lookup (name, &algo);
-	  if (err)
-	    return CHOP_DESERIAL_CORRUPT_INPUT;
-
-	  /* Get to the next non-graph.  */
-	  for (punct = comma + 1;
-	       *punct && (!ispunct (*punct)) && (!isspace (*punct));
-	       punct++);
-
-	  name = alloca (punct - comma);
-	  strncpy (name, comma + 1, punct - comma - 1);
-	  name[punct - comma - 1] = '\0';
-
-	  err = chop_cipher_mode_lookup (name, &mode);
-	  if (err)
-	    return CHOP_DESERIAL_CORRUPT_INPUT;
-
-	  *bytes_read = punct - buffer;
-
-	  break;
-	}
-
-    default:
-      return CHOP_ERR_NOT_IMPL;
-    }
+  fetcher = (chop_chk_block_fetcher_t *) object;
 
   err = chop_object_initialize (object, &chop_chk_block_fetcher_class);
-  if (!err)
+  if (err == 0)
     {
-      fetcher->cipher_handle = chop_cipher_open (algo, mode);
-      fetcher->owns_cipher_handle = 1;
+      switch (method)
+	{
+	case CHOP_SERIAL_ASCII:
+	  {
+	    char *name;
+
+	    comma = (const char *)memchr (buffer, ',', size);
+	    if (!comma)
+	      return CHOP_DESERIAL_CORRUPT_INPUT;
+
+	    name = alloca (comma - buffer + 1);
+	    strncpy (name, buffer, comma - buffer);
+	    name[comma - buffer] = '\0';
+
+	    err = chop_cipher_algo_lookup (name, &algo);
+	    if (err)
+	      return CHOP_DESERIAL_CORRUPT_INPUT;
+
+	    /* Get to the next non-graph.  */
+	    for (punct = comma + 1;
+		 *punct && (!ispunct (*punct)) && (!isspace (*punct));
+		 punct++);
+
+	    name = alloca (punct - comma);
+	    strncpy (name, comma + 1, punct - comma - 1);
+	    name[punct - comma - 1] = '\0';
+
+	    err = chop_cipher_mode_lookup (name, &mode);
+	    if (err)
+	      return CHOP_DESERIAL_CORRUPT_INPUT;
+
+	    /* Get to the next non-graph, if any.  */
+	    for (comma = punct = punct + 1;
+		 *punct && (!ispunct (*punct)) && (!isspace (*punct));
+		 punct++);
+
+	    if (punct != comma)
+	      {
+		/* Block ID hash method info is available.  */
+		char name[punct - comma + 1];
+		chop_hash_method_t hash_method;
+
+		strncpy (name, comma, punct - comma);
+		name[punct - comma] = '\0';
+
+		err = chop_hash_method_lookup (name, &hash_method);
+		if (err)
+		  err = CHOP_DESERIAL_CORRUPT_INPUT;
+		else
+		  fetcher->block_id_hash_method = hash_method;
+	      }
+
+	    if (err == 0)
+	      {
+		fetcher->cipher_handle = chop_cipher_open (algo, mode);
+		fetcher->owns_cipher_handle = 1;
+		*bytes_read = punct - buffer;
+	      }
+	    else
+	      *bytes_read = 0;
+
+	    break;
+	  }
+
+	default:
+	  err = CHOP_ERR_NOT_IMPL;
+	}
     }
 
   return err;
@@ -472,15 +510,21 @@ chk_block_fetch (chop_block_fetcher_t *block_fetcher,
   chop_chk_block_fetcher_t *fetcher;
   chop_buffer_t ciphertext;
   chop_block_key_t key;
+  char *key_hex;
 
   fetcher = (chop_chk_block_fetcher_t *)block_fetcher;
   if (!chop_object_is_a ((chop_object_t *)index,
 			 &chop_chk_index_handle_class))
     return CHOP_INVALID_ARG;
 
-  handle = (chop_chk_index_handle_t *)index;
+  handle = (chop_chk_index_handle_t *) index;
   chop_block_key_init (&key, handle->block_id, handle->block_id_size,
 		       NULL, NULL);
+
+  key_hex = alloca (handle->block_id_size * 2 + 1);
+  chop_buffer_to_hex_string (handle->block_id, handle->block_id_size,
+			     key_hex);
+
   err = chop_buffer_init (&ciphertext, 0);
   if (err)
     return err;
@@ -496,21 +540,58 @@ chk_block_fetch (chop_block_fetcher_t *block_fetcher,
 	 HANDLE->BLOCK_SIZE.  */
       if (*size < handle->block_size)
 	{
-	  char *hex;
-
-	  hex = alloca (handle->block_id_size * 2 + 1);
-	  chop_buffer_to_hex_string (handle->block_id,
-				     handle->block_id_size, hex);
-
 	  chop_log_printf (&fetcher->log, "block %s: "
 			   "got %zu bytes instead of %zu",
-			   hex, *size, handle->block_size);
+			   key_hex, *size, handle->block_size);
 
 	  *size = 0;
 	  err = CHOP_BLOCK_INDEXER_ERROR;
 
 	  goto finish;
 	}
+      /* Has the block been tampered with?  */
+      else if (fetcher->block_id_hash_method != CHOP_HASH_NONE)
+	{
+	  size_t hash_size;
+	  const char *hash_name;
+
+	  hash_size = chop_hash_size (fetcher->block_id_hash_method);
+	  hash_name = chop_hash_method_name (fetcher->block_id_hash_method);
+
+	  if (handle->block_id_size == hash_size)
+	    {
+	      /* Check data integrity.  */
+	      char hash[hash_size];
+
+	      chop_hash_buffer (fetcher->block_id_hash_method,
+				chop_buffer_content (&ciphertext),
+				chop_buffer_size (&ciphertext),
+				hash);
+	      if (memcmp (hash, handle->block_id, hash_size))
+		{
+		  chop_log_printf (&fetcher->log, "block %s: "
+				   "wrong `%s' hash", key_hex, hash_name);
+
+		  *size = 0;
+		  err = CHOP_BLOCK_INDEXER_ERROR;
+		  goto finish;
+		}
+	    }
+	  else
+	    {
+	      chop_log_printf (&fetcher->log, "block %s: "
+			       "wrong `%s' key size (got %zi; "
+			       "expected %zi)",
+			       key_hex, hash_name,
+			       handle->block_id_size, hash_size);
+	      *size = 0;
+	      err = CHOP_BLOCK_INDEXER_ERROR;
+	      goto finish;
+	    }
+	}
+      else
+	chop_log_printf (&fetcher->log, "block %s: hash method unknown, "
+			 "cannot check integrity", key_hex);
 
       cipher_algo = chop_cipher_algorithm (fetcher->cipher_handle);
 
@@ -551,14 +632,8 @@ chk_block_fetch (chop_block_fetcher_t *block_fetcher,
 	}
 
       if (err)
-	{
-	  char *block_id;
-	  block_id = alloca (handle->block_id_size * 2 + 1);
-	  chop_buffer_to_hex_string (handle->block_id, handle->block_id_size,
-				     block_id);
-	  chop_log_printf (&fetcher->log, "block `%s': decryption error: %s",
-			   block_id, chop_error_message (err));
-	}
+	chop_log_printf (&fetcher->log, "block `%s': decryption error: %s",
+			 key_hex, chop_error_message (err));
     }
 
  finish:
@@ -596,6 +671,10 @@ chk_indexer_init_fetcher (const chop_block_indexer_t *block_indexer,
 
   fetcher->cipher_handle = chop_cipher_copy (indexer->cipher_handle);
   fetcher->owns_cipher_handle = 1;
+
+  /* Tell FETCHER which hash method is used so it can check block integrity
+     upon retrieval.  */
+  fetcher->block_id_hash_method = indexer->block_id_hash_method;
 
   return err;
 }
