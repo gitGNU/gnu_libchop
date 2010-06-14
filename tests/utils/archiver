@@ -30,9 +30,10 @@ chop_test_archive_restore()
     { chop_fail_if ! chop-archiver -f "$DB_FILE" $3 -a "$1" ; } | \
     { read index
       chop_fail_if test "x$index" = x
-      { chop_fail_if ! chop-archiver -f "$DB_FILE" $4 -r "$index" ; } > "$2"
+      { chop_fail_if ! chop-archiver -f "$DB_FILE" $4 -r "$index" ; } > "$2" && \
       chop_fail_if ! cmp "$1" "$2"
-    }
+    } || \
+    exit 1
 }
 
 for options in "" "-C anchor_based_chopper" \
