@@ -12,6 +12,12 @@ advantage is its file system interface.  It makes it easy to rsync it to
 a remote site, for instance, which can be useful when the remote site
 cannot run `chop-block-server' or similar.
 
+** Block-level data integrity checks
+
+The `chk' and `hash' block fetchers now return an error when retrieving
+a block that has been tampered with.  They do so by comparing the hash
+of the block with its key, and expect them to be the same.
+
 * Packaging
 
 ** GNU gperf is now required
