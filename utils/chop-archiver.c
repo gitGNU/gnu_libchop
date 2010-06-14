@@ -563,6 +563,7 @@ process_command (const char *argument,
 	{
 	  chop_log_t *fetcher_log = chop_hash_block_fetcher_log (fetcher);
 
+	  fetcher_log = fetcher_log ?: chop_chk_block_fetcher_log (fetcher);
 	  if (fetcher_log)
 	    chop_log_attach (fetcher_log, 2, 0);
 
