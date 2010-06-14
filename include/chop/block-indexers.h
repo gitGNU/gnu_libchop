@@ -245,6 +245,10 @@ chop_integer_block_indexer_open (unsigned long start,
    its associated log, otherwise return NULL.  */
 extern chop_log_t *chop_hash_block_fetcher_log (chop_block_fetcher_t *fetcher);
 
+/* If FETCHER is an instance of CHOP_CHK_BLOCK_FETCHER_CLASS, then return
+   its associated log, otherwise return NULL.  */
+extern chop_log_t *chop_chk_block_fetcher_log (chop_block_fetcher_t *fetcher);
+
 /* If FETCHER is an instance of CHOP_INTEGER_BLOCK_FETCHER_CLASS, then return
    its associated log, otherwise return NULL.  */
 extern chop_log_t *

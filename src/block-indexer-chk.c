@@ -448,6 +448,19 @@ CHOP_DEFINE_RT_CLASS (chk_block_fetcher, block_fetcher,
 		      NULL, NULL,
 		      cbf_serialize, cbf_deserialize);
 
+chop_log_t *
+chop_chk_block_fetcher_log (chop_block_fetcher_t *fetcher)
+{
+  chop_chk_block_fetcher_t *cbf;
+
+  if (!chop_object_is_a ((chop_object_t *) fetcher,
+			 &chop_chk_block_fetcher_class))
+    return NULL;
+
+  cbf = (chop_chk_block_fetcher_t *) fetcher;
+  return (&cbf->log);
+}
+
 static chop_error_t
 chk_block_fetch (chop_block_fetcher_t *block_fetcher,
 		 const chop_index_handle_t *index,
