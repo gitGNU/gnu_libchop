@@ -719,6 +719,8 @@ cbi_dtor (chop_object_t *object)
     chop_cipher_close (indexer->cipher_handle);
   indexer->owns_cipher_handle = 0;
   indexer->cipher_handle = CHOP_CIPHER_HANDLE_NIL;
+
+  chop_object_destroy ((chop_object_t *) &indexer->log);
 }
 
 static chop_error_t
