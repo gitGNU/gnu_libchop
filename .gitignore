@@ -99,3 +99,5 @@ stamp-h[0-9]
 /doc/stamp-vti
 /doc/version.texi
 /.version
+/GNUmakefile
+/maint.mk

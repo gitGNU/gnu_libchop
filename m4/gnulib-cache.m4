@@ -15,7 +15,7 @@
 
 
 # Specification in the form of a command-line invocation:
-#   gnulib-tool --import --dir=. --lib=libgnu --source-base=lib --m4-base=m4 --doc-base=doc --tests-base=tests --aux-dir=build-aux --libtool --macro-prefix=gl alloca announce-gen argp arpa_inet full-read full-write git-version-gen gitlog-to-changelog gnupload malloc progname stdint strcase sys_socket vasprintf
+#   gnulib-tool --import --dir=. --lib=libgnu --source-base=lib --m4-base=m4 --doc-base=doc --tests-base=tests --aux-dir=build-aux --libtool --macro-prefix=gl alloca announce-gen argp arpa_inet full-read full-write git-version-gen gitlog-to-changelog gnupload maintainer-makefile malloc progname stdint strcase sys_socket vasprintf
 
 # Specification in the form of a few gnulib-tool.m4 macro invocations:
 gl_LOCAL_DIR([])
@@ -29,6 +29,7 @@ gl_MODULES([
   git-version-gen
   gitlog-to-changelog
   gnupload
+  maintainer-makefile
   malloc
   progname
   stdint
