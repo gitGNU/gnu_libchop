@@ -38,7 +38,7 @@ gen-ChangeLog:
 	  mv $(distdir)/cl-t $(distdir)/ChangeLog;	\
 	fi
 
-BUILT_SOURCES = $(top_srcdir)/.version
+EXTRA_DIST += $(top_srcdir)/.version
 $(top_srcdir)/.version:
 	echo $(VERSION) > $@-t && mv $@-t $@
 gen-tarball-version:
