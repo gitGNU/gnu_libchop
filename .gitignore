@@ -21,7 +21,9 @@ lib/*
 *.o
 *.gcno
 *.gcda
+*.gcda.info
 *.gcov
+gmon.out
 pre-inst-guile
 stamp-h[0-9]
 /guile/block-indexers.c
@@ -94,3 +96,6 @@ stamp-h[0-9]
 /tests/interfaces/.dirstamp
 /tests/features/base32
 /tests/features/block-indexer-integrity
+/doc/stamp-vti
+/doc/version.texi
+/.version
