@@ -65,7 +65,7 @@ This document describes libchop version @value{VERSION}.
 * Object System::               Object, classes, serialization, etc.
 * Utilities::                   Command-line interface to libchop.
 * Guile Bindings::              Using libchop from GNU Guile.
-* References::                  Worthy readings.
+* References::                  Worthy readings and related software.
 * GNU Free Documentation License::  The license of this manual.
 * Concept Index::               Concepts.
 * Function Index::              Functions.
@@ -74,50 +74,62 @@ This document describes libchop version @value{VERSION}.
 @node Introduction
 @chapter Introduction
 
-Libchop is a file hashing, ciphering, and indexing library.  In a
-nutshell, libchop provides mechanisms to:
+Libchop is a library and set of utilities for distributed storage and
+data backup.  It was initially designed as the basis for a peer-to-peer,
+cooperative backup system.  In such a system, data has to be sent by
+pieces, incrementally, and it may be scattered across several
+participating nodes.  In addition, participating nodes may be untrusted,
+which puts data confidentiality, integrity, and availability at risk.
+
+In a nutshell, libchop addresses these issues by providing mechanisms
+to:
 
 @enumerate
 @item
-cut a file into pieces, store each of these blocks into a block store,
-and return an @dfn{abstract index} containing all the information
-necessary to retrieve the file;
+chop an input file into blocks, optionally compressed and/or encrypted,
+and to store them into a key-value store.  It returns an @dfn{abstract
+index} containing all the information necessary to retrieve the file.
 
 @item
 restore (rebuild) a file based on an abstract index, reading blocks from
-one (or several) block stores and decoding them according to the methods
+one (or several) stores.  Each block is decoded, deciphered,
+decompressed, and its integrity is checked according to the methods
 specified by the abstract index.
 @end enumerate
 
-Libchop decomposes these task with a fine grain, providing generic
+Libchop decomposes these tasks with a fine grain, providing generic
 interfaces for each of the sub-tasks involved.  It also comes with
 several implementations of each of these interfaces, allowing various
 storage strategies to be quickly experimented and compared.
 Implementations of these interfaces provide storage techniques such as
-content-based addressing, content-hash keys, lossless compression, and
-similarity detection.
+content-based addressing and single-instance storage, content-hash keys,
+lossless compression, and similarity detection.
 
 The following section gives an overview of the various interfaces and
-how they fit together.  The next one will give an insight on typical
-use cases of the techniques and algorithms implemented by Libchop.
+how they fit together.  The next one gives an insight on typical use
+cases of the techniques and algorithms implemented by libchop.
 
 @menu
 * Overview::                    What libchop provides.
-* Use Cases::                   Applications that could use libchop.
+* Use Cases::                   Applications of libchop.
 @end menu
 
 @node Overview
 @section Overview
 
+@cindex storage pipeline
 @cindex pipeline
 @cindex index handle
+@cindex abstract index
 
-Libchop, as a file chopping and indexing framework, defines several
-fine-grain interfaces for that purpose.  Objects implementing those
-interfaces may be composed together to form a @dfn{file chopping
-pipeline}: the input of this pipeline are the raw contents of a file,
-and its output is a set of data blocks and an @dfn{index handle} that
-suffices to restore the file contents from those blocks.
+Libchop defines several fine-grain interfaces for file chopping and
+indexing.  Objects implementing those interfaces may be composed
+together to form a @dfn{data storage pipeline}: the input of this
+pipeline are the raw contents of a file, and its output is a set of data
+blocks and an @dfn{index handle}@footnote{In this document the terms
+@dfn{abstract index} and @dfn{index handle} are used interchangeably to
+describe indices are returned by a block indexer.} that suffices to
+restore the file contents from those blocks.
 
 The interfaces that allow components to interact altogether within
 this framework are the following:
@@ -200,6 +212,9 @@ ciphering filters.  The user can then create a filtered stream (via
 @code{chop_filtered_store_open ()}) in order to make use of them
 (@pxref{Filters}).
 
+The storage pipeline can also be built and used from the command-line
+using the @code{chop-archiver} tool (@pxref{Invoking chop-archiver}).
+
 @node Use Cases
 @section Use Cases
 
@@ -209,8 +224,30 @@ archival, backup, and revision control.  Each of these classes of
 application has specific requirements, and each particular design in
 these classes has its own particularities.
 
+Libchop, as a library or using its stand-alone utilities, can be used to
+build such applications.  For instance, incremental encrypted data
+backup to an untrusted site can be achieved this way:
+
+@example
+# Mount the target FTP directory (using a GNU/Hurd translator; on
+# GNU/Linux, `curlftpfs' can be used similarly.)
+$ settrans -ca backup-site /hurd/ftpfs ftp.example.com:backup
+
+$ chop-archiver -S fs_block_store -f backup-site     \
+    -i chk_block_indexer -I aes256,cbc,sha256,tiger  \
+    --archive holiday-picture.jpg
+tree_indexer:chk_block_fetcher:chk_index_handle:64:aes256,cbc,tiger:cntd5...
+@end example
+
+The long line displayed by @code{chop-archiver} is an index handle that
+can eventually be passed to @code{chop-archiver --restore} to restore
+the file.  Although the file is stored as a set of encrypted blocks, it
+can be @dfn{selectively shared}: knowing the index handle is necessary
+and sufficient to retrieve the file.  @xref{Invoking chop-archiver, for
+more examples}.
+
 Anonymous peer-to-peer file sharing systems like GNUnet and FreeNet both
-use the same particular configurations of the above pipeline
+use the same particular configurations of the storage pipeline
 (@pxref{References, GNUnet}).  Roughly, they use a fixed-size stream
 chopper (e.g., in GNUnet 0.7, input files are chopped into 32 kB blocks)
 and some form of a CHK@footnote{@dfn{CHK} means ``content-hash key''.
@@ -607,8 +644,10 @@ $ chop-archiver --restore \
     tree_indexer:hash_block_fetcher:hash_index_handle:64:sha1:6jmb3wrbzyqpsngxybt4r4rxtctdo4o2/26
 @end example
 
-This command retrieves and decodes the data pointed by the given index
-and prints it on the standard output.
+This command retrieves and decodes the data pointed to by the given index
+and prints it on the standard output.  The integrity of each data block
+is checked and an error is returned if one of the blocks has been
+tampered with.
 
 @end enumerate
 
@@ -628,6 +667,7 @@ chop-archiver -i chk_block_indexer -I aes256,cbc,sha256,sha1 -a README
 
 @cindex content-hash keys
 @cindex CHK
+@cindex encryption
 This command uses content-hash keys (CHKs) to encrypt and name
 individual data blocks.  Data blocks are encrypted with the
 @code{aes256} symmetric cipher algorithm in @dfn{cipher block chaining}
@@ -635,9 +675,11 @@ mode; the encryption key is the @code{sha256} hash of the cleartext data
 block.  Finally, the key associated with the resulting (encrypted) data
 block is the @code{sha1} hash of that block.
 
+@cindex similarity detection
 The following command specifies that the input data should be chopped
-into data blocks using Udi Manber's chopping algorithm, trying to obtain
-blocks of 512 bytes on average:
+into data blocks using an algorithm that chooses block boundaries so as
+to facilitate similarity detection, trying to obtain blocks of 512 bytes
+on average:
 
 @example
 chop-archiver --chopper anchor_based_chopper --block-size 512 -a README
