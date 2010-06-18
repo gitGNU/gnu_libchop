@@ -9,14 +9,24 @@ Changes in 0.3 (since 0.2)
 The `chop_fs_block_store' stores data blocks as a tree of files in the
 user's file system, in a way similar to what Git does.  The main
 advantage is its file system interface.  It makes it easy to rsync it to
-a remote site, for instance, which can be useful when the remote site
-cannot run `chop-block-server' or similar.
+a remote site or to publish it over FTP or HTTP, for instance, which can
+be useful when the remote site cannot run `chop-block-server'.
 
 ** Block-level data integrity checks
 
 The `chk' and `hash' block fetchers now return an error when retrieving
 a block that has been tampered with.  They do so by comparing the hash
 of the block with its key, and expect them to be the same.
+
+
+** `chop-archiver --archive' implements incremental storage by default
+
+By default, only blocks not already available in the block store are
+written.  It makes incremental storage very fast (e.g., when
+archiving a file that has already been stored, or when storing a file
+that contains data similar to what's already available in the store) and
+saves bandwidth when using a remote block store.  The `--no-smart-store'
+option disables it.
 
 * Packaging
 
