@@ -2,23 +2,18 @@
 
 @c %**start of header
 @setfilename libchop.info
-@settitle Libchop File Chopping Library
+@settitle Libchop, A Library for Distributed Storage and Data Backup
 @footnotestyle end
 @setchapternewpage odd
 @c %**end of header
 
-@set EDITION 1
-@set VERSION 0.2
-@c @set UPDATED 2005-04-26
-
+@include version.texi
 
 @ifinfo
 @dircategory Development
 @direntry
 * libchop: (libchop).      The libchop data storage library.
 @end direntry
-
-This file documents libchop.
 
 Copyright @copyright{} 2010  Ludovic Court@`es
 Copyright @copyright{} 2005, 2006  Centre National de la Recherche Scientifique (LAAS-CNRS)
@@ -34,8 +29,8 @@ Free Documentation License''.
 @end ifinfo
 
 @titlepage
-@title The Libchop Data Storage Library
-@subtitle for Libchop @value{VERSION}
+@title Libchop, A Library for Distributed Storage and Data Backup
+@subtitle for libchop @value{VERSION}
 @author Ludovic Court@`es
 
 @page
