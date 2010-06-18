@@ -5,18 +5,23 @@
 Libchop is a library for distributed storage and data backup, available
 under the terms of the [[http://www.gnu.org/licenses/gpl.html][GNU General Public License]].  It was initially
 designed as a building block for a [[http://tel.archives-ouvertes.fr/tel-00196822/en/][peer-to-peer, cooperative backup
-system]].
+system]].  In such a system, data has to be sent by pieces, incrementally,
+and it may be scattered across several participating nodes.  In
+addition, participating nodes may be untrusted, which puts data
+confidentiality, integrity, and availability at risk.
 
-Libchop features file hashing, ciphering, and indexing. In a nutshell,
-it provides mechanisms to:
+In a nutshell, libchop addresses these issues by providing mechanisms
+to:
 
-  1. cut a file into pieces, store each of these blocks into a block
-     store, and return an "abstract index" containing all the
-     information necessary to retrieve the file;
+  1. chop an input file into blocks, optionally compressed and/or
+     encrypted, and to store them into a key-value store.  It returns
+     an "abstract index" containing all the information necessary to
+     retrieve the file.
 
   2. restore (rebuild) a file based on an abstract index, reading
-     blocks from one (or several) block stores and decoding them
-     according to the methods specified by the abstract index.
+     blocks from one (or several) stores.  Each block is decoded,
+     deciphered, decompressed, and its integrity is checked according
+     to the methods specified by the abstract index.
 
 Libchop decomposes these task with a fine grain, providing generic
 interfaces for each of the sub-tasks involved.  It also comes with
@@ -45,6 +50,8 @@ Releases are available from [[http://download.savannah.gnu.org/releases/libchop/
 
   - Chapter 4 of [[http://tel.archives-ouvertes.fr/tel-00196822/en/][/Cooperative Data Backup for Mobile Devices/]] provides
     additional details and results, for the insatiable.
+
+  - A [[http://www.fdn.fr/~lcourtes/ludo-1.html#coop-bak][bibliography relative to cooperative backup and peer-to-peer storage]].
 
 * Mailing List
 
