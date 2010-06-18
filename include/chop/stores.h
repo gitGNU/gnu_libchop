@@ -297,8 +297,10 @@ chop_dbus_block_store_open (const char *dbus_address,
 /* Initialize STORE as a ``smart proxy'' of BACKEND, meaning that STORE will
    only forward `write_block' requests to BACKEND is the block doesn't
    already exist in BACKEND.  This is particularly useful as a proxy to
-   remote block stores.  */
+   remote block stores.  BPS specifies how STORE will behave as a proxy to
+   BACKEND.  */
 extern chop_error_t chop_smart_block_store_open (chop_block_store_t *backend,
+						 chop_proxy_semantics_t bps,
 						 chop_block_store_t *store);
 
 /* Return the log attached to STORE, a smart block store.  If STORE is not an

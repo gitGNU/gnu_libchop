@@ -31,10 +31,42 @@
 
 CHOP_DECLARE_RT_CLASS (smart_block_store, block_store,
 		       chop_log_t log;
+		       chop_proxy_semantics_t backend_ps;
 		       chop_block_store_t *backend;);
 
+static void
+sbs_dtor (chop_object_t *object)
+{
+  chop_smart_block_store_t *smart =
+    (chop_smart_block_store_t *) object;
+
+  switch (smart->backend_ps)
+    {
+    case CHOP_PROXY_LEAVE_AS_IS:
+      break;
+
+    case CHOP_PROXY_EVENTUALLY_CLOSE:
+      chop_store_close (smart->backend);
+      break;
+
+    case CHOP_PROXY_EVENTUALLY_DESTROY:
+      chop_object_destroy ((chop_object_t *) smart->backend);
+      break;
+
+    case CHOP_PROXY_EVENTUALLY_FREE:
+      chop_object_destroy ((chop_object_t *) smart->backend);
+      free (smart->backend);
+      break;
+
+    default:
+      abort ();
+    }
+
+  smart->backend = NULL;
+}
+
 CHOP_DEFINE_RT_CLASS (smart_block_store, block_store,
-		      NULL, NULL, /* No constructor/destructor */
+		      NULL, sbs_dtor, /* No constructor */
 		      NULL, NULL, /* No copy/equalp */
 		      NULL, NULL  /* No serializer/deserializer */);
 
@@ -143,13 +175,22 @@ chop_smart_block_store_sync (chop_block_store_t *store)
 static chop_error_t
 chop_smart_block_store_close (chop_block_store_t *store)
 {
+  chop_error_t err;
+  chop_smart_block_store_t *smart =
+    (chop_smart_block_store_t *) store;
 
-  return 0;
+  if (smart->backend_ps == CHOP_PROXY_EVENTUALLY_CLOSE)
+    err = chop_store_close (smart->backend);
+  else
+    err = 0;
+
+  return err;
 }
 
 
 chop_error_t
 chop_smart_block_store_open (chop_block_store_t *backend,
+			     chop_proxy_semantics_t bps,
 			     chop_block_store_t *store)
 {
   chop_error_t err;
@@ -159,7 +200,7 @@ chop_smart_block_store_open (chop_block_store_t *backend,
   if (!backend)
     return CHOP_INVALID_ARG;
 
-  chop_object_initialize ((chop_object_t *)store,
+  chop_object_initialize ((chop_object_t *) store,
 			  &chop_smart_block_store_class);
 
   err = chop_log_init ("smart-block-store", &smart->log);
@@ -176,6 +217,7 @@ chop_smart_block_store_open (chop_block_store_t *backend,
   store->sync = chop_smart_block_store_sync;
 
   smart->backend = backend;
+  smart->backend_ps = bps;
 
   return 0;
 }
