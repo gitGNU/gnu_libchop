@@ -89,6 +89,9 @@ static char *option_argument = NULL;
    DB_META_DATA_FILE_BASE.  */
 static char *db_file_name = NULL;
 
+/* Use a "smart store proxy".  */
+static int smart_storage = 1;
+
 /* Use the dummy store for debugging purposes.  */
 static int debugging = 0;
 
@@ -140,6 +143,9 @@ static struct argp_option options[] =
     { "debug",   'd', 0, 0,
       "Produce debugging output and use a dummy block store (i.e. a block "
       "store that does nothing but print messages)" },
+    { "no-smart-store", 'N', 0, 0,
+      "Disable smart storage, which writes data blocks only when they don't "
+      "already exist" },
     { "show-stats", 's', 0, 0,
       "Show statistics about the blocks that have been written (in archival "
       "mode)" },
@@ -670,6 +676,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
     case 's':
       show_stats = 1;
       break;
+    case 'N':
+      smart_storage = 0;
+      break;
     case 'f':
       db_file_name = arg;
       break;
@@ -941,6 +950,40 @@ main (int argc, char *argv[])
 	  chop_error (err, "while initializing filtered store");
 	  exit (5);
 	}
+    }
+
+  if (smart_storage && archive_queried)
+    {
+      chop_block_store_t *data_proxy, *metadata_proxy;
+
+      data_proxy =
+	chop_class_alloca_instance (&chop_smart_block_store_class);
+
+      err = chop_smart_block_store_open (store,
+					 CHOP_PROXY_EVENTUALLY_DESTROY,
+					 data_proxy);
+      if (!err)
+	{
+	  if (store != metastore)
+	    {
+	      metadata_proxy =
+		chop_class_alloca_instance (&chop_smart_block_store_class);
+
+	      err = chop_smart_block_store_open (metastore,
+						 CHOP_PROXY_EVENTUALLY_DESTROY,
+						 metadata_proxy);
+	    }
+	  else
+	    metadata_proxy = data_proxy;
+	}
+
+      if (err)
+	{
+	  chop_error (err, "while creating smart store proxy");
+	  exit (EXIT_FAILURE);
+	}
+      else
+	store = data_proxy, metastore = metadata_proxy;
     }
 
   if (show_stats)

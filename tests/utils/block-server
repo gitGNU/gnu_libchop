@@ -68,7 +68,7 @@ chop_test_archive_restore "${srcdir:-$PWD}/block-server" "$TMP_FILE" \
 
 # If we try to store the zipped blocks under the same keys, the server
 # should detect the collision.
-chop_fail_if chop-archiver -R "$ADDRESS:$PORT" --zip	\
+chop_fail_if chop-archiver -R "$ADDRESS:$PORT" --zip --no-smart-store	\
     -a "${srcdir:-$PWD}/block-server"
 
 chop_kill_server

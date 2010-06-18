@@ -770,6 +770,23 @@ Use the remote block store located at @var{host} for both data and
 meta-data blocks; @var{host} may contain @code{:} followed by a port
 number.
 
+@item --no-smart-store
+@itemx -N
+In archival mode, instruct @command{chop-archiver} to write data blocks
+regardless of whether they already exist in the block store.
+
+@cindex incremental storage
+By default, only blocks not already available in the block store are
+written@footnote{To determine whether a block is available,
+@command{chop-archiver} checks whether @emph{something} is stored under
+the block's name without checking whether the contents are the same.  It
+makes sense for content-based addressing, e.g., with
+@code{hash_block_indexer} and @code{chk_block_indexer}.}.  It makes
+incremental storage very fast (e.g., when archiving a file that has
+already been stored, or when storing a file that contains data similar
+to what's already available in the store) and saves bandwidth when using
+a remote block store.
+
 @item --show-stats
 @itemx -s
 Show statistics about the blocks that have been written (in archival
