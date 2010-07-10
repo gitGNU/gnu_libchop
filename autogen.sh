@@ -1,9 +1,11 @@
 #!/bin/sh
-# Bootstrap the GNU autotools mess.
+# Bootstrap the GNU Build System.
 
-aclocal && \
-libtoolize && \
-autoheader && \
-automake -a -c --foreign && \
-autoconf
+if [ ! -f build-aux/git-version-gen ]
+then
+    echo "Please run \`gnulib-tool --update' first." >&2
+    echo "See <http://www.gnu.org/software/gnulib/> for more info about Gnulib." >&2
+    exit 1
+fi
 
+exec autoreconf -vfi
