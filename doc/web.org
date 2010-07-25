@@ -44,6 +44,8 @@ Releases are available from [[http://download.savannah.gnu.org/releases/libchop/
   - The (incomplete) reference manual is part of the source distribution
     in GNU Texinfo form.  It can also be [[./manual/libchop.html][browsed on-line]].
 
+  - The [[./doc/libchop-ghm-talk-2010.pdf][slides of a talk]] at the [[http://www.gnu.org/ghm/2010/denhaag/][2010 GNU Hackers Meeting in The Hague]].
+
   - [[http://hal.archives-ouvertes.fr/hal-00187069/en/][/Storage Tradeoffs in a Collaborative Backup Service for Mobile
     Devices/]] presents the motivation behind libchop along with
     experimental results comparing several storage strategies.
