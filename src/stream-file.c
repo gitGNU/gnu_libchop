@@ -41,6 +41,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include <full-read.h>
 
 
 /* Class definition.  */
@@ -138,39 +139,9 @@ chop_file_stream_read (chop_stream_t *stream,
 
 #else
 
-  ssize_t amount, total_read = 0;
-
-  while (howmuch > 0)
-    {
-      amount = read (file->fd, buffer + total_read, howmuch);
-      if (amount > 0)
-	{
-	  total_read += amount;
-	  howmuch    -= amount;
-	}
-      else if (amount == 0)
-	{
-	  if (total_read == 0)
-	    return CHOP_STREAM_END;
-	  else
-	    break;
-	}
-      else
-	{
-	  if ((amount != EINTR)
-#ifdef EWOULDBLOCK
-	      && (amount != EWOULDBLOCK)
-#endif
-	      && (amount != EAGAIN))
-	    {
-	      /* Undo the operation.  */
-	      (void) lseek (file->fd, -total_read, SEEK_CUR);
-	      return amount;
-	    }
-	}
-    }
-
-  *bytes_read = total_read;
+  *bytes_read = full_read (file->fd, buffer, howmuch);
+  if (*bytes_read == 0 && errno == 0)
+    return CHOP_STREAM_END;
 
 #endif
 
