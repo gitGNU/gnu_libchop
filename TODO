@@ -80,14 +80,9 @@ See also [[http://itpp.sourceforge.net/current/reedsolomon.html][IT++]].
 
 http://repo.or.cz/w/git.git?a=blob;f=Documentation/technical/pack-format.txt
 
+** See [[http://search.cpan.org/~bradfitz/Brackup/lib/Brackup/Chunker/MP3.pm][Brackup::Chunker::MP3]] for chopper ideas
+** Steal other relevant ideas from [[http://search.cpan.org/~bradfitz/Brackup/][Brackup]]  :-)
 * User interface
-** Have `chop-archiver' take fd numbers instead of paths, to honor POLA
-
-Example: chop-archiver --archive-fd 5 5< /foo/bar
-
-** Allow `chop-archiver' to read from stdin
-
-Example: echo foo | chop-archive --archive
 ** Add an option to specify the format of OpenPGP keys (archiver/block-server)
 ** chop-block-server: Add an option like `--restrict' but with OpenPGP fingerprints
 ** Return a meaningful error code in DB_WRITE_BLOCK_METHOD et al.
