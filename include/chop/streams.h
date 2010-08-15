@@ -83,6 +83,13 @@ chop_stream_close (chop_stream_t *__stream)
 extern chop_error_t chop_file_stream_open (const char *path,
 					   chop_stream_t *stream);
 
+/* Same as above, except that data is read from FD, an open file descriptor.
+   If EVENTUALLY_CLOSE is true, then `chop_stream_close' will invoke close(2)
+   on FD; otherwise it will leave it open.  */
+extern chop_error_t chop_file_stream_open_fd (int fd, int eventually_close,
+					      chop_stream_t *stream);
+
+
 /* Open a memory-backed stream, i.e. a stream whose input is read from BASE
    which is SIZE byte-long.  If FREE_FUNC is not NULL, it is called upon
    closing STREAM.  */

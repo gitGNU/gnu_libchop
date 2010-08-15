@@ -40,6 +40,7 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include <full-read.h>
 
@@ -53,7 +54,8 @@ CHOP_DECLARE_RT_CLASS (file_stream, stream,
 		       int    fd;
 		       size_t size;
 		       char  *map;
-		       size_t position;);
+		       size_t position;
+		       int    eventually_close;);
 
 
 /* Note that the destructor of class `stream' calls `chop_stream_close ()',
@@ -69,15 +71,52 @@ static void chop_file_stream_close (chop_stream_t *);
 static chop_error_t chop_file_stream_read (chop_stream_t *,
 					   char *, size_t, size_t *);
 
+static chop_error_t
+file_stream_open (int fd, int eventually_close,
+		  const struct stat *file_stats,
+		  const char *name,
+		  chop_file_stream_t *stream)
+{
+  void *map;
+
+#ifdef USE_MMAP
+  map = mmap (0, file_stats->st_size, PROT_READ, MAP_SHARED, fd, 0);
+  if (map == MAP_FAILED)
+    {
+      close (fd);
+      return errno;
+    }
+
+  madvise (map, file_stats->st_size, MADV_SEQUENTIAL);
+#else
+  map = NULL;
+#endif
+
+  chop_object_initialize ((chop_object_t *) stream,
+			  &chop_file_stream_class);
+
+  stream->fd = fd;
+  stream->map = map;
+
+  stream->position = 0;
+  stream->size = file_stats->st_size;
+  stream->eventually_close = eventually_close;
+  stream->stream.preferred_block_size = file_stats->st_blksize;
+
+  stream->stream.close = chop_file_stream_close;
+  stream->stream.read = chop_file_stream_read;
+  stream->stream.name = chop_strdup (name, &chop_file_stream_class);
+
+  return 0;
+}
+
 chop_error_t
 chop_file_stream_open (const char *path,
 		       chop_stream_t *raw_stream)
 {
   chop_error_t err;
   int fd;
-  void *map;
   struct stat file_stats;
-  chop_file_stream_t *stream = (chop_file_stream_t *)raw_stream;
 
   err = stat (path, &file_stats);
   if (err)
@@ -87,33 +126,26 @@ chop_file_stream_open (const char *path,
   if (fd == -1)
     return errno;
 
-#ifdef USE_MMAP
-  map = mmap (0, file_stats.st_size, PROT_READ, MAP_SHARED, fd, 0);
-  if (map == MAP_FAILED)
-    {
-      close (fd);
-      return errno;
-    }
+  return file_stream_open (fd, 1, &file_stats, path,
+			   (chop_file_stream_t *) raw_stream);
+}
 
-  madvise (map, file_stats.st_size, MADV_SEQUENTIAL);
-#else
-  map = NULL;
-#endif
+chop_error_t
+chop_file_stream_open_fd (int fd, int eventually_close,
+			  chop_stream_t *stream)
+{
+  int err;
+  struct stat file_stats;
+  char name[20];
 
-  chop_object_initialize ((chop_object_t *)raw_stream,
-			  &chop_file_stream_class);
+  err = fstat (fd, &file_stats);
+  if (err)
+    return errno;
 
-  stream->fd = fd;
-  stream->map = map;
+  snprintf (name, sizeof (name), "%i", fd);
 
-  stream->position = 0;
-  stream->stream.close = chop_file_stream_close;
-  stream->stream.read = chop_file_stream_read;
-  stream->stream.name = chop_strdup (path, &chop_file_stream_class);
-  stream->stream.preferred_block_size = file_stats.st_blksize;
-  stream->size = file_stats.st_size;
-
-  return 0;
+  return file_stream_open (fd, eventually_close, &file_stats, name,
+			   (chop_file_stream_t *) stream);
 }
 
 static chop_error_t
@@ -160,7 +192,7 @@ chop_file_stream_close (chop_stream_t *stream)
     munmap (file->map, file->size);
 #endif
 
-  if (file->fd > 2)
+  if (file->eventually_close && file->fd > 2)
     close (file->fd);
 
   file->map = NULL;
