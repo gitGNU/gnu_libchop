@@ -1,0 +1,34 @@
+# libchop -- a utility library for distributed storage and data backup
+# Copyright (C) 2010  Ludovic Courtès <ludo@gnu.org>
+#
+# Libchop is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Libchop is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with libchop.  If not, see <http://www.gnu.org/licenses/>.
+
+# Test the `chop-archiver --archive-fd' command.
+
+source "${srcdir:-$PWD}/lib.sh"
+
+DB_FILE=",,archiver-fd.db"
+TMP_FILE=",,archiver-fd.tmp"
+
+chop_CLEANFILES="$DB_FILE $TMP_FILE"
+
+index=`chop-archiver -A -f "$DB_FILE" < "${srcdir:-PWD}/archiver-fd"`
+chop_fail_if ! chop-archiver -f "$DB_FILE" -r "$index" > "$TMP_FILE"
+chop_fail_if ! cmp "$TMP_FILE" "${srcdir:-PWD}/archiver-fd"
+
+rm -rf "$TMP_FILE"
+
+index=`chop-archiver -A5 -f "$DB_FILE" 5< "${srcdir:-PWD}/archiver-fd"`
+chop_fail_if ! chop-archiver -f "$DB_FILE" -r "$index" > "$TMP_FILE"
+chop_fail_if ! cmp "$TMP_FILE" "${srcdir:-PWD}/archiver-fd"

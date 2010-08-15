@@ -233,9 +233,10 @@ backup to an untrusted site can be achieved this way:
 # GNU/Linux, `curlftpfs' can be used similarly.)
 $ settrans -ca backup-site /hurd/ftpfs ftp.example.com:backup
 
-$ chop-archiver -S fs_block_store -f backup-site     \
+$ tar cf - /pix/holidays |                           \
+  chop-archiver -S fs_block_store -f backup-site     \
     -i chk_block_indexer -I aes256,cbc,sha256,tiger  \
-    --archive holiday-picture.jpg
+    --archive-fd=0
 tree_indexer:chk_block_fetcher:chk_index_handle:64:aes256,cbc,tiger:cntd5...
 @end example
 
@@ -621,12 +622,15 @@ The tool can be used in one of two modes:
 
 @enumerate
 @item
-In @emph{archival mode}, with the @code{--archive} option,
-@code{chop-archiver} stores the given file and returns the resulting
-index (@pxref{Block Indexers & Fetchers}):
+In @emph{archival mode}, with the @code{--archive} or
+@code{--archive-fd} option, @code{chop-archiver} stores the given file
+and returns the resulting index (@pxref{Block Indexers & Fetchers}):
 
 @example
 $ chop-archiver --archive README
+tree_indexer:hash_block_fetcher:hash_index_handle:64:sha1:6jmb3wrbzyqpsngxybt4r4rxtctdo4o2/26
+
+$ chop-archiver --archive-fd=5 5< README
 tree_indexer:hash_block_fetcher:hash_index_handle:64:sha1:6jmb3wrbzyqpsngxybt4r4rxtctdo4o2/26
 @end example
 
@@ -662,7 +666,8 @@ with content-based addressing, using @code{sha256} hashes of individual
 data blocks as their key.
 
 @example
-chop-archiver -i chk_block_indexer -I aes256,cbc,sha256,sha1 -a README
+tar cf - /secret/things | \
+chop-archiver -i chk_block_indexer -I aes256,cbc,sha256,sha1 -A
 @end example
 
 @cindex content-hash keys
@@ -706,6 +711,11 @@ The long list of available options follows:
 @itemx -a @var{file}
 Archive @var{file} and print an @dfn{index handle}.  This index can be
 used for later retrieval with the @code{--restore} option.
+
+@item --archive-fd=[@var{fd}]
+@itemx -A[@var{fd}]
+Same as above, but reads data from @var{fd}, an open file descriptor, or
+the standard input if @var{fd} is omitted.
 
 @item --restore=@var{index}
 @itemx -r @var{index}

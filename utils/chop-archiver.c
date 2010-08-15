@@ -77,6 +77,9 @@ goes for `--cipher'.";
 /* Whether archival or retrieval is to be performed.  */
 static int archive_queried = 0, restore_queried = 0;
 
+/* Whether the source (when archiving) is a file descriptor.  */
+static int source_is_fd = 0;
+
 /* If ARCHIVE_QUERIED, this is the typical size of blocks that should be
    produced by the chopper.  Zero means ``chopper class preferred
    value''.  */
@@ -204,6 +207,9 @@ static struct argp_option options[] =
     /* The main functions.  */
     { "archive", 'a', "FILE",   0,
       "Archive FILE and return an archived revision handle" },
+    { "archive-fd", 'A', "FD", OPTION_ARG_OPTIONAL,
+      "Archive from FD, an open file descriptor, and return an "
+      "archived revision handle" },
     { "restore", 'r', "HANDLE", 0,
       "Restore a file's revision from HANDLE, an archived revision handle" },
 
@@ -426,7 +432,33 @@ process_command (const char *argument,
       size_t bytes_read;
 
       stream = chop_class_alloca_instance (&chop_file_stream_class);
-      err = chop_file_stream_open (argument, stream);
+
+      if (source_is_fd)
+	{
+	  long fd;
+
+	  if (argument == NULL)
+	    /* Default to stdin.  */
+	    fd = 0;
+	  else
+	    {
+	      char *end;
+
+	      fd = strtol (argument, &end, 10);
+	      if (end == argument || errno == ERANGE)
+		{
+		  fprintf (stderr,
+			   "%s: failed to parse `%s' as a file descriptor\n",
+			   program_name, argument);
+		  exit (EXIT_FAILURE);
+		}
+	    }
+
+	  err = chop_file_stream_open_fd (fd, 1, stream);
+	}
+      else
+	err = chop_file_stream_open (argument, stream);
+
       if (err)
 	{
 	  chop_error (err, "while opening %s", argument);
@@ -687,6 +719,11 @@ parse_opt (int key, char *arg, struct argp_state *state)
       break;
     case 'a':
       archive_queried = 1;
+      option_argument = arg;
+      break;
+    case 'A':
+      archive_queried = 1;
+      source_is_fd = 1;
       option_argument = arg;
       break;
     case 'r':

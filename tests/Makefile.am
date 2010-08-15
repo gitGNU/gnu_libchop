@@ -36,6 +36,7 @@ check_PROGRAMS +=				\
 
 check_SCRIPTS =					\
   utils/archiver				\
+  utils/archiver-fd				\
   utils/block-server
 
 EXTRA_DIST =					\
