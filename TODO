@@ -18,7 +18,6 @@ Copyright 2010  Ludovic Courtès <ludo@gnu.org>
 
 ** Publish `archival-server' perhaps under the name "Anemoi"
 * Storage
-** Use Gnulib's `full_read' in stream-file.c
 ** Add recursive directory archival to `chop-archiver' [0/2]
 
   - [ ] Add support in `chop-archiver', a `--recursive' option.
@@ -82,6 +81,20 @@ http://repo.or.cz/w/git.git?a=blob;f=Documentation/technical/pack-format.txt
 
 ** See [[http://search.cpan.org/~bradfitz/Brackup/lib/Brackup/Chunker/MP3.pm][Brackup::Chunker::MP3]] for chopper ideas
 ** Steal other relevant ideas from [[http://search.cpan.org/~bradfitz/Brackup/][Brackup]]  :-)
+** Write a `tar' chopper
+
+Breaks at tar header and file boundaries.  Stacked on top of an
+arbitrary chopper for file contents.
+
+*** Implement sub-streams so that the tar chopper can pass
+    file contents to the sub-chopper
+
+chop_error_t chop_sub_stream_open (chop_stream_t *source,
+                                   chop_proxy_semantics_t,
+				   size_t count,
+				   chop_stream_t *substream);
+
+
 * User interface
 ** Add an option to specify the format of OpenPGP keys (archiver/block-server)
 ** chop-block-server: Add an option like `--restrict' but with OpenPGP fingerprints
