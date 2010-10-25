@@ -16,7 +16,7 @@ AC_CONFIG_MACRO_DIR(m4)
 
 AC_ARG_ENABLE([guile-bindings],
 	AS_HELP_STRING([--enable-guile-bindings],
-	  [produce GNU Guile bindings (requires Guile and G-Wrap)]),
+	  [produce GNU Guile 1.8 bindings (requires Guile 1.8 and G-Wrap)]),
 	[produce_guile_bindings="$enableval"],
 	[produce_guile_bindings="no"])
 
@@ -280,6 +280,22 @@ else
 fi
 AM_CONDITIONAL([HAVE_GUILE], [test "x$guile" != "x"])
 
+#
+# GNU Guile 2.x.
+#
+
+guile2=""
+PKG_CHECK_EXISTS([guile-2.0],
+  [if test "x`$PKG_CONFIG guile-2.0 --variable bindir`" = "x"; then
+     AC_PATH_PROG([GUILE], [guile])
+   else
+     GUILE="`$PKG_CONFIG guile-2.0 --variable bindir`"
+   fi
+   AC_SUBST([GUILE])
+   guile2="$GUILE"])
+
+AM_CONDITIONAL([HAVE_GUILE2], [test "x$guile2" != "x"])
+
 pkgdatadir="$datadir/$PACKAGE_NAME"
 if test "x$guilemoduledir" = "x"; then
   guilemoduledir="$pkgdatadir"
@@ -311,7 +327,8 @@ AC_MSG_NOTICE([Networking])
 AC_MSG_NOTICE([  GnuTLS ......................... $have_gnutls])
 AC_MSG_NOTICE([  Avahi .......................... $have_avahi])
 AC_MSG_NOTICE([Languages])
-AC_MSG_NOTICE([  GNU Guile ...................... $have_guile])
+AC_MSG_NOTICE([  GNU Guile 1.8 .................. $have_guile])
+AC_MSG_NOTICE([  GNU Guile 2.x .................. $have_guile2])
 
 AC_CONFIG_FILES([Makefile
 		 guile/pre-inst-guile
@@ -322,6 +339,7 @@ AC_CONFIG_FILES([Makefile
 		 utils/chop-vcs
 		 tests/Makefile
 		 guile/Makefile
+		 guile2/Makefile
 		 doc/Makefile])
 
 AC_CONFIG_COMMANDS([pre-inst-guile-exec], [chmod +x guile/pre-inst-guile])

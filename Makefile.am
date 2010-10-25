@@ -23,6 +23,10 @@ if HAVE_GUILE
 SUBDIRS += guile
 endif
 
+if HAVE_GUILE2
+SUBDIRS += guile2
+endif
+
 SUBDIRS += tests
 
 EXTRA_DIST = rpc/block_rstore.x

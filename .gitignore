@@ -23,6 +23,7 @@ lib/*
 *.gcda
 *.gcda.info
 *.gcov
+*.go
 gmon.out
 pre-inst-guile
 stamp-h[0-9]
@@ -101,3 +102,5 @@ stamp-h[0-9]
 /.version
 /GNUmakefile
 /maint.mk
+/guile2/objects.log
+/guile2/test-suite.log
