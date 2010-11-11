@@ -54,4 +54,23 @@
 
 (test-end)
 
+
+;;;
+;;; Streams.
+;;;
+
+(test-begin "streams")
+
+(test-assert "/dev/null"
+  (stream? (file-stream-open "/dev/null")))
+
+(test-assert "error/stream-end"
+  (catch 'chop-error
+    (lambda ()
+      (let ((bv (make-bytevector 12)))
+        (stream-read! (file-stream-open "/dev/null") bv)
+        #f))
+    (lambda (key err . args)
+      (= err error/stream-end))))
+
 (exit (= (test-runner-fail-count (test-runner-current)) 0))

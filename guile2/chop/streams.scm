@@ -18,9 +18,17 @@
   #:use-module (rnrs bytevectors)
   #:use-module (chop internal)
   #:use-module (ice-9 format)
-  #:export (file-stream-open
+  #:export (stream?
+            file-stream-open
+
+            stream-read!
+            stream-close
+
             port->stream
-            stream->port))
+            stream->port
+
+            error/unknown-stream
+            error/stream-end))
 
 (eval-when (eval load compile)
   (define (print-stream obj port)
@@ -28,7 +36,8 @@
             (object-address obj)
             (pointer-address (unwrap-stream obj)))))
 
-(define-wrapped-pointer-type stream print-stream)
+(define-wrapped-pointer-type stream?
+  wrap-stream unwrap-stream print-stream)
 
 (define file-stream-open
   (let ((f (libchop-type-constructor "file_stream_open" ('*)
@@ -36,4 +45,25 @@
     (lambda (path)
       (f (string->pointer path)))))
 
-;(file-stream-open "/dev/null")
+(define (stream-read! s bv)
+  "Read from stream S into bytevector BV.  Return the number of bytes read.
+If the end-of-stream was reached, raise a `chop-error' with value
+ERROR/STREAM-END."
+  (let ((m   (libchop-method (unwrap-stream s)
+                             "stream" "read"
+                             ('* '* size_t '*)))
+        (out (make-bytevector (sizeof size_t))))
+    (m (unwrap-stream s) (bytevector->pointer bv)
+       (bytevector-length bv)
+       (bytevector->pointer out))
+    (bytevector-uint-ref out 0 (native-endianness) (sizeof size_t))))
+
+(define (stream-close s)
+  "Close stream S."
+  (let ((m (libchop-method void (unwrap-stream s)
+                           "stream" "close"
+                           ('*))))
+    (m (unwrap-stream s))))
+
+(define-error-code error/unknown-stream "CHOP_ERR_UNKNOWN_STREAM")
+(define-error-code error/stream-end "CHOP_STREAM_END")

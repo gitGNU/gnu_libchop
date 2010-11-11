@@ -35,6 +35,7 @@
 
             libchop
             libchop-function
+            libchop-method
             libchop-type-constructor
             chop-error-t
             define-error-code
@@ -252,6 +253,37 @@ integer."
                (let ((err (f params ...)))
                  (or (= 0 err)
                      (raise-chop-error err))))))))))
+
+(define-syntax libchop-method
+  (lambda (s)
+    (syntax-case s ()
+      ((_ ret object class method (args ...))
+       (string? (syntax->datum #'class))
+       (with-syntax ((fqcn (string-append "chop_" (syntax->datum #'class)
+                                          "_t")))
+         #'(pointer->procedure ret
+                               (dereference-pointer
+                                (make-pointer
+                                 (+ (compile-time-value
+                                     (c-offset-of method fqcn
+                                                  (format #f
+                                                          "#include <chop/~as.h>"
+                                                          class)
+                                                  `("-L" ,%libchop-libdir
+                                                    "-lchop")
+                                                  %libchop-cc
+                                                  %libchop-cppflags))
+                                    (pointer-address object))))
+                               (list args ...))))
+      ((_ object class method (args ...))
+       (with-syntax (((params ...) (generate-temporaries #'(args ...))))
+         #'(let ((f (libchop-method chop-error-t object
+                                    class method (args ...))))
+             (lambda (params ...)
+               (let ((err (f params ...)))
+                 (or (= 0 err)
+                     (raise-chop-error err))))))))))
+
 
 (define %libchop-objects
   (make-weak-key-hash-table 100))
