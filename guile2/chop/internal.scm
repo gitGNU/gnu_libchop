@@ -36,7 +36,9 @@
             libchop
             libchop-function
             libchop-type-constructor
-            chop-error-t))
+            chop-error-t
+            define-error-code
+            raise-chop-error))
 
 
 ;;;
@@ -204,6 +206,18 @@ integer."
 
 (define (raise-chop-error e)
   (throw 'chop-error e))
+
+(define-syntax define-error-code
+  (syntax-rules ()
+    "Define variable NAME to match the value of C-NAME."
+    ((_ name c-name)
+     (define name
+       (compile-time-value
+        (evaluate-c-integer-expression c-name "#include <chop/errors.h>"
+                                       (list libchop.so "-Wl,-rpath"
+                                             (dirname libchop.so))
+                                       %libchop-cc
+                                       %libchop-cppflags))))))
 
 (define-compile-time-value %offset-of-instance_size
   (c-offset-of "instance_size" "chop_class_t"
