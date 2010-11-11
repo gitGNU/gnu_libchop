@@ -94,6 +94,7 @@ chop_error_t chop_sub_stream_open (chop_stream_t *source,
 				   size_t count,
 				   chop_stream_t *substream);
 
+** Add a [[http://www.1978th.net/tokyocabinet/][Tokyo Cabinet]] store back-end
 
 * User interface
 ** Add an option to specify the format of OpenPGP keys (archiver/block-server)
