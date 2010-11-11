@@ -16,8 +16,11 @@
 (define-module (chop internal)
   #:use-module (system foreign)
   #:use-module (rnrs bytevectors)
+  #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-9 gnu)
+  #:use-module (srfi srfi-26)
+  #:use-module (ice-9 popen)
   #:export (define-wrapped-pointer-type
             c-offset-of
             c-size-of
@@ -48,6 +51,27 @@
         (what (string->pointer "chop")))
     (lambda (size)
       (alloc size what))))
+
+(define-syntax compile-time-value
+  (syntax-rules ()
+    "Evaluate the given expression at compile time.  The expression must
+evaluate to a simple datum."
+    ((_ exp)
+     (let-syntax ((v (lambda (s)
+                       (let ((val exp))
+                         (syntax-case s ()
+                           (_ (datum->syntax s val)))))))
+       v))))
+
+(define-syntax define-compile-time-value
+  ;; Define the given symbol by evaluating its body at compile-time.
+  (syntax-rules ()
+    ((_ name exp)
+     (define-syntax name
+       (lambda (s)
+         (let ((val exp))
+           (syntax-case s ()
+             (_ (datum->syntax s val)))))))))
 
 (define-syntax define-wrapped-pointer-type
   (lambda (stx)
@@ -102,15 +126,32 @@ integer."
       (dynamic-wind
         (lambda ()
           (let ((out (open-output-file file)))
-            (format out "~a~%int main () { return (~a); }"
+            (format out
+                    (compile-time-value
+                     (string-append "#include <stdio.h>~%"
+                                    "#include <stdlib.h>~%~a~%"
+                                    "int main () { printf (\"%i\\n\", (~a));~%"
+                                    "return EXIT_SUCCESS; }"))
                     includes expr)
             (close-port out)))
         (lambda ()
           (let ((s (apply system* cc file "-o" exe
                           (append cppflags cflags ldflags libs))))
             (if (= 0 (status:exit-val s))
-                (let ((s (system* exe)))
-                  (status:exit-val s))
+                (let* ((in  (open-input-pipe
+                             ;; XXX: Should use `libtool --mode=execute'
+                             ;; but, that wouldn't work once installed.
+                             (format #f
+                                     "LD_LIBRARY_PATH=\"~a:$LD_LIBRARY_PATH\" \"~a\""
+                                     (dirname libchop.so)
+                                     exe)))
+                       (val (read in))
+                       (ret (close-pipe in)))
+                  (if (and (= 0 (status:exit-val ret))
+                           (number? val))
+                      (pk 'c-expression expr val)
+                      (throw 'runtime-error 'evaluate-c-integer-expression
+                             ret expr exe)))
                 (throw 'compilation-error 'evaluate-c-integer-expression
                        s expr cc))))
         (lambda ()
@@ -126,19 +167,9 @@ integer."
   (define (c-offset-of field type includes libs . rest)
     "Return the offset of FIELD in TYPE, a C struct, in bytes."
     (apply evaluate-c-integer-expression
-           (pk 'expt (format #f "(char *)(&((~a *) 0)->~a) - (char *) 0"
-                             type field))
+           (format #f "(char *)(&((~a *) 0)->~a) - (char *) 0"
+                   type field)
            includes libs rest)))
-
-(define-syntax define-compile-time-value
-  ;; Define the given symbol by evaluating its body at compile-time.
-  (syntax-rules ()
-    ((_ name exp)
-     (define-syntax name
-       (lambda (s)
-         (let ((val exp))
-           (syntax-case s ()
-             (_ (datum->syntax s val)))))))))
 
 
 ;;;
@@ -163,6 +194,12 @@ integer."
 (define libchop
   (dynamic-link (string-append %libchop-libdir "/libchop")))
 
+(eval-when (compile load eval)
+  (define libchop.so
+    (find file-exists?
+          (map (cut string-append %libchop-libdir "/" <>)
+               '("libchop.so" ".libs/libchop.so")))))
+
 (define chop-error-t int)
 
 (define (raise-chop-error e)
@@ -171,7 +208,9 @@ integer."
 (define-compile-time-value %offset-of-instance_size
   (c-offset-of "instance_size" "chop_class_t"
                "#include <chop/objects.h>"
-               `("-L" ,%libchop-libdir "-lchop")
+               ;; XXX: Should use `libtool --mode=link' but that wouldn't
+               ;; work once installed.
+               (list libchop.so "-Wl,-rpath" (dirname libchop.so))
                %libchop-cc
                %libchop-cppflags))
 
