@@ -16,7 +16,7 @@
 ;;; along with libchop.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (chop test-suite)
-  #:use-module (chop)
+  #:use-module (chop core)
   #:use-module (chop objects)
   #:use-module (chop streams)
   #:use-module (rnrs bytevectors)

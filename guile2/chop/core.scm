@@ -13,7 +13,7 @@
 ;;; You should have received a copy of the GNU General Public License
 ;;; along with libchop.  If not, see <http://www.gnu.org/licenses/>.
 
-(define-module (chop)
+(define-module (chop core)
   #:use-module (system foreign)
   #:use-module (rnrs bytevectors)
   #:use-module (srfi srfi-1)

@@ -15,7 +15,7 @@
 # along with libchop.  If not, see <http://www.gnu.org/licenses/>.
 
 SOURCES =					\
-  chop.scm					\
+  chop/core.scm					\
   chop/internal.scm				\
   chop/objects.scm				\
   chop/streams.scm				\
