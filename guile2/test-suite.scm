@@ -73,4 +73,20 @@
     (lambda (key err . args)
       (= err error/stream-end))))
 
+(test-assert "mem-stream"
+  (let* ((in  (uint-list->bytevector (iota 123) (native-endianness) 4))
+         (out (make-bytevector (bytevector-length in)))
+         (s   (mem-stream-open in)))
+    (let loop ((total 0))
+      (define bv (make-bytevector 7))
+      (let ((read (false-if-exception (stream-read! s bv))))
+        (if (not read)
+            (begin
+              (stream-close s)
+              (and (equal? out in)
+                   (= total (bytevector-length in))))
+            (begin
+              (bytevector-copy! bv 0 out total read)
+              (loop (+ total read))))))))
+
 (exit (= (test-runner-fail-count (test-runner-current)) 0))

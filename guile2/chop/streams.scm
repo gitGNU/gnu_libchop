@@ -20,6 +20,7 @@
   #:use-module (ice-9 format)
   #:export (stream?
             file-stream-open
+            mem-stream-open
 
             stream-read!
             stream-close
@@ -43,7 +44,19 @@
   (let ((f (libchop-type-constructor "file_stream_open" ('*)
                                      "file_stream" wrap-stream)))
     (lambda (path)
+      "Return a new input stream to the contents of the file at PATH."
       (f (string->pointer path)))))
+
+(define mem-stream-open
+  ;; XXX: `chop_mem_stream_open' really returns `void' whereas
+  ;; `libchop-type-constructor' assumes `chop_error_t' is returned.
+  (let ((f (libchop-type-constructor "mem_stream_open" ('* size_t '*)
+                                     "mem_stream" wrap-stream)))
+    (lambda (bv)
+      "Return a new input stream whose contents are taken from bytevector BV."
+      (f (bytevector->pointer bv)
+         (bytevector-length bv)
+         %null-pointer))))
 
 (define (stream-read! s bv)
   "Read from stream S into bytevector BV.  Return the number of bytes read.
