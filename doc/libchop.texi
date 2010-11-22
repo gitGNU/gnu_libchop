@@ -29,7 +29,9 @@ Free Documentation License''.
 @end ifinfo
 
 @titlepage
-@title Libchop, A Library for Distributed Storage and Data Backup
+@titlefont{Libchop, A Library}
+@sp 1
+@title for Distributed Storage and Data Backup
 @subtitle for libchop @value{VERSION}
 @author Ludovic Court@`es
 
@@ -38,7 +40,7 @@ Free Documentation License''.
 Edition @value{EDITION} @*
 @value{UPDATED} @*
 
-Copyright @copyright{} 2010  Ludovic Court@`es
+Copyright @copyright{} 2010  Ludovic Court@`es @*
 Copyright @copyright{} 2005, 2006  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
 @quotation
@@ -228,7 +230,7 @@ Libchop, as a library or using its stand-alone utilities, can be used to
 build such applications.  For instance, incremental encrypted data
 backup to an untrusted site can be achieved this way:
 
-@example
+@smallexample
 # Mount the target FTP directory (using a GNU/Hurd translator; on
 # GNU/Linux, `curlftpfs' can be used similarly.)
 $ settrans -ca backup-site /hurd/ftpfs ftp.example.com:backup
@@ -238,7 +240,7 @@ $ tar cf - /pix/holidays |                           \
     -i chk_block_indexer -I aes256,cbc,sha256,tiger  \
     --archive-fd=0
 tree_indexer:chk_block_fetcher:chk_index_handle:64:aes256,cbc,tiger:cntd5...
-@end example
+@end smallexample
 
 The long line displayed by @code{chop-archiver} is an index handle that
 can eventually be passed to @code{chop-archiver --restore} to restore
@@ -626,13 +628,13 @@ In @emph{archival mode}, with the @code{--archive} or
 @code{--archive-fd} option, @code{chop-archiver} stores the given file
 and returns the resulting index (@pxref{Block Indexers & Fetchers}):
 
-@example
+@smallexample
 $ chop-archiver --archive README
 tree_indexer:hash_block_fetcher:hash_index_handle:64:sha1:6jmb3wrbzyqpsngxybt4r4rxtctdo4o2/26
 
 $ chop-archiver --archive-fd=5 5< README
 tree_indexer:hash_block_fetcher:hash_index_handle:64:sha1:6jmb3wrbzyqpsngxybt4r4rxtctdo4o2/26
-@end example
+@end smallexample
 
 @cindex index handle
 The above command stored the file @file{README} in a local block store
@@ -643,10 +645,10 @@ later be used to restore the file.
 In @emph{retrieval mode}, with the @code{--restore} option,
 @code{chop-archiver} retrieves data pointed to by the given index:
 
-@example
+@smallexample
 $ chop-archiver --restore \
     tree_indexer:hash_block_fetcher:hash_index_handle:64:sha1:6jmb3wrbzyqpsngxybt4r4rxtctdo4o2/26
-@end example
+@end smallexample
 
 This command retrieves and decodes the data pointed to by the given index
 and prints it on the standard output.  The integrity of each data block
@@ -958,13 +960,13 @@ Free software related to libchop:
 @table @asis
 
 @item Plan 9's Venti archival storage server
-@url{http://plan9.bell-labs.com/magic/man2html/8/venti}
+@url{http://plan9.bell-labs.com/@/magic/@/man2html/@/8/@/venti}
 
 @item GNUnet, GNU's decentralized anonymous and censorship-resistant peer-to-peer framework
 @url{http://gnunet.org/}
 
 @item Tahoe-LAFS, a secure, decentralized, data store
-@url{http://allmydata.org/trac/tahoe-lafs}
+@url{http://allmydata.org/@/trac/@/tahoe-lafs}
 
 @end table
 
@@ -974,14 +976,14 @@ Documents related to libchop:
 
 @item Cooperative Data Backup for Mobile Devices
 Ludovic Court@`es (PhD thesis), 2007,
-@url{http://tel.archives-ouvertes.fr/tel-00196822/en/}.  Chapter 4
+@url{http://tel.archives-ouvertes.fr/@/tel-00196822/en/}.  Chapter 4
 discusses the design of libchop.  It contains an evaluation of several
 storage strategies using libchop in terms of storage efficiency and
 computational cost, for various types of input files.
 
 @item Storage Tradeoffs in a Collaborative Backup Service for Mobile Devices
 Ludovic Court@`es et al., 2006,
-@url{http://hal.archives-ouvertes.fr/hal-00187069/en/}.  This paper
+@url{http://hal.archives-ouvertes.fr/@/hal-00187069/en/}.  This paper
 provides a summary of the above.
 
 @end table
@@ -990,7 +992,7 @@ Other readings:
 
 @table @asis
 
-@item @url{http://plan9.bell-labs.com/sys/doc/venti/venti.html, Venti: a new approach to archival storage}
+@item @url{http://plan9.bell-labs.com/@/sys/@/doc/@/venti/@/venti.html, Venti: a new approach to archival storage}
 Sean Quinlan and Sean Dorward.
 
 @end table
