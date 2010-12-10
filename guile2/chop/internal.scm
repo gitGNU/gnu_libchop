@@ -32,6 +32,7 @@
             %libchop-libdir
             %libchop-cc
             %libchop-cppflags
+            %libchop-libs
 
             libchop
             libchop-function
@@ -184,6 +185,13 @@ integer."
 (eval-when (eval load compile)
   (define %libchop-libdir
     (or (getenv "libchop_libdir") "../../src"))
+  (define libchop.so
+    (find file-exists?
+          (map (cut string-append %libchop-libdir "/" <>)
+               '("libchop.so" ".libs/libchop.so"))))
+  (define %libchop-libs
+    (list libchop.so
+          "-Wl,-rpath" (dirname libchop.so)))
   (define %libchop-cc
     "gcc")
   (define %libchop-cppflags
@@ -197,12 +205,6 @@ integer."
 (define libchop
   (dynamic-link (string-append %libchop-libdir "/libchop")))
 
-(eval-when (compile load eval)
-  (define libchop.so
-    (find file-exists?
-          (map (cut string-append %libchop-libdir "/" <>)
-               '("libchop.so" ".libs/libchop.so")))))
-
 (define chop-error-t int)
 
 (define (raise-chop-error e)
@@ -215,8 +217,7 @@ integer."
      (define name
        (compile-time-value
         (evaluate-c-integer-expression c-name "#include <chop/errors.h>"
-                                       (list libchop.so "-Wl,-rpath"
-                                             (dirname libchop.so))
+                                       %libchop-libs
                                        %libchop-cc
                                        %libchop-cppflags))))))
 
@@ -225,7 +226,7 @@ integer."
                "#include <chop/objects.h>"
                ;; XXX: Should use `libtool --mode=link' but that wouldn't
                ;; work once installed.
-               (list libchop.so "-Wl,-rpath" (dirname libchop.so))
+               %libchop-libs
                %libchop-cc
                %libchop-cppflags))
 
@@ -269,8 +270,7 @@ integer."
                                                   (format #f
                                                           "#include <chop/~as.h>"
                                                           class)
-                                                  `("-L" ,%libchop-libdir
-                                                    "-lchop")
+                                                  %libchop-libs
                                                   %libchop-cc
                                                   %libchop-cppflags))
                                     (pointer-address object))))

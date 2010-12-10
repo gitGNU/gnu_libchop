@@ -41,7 +41,7 @@
 (define-compile-time-value %offset-of-class
   (c-offset-of "class" "chop_object_t"
                "#include <chop/objects.h>"
-               `("-L" ,%libchop-libdir "-lchop")
+               %libchop-libs
                %libchop-cc
                %libchop-cppflags))
 
@@ -55,7 +55,7 @@
 (define-compile-time-value %offset-of-name
   (c-offset-of "name" "chop_class_t"
                "#include <chop/objects.h>"
-               `("-L" ,%libchop-libdir "-lchop")
+               %libchop-libs
                %libchop-cc
                %libchop-cppflags))
 
@@ -68,7 +68,7 @@
 (define-compile-time-value %offset-of-parent
   (c-offset-of "parent" "chop_class_t"
                "#include <chop/objects.h>"
-               `("-L" ,%libchop-libdir "-lchop")
+               %libchop-libs
                %libchop-cc
                %libchop-cppflags))
 
