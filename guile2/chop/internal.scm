@@ -117,10 +117,12 @@ evaluate to a simple datum."
 
 (eval-when (eval load compile)
 
+  (define %libtool (getenv "LIBTOOL"))
+
   (define* (evaluate-c-integer-expression expr
                                           includes libs
                                           #:optional
-                                          (cc "gcc")
+                                          (cc "cc")
                                           (cppflags '()) (cflags '())
                                           (ldflags '()))
     "Return the value of EXPR, a C expression that evaluates to an 8-bit
@@ -139,16 +141,27 @@ integer."
                     includes expr)
             (close-port out)))
         (lambda ()
-          (let ((s (apply system* cc file "-o" exe
-                          (append cppflags cflags ldflags libs))))
+          (let* ((cc  (cond ((string? %libtool)
+                             `(,@(string-tokenize %libtool)
+                               "--mode=link"
+                               ,@(if (string? cc)
+                                     (string-tokenize cc)
+                                     (list cc))))
+                            ((string? cc)
+                             (string-tokenize cc))
+                            (else cc)))
+                 (cmd `(,@cc ,file "-o" ,exe
+                             ,@cppflags ,@cflags ,@ldflags ,@libs))
+                 (s   (apply system* cmd)))
             (if (= 0 (status:exit-val s))
                 (let* ((in  (open-input-pipe
-                             ;; XXX: Should use `libtool --mode=execute'
-                             ;; but, that wouldn't work once installed.
-                             (format #f
-                                     "LD_LIBRARY_PATH=\"~a:$LD_LIBRARY_PATH\" \"~a\""
-                                     (dirname libchop.so)
-                                     exe)))
+                             (if %libtool
+                                 (string-append %libtool " --mode=execute \""
+                                                exe "\"")
+                                 (format #f
+                                         "LD_LIBRARY_PATH=\"~a:$LD_LIBRARY_PATH\" \"~a\""
+                                         (dirname libchop.so)
+                                         exe))))
                        (val (read in))
                        (ret (close-pipe in)))
                   (if (and (= 0 (status:exit-val ret))
@@ -157,7 +170,7 @@ integer."
                       (throw 'runtime-error 'evaluate-c-integer-expression
                              ret expr exe)))
                 (throw 'compilation-error 'evaluate-c-integer-expression
-                       s expr cc))))
+                       s expr cmd))))
         (lambda ()
           (false-if-exception (delete-file file))
           (false-if-exception (delete-file exe))))))
@@ -193,7 +206,7 @@ integer."
     (list libchop.so
           "-Wl,-rpath" (dirname libchop.so)))
   (define %libchop-cc
-    "gcc")
+    (or (getenv "CC") "cc"))
   (define %libchop-cppflags
     `("-I" ,(or (getenv "libchop_includedir") "../../include"))))
 

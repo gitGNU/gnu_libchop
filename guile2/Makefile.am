@@ -40,6 +40,7 @@ nobase_nodist_guilemodule_DATA = $(GOBJECTS)
 	$(MKDIR_P) `dirname $@`
 	libchop_libdir="$(abs_top_builddir)/src"				\
 	libchop_includedir="$(abs_top_srcdir)/include"				\
+	CC="$(CC)" LIBTOOL="$(LIBTOOL)"						\
 	GUILE_AUTO_COMPILE=0							\
 	GUILE_LOAD_COMPILED_PATH="$(builddir):$$GUILE_LOAD_COMPILED_PATH"	\
 	guile-tools compile -L "$(srcdir)" $(GUILEC_FLAGS) -o "$@" "$<"
