@@ -24,7 +24,9 @@
   #:re-export (define-wrapped-pointer-type)
   #:export (c-offset-of
             c-size-of
+            compile-time-value
             define-compile-time-value
+            pointer+
 
             register-libchop-object!
             object?
@@ -40,7 +42,11 @@
             libchop-type-constructor
             chop-error-t
             define-error-code
-            raise-chop-error))
+            raise-chop-error
+
+            class-instance-size
+            make-empty-buffer
+            buffer->bytevector))
 
 
 ;;;
@@ -76,6 +82,17 @@ evaluate to a simple datum."
          (let ((val exp))
            (syntax-case s ()
              (_ (datum->syntax s val)))))))))
+
+(define-syntax compile-time-value
+  (syntax-rules ()
+    "Evaluate the given expression at compile time.  The expression must
+evaluate to a simple datum."
+    ((_ exp)
+     (let-syntax ((v (lambda (s)
+                       (let ((val exp))
+                         (syntax-case s ()
+                           (_ (datum->syntax s val)))))))
+       v))))
 
 (eval-when (eval load compile)
 
@@ -205,13 +222,17 @@ integer."
                %libchop-cc
                %libchop-cppflags))
 
-(define (class-instance-size name)
-  "Return the class of instances of NAME."
-  (let* ((klass (dynamic-pointer (string-append "chop_" name "_class")
-                                 libchop))
-         (bytes (pointer->bytevector klass (sizeof size_t)
-                                     %offset-of-instance_size)))
+(define (class-instance-size class)
+  "Return the size of instances of CLASS."
+  (let ((bytes (pointer->bytevector class (sizeof size_t)
+                                    %offset-of-instance_size)))
     (bytevector-uint-ref bytes 0 (native-endianness) (sizeof size_t))))
+
+(define (class-name-instance-size name)
+  "Return the class of instances of NAME."
+  (class-instance-size
+   (dynamic-pointer (string-append "chop_" name "_class")
+                    libchop)))
 
 (define-syntax libchop-function
   (lambda (s)
@@ -276,14 +297,76 @@ integer."
   (lambda (s)
     (syntax-case s ()
       ((_ name (args ...) class-name wrap)
-       (string? (syntax->datum #'class-name))
        (with-syntax (((params ...) (generate-temporaries #'(args ...))))
          #'(let ((make (libchop-function name (args ... '*))))
              (lambda (params ...)
                (let ((ptr (gc-malloc-pointerless
-                           (class-instance-size class-name))))
+                           (class-name-instance-size class-name))))
                  (make params ... ptr)
                  (register-libchop-object! (wrap ptr))))))))))
+
+
+;;;
+;;; The `chop_buffer_t' buffers.
+;;;
+
+(define register-weak-reference
+  (let ((refs (make-weak-value-hash-table)))
+    (lambda (source target)
+      (hash-set! refs source target))))
+
+(define (pointer+ p x)
+  (make-pointer (+ (pointer-address p) x)))
+
+(define-compile-time-value %size-of-chop_buffer_t
+  (c-size-of "chop_buffer_t"
+             "#include <chop/buffers.h>"
+             %libchop-libs
+             %libchop-cc
+             %libchop-cppflags))
+
+(define make-empty-buffer
+  (let ((init      (libchop-function "buffer_init" ('* size_t)))
+        (destroy   (dynamic-func "chop_buffer_return" libchop)))
+    (lambda* (#:optional (size 0))
+      "Return a pointer to a new `chop_buffer_t' object."
+      (let ((buf (bytevector->pointer
+                  (make-bytevector %size-of-chop_buffer_t))))
+        (init buf size)
+        (set-pointer-finalizer! buf destroy)
+        buf))))
+
+(define buffer->bytevector
+  (let ((buf-offset   (compile-time-value
+                       (c-offset-of "buffer" "chop_buffer_t"
+                                    "#include <chop/buffers.h>"
+                                    %libchop-libs
+                                    %libchop-cc
+                                    %libchop-cppflags)))
+        (size-offset (compile-time-value
+                      (c-offset-of "size" "chop_buffer_t"
+                                   "#include <chop/buffers.h>"
+                                   %libchop-libs
+                                   %libchop-cc
+                                   %libchop-cppflags))))
+    (lambda (buf)
+      "Return a bytevector with the contents of BUF."
+      (let* ((size  (bytevector-uint-ref (pointer->bytevector
+                                          buf %size-of-chop_buffer_t)
+                                         size-offset (native-endianness)
+                                         (sizeof size_t)))
+             (bv    (pointer->bytevector (dereference-pointer
+                                          (pointer+ buf buf-offset))
+                                         size)))
+        ;; Note: we re-use `buf->buffer' as is instead of reallocating a new
+        ;; one.
+        (register-weak-reference bv buf)
+        bv))))
+
+
+;;;
+;;; Initialization.
+;;;
 
 (define init (libchop-function "init" ()))
 

@@ -19,6 +19,7 @@
   #:use-module (chop core)
   #:use-module (chop objects)
   #:use-module (chop streams)
+  #:use-module (chop choppers)
   #:use-module (rnrs bytevectors)
   #:use-module (rnrs io ports)
   #:use-module (srfi srfi-1)
@@ -104,7 +105,6 @@
          (port   (stream->port (mem-stream-open input)))
          (output (make-bytevector (bytevector-length input))))
     (let loop ((total 0))
-      (pk total)
       (if (>= total (bytevector-length input))
           (and (= total (bytevector-length input))
                (bytevector=? input output))
@@ -112,6 +112,39 @@
                                          total (1+ (random 10)))))
             (and (or (eof-object? read) (> read 0))
                  (loop (+ read total))))))))
+
+(test-end)
+
+
+;;;
+;;; Choppers.
+;;;
+
+(test-begin "choppers")
+
+(test-assert "chopper-generic-open"
+  (let* ((s (mem-stream-open #vu8(1 2 3)))
+         (c (chopper-generic-open (lookup-class "fixed_size_chopper") s)))
+    (chopper? c)))
+
+(test-assert "chopper-read-block"
+  (let* ((input   (make-random-bytevector 7777))
+         (stream  (mem-stream-open input))
+         (chopper (anchor-based-chopper-open stream 99))
+         (output  (make-bytevector (bytevector-length input))))
+    (let loop ((total 0))
+      (catch 'chop-error
+        (lambda ()
+          (let ((block (chopper-read-block chopper)))
+            (bytevector-copy! block 0 output total
+                              (bytevector-length block))
+            (loop (+ (bytevector-length block) total))))
+        (lambda (key err . args)
+          (and (= err error/stream-end)
+               (= total (bytevector-length input))
+               (bytevector=? input output)))))))
+
+(test-end)
 
 (exit (= (test-runner-fail-count (test-runner-current)) 0))
 
