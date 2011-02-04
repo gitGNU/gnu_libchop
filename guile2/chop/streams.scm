@@ -1,4 +1,4 @@
-;;; Copyright (C) 2010  Ludovic Courtès <ludo@gnu.org>
+;;; Copyright (C) 2010, 2011  Ludovic Courtès <ludo@gnu.org>
 ;;;
 ;;; Libchop is free software: you can redistribute it and/or modify
 ;;; it under the terms of the GNU General Public License as published by
@@ -16,7 +16,9 @@
 (define-module (chop streams)
   #:use-module (system foreign)
   #:use-module (rnrs bytevectors)
+  #:use-module ((rnrs io ports) #:select (make-custom-binary-input-port))
   #:use-module (chop internal)
+  #:use-module (srfi srfi-26)
   #:use-module (ice-9 format)
   #:export (stream?
             file-stream-open
@@ -77,6 +79,22 @@ ERROR/STREAM-END."
                            "stream" "close"
                            ('*))))
     (m (unwrap-stream s))))
+
+(define (stream->port s)
+  "Return an input port wrapped around stream S."
+  (define (read! bv start count)
+    (if (= 0 start)
+        (stream-read! s bv)
+        (let* ((count (- (bytevector-length bv) start))
+               (bv*   (make-bytevector count))
+               (read  (stream-read! s bv*)))
+          (bytevector-copy! bv* 0 bv start read)
+          read)))
+
+  (make-custom-binary-input-port (format #f "stream ~x"
+                                         (pointer-address (unwrap-stream s)))
+                                 read! #f #f
+                                 (cut stream-close s)))
 
 (define-error-code error/unknown-stream "CHOP_ERR_UNKNOWN_STREAM")
 (define-error-code error/stream-end "CHOP_STREAM_END")
