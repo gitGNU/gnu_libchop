@@ -1,4 +1,4 @@
-;;; Copyright (C) 2010  Ludovic Courtès <ludo@gnu.org>
+;;; Copyright (C) 2010, 2011  Ludovic Courtès <ludo@gnu.org>
 ;;;
 ;;; Libchop is free software: you can redistribute it and/or modify
 ;;; it under the terms of the GNU General Public License as published by
@@ -21,8 +21,8 @@
   #:use-module (srfi srfi-9 gnu)
   #:use-module (srfi srfi-26)
   #:use-module (ice-9 popen)
-  #:export (define-wrapped-pointer-type
-            c-offset-of
+  #:re-export (define-wrapped-pointer-type)
+  #:export (c-offset-of
             c-size-of
             define-compile-time-value
 
@@ -76,44 +76,6 @@ evaluate to a simple datum."
          (let ((val exp))
            (syntax-case s ()
              (_ (datum->syntax s val)))))))))
-
-(define-syntax define-wrapped-pointer-type
-  (lambda (stx)
-    (syntax-case stx ()
-      ((_ pred wrap unwrap print) ;; hygiene
-       (with-syntax ((type-name (datum->syntax #'pred (gensym)))
-                     (%wrap     (datum->syntax #'wrap (gensym))))
-         #'(begin
-             (define-record-type type-name
-               (%wrap pointer)
-               pred
-               (pointer unwrap))
-             (define wrap
-               ;; Use a weak hash table to preserve pointer identity, i.e.,
-               ;; PTR1 == PTR2 <-> (eq? (wrap PTR1) (wrap PTR2)).
-               (let ((ptr->obj (make-weak-value-hash-table)))
-                 (lambda (ptr)
-                   (or (hash-ref ptr->obj ptr)
-                       (let ((o (%wrap ptr)))
-                         (hash-set! ptr->obj ptr o)
-                         o)))))
-             (set-record-type-printer! type-name print))))
-      ((_ type-name print) ;; lazyness
-       (let* ((type-name*  (syntax->datum #'type-name))
-              (pred-name   (datum->syntax #'type-name
-                                          (symbol-append type-name* '?)))
-              (wrap-name   (datum->syntax #'type-name
-                                          (symbol-append 'wrap- type-name*)))
-              (%wrap-name  (datum->syntax #'type-name
-                                          (symbol-append '%wrap- type-name*)))
-              (unwrap-name (datum->syntax #'type-name
-                                          (symbol-append 'unwrap-
-                                                         type-name*))))
-         (with-syntax ((pred   pred-name)
-                       (wrap   wrap-name)
-                       (%wrap  %wrap-name)
-                       (unwrap unwrap-name))
-           #'(define-wrapped-pointer-type pred wrap unwrap print)))))))
 
 (eval-when (eval load compile)
 
