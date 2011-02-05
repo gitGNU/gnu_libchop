@@ -234,14 +234,27 @@ integer."
    (dynamic-pointer (string-append "chop_" name "_class")
                     libchop)))
 
+(define-syntax full-class-type-name
+  (syntax-rules ()
+    "Given an abbreviated class name, e.g., \"chopper\", return the C type
+name, e.g., \"chop_chopper_t\"."
+    ((_ name)
+     (compile-time-value (string-append "chop_" name "_t")))))
+
+(define-syntax class-includes
+  (syntax-rules ()
+    "Return the include directive for class NAME."
+    ((_ name)
+     (compile-time-value (format #f "#include <chop/~as.h>" name)))))
+
 (define-syntax libchop-function
   (lambda (s)
     (syntax-case s ()
       ((_ ret c-name (args ...))
        (string? (syntax->datum #'c-name))
-       (with-syntax ((fqcn (string-append "chop_"
+       (with-syntax ((fqfn (string-append "chop_"
                                           (syntax->datum #'c-name))))
-         #'(pointer->procedure ret (dynamic-func fqcn libchop)
+         #'(pointer->procedure ret (dynamic-func fqfn libchop)
                                (list args ...))))
       ((_ c-name (args ...))
        (with-syntax (((params ...) (generate-temporaries #'(args ...))))
@@ -256,21 +269,18 @@ integer."
     (syntax-case s ()
       ((_ ret object class method (args ...))
        (string? (syntax->datum #'class))
-       (with-syntax ((fqcn (string-append "chop_" (syntax->datum #'class)
-                                          "_t")))
-         #'(pointer->procedure ret
-                               (dereference-pointer
-                                (make-pointer
-                                 (+ (compile-time-value
-                                     (c-offset-of method fqcn
-                                                  (format #f
-                                                          "#include <chop/~as.h>"
-                                                          class)
-                                                  %libchop-libs
-                                                  %libchop-cc
-                                                  %libchop-cppflags))
-                                    (pointer-address object))))
-                               (list args ...))))
+       #'(pointer->procedure ret
+                             (dereference-pointer
+                              (make-pointer
+                               (+ (compile-time-value
+                                   (c-offset-of method
+                                                (full-class-type-name class)
+                                                (class-includes class)
+                                                %libchop-libs
+                                                %libchop-cc
+                                                %libchop-cppflags))
+                                  (pointer-address object))))
+                             (list args ...)))
       ((_ object class method (args ...))
        (with-syntax (((params ...) (generate-temporaries #'(args ...))))
          #'(let ((f (libchop-method chop-error-t object
