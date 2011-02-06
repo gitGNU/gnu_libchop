@@ -17,6 +17,7 @@
   #:use-module (system foreign)
   #:use-module (rnrs bytevectors)
   #:use-module (chop internal)
+  #:use-module (chop objects)
   #:export (chopper?
             whole-stream-chopper-open
             fixed-size-chopper-open
@@ -24,15 +25,14 @@
             chopper-generic-open
             chopper-read-block))
 
-(define-wrapped-pointer-type chopper?
-  wrap-chopper unwrap-chopper
-  (lambda (c p)
-    (format p "#<chop-chopper ~x (~x)>"
-            (object-address c)
-            (pointer-address (unwrap-chopper c)))))
+(define-libchop-type chopper "chopper"
+  chopper?
+  wrap-chopper unwrap-chopper)
 
-(define (unwrap-stream s)
-  ((@@ (chop streams) unwrap-stream) s))
+(define unwrap-stream
+  (let ((stream (lookup-class "stream")))
+    (lambda (s)
+      (unwrap-object stream s))))
 
 
 ;;;

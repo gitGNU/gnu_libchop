@@ -33,14 +33,9 @@
             error/unknown-stream
             error/stream-end))
 
-(eval-when (eval load compile)
-  (define (print-stream obj port)
-    (format port "#<chop-stream ~x (~x)>"
-            (object-address obj)
-            (pointer-address (unwrap-stream obj)))))
-
-(define-wrapped-pointer-type stream?
-  wrap-stream unwrap-stream print-stream)
+(define-libchop-type stream "stream"
+  stream?
+  wrap-stream unwrap-stream)
 
 (define file-stream-open
   (let ((f (libchop-type-constructor "file_stream_open" ('*)

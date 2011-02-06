@@ -21,15 +21,23 @@
   #:use-module (srfi srfi-9 gnu)
   #:use-module (srfi srfi-26)
   #:use-module (ice-9 popen)
-  #:re-export (define-wrapped-pointer-type)
+  #:use-module (ice-9 match)
   #:export (c-offset-of
             c-size-of
             compile-time-value
             define-compile-time-value
             pointer+
 
+            define-libchop-type
+            wrap-object
+            unwrap-object
             register-libchop-object!
             object?
+
+            class?
+            wrap-class
+            unwrap-class
+            lookup-class
 
             %libchop-libdir
             %libchop-cc
@@ -247,6 +255,59 @@ name, e.g., \"chop_chopper_t\"."
     ((_ name)
      (compile-time-value (format #f "#include <chop/~as.h>" name)))))
 
+(define %libchop-types
+  ;; Mapping of `class' objects to wrap/unwrap pair.
+  (make-hash-table))
+
+;; Trick to delay loading of `(chop objects)'.
+(define-syntax class-parent
+  (syntax-rules ()
+    ((_ c)
+     ((@ (chop objects) class-parent) c))))
+
+(define (wrap-object class ptr)
+  "Wrap PTR, which points to an arbitrary libchop object.  This is meant to
+be used for object types of other modules, e.g., when (chop choppers) wants
+to wrap a `stream' object."
+  (let loop ((class class))
+    (match (hashq-ref %libchop-types class)
+      ((wrap . _)
+       (wrap ptr))
+      (else
+       (loop (class-parent class))))))
+
+(define (unwrap-object class obj)
+  "Unwrap OBJ, which points to an arbitrary libchop object."
+  (let loop ((class class))
+    (match (hashq-ref %libchop-types class)
+      ((_ . unwrap)
+       (unwrap obj))
+      (else
+       (loop (class-parent class))))))
+
+;; Defined later.
+(define register-libchop-type! #f)
+(define lookup-class identity)
+
+(define (print-object obj port)
+  "Print libchop object OBJ to PORT."
+  (let* ((class      ((@ (chop objects) object-class) obj))
+         (class-name ((@ (chop objects) class-name) class))
+         (ptr        (unwrap-object class obj)))
+    (format port "#<chop ~a ~x (~x)>"
+            class-name (object-address obj)
+            (pointer-address ptr))))
+
+(define-syntax define-libchop-type
+  (lambda (s)
+    (syntax-case s ()
+      ((_ name c-name pred wrap unwrap)
+       (string? (syntax->datum #'c-name))
+       #'(begin
+           (define-wrapped-pointer-type pred wrap unwrap
+             print-object)
+           (register-libchop-type! (lookup-class c-name) wrap unwrap))))))
+
 (define-syntax libchop-function
   (lambda (s)
     (syntax-case s ()
@@ -317,6 +378,48 @@ name, e.g., \"chop_chopper_t\"."
 
 
 ;;;
+;;; Initialization.
+;;;
+
+(define init (libchop-function "init" ()))
+
+(init)
+
+;; Bootstrap the object system.
+
+(define %root-class #f)
+
+(set! register-libchop-type!
+      (lambda (class wrap unwrap)
+        ;; Dummy bootstrap definition.
+        (set! %root-class
+              (list wrap unwrap))))
+
+;; Boot!
+(define-libchop-type class "class"
+  class?
+  wrap-class unwrap-class)
+
+(set! register-libchop-type!
+      (lambda (class wrap unwrap)
+       "Register the type CLASS"
+       (hashq-set! %libchop-types class (cons wrap unwrap))))
+
+;; Add `lookup-class', which can now be used by `define-libchop-type'.
+(set! lookup-class
+  (let ((f (libchop-function '* "class_lookup" ('*))))
+    (lambda (name)
+      "Return the class called NAME or #f if no such class exists."
+      (let ((ptr (f (string->pointer name))))
+        (if (null-pointer? ptr)
+            #f
+            (register-libchop-object! (wrap-class ptr)))))))
+
+;; Register type `class'.
+(apply register-libchop-type! (lookup-class "class") %root-class)
+
+
+;;;
 ;;; The `chop_buffer_t' buffers.
 ;;;
 
@@ -372,12 +475,3 @@ name, e.g., \"chop_chopper_t\"."
         ;; one.
         (register-weak-reference bv buf)
         bv))))
-
-
-;;;
-;;; Initialization.
-;;;
-
-(define init (libchop-function "init" ()))
-
-(init)

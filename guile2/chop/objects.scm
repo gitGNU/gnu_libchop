@@ -1,4 +1,4 @@
-;;; Copyright (C) 2010  Ludovic Courtès <ludo@gnu.org>
+;;; Copyright (C) 2010, 2011  Ludovic Courtès <ludo@gnu.org>
 ;;;
 ;;; Libchop is free software: you can redistribute it and/or modify
 ;;; it under the terms of the GNU General Public License as published by
@@ -18,25 +18,15 @@
   #:use-module (rnrs bytevectors)
   #:use-module (chop internal)
   #:use-module (ice-9 format)
-  #:export (class?
-            class-name
+  #:re-export (class?
+               lookup-class)
+  #:export (class-name
             class-parent
             class-inherits?
-            lookup-class
 
             object-class
             object-is-a?)
   #:re-export (object?))
-
-(eval-when (load eval compile)
-  (define (print-class c p)
-    (format p "#<chop-class ~a ~x (~x)>"
-            (class-name c)
-            (object-address c)
-            (pointer-address (unwrap-class c)))))
-
-(define-wrapped-pointer-type class?
-  wrap-class unwrap-class print-class)
 
 (define-compile-time-value %offset-of-class
   (c-offset-of "class" "chop_object_t"
@@ -91,11 +81,3 @@
   "Return #t if O is an instance of C."
   (class-inherits? (object-class o) c))
 
-(define lookup-class
-  (let ((f (libchop-function '* "class_lookup" ('*))))
-    (lambda (name)
-      "Return the class called NAME or #f if no such class exists."
-      (let ((ptr (f (string->pointer name))))
-        (if (null-pointer? ptr)
-            #f
-            (register-libchop-object! (wrap-class ptr)))))))
