@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -124,13 +124,6 @@ static __inline__ chop_stream_t *
 chop_chopper_stream (const chop_chopper_t *__chopper)
 {
   return (__chopper->stream);
-}
-
-/* Set INPUT as the input stream attached to CHOPPER.  */
-static __inline__ void chop_chopper_set_stream (chop_chopper_t *__chopper,
-						chop_stream_t *__input)
-{
-  __chopper->stream = __input;
 }
 
 /* Read a block from CHOPPER and store its contents into BLOCK.  On success,
