@@ -124,8 +124,10 @@
 
 (test-assert "chopper-generic-open"
   (let* ((s (mem-stream-open #vu8(1 2 3)))
-         (c (chopper-generic-open (lookup-class "fixed_size_chopper") s)))
-    (chopper? c)))
+         (c (chopper-generic-open (lookup-class "fixed_size_chopper") s 777)))
+    (and (chopper? c)
+         (eq? (chopper-stream c) s)
+         (= (chopper-typical-block-size c) 777))))
 
 (test-assert "chopper-read-block"
   (let* ((input   (make-random-bytevector 7777))

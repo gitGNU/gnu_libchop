@@ -47,6 +47,7 @@
             libchop
             libchop-function
             libchop-method
+            libchop-slot-ref
             libchop-type-constructor
             chop-error-t
             define-error-code
@@ -350,6 +351,25 @@ to wrap a `stream' object."
                (let ((err (f params ...)))
                  (or (= 0 err)
                      (raise-chop-error err))))))))))
+
+(define-syntax libchop-slot-ref
+  (syntax-rules ()
+    "Return FIELD of OBJECT-PTR, which has type CLASS or a sub-class thereof;
+FIELD is assumed to have foreign type TYPE."
+    ((_ class field type object-ptr)
+     (libchop-slot-ref class field type object-ptr
+                       (class-includes class)))
+    ((_ class field type object-ptr includes)
+     (let* ((ptr
+             (pointer+ object-ptr
+                       (compile-time-value
+                        (c-offset-of field
+                                     (full-class-type-name class)
+                                     includes
+                                     %libchop-libs
+                                     %libchop-cc
+                                     %libchop-cppflags)))))
+       (car (parse-c-struct ptr (list type)))))))
 
 
 (define %libchop-objects

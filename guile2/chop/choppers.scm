@@ -23,7 +23,9 @@
             fixed-size-chopper-open
             anchor-based-chopper-open
             chopper-generic-open
-            chopper-read-block))
+            chopper-read-block
+            chopper-stream
+            chopper-typical-block-size))
 
 (define-libchop-type chopper "chopper"
   chopper?
@@ -69,26 +71,21 @@ variable-width blocks depending on the input data.  See the manual for
 details."
       (f (unwrap-stream stream) window-size fingerprint-mask))))
 
-(define* chopper-generic-open
-  (let ((offset       (compile-time-value
-                       (c-offset-of "generic_open" "chop_chopper_class_t"
-                                    "#include <chop/choppers.h>"
-                                    %libchop-libs
-                                    %libchop-cc
-                                    %libchop-cppflags)))
-        (unwrap-class (@@ (chop objects) unwrap-class)))
-    (lambda* (class stream #:optional (block-size 8192))
-      "Return a chopper of type CLASS draining input from STREAM and return
+(define* (chopper-generic-open class stream #:optional (block-size 8192))
+  "Return a chopper of type CLASS draining input from STREAM and return
 blocks of BLOCK-SIZE bytes on average."
-     (let* ((c (bytevector->pointer
-                (make-bytevector (class-instance-size (unwrap-class class)))))
-            (p (dereference-pointer
-                (pointer+ (unwrap-class class) offset)))
-            (f (pointer->procedure chop-error-t p `(* ,size_t *)))
-            (e (f (unwrap-stream stream) block-size c)))
-       (if (= e 0)
-           (wrap-chopper c)
-           (raise-chop-error e))))))
+  (and (object-is-a? class (lookup-class "chopper_class"))
+       (let* ((c (bytevector->pointer
+                  (make-bytevector
+                   (class-instance-size (unwrap-class class)))))
+              (p (libchop-slot-ref "chopper_class" "generic_open" '*
+                                   (unwrap-class class)
+                                   "#include <chop/choppers.h>"))
+              (f (pointer->procedure chop-error-t p `(* ,size_t *)))
+              (e (f (unwrap-stream stream) block-size c)))
+         (if (= e 0)
+             (wrap-chopper c)
+             (raise-chop-error e)))))
 
 
 ;;;
@@ -105,3 +102,16 @@ blocks of BLOCK-SIZE bytes on average."
     (m (unwrap-chopper c) buf (bytevector->pointer size*))
     ;; XXX: We assume SIZE* is consistent with BUF.
     (buffer->bytevector buf)))
+
+(define chopper-stream
+  (let ((stream (lookup-class "stream")))
+    (lambda (c)
+      "Return the input stream C is associated with."
+      (wrap-object stream
+                   (libchop-slot-ref "chopper" "stream" '*
+                                     (unwrap-chopper c))))))
+
+(define (chopper-typical-block-size c)
+  "Return the \"typical\" size of blocks produced by chopper C."
+  (libchop-slot-ref "chopper" "typical_block_size" size_t
+                    (unwrap-chopper c)))

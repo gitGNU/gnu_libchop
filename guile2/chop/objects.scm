@@ -28,45 +28,26 @@
             object-is-a?)
   #:re-export (object?))
 
-(define-compile-time-value %offset-of-class
-  (c-offset-of "class" "chop_object_t"
-               "#include <chop/objects.h>"
-               %libchop-libs
-               %libchop-cc
-               %libchop-cppflags))
-
 (define (object-class obj)
+  "Return the class of OBJ or #f if OBJ is not a libchop object."
   (and (object? obj)
        ;; XXX: Ugly hack: assume a pointer lives at slot 0.
-       (let ((ptr (make-pointer (+ (pointer-address (struct-ref obj 0))
-                                   %offset-of-class))))
-         (register-libchop-object! (wrap-class (dereference-pointer ptr))))))
-
-(define-compile-time-value %offset-of-name
-  (c-offset-of "name" "chop_class_t"
-               "#include <chop/objects.h>"
-               %libchop-libs
-               %libchop-cc
-               %libchop-cppflags))
+       (register-libchop-object!
+        (wrap-class (libchop-slot-ref "object" "class" '*
+                                      (struct-ref obj 0))))))
 
 (define (class-name c)
   "Return the name of class C."
-  (let ((ptr (make-pointer (+ (pointer-address (unwrap-class c))
-                              %offset-of-name))))
-    (pointer->string (dereference-pointer ptr))))
-
-(define-compile-time-value %offset-of-parent
-  (c-offset-of "parent" "chop_class_t"
-               "#include <chop/objects.h>"
-               %libchop-libs
-               %libchop-cc
-               %libchop-cppflags))
+  (pointer->string (libchop-slot-ref "class" "name" '*
+                                     (unwrap-class c)
+                                     "#include <chop/objects.h>")))
 
 (define (class-parent c)
   "Return the parent of class C."
-  (let ((ptr (make-pointer (+ (pointer-address (unwrap-class c))
-                              %offset-of-parent))))
-    (register-libchop-object! (wrap-class (dereference-pointer ptr)))))
+  (register-libchop-object!
+   (wrap-class (libchop-slot-ref "class" "parent" '*
+                                 (unwrap-class c)
+                                 "#include <chop/objects.h>"))))
 
 (define (class-inherits? c p)
   "Return #t if class C inherits from class P."
@@ -75,9 +56,8 @@
     (or (eq? c p)
         (if (eq? c root)
             #f
-            (loop (pk 'parent (class-parent c)))))))
+            (loop (class-parent c))))))
 
 (define (object-is-a? o c)
   "Return #t if O is an instance of C."
   (class-inherits? (object-class o) c))
-
