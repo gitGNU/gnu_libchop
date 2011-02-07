@@ -328,29 +328,37 @@ to wrap a `stream' object."
 
 (define-syntax libchop-method
   (lambda (s)
-    (syntax-case s ()
-      ((_ ret object class method (args ...))
-       (string? (syntax->datum #'class))
+    (syntax-case s (includes)
+      ((_ ret object class method (args ...) (includes inc))
+       (and (string? (syntax->datum #'class))
+            (string? (syntax->datum #'method)))
        #'(pointer->procedure ret
                              (dereference-pointer
                               (make-pointer
                                (+ (compile-time-value
                                    (c-offset-of method
                                                 (full-class-type-name class)
-                                                (class-includes class)
+                                                inc
                                                 %libchop-libs
                                                 %libchop-cc
                                                 %libchop-cppflags))
                                   (pointer-address object))))
                              (list args ...)))
-      ((_ object class method (args ...))
+      ((_ object class method (args ...) (includes inc))
        (with-syntax (((params ...) (generate-temporaries #'(args ...))))
          #'(let ((f (libchop-method chop-error-t object
-                                    class method (args ...))))
+                                    class method (args ...)
+                                    (includes inc))))
              (lambda (params ...)
                (let ((err (f params ...)))
                  (or (= 0 err)
-                     (raise-chop-error err))))))))))
+                     (raise-chop-error err)))))))
+      ((_ ret object class method (args ...))
+       #'(libchop-method ret object class method (args ...)
+                         (includes (class-includes class))))
+      ((_ object class method (args ...))
+       #'(libchop-method object class method (args ...)
+                         (includes (class-includes class)))))))
 
 (define-syntax libchop-slot-ref
   (syntax-rules ()
