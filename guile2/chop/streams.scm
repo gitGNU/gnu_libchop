@@ -45,9 +45,7 @@
       (f (string->pointer path)))))
 
 (define mem-stream-open
-  ;; XXX: `chop_mem_stream_open' really returns `void' whereas
-  ;; `libchop-type-constructor' assumes `chop_error_t' is returned.
-  (let ((f (libchop-type-constructor "mem_stream_open" ('* size_t '*)
+  (let ((f (libchop-type-constructor void "mem_stream_open" ('* size_t '*)
                                      "mem_stream" wrap-stream)))
     (lambda (bv)
       "Return a new input stream whose contents are taken from bytevector BV."

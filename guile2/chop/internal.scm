@@ -406,17 +406,33 @@ FIELD is assumed to have foreign type TYPE."
   "Return #t if OBJ is a genuine libchop object."
   (hashq-ref %libchop-objects obj))
 
-(define-syntax libchop-type-constructor
+(define-syntax make-object
   (lambda (s)
+    "Allocate and initialize a libchop object."
     (syntax-case s ()
-      ((_ name (args ...) class-name wrap)
-       (with-syntax (((params ...) (generate-temporaries #'(args ...))))
-         #'(let ((make (libchop-function name (args ... '*))))
-             (lambda (params ...)
-               (let ((ptr (gc-malloc-pointerless
-                           (class-name-instance-size class-name))))
-                 (make params ... ptr)
-                 (register-libchop-object! (wrap ptr))))))))))
+      ((_ (args ...) class-name wrap init)
+       (string? (syntax->datum #'class-name))
+       (with-syntax (((params ...)
+                      (generate-temporaries #'(args ...))))
+         #'(lambda (params ...)
+             (let ((ptr (gc-malloc-pointerless
+                         (class-name-instance-size
+                          class-name))))
+               (init params ... ptr)
+               (let ((obj (wrap ptr)))
+                 (register-libchop-object! obj)
+                 obj))))))))
+
+(define-syntax libchop-type-constructor
+  (syntax-rules ()
+    "Return a constructor for CLASS-NAME that initializes instances using the
+C function NAME and wraps the resulting pointer with WRAP."
+    ((_ ret name (args ...) class-name wrap)
+     (make-object (args ...) class-name wrap
+                  (libchop-function ret name (args ... '*))))
+    ((_ name (args ...) class-name wrap)
+     (make-object (args ...) class-name wrap
+                  (libchop-function name (args ... '*))))))
 
 
 ;;;
