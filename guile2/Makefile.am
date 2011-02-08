@@ -19,6 +19,7 @@ SOURCES =					\
   chop/choppers.scm				\
   chop/internal.scm				\
   chop/objects.scm				\
+  chop/stores.scm				\
   chop/streams.scm				\
   srfi/srfi-64.scm
 

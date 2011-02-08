@@ -20,6 +20,7 @@
   #:use-module (chop objects)
   #:use-module (chop streams)
   #:use-module (chop choppers)
+  #:use-module (chop stores)
   #:use-module (rnrs bytevectors)
   #:use-module (rnrs io ports)
   #:use-module (srfi srfi-1)
@@ -145,6 +146,39 @@
           (and (= err error/stream-end)
                (= total (bytevector-length input))
                (bytevector=? input output)))))))
+
+(test-end)
+
+
+;;;
+;;; Stores.
+;;;
+
+(test-begin "stores")
+
+(test-assert "dummy"
+  (let ((s (dummy-block-store-open "foo")))
+    (store-write-block s #vu8(1 2 3) #vu8(7 7))
+    #t))
+
+(test-assert "gdbm"
+  (let ((file (tmpnam)))
+    (dynamic-wind
+      (lambda ()
+        #t)
+      (lambda ()
+        (let ((s (file-based-block-store-open (lookup-class "gdbm_block_store")
+                                              file
+                                              (logior O_RDWR O_CREAT)
+                                              #o644))
+              (k #vu8(1 2 3 4 5))
+              (v (u8-list->bytevector (iota 256))))
+          (store-write-block s k v)
+          (let ((r (bytevector=? v (store-read-block s k))))
+            (store-close s)
+            r)))
+      (lambda ()
+        (delete-file file)))))
 
 (test-end)
 
