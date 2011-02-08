@@ -27,6 +27,7 @@
             compile-time-value
             define-compile-time-value
             pointer+
+            mode_t
 
             define-libchop-type
             wrap-object
@@ -197,6 +198,18 @@ integer."
     (or (getenv "CC") "cc"))
   (define %libchop-cppflags
     `("-I" ,(or (getenv "libchop_includedir") "../../include"))))
+
+(define mode_t
+  (case (compile-time-value (c-size-of "mode_t"
+                                       "#include <sys/types.h>"
+                                       %libchop-libs
+                                       %libchop-cc
+                                       %libchop-cppflags))
+    ((1) uint8)
+    ((2) uint16)
+    ((4) uint32)
+    ((8) uint64)
+    (else (error "could not determine size of `mode_t'"))))
 
 
 ;;;
