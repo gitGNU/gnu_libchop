@@ -305,7 +305,8 @@ to wrap a `stream' object."
       ((_ name c-name pred wrap unwrap)
        (string? (syntax->datum #'c-name))
        #'(begin
-           (define-wrapped-pointer-type pred wrap unwrap
+           (define-wrapped-pointer-type name
+             pred wrap unwrap
              print-object)
            (register-libchop-type! (lookup-class c-name) wrap unwrap))))))
 
