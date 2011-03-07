@@ -1,6 +1,10 @@
-#+BEGIN_CENTER
-[[file:libchop-icon.png][file:libchop-icon.png]]
-#+END_CENTER
+#+TITLE: libchop, a utility library for distributed storage and data backup
+#+STYLE: <link rel="stylesheet" type="text/css" href="libchop.css" />
+#+OPTIONS: toc:nil num:nil author:nil timestamp:nil creator:nil
+#+LANGUAGE: en
+
+#+ATTR_HTML: alt="a chopper" class="logo"
+[[./libchop-icon.png]]
 
 Libchop is a library for distributed storage and data backup, available
 under the terms of the [[http://www.gnu.org/licenses/gpl.html][GNU General Public License]].  It was initially
@@ -80,7 +84,3 @@ Test coverage information is [[./coverage/][available here]].
 #+BEGIN_CENTER
 [[http://www.gnu.org/graphics/gplv3-127x51.png]]
 #+END_CENTER
-
-#+TITLE: libchop, a utility library for distributed storage and data backup
-#+OPTIONS: toc:nil num:nil author:nil timestamp:nil creator:nil
-#+LANGUAGE: en

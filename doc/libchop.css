@@ -1,0 +1,39 @@
+/* CSS style for libchop by Ludovic Courtès <ludo@gnu.org>.  */
+
+body {
+  font-family: monospace;
+  margin: 5% 15% 5% 15%;
+  background: #000;
+  color: #fff;
+  text-align: left;
+}
+
+.title {
+  font-family: sans-serif;
+  font-weight: bolder;
+  font-size: x-large;
+  text-align: right;
+  color: #B4DC14;
+  margin-left: 15%;
+}
+
+h2 {
+  font-family: sans-serif;
+  font-weight: bolder;
+  font-size: x-large;
+}
+
+pre.example {
+  background: #eee;
+  color: #000;
+}
+
+a { text-decoration: none; border: 0 0 0 0; border-style: none; }
+a:link { color: #FF8000; }
+a:hover { color: #FFFF00; }
+a:visited { color: #FF8000; }
+
+img.logo { float: right; margin: 20px 0px 20px 20px; }
+
+p.author { color: #ddd; text-align: right; }
+p.date { color: #ddd; text-align: right; }
