@@ -24,6 +24,7 @@
   #:use-module (ice-9 match)
   #:export (c-offset-of
             c-size-of
+            c-integer-value
             compile-time-value
             define-compile-time-value
             pointer+
@@ -224,16 +225,23 @@ integer."
 (define (raise-chop-error e)
   (throw 'chop-error e))
 
+(define-syntax c-integer-value
+  (syntax-rules ()
+    "Return the value of the C integer C-NAME, which could be an enum value,
+a macro, etc.  The result is a compile-time constant."
+    ((_ c-name includes)
+     (compile-time-value
+      (evaluate-c-integer-expression c-name includes
+                                     %libchop-libs
+                                     %libchop-cc
+                                     %libchop-cppflags)))))
+
 (define-syntax define-error-code
   (syntax-rules ()
     "Define variable NAME to match the value of C-NAME."
     ((_ name c-name)
      (define name
-       (compile-time-value
-        (evaluate-c-integer-expression c-name "#include <chop/errors.h>"
-                                       %libchop-libs
-                                       %libchop-cc
-                                       %libchop-cppflags))))))
+       (c-integer-value c-name "#include <chop/errors.h>")))))
 
 (define-compile-time-value %offset-of-instance_size
   (c-offset-of "instance_size" "chop_class_t"
@@ -419,9 +427,7 @@ FIELD is assumed to have foreign type TYPE."
                          (class-name-instance-size
                           class-name))))
                (init params ... ptr)
-               (let ((obj (wrap ptr)))
-                 (register-libchop-object! obj)
-                 obj))))))))
+               (register-libchop-object! (wrap ptr)))))))))
 
 (define-syntax libchop-type-constructor
   (syntax-rules ()
