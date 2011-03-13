@@ -22,6 +22,7 @@
   #:use-module (chop choppers)
   #:use-module (chop stores)
   #:use-module (chop hash)
+  #:use-module (chop cipher)
   #:use-module (rnrs bytevectors)
   #:use-module (rnrs io ports)
   #:use-module (srfi srfi-1)
@@ -216,6 +217,47 @@
                 "7d793037a0760186574b0282f2f435e7"))))
 
 (test-end)
+
+
+;;;
+;;; Ciphers.
+;;;
+
+(test-begin "cipher")
+
+(test-assert "disjoint algorithm type"
+  (and (cipher-algorithm? cipher-algorithm/blowfish)
+       (string=? "AES" (cipher-algorithm-name cipher-algorithm/aes))))
+
+(test-assert "cipher-algorithm-key-size"
+  (and (= (cipher-algorithm-key-size cipher-algorithm/blowfish) 16)
+       (= (cipher-algorithm-key-size cipher-algorithm/aes) 16)
+       (= (cipher-algorithm-key-size cipher-algorithm/aes256) 32)))
+
+(test-assert "cipher-algorithm-block-size"
+  (= (cipher-algorithm-block-size cipher-algorithm/aes256) 16))
+
+(test-assert "lookup-cipher-algorithm"
+  (every (lambda (c)
+           (eq? c (lookup-cipher-algorithm (cipher-algorithm-name c))))
+         (list cipher-algorithm/blowfish
+               cipher-algorithm/safer-sk128
+               cipher-algorithm/des-sk
+               cipher-algorithm/aes)))
+
+(test-assert "disjoint mode type"
+  (and (cipher-mode? cipher-mode/ecb)
+       (string=? "CBC" (cipher-mode-name cipher-mode/cbc))))
+
+(test-assert "lookup-cipher-mode"
+  (every (lambda (m)
+           (eq? m (lookup-cipher-mode (cipher-mode-name m))))
+         (list cipher-mode/ecb
+               cipher-mode/cfb
+               cipher-mode/cbc)))
+
+(test-end)
+
 
 (exit (= (test-runner-fail-count (test-runner-current)) 0))
 
