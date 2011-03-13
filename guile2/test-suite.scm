@@ -21,6 +21,7 @@
   #:use-module (chop streams)
   #:use-module (chop choppers)
   #:use-module (chop stores)
+  #:use-module (chop hash)
   #:use-module (rnrs bytevectors)
   #:use-module (rnrs io ports)
   #:use-module (srfi srfi-1)
@@ -179,6 +180,40 @@
             r)))
       (lambda ()
         (delete-file file)))))
+
+(test-end)
+
+
+;;;
+;;; Hash.
+;;;
+
+(test-begin "hash")
+
+(test-assert "disjoint type"
+  (and (hash-method? hash-method/sha1)
+       (string=? "MD5" (hash-method-name hash-method/md5))))
+
+(test-assert "hash-size"
+  (and (= (hash-size hash-method/sha1)   20)
+       (= (hash-size hash-method/rmd160) 20)
+       (= (hash-size hash-method/sha256) 32)))
+
+(test-assert "lookup-hash-method"
+  (every (lambda (h)
+           (eq? h (lookup-hash-method (hash-method-name h))))
+         (list hash-method/tiger hash-method/md5
+               hash-method/haval hash-method/sha256)))
+
+(test-assert "bytevector-hash"
+  (every (lambda (bv h e)
+           (bytevector=? e (bytevector-hash h bv)))
+         (list #vu8() (string->utf8 "hello") (string->utf8 "world"))
+         (list hash-method/sha1 hash-method/sha1 hash-method/md5)
+         (map hex-string->bytevector
+              '("da39a3ee5e6b4b0d3255bfef95601890afd80709"
+                "aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d"
+                "7d793037a0760186574b0282f2f435e7"))))
 
 (test-end)
 

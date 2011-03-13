@@ -17,6 +17,7 @@
 SOURCES =					\
   chop/core.scm					\
   chop/choppers.scm				\
+  chop/hash.scm					\
   chop/internal.scm				\
   chop/objects.scm				\
   chop/stores.scm				\
