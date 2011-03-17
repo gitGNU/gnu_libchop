@@ -417,6 +417,10 @@ FIELD is assumed to have foreign type TYPE."
   "Return #t if OBJ is a genuine libchop object."
   (hashq-ref %libchop-objects obj))
 
+(define %destroy-object
+  ;; The object finalizer.
+  (dynamic-func "chop_object_destroy" libchop))
+
 (define-syntax make-object
   (lambda (s)
     "Allocate and initialize a libchop object."
@@ -430,6 +434,7 @@ FIELD is assumed to have foreign type TYPE."
                          (class-name-instance-size
                           class-name))))
                (init params ... ptr)
+               (set-pointer-finalizer! ptr %destroy-object)
                (register-libchop-object! (wrap ptr)))))))))
 
 (define-syntax libchop-type-constructor

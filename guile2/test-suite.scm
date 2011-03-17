@@ -258,6 +258,7 @@
 
 (test-end)
 
+(gc) ;; stress the GC
 
 (exit (= (test-runner-fail-count (test-runner-current)) 0))
 
