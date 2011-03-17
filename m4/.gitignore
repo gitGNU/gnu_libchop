@@ -57,3 +57,4 @@ xsize.m4
 /ssize_t.m4
 /wchar_h.m4
 /write.m4
+/socklen.m4
