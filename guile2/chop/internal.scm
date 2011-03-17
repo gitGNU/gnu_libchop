@@ -191,7 +191,10 @@ integer."
   (define libchop.so
     (find file-exists?
           (map (cut string-append %libchop-libdir "/" <>)
-               '("libchop.so" ".libs/libchop.so"))))
+               `(,@(if %libtool
+                       '("libchop.la")
+                       '())
+                 "libchop.so" ".libs/libchop.so"))))
   (define %libchop-libs
     (list libchop.so
           "-Wl,-rpath" (dirname libchop.so)))
