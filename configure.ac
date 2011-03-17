@@ -294,7 +294,12 @@ PKG_CHECK_EXISTS([guile-2.0],
    AC_SUBST([GUILE])
    guile2="$GUILE"])
 
-AM_CONDITIONAL([HAVE_GUILE2], [test "x$guile2" != "x"])
+if test "x$guile2" = "x"; then
+   have_guile2="no"
+else
+   have_guile2="yes"
+fi
+AM_CONDITIONAL([HAVE_GUILE2], [test "x$have_guile2" = "xyes"])
 
 pkgdatadir="$datadir/$PACKAGE_NAME"
 if test "x$guilemoduledir" = "x"; then
