@@ -48,7 +48,13 @@
             cipher-mode/cfb
             cipher-mode/cbc
             cipher-mode/stream
-            cipher-mode/ofb))
+            cipher-mode/ofb
+
+            make-cipher
+            cipher?
+            cipher-algorithm
+            cipher-mode
+            set-cipher-key!))
 
 
 ;;;
@@ -132,7 +138,7 @@
 
 
 ;;;
-;;; Methods.
+;;; Accessors.
 ;;;
 
 (define cipher-algorithm-key-size
@@ -180,3 +186,55 @@
                                                       (native-endianness)
                                                       (sizeof int)))))))
 
+
+;;;
+;;; Methods.
+;;;
+
+(define-wrapped-pointer-type <cipher>
+  cipher?
+  wrap-cipher unwrap-cipher
+  (lambda (c p)
+    (format p "#<cipher ~x (~x) ~a ~a>"
+            (object-address c)
+            (pointer-address (unwrap-cipher c))
+            (cipher-algorithm c)
+            (cipher-mode c))))
+
+(define %close-cipher
+  (dynamic-func "chop_cipher_close" libchop))
+
+(define make-cipher
+  (let ((f (libchop-function '* "cipher_open" (int int))))
+    (lambda (algorithm mode)
+      "Return a new cipher handle for ALGORITHM and MODE."
+      (let ((ptr (f (cipher-algorithm-value algorithm)
+                    (cipher-mode-value mode))))
+        (if (null-pointer? ptr)
+            #f
+            (begin
+              (set-pointer-finalizer! ptr %close-cipher)
+              (wrap-cipher ptr)))))))
+
+(define cipher-algorithm
+  (let ((f (libchop-function int "cipher_algorithm" ('*))))
+    (lambda (cipher)
+      "Return the algorithm of CIPHER."
+      (hashv-ref %cipher-algorithms
+                 (f (unwrap-cipher cipher))))))
+
+(define cipher-mode
+  (let ((f (libchop-function int "cipher_mode" ('*))))
+    (lambda (cipher)
+      "Return the mode of CIPHER."
+      (hashv-ref %cipher-modes
+                 (f (unwrap-cipher cipher))))))
+
+(define set-cipher-key!
+  (let ((f (libchop-function "cipher_set_key" ('* '* size_t))))
+    (lambda (cipher key)
+      "Use KEY, a bytevector, as the key for CIPHER.  An exception is raised
+if the size of KEY is invalid for CIPHER's algorithm."
+      (f (unwrap-cipher cipher)
+         (bytevector->pointer key)
+         (bytevector-length key)))))

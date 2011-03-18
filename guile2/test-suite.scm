@@ -256,6 +256,18 @@
                cipher-mode/cfb
                cipher-mode/cbc)))
 
+(test-assert "make-cipher"
+  (let ((c (make-cipher cipher-algorithm/aes cipher-mode/cbc)))
+    (and (cipher? c)
+         (eq? cipher-algorithm/aes (cipher-algorithm c))
+         (eq? cipher-mode/cbc (cipher-mode c)))))
+
+(test-assert "set-cipher-key!"
+  (let ((c (make-cipher cipher-algorithm/aes cipher-mode/cbc))
+        (b (make-bytevector (cipher-algorithm-key-size cipher-algorithm/aes))))
+    (set-cipher-key! c b)
+    (cipher? c)))
+
 (test-end)
 
 (gc) ;; stress the GC
