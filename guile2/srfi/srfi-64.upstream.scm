@@ -562,7 +562,11 @@
   (define-syntax %test-evaluate-with-catch
     (syntax-rules ()
       ((%test-evaluate-with-catch test-expression)
-       (catch #t (lambda () test-expression) (lambda (key . args) #f))))))
+       (catch #t
+         (lambda () test-expression)
+         (lambda (key . args) #f)
+         (lambda (key . args)
+           (display-backtrace (make-stack #t) (current-error-port))))))))
  (kawa
   (define-syntax %test-evaluate-with-catch
     (syntax-rules ()
