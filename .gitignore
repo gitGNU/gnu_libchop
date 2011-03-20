@@ -104,3 +104,9 @@ stamp-h[0-9]
 /maint.mk
 /guile2/objects.log
 /guile2/test-suite.log
+/guile2/block-indexers.log
+/guile2/choppers.log
+/guile2/cipher.log
+/guile2/hash.log
+/guile2/stores.log
+/guile2/streams.log
