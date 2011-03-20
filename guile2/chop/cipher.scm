@@ -198,8 +198,8 @@
     (format p "#<cipher ~x (~x) ~a ~a>"
             (object-address c)
             (pointer-address (unwrap-cipher c))
-            (cipher-algorithm c)
-            (cipher-mode c))))
+            (cipher-algorithm-name (cipher-algorithm c))
+            (cipher-mode-name (cipher-mode c)))))
 
 (define %close-cipher
   (dynamic-func "chop_cipher_close" libchop))
