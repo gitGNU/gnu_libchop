@@ -57,7 +57,8 @@
 
             class-instance-size
             make-empty-buffer
-            buffer->bytevector))
+            buffer->bytevector
+            register-weak-reference))
 
 
 ;;;

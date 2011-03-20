@@ -72,6 +72,8 @@
                             (format p "#<cipher-algorithm ~a>"
                                     (cipher-algorithm-name h))))
 
+(define %cipher-algorithm-value cipher-algorithm-value)
+
 (define %cipher-algorithms
   ;; int -> cipher-algorithm mapping.
   (make-hash-table))
@@ -115,6 +117,8 @@
                           (lambda (h p)
                             (format p "#<cipher-mode ~a>"
                                     (cipher-mode-name h))))
+
+(define %cipher-mode-value cipher-mode-value)
 
 (define %cipher-modes
   ;; int -> cipher-mode mapping.
@@ -200,6 +204,8 @@
             (pointer-address (unwrap-cipher c))
             (cipher-algorithm-name (cipher-algorithm c))
             (cipher-mode-name (cipher-mode c)))))
+
+(define %unwrap-cipher unwrap-cipher)
 
 (define %close-cipher
   (dynamic-func "chop_cipher_close" libchop))

@@ -48,6 +48,8 @@
                             (format p "#<hash-method ~a>"
                                     (hash-method-name h))))
 
+(define %hash-method-value hash-method-value)
+
 (define %hash-methods
   ;; int -> hash-method mapping.
   (make-hash-table))

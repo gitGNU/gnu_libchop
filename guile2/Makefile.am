@@ -15,6 +15,7 @@
 # along with libchop.  If not, see <http://www.gnu.org/licenses/>.
 
 SOURCES =					\
+  chop/block-indexers.scm			\
   chop/core.scm					\
   chop/choppers.scm				\
   chop/cipher.scm				\

@@ -23,6 +23,7 @@
   #:use-module (chop stores)
   #:use-module (chop hash)
   #:use-module (chop cipher)
+  #:use-module (chop block-indexers)
   #:use-module (rnrs bytevectors)
   #:use-module (rnrs io ports)
   #:use-module (srfi srfi-1)
@@ -270,6 +271,44 @@
 
 (test-end)
 
+
+;;;
+;;; Block indexers.
+;;;
+
+(test-begin "block-indexers")
+
+(test-assert "hash-block-indexer-open"
+  (let ((bi (hash-block-indexer-open hash-method/sha256)))
+    (and (block-indexer? bi)
+         (eq? (object-class bi)
+              (lookup-class "hash_block_indexer")))))
+
+(test-assert "chk-block-indexer-open"
+  (let* ((c  (make-cipher cipher-algorithm/aes256 cipher-mode/cbc))
+         (bi (chk-block-indexer-open c
+                                     hash-method/sha256
+                                     hash-method/md5)))
+    (and (block-indexer? bi)
+         (eq? (object-class bi)
+              (lookup-class "chk_block_indexer")))))
+
+(test-assert "block-indexer-index-handle-class"
+  (let ((bi (hash-block-indexer-open hash-method/sha256)))
+    (eq? (block-indexer-index-handle-class bi)
+         (lookup-class "hash_index_handle"))))
+
+(test-assert "chk-block-indexer-open"
+  (let* ((c  (make-cipher cipher-algorithm/aes256 cipher-mode/cbc))
+         (bi (chk-block-indexer-open c
+                                     hash-method/sha256
+                                     hash-method/md5)))
+    (eq? (block-indexer-fetcher-class bi)
+         (lookup-class "chk_block_fetcher"))))
+
+(test-end)
+
+
 (gc) ;; stress the GC
 
 (exit (= (test-runner-fail-count (test-runner-current)) 0))
