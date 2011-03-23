@@ -38,7 +38,7 @@
 (define dummy-block-store-open
   (let ((f (libchop-type-constructor void "dummy_block_store_open"
                                      ('*)
-                                     "block_store" wrap-store)))
+                                     "dummy_block_store" wrap-store)))
     (lambda (name)
       "Return a dummy block store named NAME."
       (f (string->pointer name)))))
@@ -46,7 +46,7 @@
 (define dummy-proxy-block-store-open
   (let ((f (libchop-type-constructor "dummy_proxy_block_store_open"
                                      ('* '*)
-                                     "block_store" wrap-store)))
+                                     "dummy_block_store" wrap-store)))
     (lambda (name back-end)
       "Return a dummy block store that proxies BACK-END."
       (f (string->pointer name) (unwrap-store back-end)))))
