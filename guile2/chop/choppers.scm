@@ -83,7 +83,7 @@ blocks of BLOCK-SIZE bytes on average."
               (f (pointer->procedure chop-error-t p `(* ,size_t *)))
               (e (f (unwrap-stream stream) block-size c)))
          (if (= e 0)
-             (wrap-chopper c)
+             (register-libchop-object! (wrap-chopper c))
              (raise-chop-error e)))))
 
 
