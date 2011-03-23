@@ -298,7 +298,7 @@ to wrap a `stream' object."
   (let loop ((class class))
     (match (hashq-ref %libchop-types class)
       ((wrap . _)
-       (wrap ptr))
+       (register-libchop-object! (wrap ptr)))
       (else
        (loop (class-parent class))))))
 
