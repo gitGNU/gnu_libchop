@@ -307,6 +307,15 @@
     (eq? (block-indexer-fetcher-class bi)
          (lookup-class "chk_block_fetcher"))))
 
+(test-assert "block-indexer-index"
+  (let* ((s  (dummy-block-store-open "foo"))
+         (bi (hash-block-indexer-open hash-method/md5))
+         (bv (uint-list->bytevector (iota 555) (native-endianness) 4))
+         (i  (block-indexer-index bi s bv)))
+    (and (index-handle? i)
+         (eq? (object-class i)
+              (block-indexer-index-handle-class bi)))))
+
 (test-end)
 
 

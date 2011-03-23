@@ -25,12 +25,19 @@
             hash-block-indexer-open
             chk-block-indexer-open
 
-            block-indexer-index-handle-class
-            block-indexer-fetcher-class))
+            index-handle?
 
-(define-libchop-type store "block_indexer"
+            block-indexer-index-handle-class
+            block-indexer-fetcher-class
+            block-indexer-index))
+
+(define-libchop-type block-indexer "block_indexer"
   block-indexer?
   wrap-block-indexer unwrap-block-indexer)
+
+(define-libchop-type index-handle "index_handle"
+  index-handle?
+  wrap-index-handle unwrap-index-handle)
 
 ;; Hack to allow access to our friends.
 
@@ -87,3 +94,22 @@ BLOCK-ID-HASH-METHOD hash of the cipher text."
                              (unwrap-block-indexer bi)
                              "#include <chop/block-indexers.h>")))
     (wrap-object (lookup-class "class") c)))
+
+(define %store-class
+  (lookup-class "block_store"))
+
+(define (block-indexer-index bi store bv)
+  "Index buffer BV into STORE using block-indexer BI."
+  (let* ((m  (libchop-method (unwrap-block-indexer bi)
+                             "block_indexer" "index_block"
+                             ('* '* '* size_t '*)
+                             (includes "#include <chop/block-indexers.h>")))
+         (ic (block-indexer-index-handle-class bi))
+         (i  (bytevector->pointer
+              (make-bytevector (class-instance-size ic)))))
+    (m (unwrap-block-indexer bi)
+       (unwrap-object %store-class store)
+       (bytevector->pointer bv)
+       (bytevector-length bv)
+       i)
+    (register-libchop-object! (wrap-index-handle i))))
