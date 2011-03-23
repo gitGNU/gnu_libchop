@@ -49,6 +49,8 @@
             cipher-mode/cbc
             cipher-mode/stream
             cipher-mode/ofb
+            cipher-mode/ctr
+            cipher-mode/aeswrap
 
             make-cipher
             cipher?
@@ -139,6 +141,8 @@
 (define-cipher-mode cipher-mode/cbc "CHOP_CIPHER_MODE_CBC")
 (define-cipher-mode cipher-mode/stream "CHOP_CIPHER_MODE_STREAM")
 (define-cipher-mode cipher-mode/ofb "CHOP_CIPHER_MODE_OFB")
+(define-cipher-mode cipher-mode/ctr "CHOP_CIPHER_MODE_CTR")
+(define-cipher-mode cipher-mode/aeswrap "CHOP_CIPHER_MODE_AESWRAP")
 
 
 ;;;

@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -47,7 +47,9 @@ enum chop_cipher_mode
     CHOP_CIPHER_MODE_CFB,     /* Cipher feedback. */
     CHOP_CIPHER_MODE_CBC,     /* Cipher block chaining. */
     CHOP_CIPHER_MODE_STREAM,  /* Used with stream ciphers. */
-    CHOP_CIPHER_MODE_OFB      /* Outer feedback. */
+    CHOP_CIPHER_MODE_OFB,     /* Outer feedback. */
+    CHOP_CIPHER_MODE_CTR,     /* Counter. */
+    CHOP_CIPHER_MODE_AESWRAP  /* AES-WRAP algorithm.  */
   };
 
 typedef enum chop_cipher_algo chop_cipher_algo_t;

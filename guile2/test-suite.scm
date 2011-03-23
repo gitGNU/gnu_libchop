@@ -255,7 +255,8 @@
            (eq? m (lookup-cipher-mode (cipher-mode-name m))))
          (list cipher-mode/ecb
                cipher-mode/cfb
-               cipher-mode/cbc)))
+               cipher-mode/cbc
+               cipher-mode/ctr)))
 
 (test-assert "make-cipher"
   (let ((c (make-cipher cipher-algorithm/aes cipher-mode/cbc)))

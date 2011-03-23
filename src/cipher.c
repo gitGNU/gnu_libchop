@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -81,6 +81,8 @@ static const _chop_enum_mapping cipher_modes[] =
     _CIPHER_MODE_INFO (CBC),     /* Cipher block chaining. */
     _CIPHER_MODE_INFO (STREAM),  /* Used with stream ciphers. */
     _CIPHER_MODE_INFO (OFB),     /* Outer feedback. */
+    _CIPHER_MODE_INFO (CTR),     /* Counter. */
+    _CIPHER_MODE_INFO (AESWRAP), /* AES-WRAP algorithm.  */
 
     { 0, 0, 0 }
   };
@@ -91,14 +93,14 @@ static const _chop_enum_mapping cipher_modes[] =
 MAKE_ENUM_MAPPING_FUNCTIONS (cipher_algo, CHOP_CIPHER_DES,
 			     cipher_algos, _chop_enum_mapping);
 
-MAKE_ENUM_MAPPING_FUNCTIONS (cipher_mode, CHOP_CIPHER_MODE_OFB,
+MAKE_ENUM_MAPPING_FUNCTIONS (cipher_mode, CHOP_CIPHER_MODE_AESWRAP,
 			     cipher_modes, _chop_enum_mapping);
 
 #define VALID_CIPHER_ALGO(_algo) \
   ((int)(_algo) <= CHOP_CIPHER_DES)
 
 #define VALID_CIPHER_MODE(_mode) \
-  ((int)(_mode) <= CHOP_CIPHER_MODE_OFB)
+  ((int)(_mode) <= CHOP_CIPHER_MODE_AESWRAP)
 
 
 
