@@ -256,15 +256,15 @@ a macro, etc.  The result is a compile-time constant."
                %libchop-cc
                %libchop-cppflags))
 
-(define (class-instance-size class)
-  "Return the size of instances of CLASS."
-  (let ((bytes (pointer->bytevector class (sizeof size_t)
+(define (class-pointer-instance-size ptr)
+  "Return the size of instances of PTR, a pointer to a class."
+  (let ((bytes (pointer->bytevector ptr (sizeof size_t)
                                     %offset-of-instance_size)))
     (bytevector-uint-ref bytes 0 (native-endianness) (sizeof size_t))))
 
 (define (class-name-instance-size name)
   "Return the class of instances of NAME."
-  (class-instance-size
+  (class-pointer-instance-size
    (dynamic-pointer (string-append "chop_" name "_class")
                     libchop)))
 
@@ -490,6 +490,10 @@ C function NAME and wraps the resulting pointer with WRAP."
 
 ;; Register type `class'.
 (apply register-libchop-type! (lookup-class "class") %root-class)
+
+(define (class-instance-size class)
+  "Return the size in bytes of instances of CLASS."
+  (class-pointer-instance-size (unwrap-class class)))
 
 
 ;;;
