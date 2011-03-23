@@ -53,15 +53,23 @@
 
 ;; FIXME: dummy-block-store-log
 
-(define file-based-block-store-open
-  (let ((f (libchop-type-constructor "file_based_store_open"
-                                     ('* '* int mode_t)
-                                     "block_store" wrap-store)))
-    (lambda (class file open-flags mode)
-      "Open the file-based store of type CLASS stored at FILE with the given
+(define (file-based-block-store-open class file open-flags mode)
+  "Open the file-based store of type CLASS stored at FILE with the given
 OPEN-FLAGS and MODE."
-      (and (object-is-a? class (lookup-class "file_based_store_class"))
-           (f (unwrap-class class) (string->pointer file) open-flags mode)))))
+  (and (object-is-a? class (lookup-class "file_based_store_class"))
+       (let* ((s (bytevector->pointer
+                  (make-bytevector (class-instance-size class))))
+              (p (libchop-slot-ref "file_based_store_class"
+                                   "generic_open" '*
+                                   (unwrap-class class)
+                                   "#include <chop/stores.h>"))
+              (f (pointer->procedure chop-error-t p
+                                     `(* * ,int ,mode_t *)))
+              (e (f (unwrap-class class) (string->pointer file)
+                    open-flags mode s)))
+         (if (= e 0)
+             (register-libchop-object! (wrap-store s))
+             (raise-chop-error e)))))
 
 ;; FIXME: sunrpc-block-store-open
 ;; FIXME: sunrpc/tls-block-store-simple-open
