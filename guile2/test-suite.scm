@@ -29,6 +29,21 @@
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-64))
 
+(define (with-temporary-file proc)
+  (let ((file (tmpnam)))
+    (dynamic-wind
+      (lambda ()
+        #t)
+      (lambda ()
+        (proc file))
+      (lambda ()
+        (delete-file file)))))
+
+
+;;;
+;;; Objects.
+;;;
+
 (test-begin "objects")
 
 (test-equal "hex strings"
@@ -166,23 +181,18 @@
     #t))
 
 (test-assert "gdbm"
-  (let ((file (tmpnam)))
-    (dynamic-wind
-      (lambda ()
-        #t)
-      (lambda ()
-        (let ((s (file-based-block-store-open (lookup-class "gdbm_block_store")
-                                              file
-                                              (logior O_RDWR O_CREAT)
-                                              #o644))
-              (k #vu8(1 2 3 4 5))
-              (v (u8-list->bytevector (iota 256))))
-          (store-write-block s k v)
-          (let ((r (bytevector=? v (store-read-block s k))))
-            (store-close s)
-            r)))
-      (lambda ()
-        (delete-file file)))))
+  (with-temporary-file
+   (lambda (file)
+     (let ((s (file-based-block-store-open (lookup-class "gdbm_block_store")
+                                           file
+                                           (logior O_RDWR O_CREAT)
+                                           #o644))
+           (k #vu8(1 2 3 4 5))
+           (v (u8-list->bytevector (iota 256))))
+       (store-write-block s k v)
+       (let ((r (bytevector=? v (store-read-block s k))))
+         (store-close s)
+         r)))))
 
 (test-end)
 
