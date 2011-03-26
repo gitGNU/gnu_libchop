@@ -327,6 +327,48 @@
          (eq? (object-class i)
               (block-indexer-index-handle-class bi)))))
 
+(test-assert "index-handle equality"
+  (let* ((s  (dummy-block-store-open "foo"))
+         (bi (hash-block-indexer-open hash-method/md5))
+         (bv (uint-list->bytevector (iota 555) (native-endianness) 4))
+         (i1 (block-indexer-index bi s bv))
+         (i2 (block-indexer-index bi s bv)))
+    (object=? i1 i2)))
+
+(test-assert "block-indexer ASCII serialization"
+  (string=? "SHA1"
+            (serialize-object/ascii
+             (hash-block-indexer-open hash-method/sha1))))
+
+(test-assert "block-indexer ASCII deserialization"
+  (let ((c (lookup-class "hash_block_indexer")))
+    ;; XXX: There's no equality predicate for `hash_block_indexer' so that's
+    ;; the best we can test.
+    (object-is-a? (deserialize-object/ascii c "SHA1") c)))
+
+(test-assert "index-handle serialization"
+  (let* ((s  (dummy-block-store-open "foo"))
+         (bi (hash-block-indexer-open hash-method/md5))
+         (bv (uint-list->bytevector (iota 555) (native-endianness) 4))
+         (i  (block-indexer-index bi s bv))
+         (a  "7mgi4cnq7qcckmlxcyn47xv3ge======/8ac"))
+    (and (string=? a (serialize-object/ascii i))
+         (let ((b (serialize-object/binary i)))
+           (and (bytevector? b)
+                (= (bytevector-length b)
+                   (+ 4 4 (hash-size hash-method/md5))))))))
+
+(test-assert "index-handle deserialization"
+  (let* ((s  (dummy-block-store-open "foo"))
+         (c  (lookup-class "hash_index_handle"))
+         (bi (hash-block-indexer-open hash-method/md5))
+         (bv (uint-list->bytevector (iota 555) (native-endianness) 4))
+         (i  (block-indexer-index bi s bv)))
+    (and (object=? (deserialize-object/ascii c (serialize-object/ascii i))
+                   i)
+         (object=? (deserialize-object/binary c (pk (serialize-object/binary i)))
+                   i))))
+
 (test-end)
 
 

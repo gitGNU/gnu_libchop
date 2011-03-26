@@ -54,6 +54,7 @@
             chop-error-t
             define-error-code
             raise-chop-error
+            gc-malloc-pointerless
 
             class-instance-size
             make-empty-buffer

@@ -25,7 +25,12 @@
             class-inherits?
 
             object-class
-            object-is-a?)
+            object-is-a?
+            object=?
+            serialize-object/ascii
+            serialize-object/binary
+            deserialize-object/ascii
+            deserialize-object/binary)
   #:re-export (object?))
 
 (define (object-class obj)
@@ -61,3 +66,84 @@
 (define (object-is-a? o c)
   "Return #t if O is an instance of C."
   (class-inherits? (object-class o) c))
+
+(define (object=? o1 o2)
+  "Return true if objects O1 and O2 are structurally equal."
+  (or (eq? o1 o2)
+      (let ((c1 (object-class o1))
+            (c2 (object-class o2)))
+        (and (eq? c1 c2)
+             (let ((p (libchop-slot-ref "class" "equal" '*
+                                        (unwrap-class c1)
+                                        "#include <chop/objects.h>")))
+               (if (null-pointer? p)
+                   #f
+                   (let ((o=? (pointer->procedure int p '(* *))))
+                     (not (= 0 (o=? (unwrap-object c1 o1)
+                                    (unwrap-object c2 o2)))))))))))
+
+
+;;;
+;;; Serialization.
+;;;
+
+(define %ascii
+  (c-integer-value "CHOP_SERIAL_ASCII" "#include <chop/objects.h>"))
+
+(define %binary
+  (c-integer-value "CHOP_SERIAL_BINARY" "#include <chop/objects.h>"))
+
+(define (%serialize-object o m)
+  "Return the serialization of O according to M as a bytevector."
+  (let* ((c (object-class o))
+         (p (libchop-slot-ref "class" "serializer" '*
+                              (unwrap-class c)
+                              "#include <chop/objects.h>")))
+    (if (null-pointer? p)
+        #f
+        (let* ((s (pointer->procedure chop-error-t p `(* ,int *)))
+               (b (make-empty-buffer))
+               (e (s (struct-ref o 0) m b)))
+          (if (= e 0)
+              (buffer->bytevector b)
+              (raise-chop-error e))))))
+
+(define (serialize-object/ascii o)
+  "Return an ASCII serialization of O as a string."
+  (pointer->string ; to consume the trailing zero
+   (bytevector->pointer (%serialize-object o %ascii))))
+
+(define (serialize-object/binary o)
+  "Return a compact binary serialization of O as a bytevector."
+  (%serialize-object o %binary))
+
+(define (%deserialize-object c bv m)
+  "Return the instance of class C obtained by deserializing BV according to M."
+  (define sizeof-size_t
+    (compile-time-value (sizeof size_t)))
+
+  (let ((p (libchop-slot-ref "class" "deserializer" '*
+                             (unwrap-class c)
+                             "#include <chop/objects.h>")))
+    (if (null-pointer? p)
+        #f
+        (let* ((s (pointer->procedure chop-error-t p `(* ,size_t ,int * *)))
+               (p (gc-malloc-pointerless (class-instance-size c)))
+               (r (gc-malloc-pointerless sizeof-size_t))
+               (e (s (bytevector->pointer bv) (bytevector-length bv) m
+                     p r)))
+          (if (= e 0)
+              (values (wrap-object c p)
+                      (bytevector-uint-ref (pointer->bytevector r
+                                                                sizeof-size_t)
+                                           0 (native-endianness)
+                                           sizeof-size_t))
+              (raise-chop-error e))))))
+
+(define (deserialize-object/ascii class str)
+  "Deserialize STR and return a new instance of CLASS that corresponds."
+  (%deserialize-object class (string->utf8 str) %ascii))
+
+(define (deserialize-object/binary class bv)
+  "Deserialize BV and return a new instance of CLASS that corresponds."
+  (%deserialize-object class bv %binary))
