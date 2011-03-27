@@ -24,6 +24,7 @@
   #:use-module (chop hash)
   #:use-module (chop cipher)
   #:use-module (chop block-indexers)
+  #:use-module (chop indexers)
   #:use-module (rnrs bytevectors)
   #:use-module (rnrs io ports)
   #:use-module (srfi srfi-1)
@@ -371,7 +372,7 @@
          (i  (block-indexer-index bi s bv)))
     (and (object=? (deserialize-object/ascii c (serialize-object/ascii i))
                    i)
-         (object=? (deserialize-object/binary c (pk (serialize-object/binary i)))
+         (object=? (deserialize-object/binary c (serialize-object/binary i))
                    i))))
 
 (test-assert "block-indexer-fetcher"
@@ -399,6 +400,76 @@
             (let ((r (bytevector=? bv (block-fetcher-fetch bf i s))))
               (store-close s)
               r))))))
+
+(test-end)
+
+
+;;;
+;;; Indexers.
+;;;
+
+(test-begin "indexers")
+
+(test-assert "tree-indexer-open"
+  (let ((i (tree-indexer-open)))
+    (and (indexer? i)
+         (eq? (object-class i)
+              (lookup-class "tree_indexer")))))
+
+(test-assert "indexer-stream-class"
+  (let ((c (indexer-stream-class (tree-indexer-open))))
+    (and (class? c)
+         (eq? c (lookup-class "tree_stream")))))
+
+(test-assert "indexer-index-blocks"
+  (let* ((i   (tree-indexer-open))
+         (in  (mem-stream-open (u8-list->bytevector (iota 256))))
+         (c   (chopper-generic-open (lookup-class "fixed_size_chopper")
+                                    in 777))
+         (bi  (hash-block-indexer-open hash-method/sha1))
+         (s1  (dummy-block-store-open "data"))
+         (s2  (dummy-block-store-open "meta-data")))
+    (index-handle? (indexer-index-blocks i c bi s1 s2))))
+
+(test-assert "indexer-fetch-stream"
+  (let* ((i   (tree-indexer-open))
+         (in  (mem-stream-open (u8-list->bytevector (iota 256))))
+         (c   (chopper-generic-open (lookup-class "fixed_size_chopper")
+                                    in 777))
+         (bi  (hash-block-indexer-open hash-method/sha1))
+         (bf  (block-indexer-fetcher bi))
+         (s1  (dummy-block-store-open "data"))
+         (s2  (dummy-block-store-open "meta-data"))
+         (ih  (indexer-index-blocks i c bi s1 s2))
+         (s   (indexer-fetch-stream i ih bf s1 s2)))
+    (and (stream? s)
+         (eq? (object-class s) (lookup-class "tree_stream")))))
+
+(test-assert "indexer-{index-blocks,fetch-stream}"
+  (with-temporary-file
+   (lambda (file)
+     (let* ((i   (tree-indexer-open))
+            (bv  (make-random-bytevector 5555))
+            (in  (mem-stream-open bv))
+            (c   (chopper-generic-open (lookup-class "anchor_based_chopper")
+                                       in 777))
+            (bi  (chk-block-indexer-open (make-cipher cipher-algorithm/aes256
+                                                      cipher-mode/cbc)
+                                         hash-method/sha256
+                                         hash-method/md5))
+            (bf  (block-indexer-fetcher bi))
+            (s   (file-based-block-store-open (lookup-class "gdbm_block_store")
+                                              file
+                                              (logior O_RDWR O_CREAT)
+                                              #o644))
+            (ih  (indexer-index-blocks i c bi s s))
+            (ih2 (deserialize-object/ascii (object-class ih)
+                                           (serialize-object/ascii ih)))
+            (out (stream->port (indexer-fetch-stream i ih2 bf s s))))
+       (let ((r (and (object=? ih ih2)
+                     (bytevector=? bv (get-bytevector-all out)))))
+         (store-close s)
+         r)))))
 
 (test-end)
 

@@ -20,6 +20,7 @@ SOURCES =					\
   chop/choppers.scm				\
   chop/cipher.scm				\
   chop/hash.scm					\
+  chop/indexers.scm				\
   chop/internal.scm				\
   chop/objects.scm				\
   chop/stores.scm				\

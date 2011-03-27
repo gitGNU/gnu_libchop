@@ -110,3 +110,4 @@ stamp-h[0-9]
 /guile2/hash.log
 /guile2/stores.log
 /guile2/streams.log
+/guile2/indexers.log
