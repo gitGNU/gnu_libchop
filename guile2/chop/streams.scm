@@ -77,10 +77,10 @@ ERROR/STREAM-END."
   "Return an input port wrapped around stream S."
   (define (read! bv start count)
     (if (= 0 start)
-        (stream-read! s bv)
+        (or (false-if-exception (stream-read! s bv)) 0)
         (let* ((count (- (bytevector-length bv) start))
                (bv*   (make-bytevector count))
-               (read  (stream-read! s bv*)))
+               (read  (or (false-if-exception (stream-read! s bv*)) 0)))
           (bytevector-copy! bv* 0 bv start read)
           read)))
 

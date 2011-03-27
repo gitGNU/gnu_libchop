@@ -132,6 +132,11 @@
             (and (or (eof-object? read) (> read 0))
                  (loop (+ read total))))))))
 
+(test-assert "stream->port & get-bytevector-all"
+  (let* ((input  (make-random-bytevector 7777))
+         (port   (stream->port (mem-stream-open input))))
+    (bytevector=? input (get-bytevector-all port))))
+
 (test-end)
 
 
