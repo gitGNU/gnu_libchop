@@ -96,17 +96,13 @@
 (define (%serialize-object o m)
   "Return the serialization of O according to M as a bytevector."
   (let* ((c (object-class o))
-         (p (libchop-slot-ref "class" "serializer" '*
-                              (unwrap-class c)
-                              "#include <chop/objects.h>")))
-    (if (null-pointer? p)
-        #f
-        (let* ((s (pointer->procedure chop-error-t p `(* ,int *)))
-               (b (make-empty-buffer))
-               (e (s (struct-ref o 0) m b)))
-          (if (= e 0)
-              (buffer->bytevector b)
-              (raise-chop-error e))))))
+         (s (libchop-method (unwrap-class c)
+                            "class" "serializer"
+                            ('* int '*)
+                            (includes "#include <chop/objects.h>")))
+         (b (make-empty-buffer)))
+    (s (struct-ref o 0) m b)
+    (buffer->bytevector b)))
 
 (define (serialize-object/ascii o)
   "Return an ASCII serialization of O as a string."
@@ -119,26 +115,16 @@
 
 (define (%deserialize-object c bv m)
   "Return the instance of class C obtained by deserializing BV according to M."
-  (define sizeof-size_t
-    (compile-time-value (sizeof size_t)))
-
-  (let ((p (libchop-slot-ref "class" "deserializer" '*
-                             (unwrap-class c)
-                             "#include <chop/objects.h>")))
-    (if (null-pointer? p)
-        #f
-        (let* ((s (pointer->procedure chop-error-t p `(* ,size_t ,int * *)))
-               (p (gc-malloc-pointerless (class-instance-size c)))
-               (r (gc-malloc-pointerless sizeof-size_t))
-               (e (s (bytevector->pointer bv) (bytevector-length bv) m
-                     p r)))
-          (if (= e 0)
-              (values (wrap-object c p)
-                      (bytevector-uint-ref (pointer->bytevector r
-                                                                sizeof-size_t)
-                                           0 (native-endianness)
-                                           sizeof-size_t))
-              (raise-chop-error e))))))
+  (let* ((s (libchop-method (unwrap-class c)
+                            "class" "deserializer"
+                            ('* size_t int '* '*)
+                            (includes "#include <chop/objects.h>")))
+         (p (gc-malloc-pointerless (class-instance-size c)))
+         (r (make-size_t-pointer))
+         (e (s (bytevector->pointer bv) (bytevector-length bv) m
+               p r)))
+    (values (wrap-object c p)
+            (dereference-size_t r))))
 
 (define (deserialize-object/ascii class str)
   "Deserialize STR and return a new instance of CLASS that corresponds."

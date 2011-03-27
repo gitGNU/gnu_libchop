@@ -29,6 +29,8 @@
             define-compile-time-value
             pointer+
             mode_t
+            make-size_t-pointer
+            dereference-size_t
 
             define-libchop-type
             wrap-object
@@ -217,6 +219,19 @@ integer."
     ((4) uint32)
     ((8) uint64)
     (else (error "could not determine size of `mode_t'"))))
+
+(define sizeof-size_t
+  (compile-time-value (sizeof size_t)))
+
+(define (make-size_t-pointer)
+  "Return a pointer to a region of sizeof(size_t) bytes."
+  (gc-malloc-pointerless sizeof-size_t))
+
+(define (dereference-size_t p)
+  "Return the size_t value pointed to by P."
+  (bytevector-uint-ref (pointer->bytevector p sizeof-size_t)
+                       0 (native-endianness)
+                       sizeof-size_t))
 
 
 ;;;
