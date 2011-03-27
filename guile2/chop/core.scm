@@ -1,4 +1,4 @@
-;;; Copyright (C) 2010  Ludovic Courtès <ludo@gnu.org>
+;;; Copyright (C) 2010, 2011  Ludovic Courtès <ludo@gnu.org>
 ;;;
 ;;; Libchop is free software: you can redistribute it and/or modify
 ;;; it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
   #:use-module (rnrs bytevectors)
   #:use-module (srfi srfi-1)
   #:use-module (chop internal)
+  #:re-export (error/not-impl)
   #:export (error-message
             bytevector->hex-string
             bytevector->base32-string
@@ -26,7 +27,6 @@
 
             error/ok
             error/not-found
-            error/not-impl
             error/invalid-arg
             error/out-of-range-arg
             error/deserial-too-short
@@ -108,7 +108,6 @@
 (define-error-code error/ok "CHOP_OK")
 (define-error-code error/unknown-store "CHOP_ERR_UNKNOWN_STORE")
 (define-error-code error/not-found "CHOP_ERR_NOT_FOUND")
-(define-error-code error/not-impl "CHOP_ERR_NOT_IMPL")
 (define-error-code error/invalid-arg "CHOP_INVALID_ARG")
 (define-error-code error/out-of-range-arg "CHOP_OUT_OF_RANGE_ARG")
 (define-error-code error/filter-full "CHOP_FILTER_FULL")

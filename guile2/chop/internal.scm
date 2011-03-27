@@ -54,6 +54,7 @@
             chop-error-t
             define-error-code
             raise-chop-error
+            error/not-impl
             gc-malloc-pointerless
 
             class-instance-size
@@ -248,6 +249,8 @@ a macro, etc.  The result is a compile-time constant."
      (define name
        (c-integer-value c-name "#include <chop/errors.h>")))))
 
+(define-error-code error/not-impl "CHOP_ERR_NOT_IMPL")
+
 (define-compile-time-value %offset-of-instance_size
   (c-offset-of "instance_size" "chop_class_t"
                "#include <chop/objects.h>"
@@ -359,18 +362,19 @@ to wrap a `stream' object."
       ((_ ret object class method (args ...) (includes inc))
        (and (string? (syntax->datum #'class))
             (string? (syntax->datum #'method)))
-       #'(pointer->procedure ret
-                             (dereference-pointer
-                              (make-pointer
-                               (+ (compile-time-value
-                                   (c-offset-of method
-                                                (full-class-type-name class)
-                                                inc
-                                                %libchop-libs
-                                                %libchop-cc
-                                                %libchop-cppflags))
-                                  (pointer-address object))))
-                             (list args ...)))
+       #'(let ((p (dereference-pointer
+                   (make-pointer
+                    (+ (compile-time-value
+                        (c-offset-of method
+                                     (full-class-type-name class)
+                                     inc
+                                     %libchop-libs
+                                     %libchop-cc
+                                     %libchop-cppflags))
+                       (pointer-address object))))))
+           (if (null-pointer? p)
+               (raise-chop-error error/not-impl)
+               (pointer->procedure ret p (list args ...)))))
       ((_ object class method (args ...) (includes inc))
        (with-syntax (((params ...) (generate-temporaries #'(args ...))))
          #'(let ((f (libchop-method chop-error-t object
