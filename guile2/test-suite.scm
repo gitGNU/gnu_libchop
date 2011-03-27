@@ -369,6 +369,32 @@
          (object=? (deserialize-object/binary c (pk (serialize-object/binary i)))
                    i))))
 
+(test-assert "block-indexer-fetcher"
+  (let* ((bi (hash-block-indexer-open hash-method/md5))
+         (bf (block-indexer-fetcher bi)))
+    (and (block-fetcher? bf)
+         (eq? (object-class bf)
+              (block-indexer-fetcher-class bi)))))
+
+(test-assert "block-fetcher-fetch"
+  (with-temporary-file
+   (lambda (file)
+     (let* ((s  (file-based-block-store-open (lookup-class "gdbm_block_store")
+                                             file
+                                             (logior O_RDWR O_CREAT)
+                                             #o644))
+            (bi (chk-block-indexer-open (make-cipher cipher-algorithm/aes256
+                                                     cipher-mode/cbc)
+                                        hash-method/sha256
+                                        hash-method/md5))
+            (bf (block-indexer-fetcher bi))
+            (bv (u8-list->bytevector (iota 256)))
+            (i  (block-indexer-index bi s bv)))
+       (and (index-handle? i)
+            (let ((r (bytevector=? bv (block-fetcher-fetch bf i s))))
+              (store-close s)
+              r))))))
+
 (test-end)
 
 

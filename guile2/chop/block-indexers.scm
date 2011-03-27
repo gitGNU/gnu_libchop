@@ -29,7 +29,12 @@
 
             block-indexer-index-handle-class
             block-indexer-fetcher-class
-            block-indexer-index))
+            block-indexer-index
+            block-indexer-fetcher
+
+            block-fetcher?
+
+            block-fetcher-fetch))
 
 (define-libchop-type block-indexer "block_indexer"
   block-indexer?
@@ -38,6 +43,10 @@
 (define-libchop-type index-handle "index_handle"
   index-handle?
   wrap-index-handle unwrap-index-handle)
+
+(define-libchop-type block-fetcher "block_fetcher"
+  block-fetcher?
+  wrap-block-fetcher unwrap-block-fetcher)
 
 ;; Hack to allow access to our friends.
 
@@ -113,3 +122,29 @@ BLOCK-ID-HASH-METHOD hash of the cipher text."
        (bytevector-length bv)
        i)
     (register-libchop-object! (wrap-index-handle i))))
+
+(define (block-indexer-fetcher bi)
+  "Return a new fetcher that is the dual of BI."
+  (let ((p (gc-malloc-pointerless
+            (class-instance-size (block-indexer-fetcher-class bi))))
+        (m (libchop-method (unwrap-block-indexer bi)
+                           "block_indexer" "init_fetcher"
+                           ('* '*)
+                           (includes "#include <chop/block-indexers.h>"))))
+    (m (unwrap-block-indexer bi) p)
+    (register-libchop-object! (wrap-block-fetcher p))))
+
+(define (block-fetcher-fetch bf index store)
+  "Fetch the block designated by INDEX from STORE using BF; return the block
+contents as a bytevector."
+  (let ((m (libchop-method (unwrap-block-fetcher bf)
+                           "block_fetcher" "fetch_block"
+                           ('* '* '* '* '*)
+                           (includes "#include <chop/block-indexers.h>")))
+        (b (make-empty-buffer))
+        (r (make-size_t-pointer)))
+    (m (unwrap-block-fetcher bf) (unwrap-index-handle index)
+       (unwrap-object %store-class store)
+       b r)
+    (values (buffer->bytevector b)
+            (dereference-size_t r))))
