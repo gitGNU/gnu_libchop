@@ -17,9 +17,12 @@
   #:use-module (system foreign)
   #:use-module (rnrs bytevectors)
   #:use-module (srfi srfi-1)
+  #:use-module (chop config)
   #:use-module (chop internal)
   #:re-export (error/not-impl)
-  #:export (error-message
+  #:export (libchop-version
+
+            error-message
             bytevector->hex-string
             bytevector->base32-string
             hex-string->bytevector
@@ -36,6 +39,10 @@
 ;;;
 ;;; Utility functions.
 ;;;
+
+(define (libchop-version)
+  "Return a version string identifying the libchop version."
+  %libchop-version)
 
 (define error-message
   (let ((f (libchop-function '* "error_message" (chop-error-t))))

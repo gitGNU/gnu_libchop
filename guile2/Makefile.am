@@ -30,17 +30,29 @@ SOURCES =					\
 SOURCES_NOT_COMPILED =				\
   srfi/srfi-64.upstream.scm
 
+BUILT_SOURCES = chop/config.scm
+CLEANFILES = $(BUILT_SOURCES)
+
 nobase_guilemodule_DATA = $(SOURCES) $(SOURCES_NOT_COMPILED)
+
+EXTRA_DIST = chop/config.in
+
+.in.scm:
+	$(SED) -e 's|[@]libdir[@]|$(libdir)|g'				\
+	       -e 's|[@]includedir[@]|$(includedir)|g'			\
+	       -e 's|[@]PACKAGE_VERSION[@]|$(PACKAGE_VERSION)|g'	\
+	  < "$^" > "$@".tmp
+	mv "$@.tmp" "$@"
 
 if HAVE_GUILE2
 
 GUILEC_FLAGS = -Wunbound-variable -Warity-mismatch -Wunused-toplevel -Wformat
 
 # XXX: This expression relies on a GNU extension.
-GOBJECTS = $(SOURCES:%.scm=%.go)
+GOBJECTS = $(SOURCES:%.scm=%.go) $(BUILT_SOURCES:%.scm=%.go)
 
-CLEANFILES = $(GOBJECTS)
-nobase_nodist_guilemodule_DATA = $(GOBJECTS)
+CLEANFILES += $(GOBJECTS)
+nobase_nodist_guilemodule_DATA = $(BUILT_SOURCES) $(GOBJECTS)
 
 .scm.go:
 	$(MKDIR_P) `dirname $@`
@@ -60,6 +72,6 @@ TESTS = test-suite.scm
 
 else !HAVE_GUILE2
 
-EXTRA_DIST = test-suite.scm
+EXTRA_DIST += test-suite.scm
 
 endif

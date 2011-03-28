@@ -14,6 +14,7 @@
 ;;; along with libchop.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (chop internal)
+  #:use-module (chop config)
   #:use-module (system foreign)
   #:use-module (rnrs bytevectors)
   #:use-module (srfi srfi-1)
@@ -22,6 +23,7 @@
   #:use-module (srfi srfi-26)
   #:use-module (ice-9 popen)
   #:use-module (ice-9 match)
+  #:re-export (%libchop-libdir)
   #:export (c-offset-of
             c-size-of
             c-integer-value
@@ -43,7 +45,6 @@
             unwrap-class
             lookup-class
 
-            %libchop-libdir
             %libchop-cc
             %libchop-cppflags
             %libchop-libs
@@ -191,8 +192,6 @@ integer."
 ;; FIXME: Substitute correct values for these.
 
 (eval-when (eval load compile)
-  (define %libchop-libdir
-    (or (getenv "libchop_libdir") "../../src"))
   (define libchop.so
     (find file-exists?
           (map (cut string-append %libchop-libdir "/" <>)
@@ -206,7 +205,7 @@ integer."
   (define %libchop-cc
     (or (getenv "CC") "cc"))
   (define %libchop-cppflags
-    `("-I" ,(or (getenv "libchop_includedir") "../../include"))))
+    `("-I" ,%libchop-includedir)))
 
 (define mode_t
   (case (compile-time-value (c-size-of "mode_t"
