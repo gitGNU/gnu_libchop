@@ -70,6 +70,14 @@ TESTS_ENVIRONMENT =							\
 
 TESTS = test-suite.scm
 
+# Make sure source files are installed first, so that the mtime of
+# installed compiled files is greater than that of installed source
+# files.  See
+# <http://lists.gnu.org/archive/html/guile-devel/2010-07/msg00125.html>
+# for details.
+chop_install_go_files = install-nobase_nodist_moduleDATA
+$(chop_install_go_files): install-nobase_dist_moduleDATA
+
 else !HAVE_GUILE2
 
 EXTRA_DIST += test-suite.scm
