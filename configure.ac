@@ -301,9 +301,8 @@ else
 fi
 AM_CONDITIONAL([HAVE_GUILE2], [test "x$have_guile2" = "xyes"])
 
-pkgdatadir="$datadir/$PACKAGE_NAME"
 if test "x$guilemoduledir" = "x"; then
-  guilemoduledir="$pkgdatadir"
+  guilemoduledir="$datarootdir/guile/site/2.0"
 fi
 AC_SUBST([guilemoduledir])
 
