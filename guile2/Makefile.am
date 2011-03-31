@@ -25,6 +25,7 @@ SOURCES =					\
   chop/objects.scm				\
   chop/stores.scm				\
   chop/streams.scm				\
+  chop.scm					\
   srfi/srfi-64.scm
 
 SOURCES_NOT_COMPILED =				\
