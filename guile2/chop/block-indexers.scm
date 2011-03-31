@@ -34,7 +34,10 @@
 
             block-fetcher?
 
-            block-fetcher-fetch))
+            block-fetcher-fetch
+
+            error/block-indexer-error
+            error/block-fetcher-error))
 
 (define-libchop-type block-indexer "block_indexer"
   block-indexer?
@@ -47,6 +50,9 @@
 (define-libchop-type block-fetcher "block_fetcher"
   block-fetcher?
   wrap-block-fetcher unwrap-block-fetcher)
+
+(define-error-code error/block-indexer-error "CHOP_BLOCK_INDEXER_ERROR")
+(define-error-code error/block-fetcher-error "CHOP_BLOCK_FETCHER_ERROR")
 
 ;; Hack to allow access to our friends.
 

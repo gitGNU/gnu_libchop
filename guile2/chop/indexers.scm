@@ -23,11 +23,17 @@
             tree-indexer-open
             indexer-stream-class
             indexer-index-blocks
-            indexer-fetch-stream))
+            indexer-fetch-stream
+
+            error/indexer-error
+            error/indexer-empty-source))
 
 (define-libchop-type indexer "indexer"
   indexer?
   wrap-indexer unwrap-indexer)
+
+(define-error-code error/indexer-error "CHOP_INDEXER_ERROR")
+(define-error-code error/indexer-empty-source "CHOP_INDEXER_EMPTY_SOURCE")
 
 
 ;;;

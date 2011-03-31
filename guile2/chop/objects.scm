@@ -30,8 +30,13 @@
             serialize-object/ascii
             serialize-object/binary
             deserialize-object/ascii
-            deserialize-object/binary)
+            deserialize-object/binary
+            error/deserial-too-short
+            error/deserial-corrupt-input)
   #:re-export (object?))
+
+(define-error-code error/deserial-too-short "CHOP_DESERIAL_TOO_SHORT")
+(define-error-code error/deserial-corrupt-input "CHOP_DESERIAL_CORRUPT_INPUT")
 
 (define (object-class obj)
   "Return the class of OBJ or #f if OBJ is not a libchop object."

@@ -56,7 +56,10 @@
             cipher?
             cipher-algorithm
             cipher-mode
-            set-cipher-key!))
+            set-cipher-key!
+
+            error/cipher-error
+            error/cipher-weak-key))
 
 
 ;;;
@@ -248,3 +251,6 @@ if the size of KEY is invalid for CIPHER's algorithm."
       (f (unwrap-cipher cipher)
          (bytevector->pointer key)
          (bytevector-length key)))))
+
+(define-error-code error/cipher-error "CHOP_CIPHER_ERROR")
+(define-error-code error/cipher-weak-key "CHOP_CIPHER_WEAK_KEY")

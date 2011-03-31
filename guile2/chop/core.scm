@@ -31,9 +31,7 @@
             error/ok
             error/not-found
             error/invalid-arg
-            error/out-of-range-arg
-            error/deserial-too-short
-            error/deserial-corrupt-input))
+            error/out-of-range-arg))
 
 
 ;;;
@@ -113,7 +111,6 @@
 ;; TODO: Some of the variables below will move to the right module.
 
 (define-error-code error/ok "CHOP_OK")
-(define-error-code error/unknown-store "CHOP_ERR_UNKNOWN_STORE")
 (define-error-code error/not-found "CHOP_ERR_NOT_FOUND")
 (define-error-code error/invalid-arg "CHOP_INVALID_ARG")
 (define-error-code error/out-of-range-arg "CHOP_OUT_OF_RANGE_ARG")
@@ -121,14 +118,3 @@
 (define-error-code error/filter-empty "CHOP_FILTER_EMPTY")
 (define-error-code error/filter-unhandled-fault "CHOP_FILTER_UNHANDLED_FAULT")
 (define-error-code error/filter-error "CHOP_FILTER_ERROR")
-(define-error-code error/store-error "CHOP_STORE_ERROR")
-(define-error-code error/store-end "CHOP_STORE_END")
-(define-error-code error/block-indexer-error "CHOP_BLOCK_INDEXER_ERROR")
-(define-error-code error/block-fetcher-error "CHOP_BLOCK_FETCHER_ERROR")
-(define-error-code error/indexer-error "CHOP_INDEXER_ERROR")
-(define-error-code error/indexer-empty-source "CHOP_INDEXER_EMPTY_SOURCE")
-(define-error-code error/store-block-unavailable "CHOP_STORE_BLOCK_UNAVAIL")
-(define-error-code error/deserial-too-short "CHOP_DESERIAL_TOO_SHORT")
-(define-error-code error/deserial-corrupt-input "CHOP_DESERIAL_CORRUPT_INPUT")
-(define-error-code error/cipher-error "CHOP_CIPHER_ERROR")
-(define-error-code error/cipher-weak-key "CHOP_CIPHER_WEAK_KEY")

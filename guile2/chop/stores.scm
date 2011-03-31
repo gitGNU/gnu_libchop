@@ -24,11 +24,18 @@
             file-based-block-store-open
             store-read-block
             store-write-block
-            store-close))
+            store-close
+
+            error/unknown-store))
 
 (define-libchop-type store "block_store"
   store?
   wrap-store unwrap-store)
+
+(define-error-code error/unknown-store "CHOP_ERR_UNKNOWN_STORE")
+(define-error-code error/store-block-unavailable "CHOP_STORE_BLOCK_UNAVAIL")
+(define-error-code error/store-error "CHOP_STORE_ERROR")
+(define-error-code error/store-end "CHOP_STORE_END")
 
 
 ;;;
