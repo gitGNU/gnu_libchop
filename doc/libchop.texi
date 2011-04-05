@@ -951,6 +951,83 @@ Produce verbose output.
 @node Guile Bindings
 @chapter Guile Bindings
 
+Libchop can be used in Scheme programs written for GNU Guile 2.0
+(@pxref{Top,, GNU Guile, guile, GNU Guile Reference Manual}).  Each C
+header file has a corresponding Guile module---e.g., the @code{(chop
+indexers)} module corresponds to @code{<chop/indexers.h>}.  The
+@code{(chop)} module is a composite module that aggregates all the
+sub-modules.
+
+The example below shows how one would write a procedure that, given a
+file name, stores and encrypts the given file and returns an opaque
+index handle (@pxref{Overview, index handle}).
+
+@lisp
+(use-modules (chop))
+
+(define (chop/encrypt file store)
+  (let* ((input (file-stream-open file))
+         (i     (tree-indexer-open))
+         (c     (fixed-size-chopper-open input 777))
+         (bi    (chk-block-indexer-open (make-cipher cipher-algorithm/aes256
+                                                     cipher-mode/cbc)
+                                        hash-method/sha256
+                                        hash-method/sha1)))
+    (indexer-index-blocks i c bi store store)))
+@end lisp
+
+To store an encrypted copy of a file, this procedure can be invoked as
+follows:
+
+@lisp
+(let ((s (file-based-block-store-open (lookup-class "gdbm_block_store")
+                                      "encrypted-data.gdbm"
+                                      (logior O_RDWR O_CREAT)
+                                      #o644)))
+ (chop/encrypt "secret-file.txt" s))
+@result{} #<chop chk_index_handle 346d1c0 (3475000)>
+@end lisp
+
+In this example, @file{secret-file.txt} is chopped into blocks of 777
+bytes (@pxref{Stream Choppers}).  Those blocks are then encrypted and
+stored in @file{encrypted-data.gdbm}, a GNU dbm key/value store
+(@pxref{Intro,,, gdbm, GNU @code{dbm} Reference Manual}).
+
+The returned index handle can be serialized as a string and stashed, for
+later reuse:
+
+@lisp
+(serialize-object/ascii (chop/encrypt "secret-file.txt" s))
+@result{} "ci4r7xyktacal3rqrf6wpk5kitripgrv3cxvllarepzzsus5mmuq====,6v4nej5hjmtkvcinlawcf24wnq4zplm7/64a"
+@end lisp
+
+Getting back an index handle from such a string is done this way:
+
+@lisp
+(let ((str "ci4r7xyktacal3rqrf6wpk5kitripgrv3cxvllarepzzsus5mmuq====,6v4nej5hjmtkvcinlawcf24wnq4zplm7/64a"))
+  (deserialize-object/ascii (lookup-class "chk_block_indexer") str))
+@result{} #<chop chk_index_handle 284ee40 (2854000)>
+@end lisp
+
+Finally, the procedure below returns a Scheme port from the given index
+handle and block store:
+
+@lisp
+(define (decrypt/assemble index store)
+  (let* ((i  (tree-indexer-open))
+	 (bi (chk-block-indexer-open (make-cipher cipher-algorithm/aes256
+                                                  cipher-mode/cbc)
+                                     hash-method/sha256
+                                     hash-method/sha1))
+         (bf (block-indexer-fetcher bi)))
+    (stream->port (indexer-fetch-stream i index bf store store))))
+@end lisp
+
+The data pointed to by @var{index} in @var{store} can be obtained by
+reading from the returned port.
+
+And voil@`a!
+
 @c *********************************************************************
 @node References
 @chapter References
