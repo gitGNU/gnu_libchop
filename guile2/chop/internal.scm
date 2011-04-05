@@ -31,6 +31,7 @@
             define-compile-time-value
             pointer+
             mode_t
+            make-pointer-pointer
             make-size_t-pointer
             dereference-size_t
 
@@ -218,6 +219,10 @@ integer."
     ((4) uint32)
     ((8) uint64)
     (else (error "could not determine size of `mode_t'"))))
+
+(define (make-pointer-pointer)
+  "Return a pointer to a region of sizeof(void *) bytes."
+  (gc-malloc-pointerless (compile-time-value (sizeof '*))))
 
 (define sizeof-size_t
   (compile-time-value (sizeof size_t)))

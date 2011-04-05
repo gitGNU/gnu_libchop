@@ -28,6 +28,7 @@
   #:use-module (rnrs bytevectors)
   #:use-module (rnrs io ports)
   #:use-module (srfi srfi-1)
+  #:use-module (srfi srfi-11)
   #:use-module (srfi srfi-64))
 
 (define (with-temporary-file proc)
@@ -470,6 +471,38 @@
                      (bytevector=? bv (get-bytevector-all out)))))
          (store-close s)
          r)))))
+
+(test-assert "indexer-{index-blocks,fetch-stream} with serialized index tuple"
+  (with-temporary-file
+   (lambda (file)
+     (let* ((i     (tree-indexer-open))
+            (bv    (make-random-bytevector 6666))
+            (in    (mem-stream-open bv))
+            (c     (chopper-generic-open (lookup-class "anchor_based_chopper")
+                                         in 555))
+            (bi    (chk-block-indexer-open (make-cipher cipher-algorithm/aes256
+                                                        cipher-mode/cbc)
+                                           hash-method/sha256
+                                           hash-method/md5))
+            (s     (file-based-block-store-open (lookup-class "gdbm_block_store")
+                                                file
+                                                (logior O_RDWR O_CREAT)
+                                                #o644))
+            (ih    (indexer-index-blocks i c bi s s))
+            (tuple (serialize-index-tuple/ascii ih i bi)))
+       (let*-values (((ih2 i2 bf read)
+                      (deserialize-index-tuple/ascii tuple))
+                     ((out)
+                      (stream->port (indexer-fetch-stream i2 ih2 bf s s))))
+         (let ((r (and (object=? ih ih2)
+                       ;; XXX: `tree_indexer' lacks an `equal' predicate
+                       (object-is-a? i2 (object-class i))
+
+                       (block-fetcher? bf)
+                       (= read (string-length tuple))
+                       (bytevector=? bv (get-bytevector-all out)))))
+           (store-close s)
+           r))))))
 
 (test-end)
 

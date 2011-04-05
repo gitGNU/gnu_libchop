@@ -24,6 +24,8 @@
             indexer-stream-class
             indexer-index-blocks
             indexer-fetch-stream
+            serialize-index-tuple/ascii
+            deserialize-index-tuple/ascii
 
             error/indexer-error
             error/indexer-empty-source))
@@ -55,8 +57,14 @@ block with INDICES-PER-BLOCK index handles."
 ;;; Methods.
 ;;;
 
+(define %class
+  (lookup-class "class"))
+
 (define %store-class
   (lookup-class "block_store"))
+
+(define %indexer-class
+  (lookup-class "indexer"))
 
 (define %block-indexer-class
   (lookup-class "block_indexer"))
@@ -117,3 +125,53 @@ fetched from DATA-STORE and META-DATA-STORE, according to BF and INDEXER."
       (register-weak-reference s data-store)
       (register-weak-reference s meta-data-store)
       s)))
+
+(define serialize-index-tuple/ascii
+  (let ((f (libchop-function "ascii_serialize_index_tuple"
+                             ('* '* '* '*))))
+   (lambda (index-handle indexer block-indexer)
+     "Return a string containing a serialization of INDEX-HANDLE, INDEXER, and
+the block fetcher corresponding to BLOCK-INDEXER."
+     (let ((b (make-empty-buffer)))
+       (f (unwrap-object %index-handle-class index-handle)
+          (unwrap-object %indexer-class indexer)
+          (unwrap-object %block-indexer-class block-indexer)
+          b)
+       (pointer->string ; to consume the trailing zero
+        (bytevector->pointer (buffer->bytevector b)))))))
+
+(define deserialize-index-tuple/ascii
+  (let ((stage1 (libchop-function "ascii_deserialize_index_tuple_s1"
+                                  ('* size_t '* '* '* '*)))
+        (stage2 (libchop-function "ascii_deserialize_index_tuple_s2"
+                                  ('* size_t '* '* '* '* '* '* '*))))
+    (lambda (s)
+      "Deserialize S, a string containing an ASCII-serialized index tuple.
+Return 4 values: the index handle, indexer, block fetcher, and number of
+bytes read from S."
+      (let* ((bv   (string->utf8 s))
+             (buf  (bytevector->pointer bv))
+             (len  (bytevector-length bv))
+             (icp  (make-pointer-pointer))
+             (fcp  (make-pointer-pointer))
+             (ihcp (make-pointer-pointer))
+             (read (make-size_t-pointer)))
+        (stage1 buf len icp fcp ihcp read)
+        (let* ((pread (dereference-size_t read))
+               (buf   (pointer+ buf pread))
+               (len   (- len pread))
+               (ic    (wrap-object %class (dereference-pointer icp)))
+               (fc    (wrap-object %class (dereference-pointer fcp)))
+               (ihc   (wrap-object %class (dereference-pointer ihcp)))
+               (i     (gc-malloc-pointerless (class-instance-size ic)))
+               (bf    (gc-malloc-pointerless (class-instance-size fc)))
+               (ih    (gc-malloc-pointerless (class-instance-size ihc))))
+          (stage2 buf len
+                  (dereference-pointer icp)
+                  (dereference-pointer fcp)
+                  (dereference-pointer ihcp)
+                  i bf ih read)
+          (values (wrap-object ihc ih)
+                  (wrap-object ic i)
+                  (wrap-object fc bf)
+                  (+ pread (dereference-size_t read))))))))
