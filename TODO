@@ -1,6 +1,6 @@
 -*- Org -*-
 
-Copyright 2010  Ludovic Courtès <ludo@gnu.org>
+Copyright 2010, 2011  Ludovic Courtès <ludo@gnu.org>
 
   Copying and distribution of this file, with or without modification,
   are permitted in any medium without royalty provided the copyright
@@ -78,6 +78,11 @@ See also [[http://itpp.sourceforge.net/current/reedsolomon.html][IT++]].
 ** Borrow ideas from Git's packs?
 
 http://repo.or.cz/w/git.git?a=blob;f=Documentation/technical/pack-format.txt
+
+** Use OpenMP tasks in `chop_tree_index_blocks'
+
+... to allow several blocks to be indexed in parallel, though the
+store_write would probably have to be in a critical section.
 
 ** See [[http://search.cpan.org/~bradfitz/Brackup/lib/Brackup/Chunker/MP3.pm][Brackup::Chunker::MP3]] for chopper ideas
 ** Steal other relevant ideas from [[http://search.cpan.org/~bradfitz/Brackup/][Brackup]]  :-)
