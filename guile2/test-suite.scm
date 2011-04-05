@@ -25,6 +25,7 @@
   #:use-module (chop cipher)
   #:use-module (chop block-indexers)
   #:use-module (chop indexers)
+  #:use-module (chop filters)
   #:use-module (rnrs bytevectors)
   #:use-module (rnrs io ports)
   #:use-module (srfi srfi-1)
@@ -503,6 +504,47 @@
                        (bytevector=? bv (get-bytevector-all out)))))
            (store-close s)
            r))))))
+
+(test-end)
+
+
+;;;
+;;; Filters.
+;;;
+
+(test-begin "filters")
+
+(test-assert "make-zlib-zip-filter"
+  (let ((f (make-zlib-zip-filter)))
+    (and (filter? f)
+         (eq? (object-class f)
+              (lookup-class "zlib_zip_filter")))))
+
+(test-assert "stacked filtered streams"
+  (let* ((bv  (make-random-bytevector 5555))
+         (in  (mem-stream-open bv))
+         (zin (filtered-stream-open in (make-zlib-zip-filter)))
+         (out (filtered-stream-open zin (make-zlib-unzip-filter))))
+    (and (stream? in) (stream? zin) (stream? out)
+         (let ((read (get-bytevector-all (stream->port out))))
+           (bytevector=? read bv)))))
+
+(test-assert "filtered store"
+  (with-temporary-file
+   (lambda (file)
+     (let* ((s  (file-based-block-store-open (lookup-class "gdbm_block_store")
+                                             file
+                                             (logior O_RDWR O_CREAT)
+                                             #o644))
+            (fs (filtered-block-store-open (make-zlib-zip-filter)
+                                           (make-zlib-unzip-filter)
+                                           s #t))
+            (k  #vu8(1 2 3 4 5))
+            (v  (u8-list->bytevector (iota 256))))
+       (store-write-block fs k v)
+       (let ((r (bytevector=? v (store-read-block fs k))))
+         (store-close fs)
+         r)))))
 
 (test-end)
 

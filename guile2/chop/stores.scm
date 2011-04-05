@@ -22,6 +22,8 @@
             dummy-block-store-open
             dummy-proxy-block-store-open
             file-based-block-store-open
+            filtered-block-store-open
+
             store-read-block
             store-write-block
             store-close
@@ -78,9 +80,32 @@ OPEN-FLAGS and MODE."
              (register-libchop-object! (wrap-store s))
              (raise-chop-error e)))))
 
+(define %filter-class
+  (lookup-class "filter"))
+
+(define filtered-block-store-open
+  (let ((f (libchop-type-constructor "filtered_store_open"
+                                     ('* '* '* int)
+                                     "filtered_block_store" wrap-store)))
+    (lambda* (input-filter output-filter backend #:optional close-backend?)
+      "Return a filtered block store which uses INPUT-FILTER to filter the
+contents of blocks that are written to it, OUTPUT-FILTER to filter the
+contents of blocks as they are read from it, and uses BACKEND as the
+underlying block store.  If CLOSE-BACKEND? is true, then BACKEND will be
+closed when the returned store is closed."
+      (let ((s (f (unwrap-object %filter-class input-filter)
+                  (unwrap-object %filter-class output-filter)
+                  (unwrap-store backend)
+                  (if close-backend?
+                      proxy/eventually-close
+                      proxy/leave-as-is))))
+        (register-weak-reference s input-filter)
+        (register-weak-reference s output-filter)
+        (register-weak-reference s backend)
+        s))))
+
 ;; FIXME: sunrpc-block-store-open
 ;; FIXME: sunrpc/tls-block-store-simple-open
-;; FIXME: filtered-store-open
 
 ;; FIXME: make-block-store
 

@@ -23,6 +23,7 @@
   #:export (stream?
             file-stream-open
             mem-stream-open
+            filtered-stream-open
 
             stream-read!
             stream-close
@@ -36,6 +37,11 @@
 (define-libchop-type stream "stream"
   stream?
   wrap-stream unwrap-stream)
+
+
+;;;
+;;; Constructors.
+;;;
 
 (define file-stream-open
   (let ((f (libchop-type-constructor "file_stream_open" ('*)
@@ -52,6 +58,29 @@
       (f (bytevector->pointer bv)
          (bytevector-length bv)
          %null-pointer))))
+
+(define filtered-stream-open
+  (let ((f (libchop-type-constructor "filtered_stream_open"
+                                     ('* int '* int)
+                                     "filtered_stream" wrap-stream)))
+    (lambda* (backend filter #:optional (close-backend? #f))
+      "Return a new input stream whose input is drained from stream BACKEND
+and filtered through FILTER.  If CLOSE-BACKEND? is true, then BACKEND will be
+closed when the returned stream is closed."
+      (let ((s (f (unwrap-stream backend)
+                  (if close-backend?
+                      proxy/eventually-close
+                      proxy/leave-as-is)
+                  (unwrap-object (lookup-class "filter") filter)
+                  0)))
+        (register-weak-reference s filter)
+        (register-weak-reference s backend)
+        s))))
+
+
+;;;
+;;; Methods.
+;;;
 
 (define (stream-read! s bv)
   "Read from stream S into bytevector BV.  Return the number of bytes read.

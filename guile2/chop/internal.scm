@@ -33,7 +33,7 @@
             mode_t
             make-pointer-pointer
             make-size_t-pointer
-            dereference-size_t
+v            dereference-size_t
 
             define-libchop-type
             wrap-object
@@ -64,7 +64,10 @@
             class-instance-size
             make-empty-buffer
             buffer->bytevector
-            register-weak-reference))
+            register-weak-reference
+
+            proxy/leave-as-is
+            proxy/eventually-close))
 
 
 ;;;
@@ -576,3 +579,13 @@ C function NAME and wraps the resulting pointer with WRAP."
         ;; one.
         (register-weak-reference bv buf)
         bv))))
+
+
+;;;
+;;; Proxies.
+;;;
+
+(define proxy/leave-as-is
+  (c-integer-value "CHOP_PROXY_LEAVE_AS_IS" "#include <chop/chop.h>"))
+(define proxy/eventually-close
+  (c-integer-value "CHOP_PROXY_EVENTUALLY_CLOSE" "#include <chop/chop.h>"))

@@ -24,6 +24,7 @@
         choppers
         cipher
         core
+        filters
         hash
         indexers
         objects

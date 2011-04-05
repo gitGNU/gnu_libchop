@@ -114,7 +114,3 @@
 (define-error-code error/not-found "CHOP_ERR_NOT_FOUND")
 (define-error-code error/invalid-arg "CHOP_INVALID_ARG")
 (define-error-code error/out-of-range-arg "CHOP_OUT_OF_RANGE_ARG")
-(define-error-code error/filter-full "CHOP_FILTER_FULL")
-(define-error-code error/filter-empty "CHOP_FILTER_EMPTY")
-(define-error-code error/filter-unhandled-fault "CHOP_FILTER_UNHANDLED_FAULT")
-(define-error-code error/filter-error "CHOP_FILTER_ERROR")
