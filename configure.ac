@@ -14,8 +14,8 @@ AC_CONFIG_SRCDIR(src/chop.c)
 AC_CONFIG_HEADER(include/chop/chop-config.h)
 AC_CONFIG_MACRO_DIR(m4)
 
-AC_ARG_ENABLE([guile-bindings],
-	AS_HELP_STRING([--enable-guile-bindings],
+AC_ARG_ENABLE([guile-1.8-bindings],
+	AS_HELP_STRING([--enable-guile-1.8-bindings],
 	  [produce GNU Guile 1.8 bindings (requires Guile 1.8 and G-Wrap)]),
 	[produce_guile_bindings="$enableval"],
 	[produce_guile_bindings="no"])
