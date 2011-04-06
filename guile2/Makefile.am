@@ -35,7 +35,7 @@ SOURCES_NOT_COMPILED =				\
 BUILT_SOURCES = chop/config.scm
 CLEANFILES = $(BUILT_SOURCES)
 
-nobase_guilemodule_DATA = $(SOURCES) $(SOURCES_NOT_COMPILED)
+nobase_dist_guilemodule_DATA = $(SOURCES) $(SOURCES_NOT_COMPILED)
 
 EXTRA_DIST = chop/config.in
 
