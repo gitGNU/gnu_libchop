@@ -28,7 +28,10 @@
             store-write-block
             store-close
 
-            error/unknown-store))
+            error/unknown-store
+            error/store-block-unavailable
+            error/store-error
+            error/store-end))
 
 (define-libchop-type store "block_store"
   store?
