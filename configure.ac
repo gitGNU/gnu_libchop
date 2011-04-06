@@ -49,10 +49,13 @@ gl_INIT
 if test "x$GCC" = "xyes"; then
   # We absolutely need `-fno-strict-aliasing' because of the casts
   # used to deal with polymorphism.
-  CFLAGS="-fno-strict-aliasing $CFLAGS"
-  CFLAGS="-Wall -Wmissing-prototypes -Wpointer-arith $CFLAGS"
-  CFLAGS="-Wdeclaration-after-statement -Wcast-align $CFLAGS"
+  GCC_CFLAGS="-fno-strict-aliasing"
+  GCC_CFLAGS="-Wall -Wmissing-prototypes -Wpointer-arith $GCC_CFLAGS"
+  GCC_CFLAGS="-Wdeclaration-after-statement -Wcast-align $GCC_CFLAGS"
+else
+  GCC_CFLAGS=""
 fi
+AC_SUBST([GCC_CFLAGS])
 
 dnl ONC RPC's `rpcgen'.
 AC_PATH_PROG([RPCGEN], [rpcgen])

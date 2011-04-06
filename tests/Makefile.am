@@ -1,5 +1,5 @@
 # libchop -- a utility library for distributed storage and data backup
-# Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+# Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
 # Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 #
 # Libchop is free software: you can redistribute it and/or modify
@@ -56,6 +56,7 @@ TESTS_ENVIRONMENT =						\
   PATH="$(top_builddir)/utils:$$PATH"				\
   top_srcdir="$(abs_top_srcdir)" srcdir="$(abs_srcdir)/utils"
 
+AM_CFLAGS = $(GCC_CFLAGS)
 AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include	\
 	      -I$(top_srcdir)/lib     -I$(top_builddir)/lib	\
 	      -I$(top_srcdir)/tests/include

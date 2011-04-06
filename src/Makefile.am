@@ -1,5 +1,5 @@
 # libchop -- a utility library for distributed storage and data backup
-# Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+# Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
 # Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 #
 # Libchop is free software: you can redistribute it and/or modify
@@ -49,8 +49,9 @@ libchop_la_SOURCES = chop.c logs.c				\
 		     stream-filtered.c				\
 		     base32.c
 
-libchop_la_CFLAGS =
+libchop_la_CFLAGS = $(AM_CFLAGS)
 
+AM_CFLAGS = $(GCC_CFLAGS)
 AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include	\
 	      -I$(top_srcdir)/lib     -I$(top_builddir)/lib
 
@@ -124,7 +125,7 @@ libchop_block_server_la_CPPFLAGS  = $(AM_CPPFLAGS)
 if HAVE_AVAHI
 libchop_block_server_la_SOURCES  += store-publisher-avahi.c
 libchop_block_server_la_LIBADD   += $(AVAHI_LIBS)
-libchop_block_server_la_CFLAGS    = $(AVAHI_CFLAGS)
+libchop_block_server_la_CFLAGS    = $(AVAHI_CFLAGS) $(AM_CFLAGS)
 else
 EXTRA_DIST += store-publisher-avahi.c
 endif
@@ -135,11 +136,11 @@ libchop_store_browsers_la_SOURCES = store-browsers.c		\
 				    store-browser-avahi.c
 libchop_store_browsers_la_LIBADD   = $(AVAHI_LIBS) libchop.la $(AM_LIBS)
 libchop_store_browsers_la_CPPFLAGS = $(AM_CPPFLAGS)
-libchop_store_browsers_la_CFLAGS   = $(AVAHI_CFLAGS)
+libchop_store_browsers_la_CFLAGS   = $(AVAHI_CFLAGS) $(AM_CFLAGS)
 endif
 
 if HAVE_GNUTLS
-AM_CFLAGS = $(LIBGNUTLS_CFLAGS) $(LIBGNUTLS_EXTRA_CFLAGS)
+AM_CFLAGS += $(LIBGNUTLS_CFLAGS) $(LIBGNUTLS_EXTRA_CFLAGS)
 endif
 
 BUILT_SOURCES += errors.c
