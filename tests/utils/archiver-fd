@@ -1,5 +1,5 @@
 # libchop -- a utility library for distributed storage and data backup
-# Copyright (C) 2010  Ludovic Courtès <ludo@gnu.org>
+# Copyright (C) 2010, 2011  Ludovic Courtès <ludo@gnu.org>
 #
 # Libchop is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -32,3 +32,5 @@ rm -rf "$TMP_FILE"
 index=`chop-archiver -A5 -f "$DB_FILE" 5< "${srcdir:-PWD}/archiver-fd"`
 chop_fail_if ! chop-archiver -f "$DB_FILE" -r "$index" > "$TMP_FILE"
 chop_fail_if ! cmp "$TMP_FILE" "${srcdir:-PWD}/archiver-fd"
+
+chop_cleanup

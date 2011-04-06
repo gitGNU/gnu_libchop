@@ -33,7 +33,7 @@ SOURCES_NOT_COMPILED =				\
   srfi/srfi-64.upstream.scm
 
 BUILT_SOURCES = chop/config.scm
-CLEANFILES = $(BUILT_SOURCES)
+CLEANFILES = $(BUILT_SOURCES) *.log
 
 nobase_dist_guilemodule_DATA = $(SOURCES) $(SOURCES_NOT_COMPILED)
 
