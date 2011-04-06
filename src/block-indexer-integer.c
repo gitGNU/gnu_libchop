@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -208,14 +208,10 @@ static chop_error_t
 ibf_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 		 chop_object_t *object, size_t *bytes_read)
 {
-  chop_error_t err;
-
-  err = chop_object_initialize (object, &chop_integer_block_fetcher_class);
-
   /* Stateless.  */
   *bytes_read = 0;
 
-  return 0;
+  return chop_object_initialize (object, &chop_integer_block_fetcher_class);
 }
 
 CHOP_DEFINE_RT_CLASS (integer_block_fetcher, block_fetcher,
@@ -244,11 +240,9 @@ integer_block_fetch (chop_block_fetcher_t *block_fetcher,
 {
   chop_error_t err;
   chop_integer_index_handle_t *iih;
-  chop_integer_block_fetcher_t *fetcher;
   uint32_t id;
   chop_block_key_t key;
 
-  fetcher = (chop_integer_block_fetcher_t *)block_fetcher;
   if (!chop_object_is_a ((chop_object_t *)index,
 			 &chop_integer_index_handle_class))
     return CHOP_INVALID_ARG;

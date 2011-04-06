@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -124,7 +124,6 @@ get_host_inet_address (const char *host, unsigned port,
 		       struct sockaddr_in *addr)
 {
   struct hostent *he;
-  socklen_t addr_len;
 
   do
     {
@@ -141,7 +140,6 @@ get_host_inet_address (const char *host, unsigned port,
     /* XXX: We don't support IPv6 currently.  */
     return -1;
 
-  addr_len = he->h_length;
   addr->sin_family = AF_INET;
   addr->sin_port = htons (port);
 

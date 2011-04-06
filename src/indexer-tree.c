@@ -128,7 +128,7 @@ iht_serialize (const chop_object_t *object, chop_serial_method_t method,
       err = CHOP_ERR_NOT_IMPL;
     }
 
-  return 0;
+  return err;
 }
 
 static chop_error_t

@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -44,12 +44,11 @@ chop_ascii_serialize_index_tuple (const chop_index_handle_t *index,
   chop_error_t err;
   chop_buffer_t ascii_object;
   chop_block_fetcher_t *block_fetcher;
-  const chop_class_t *block_indexer_class, *fetcher_class, *indexer_class;
+  const chop_class_t *fetcher_class, *indexer_class;
   const chop_class_t *index_class;
   const char *class_name;
 
   /* Instantiate a block fetcher corresponding to BLOCK_INDEXER.  */
-  block_indexer_class = chop_object_get_class ((chop_object_t *)block_indexer);
   fetcher_class = chop_block_indexer_fetcher_class (block_indexer);
 
   block_fetcher = chop_class_alloca_instance (fetcher_class);

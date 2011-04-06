@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -582,11 +582,6 @@ sliding_window_append_to_buffer (sliding_window_t *window,
   else
     {
       /* Copy from the second sub-window */
-      size_t available, amount;
-
-      available = window->sizes[1];
-      amount = (available > size) ? size : available;
-
       start_offset -= window->window_size;
       err = chop_buffer_append (buffer,
 				(char *) window->windows[1] + start_offset,

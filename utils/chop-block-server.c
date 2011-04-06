@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -198,7 +198,7 @@ is_valid_hash_key (const chop_block_key_t *key,
 
 /* The RPC handlers.  */
 
-static inline void
+static void
 display_request_info (const char *name, struct svc_req *req)
 {
   if (verbose)
@@ -469,7 +469,6 @@ listen_there (const char *address, unsigned port, int socket_type)
   int sock = -1;
   struct hostent *he;
   struct sockaddr_in addr;
-  socklen_t addr_len;
 
   do
     {
@@ -487,7 +486,6 @@ listen_there (const char *address, unsigned port, int socket_type)
   assert (he->h_addrtype == AF_INET);
   assert (he->h_length == sizeof (struct in_addr));
 
-  addr_len = he->h_length;
   addr.sin_family = AF_INET;
   addr.sin_port = htons (service_port);
 
@@ -1171,7 +1169,6 @@ main (int argc, char *argv[])
 {
   chop_error_t err;
   chop_filter_t *input_filter = NULL, *output_filter = NULL;
-  SVCXPRT *transp;
 
   set_program_name (argv[0]);
 
@@ -1273,7 +1270,7 @@ main (int argc, char *argv[])
   /* Register a termination handler.  */
   atexit (terminate);
 
-  transp = register_rpc_handlers ();
+  register_rpc_handlers ();
 
 #ifdef USE_AVAHI
   if (!no_service_publication)
