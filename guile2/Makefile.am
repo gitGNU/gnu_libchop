@@ -37,9 +37,10 @@ CLEANFILES = $(BUILT_SOURCES)
 
 nobase_dist_guilemodule_DATA = $(SOURCES) $(SOURCES_NOT_COMPILED)
 
-EXTRA_DIST = chop/config.in
+EXTRA_DIST = chop/config.in test-suite.scm
 
 .in.scm:
+	$(MKDIR_P) chop
 	$(SED) -e 's|[@]libdir[@]|$(libdir)|g'				\
 	       -e 's|[@]includedir[@]|$(includedir)|g'			\
 	       -e 's|[@]PACKAGE_VERSION[@]|$(PACKAGE_VERSION)|g'	\
