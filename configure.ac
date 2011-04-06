@@ -50,7 +50,7 @@ if test "x$GCC" = "xyes"; then
   # We absolutely need `-fno-strict-aliasing' because of the casts
   # used to deal with polymorphism.
   CFLAGS="-fno-strict-aliasing $CFLAGS"
-  CFLAGS="-Wall -Winline -Wmissing-prototypes -Wpointer-arith $CFLAGS"
+  CFLAGS="-Wall -Wmissing-prototypes -Wpointer-arith $CFLAGS"
   CFLAGS="-Wdeclaration-after-statement -Wcast-align $CFLAGS"
 fi
 
