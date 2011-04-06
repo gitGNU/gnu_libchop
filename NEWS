@@ -4,10 +4,23 @@ Changes in 0.4 (since 0.3)
 
 * New features
 
+** New Scheme bindings for GNU Guile 2.0
+
+See "Guile Bindings" in the manual for details.  The Guile 1.8 bindings
+based on G-Wrap will be removed in a future version.
+
 ** New `--archive-fd' option for `chop-archiver'
 
 This allows the archival of data from an arbitrary file descriptor,
 as in "tar cf - /foo/bar | chop-archiver --archive-fd".
+
+** New `CTR' and `AESWRAP' cipher modes (from libgcrypt)
+
+** New function: `chop_file_stream_open_fd'
+
+* Packaging improvement, bug fixes
+
+See `ChangeLog' for details.
 
 
 Changes in 0.3 (since 0.2)
@@ -45,7 +58,7 @@ option disables it.
 ** A C99 compiler is now required (instead of C89)
 
 
-Copyright (C) 2010  Ludovic Courtès <ludo@gnu.org>
+Copyright (C) 2010, 2011  Ludovic Courtès <ludo@gnu.org>
 
   Copying and distribution of this file, with or without modification,
   are permitted in any medium without royalty provided the copyright
