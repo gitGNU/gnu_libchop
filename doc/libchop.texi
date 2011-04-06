@@ -960,7 +960,7 @@ sub-modules.
 
 The example below shows how one would write a procedure that, given a
 file name, stores and encrypts the given file and returns an opaque
-index handle (@pxref{Overview, index handle}).
+index handle (@pxref{Overview,, index handle}).
 
 @lisp
 (use-modules (chop))
@@ -1015,7 +1015,7 @@ handle and block store:
 @lisp
 (define (decrypt/assemble index store)
   (let* ((i  (tree-indexer-open))
-	 (bi (chk-block-indexer-open (make-cipher cipher-algorithm/aes256
+         (bi (chk-block-indexer-open (make-cipher cipher-algorithm/aes256
                                                   cipher-mode/cbc)
                                      hash-method/sha256
                                      hash-method/sha1))
@@ -1027,6 +1027,11 @@ The data pointed to by @var{index} in @var{store} can be obtained by
 reading from the returned port.
 
 And voil@`a!
+
+The API reference is not written yet, but all the Scheme procedures come
+with a @dfn{docstring}, and can be easily browsed using Geiser
+(@pxref{Documentation helpers,,, geiser, Geiser}).
+
 
 @c *********************************************************************
 @node References
