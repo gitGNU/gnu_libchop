@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2010, 2011  Ludovic Courtès <ludo@gnu.org>
 
    Libchop is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -97,17 +97,18 @@ CHOP_DEFINE_RT_CLASS_WITH_METACLASS (fs_block_store, block_store,
 
 
 
-/* Set NAME to the relative file name for KEY.  */
+/* Set NAME to the relative file name for KEY.  NAME must be twice the size
+   of KEY plus 2 bytes (for the `/' and `\0'.)  */
 static void
 block_file_name (const chop_block_key_t *key, char *name)
 {
-  char buffer[chop_block_key_size (key) * 2];
+  char buffer[chop_block_key_size (key) * 2 + 1];
 
   chop_buffer_to_base32_string (chop_block_key_buffer (key),
 				chop_block_key_size (key),
 				buffer);
   assert (strlen (buffer) > 2);
-  assert (strlen (buffer) < chop_block_key_size (key) * 2);
+  assert (strlen (buffer) < chop_block_key_size (key) * 2 + 1);
 
   memcpy (name, buffer, 2);
   strcpy (&name[2], "/");
@@ -123,7 +124,7 @@ chop_fs_block_exists (chop_block_store_t *store,
   struct stat stat;
   chop_fs_block_store_t *fs =
     (chop_fs_block_store_t *) store;
-  char file_name[chop_block_key_size (key) * 2];
+  char file_name[chop_block_key_size (key) * 2 + 2];
 
   block_file_name (key, file_name);
   err = fstatat (fs->dir_fd, file_name, &stat, 0);
@@ -150,7 +151,7 @@ chop_fs_read_block (chop_block_store_t *store,
   chop_error_t err;
   chop_fs_block_store_t *fs =
     (chop_fs_block_store_t *) store;
-  char file_name[chop_block_key_size (key) * 2];
+  char file_name[chop_block_key_size (key) * 2 + 2];
   int fd;
 
   *size = 0;
@@ -194,7 +195,7 @@ chop_fs_write_block (chop_block_store_t *store,
 		     const char *block, size_t size)
 {
   chop_error_t err = 0;
-  char file_name[chop_block_key_size (key) * 2];
+  char file_name[chop_block_key_size (key) * 2 + 2];
   char *dir_name;
   chop_fs_block_store_t *fs =
     (chop_fs_block_store_t *) store;
@@ -241,7 +242,7 @@ chop_fs_delete_block (chop_block_store_t *store,
   chop_error_t err;
   chop_fs_block_store_t *fs =
     (chop_fs_block_store_t *) store;
-  char file_name[chop_block_key_size (key) * 2];
+  char file_name[chop_block_key_size (key) * 2 + 2];
 
   block_file_name (key, file_name);
   err = unlinkat (fs->dir_fd, file_name, 0);
