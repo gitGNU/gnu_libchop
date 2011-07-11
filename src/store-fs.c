@@ -160,7 +160,12 @@ chop_fs_read_block (chop_block_store_t *store,
   fd = openat (fs->dir_fd, file_name, O_RDONLY);
 
   if (fd < 0)
-    err = errno;
+    {
+      if (errno == ENOENT)
+	err = CHOP_STORE_BLOCK_UNAVAIL;
+      else
+	err = errno;
+    }
   else
     {
       size_t count, total = 0;

@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -94,6 +94,14 @@ main (int argc, char *argv[])
 	  exit (1);
 	}
 
+      err = chop_store_block_exists (store, &random_key, &exists);
+      test_check_errcode (err, "calling `block_exists'");
+      test_assert (!exists);
+
+      err = chop_store_read_block (store, &random_key, &buffer, &amount);
+      test_assert (err == CHOP_STORE_BLOCK_UNAVAIL);
+      test_assert (amount == 0 && chop_buffer_size (&buffer) == 0);
+
       /* Write */
       err = chop_store_write_block (store, &random_key,
 				    random_bytes, sizeof (random_bytes));
@@ -173,6 +181,7 @@ main (int argc, char *argv[])
 	}
 
       chop_object_destroy ((chop_object_t *) store);
+      chop_buffer_clear (&buffer);
 
       test_stage_result (1);
     }

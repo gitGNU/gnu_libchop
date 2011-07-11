@@ -1,5 +1,13 @@
 -*- Org -*-
 
+Changes in 0.5 (since 0.4)
+
+* Bug fixes
+
+** Fix off-by-one in `fs_block_store'
+** Fix return value of `fs_block_store.read_block' with non-existent blocks
+
+
 Changes in 0.4 (since 0.3)
 
 * New features
