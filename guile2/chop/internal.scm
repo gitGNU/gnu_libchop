@@ -33,7 +33,7 @@
             mode_t
             make-pointer-pointer
             make-size_t-pointer
-v            dereference-size_t
+            dereference-size_t
 
             define-libchop-type
             wrap-object
