@@ -23,10 +23,13 @@
             make-zlib-zip-filter
             make-bzip2-zip-filter
             make-lzo-zip-filter
+            make-zip-filter
+            %default-compression-level
 
             make-zlib-unzip-filter
             make-bzip2-unzip-filter
             make-lzo-unzip-filter
+            make-unzip-filter
 
             error/filter-full
             error/filter-empty
@@ -124,3 +127,43 @@ algorithm that is slower but uses less memory."
 INPUT-SIZE bytes.  In practice, the input buffer will be grown as needed
 anyway."
            (f input-size)))))
+
+
+;;;
+;;; Generic constructors.
+;;;
+
+(define %default-compression-level
+  (c-integer-value "CHOP_ZIP_FILTER_DEFAULT_COMPRESSION"
+                   "#include <chop/filters.h>"))
+
+(define* (make-zip-filter class
+                          #:optional
+                          (compression-level %default-compression-level)
+                          (input-size 8192))
+  "Return a zip filter of type CLASS with the given parameters."
+  (and (object-is-a? class (lookup-class "zip_filter_class"))
+       (let* ((z (bytevector->pointer
+                  (make-bytevector (class-instance-size class))))
+              (p (libchop-slot-ref "zip_filter_class" "generic_open" '*
+                                   (unwrap-class class)
+                                   "#include <chop/filters.h>"))
+              (f (pointer->procedure chop-error-t p `(,int ,size_t *)))
+              (e (f compression-level input-size z)))
+         (if (= e 0)
+             (register-libchop-object! (wrap-filter z))
+             (raise-chop-error e)))))
+
+(define* (make-unzip-filter class #:optional (input-size 8192))
+  "Return an unzip filter of type CLASS with the given parameters."
+  (and (object-is-a? class (lookup-class "unzip_filter_class"))
+       (let* ((z (bytevector->pointer
+                  (make-bytevector (class-instance-size class))))
+              (p (libchop-slot-ref "unzip_filter_class" "generic_open" '*
+                                   (unwrap-class class)
+                                   "#include <chop/filters.h>"))
+              (f (pointer->procedure chop-error-t p `(,size_t *)))
+              (e (f input-size z)))
+         (if (= e 0)
+             (register-libchop-object! (wrap-filter z))
+             (raise-chop-error e)))))

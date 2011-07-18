@@ -520,6 +520,18 @@
          (eq? (object-class f)
               (lookup-class "zlib_zip_filter")))))
 
+(test-assert "make-zip-filter"
+  (let* ((c (lookup-class "zlib_zip_filter"))
+         (f (make-zip-filter c)))
+    (and (filter? f)
+         (eq? (object-class f) c))))
+
+(test-assert "make-unzip-filter"
+  (let* ((c (lookup-class "zlib_unzip_filter"))
+         (f (make-unzip-filter c)))
+    (and (filter? f)
+         (eq? (object-class f) c))))
+
 (test-assert "stacked filtered streams"
   (let* ((bv  (make-random-bytevector 5555))
          (in  (mem-stream-open bv))
