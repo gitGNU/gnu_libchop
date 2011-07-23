@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -58,15 +58,17 @@ handle_random_input_fault (chop_filter_t *filter,
 			   size_t amount, void *data)
 {
   chop_error_t err;
-  size_t available, pushed = 0;
+  size_t input_size, available, pushed = 0;
 
-  if (input_offset >= SIZE_OF_INPUT)
+  input_size = * (size_t *) data;
+
+  if (input_offset >= input_size)
     return CHOP_STREAM_END;
 
   test_debug ("serving input fault for the `%s' (%zu bytes)",
 	      chop_class_name (chop_object_get_class ((chop_object_t *)filter)),
 	      amount);
-  available = SIZE_OF_INPUT - input_offset;
+  available = input_size - input_offset;
   amount = (amount > available) ? available : amount;
 
   err = chop_filter_push (filter, input + input_offset, amount, &pushed);
@@ -167,11 +169,16 @@ main (int argc, char *argv[])
       { NULL, NULL }
     };
 
+  static const size_t input_sizes[] =
+    { 2, 5, 17, 79, 101, SIZE_OF_INPUT, 0 };
+
   chop_error_t err;
+  const size_t *input_size;
   const zip_implementation_t *implementation;
 
   test_init (argv[0]);
   test_init_random_seed ();
+  test_randomize_input (input, sizeof (input));
 
   /* Initialize libchop, create one zip filter and one unzip filter.  */
   err = chop_init ();
@@ -180,115 +187,117 @@ main (int argc, char *argv[])
   for (implementation = &implementations[0];
        implementation->zip_class != NULL;
        implementation++)
-    {
-      /* The output buffer is made bigger as if we didn't know how many bytes
-	 we'll be able to pull.  */
-      char output[SIZE_OF_INPUT + 100];
-      size_t output_size = 0;
-      size_t pulled = 0;
-      chop_filter_t *zip_filter, *unzip_filter;
-      chop_log_t *zip_log, *unzip_log;
-      zipped_input_fault_handler_data_t zifh_data;
+    for (input_size = &input_sizes[0];
+	 *input_size > 0;
+	 input_size++)
+      {
+	/* The output buffer is made bigger as if we didn't know how many
+	   bytes we'll be able to pull.  */
+	char output[*input_size + 100];
+	size_t output_size = 0;
+	size_t pulled = 0;
+	chop_filter_t *zip_filter, *unzip_filter;
+	chop_log_t *zip_log, *unzip_log;
+	zipped_input_fault_handler_data_t zifh_data;
 
-      zip_filter =
-	chop_class_alloca_instance ((chop_class_t *) implementation->zip_class);
-      unzip_filter =
-	chop_class_alloca_instance ((chop_class_t *) implementation->unzip_class);
+	zip_filter =
+	  chop_class_alloca_instance ((chop_class_t *) implementation->zip_class);
+	unzip_filter =
+	  chop_class_alloca_instance ((chop_class_t *) implementation->unzip_class);
 
-      err = chop_zip_filter_generic_open (implementation->zip_class,
-					  CHOP_ZIP_FILTER_DEFAULT_COMPRESSION,
-					  0, zip_filter);
-      test_check_errcode (err, "initializing zlib zip filter");
+	err = chop_zip_filter_generic_open (implementation->zip_class,
+					    CHOP_ZIP_FILTER_DEFAULT_COMPRESSION,
+					    0, zip_filter);
+	test_check_errcode (err, "initializing zlib zip filter");
 
-      err = chop_unzip_filter_generic_open (implementation->unzip_class,
-					    0, unzip_filter);
-      test_check_errcode (err, "initializing zlib unzip filter");
+	err = chop_unzip_filter_generic_open (implementation->unzip_class,
+					      0, unzip_filter);
+	test_check_errcode (err, "initializing zlib unzip filter");
 
-      if (test_debug_mode ())
-	{
-	  /* Attach filters' logs to stderr (for debugging).  */
-	  zip_log = chop_filter_log (zip_filter);
-	  unzip_log = chop_filter_log (unzip_filter);
-	  chop_log_attach (zip_log, 2, 0);
-	  chop_log_attach (unzip_log, 2, 0);
-	}
+	if (test_debug_mode ())
+	  {
+	    /* Attach filters' logs to stderr (for debugging).  */
+	    zip_log = chop_filter_log (zip_filter);
+	    unzip_log = chop_filter_log (unzip_filter);
+	    chop_log_attach (zip_log, 2, 0);
+	    chop_log_attach (unzip_log, 2, 0);
+	  }
 
-      /* Feed the zip filter with random input.  */
-      input_offset = 0;
-      chop_filter_set_input_fault_handler (zip_filter,
-					   handle_random_input_fault, NULL);
+	/* Feed the zip filter with random input.  */
+	input_offset = 0;
+	chop_filter_set_input_fault_handler (zip_filter,
+					     handle_random_input_fault,
+					     (void *) input_size);
 
-      /* Feed the unzip filter with ZIP_FILTER's output.  */
-      zifh_data.zip_filter = zip_filter;
-      zifh_data.flushing = 0;
-      chop_filter_set_input_fault_handler (unzip_filter,
-					   handle_zipped_input_fault,
-					   &zifh_data);
+	/* Feed the unzip filter with ZIP_FILTER's output.  */
+	zifh_data.zip_filter = zip_filter;
+	zifh_data.flushing = 0;
+	chop_filter_set_input_fault_handler (unzip_filter,
+					     handle_zipped_input_fault,
+					     &zifh_data);
 
-      /* Randomize the input (which hasn't been read yet).  */
-      test_randomize_input (input, sizeof (input));
+	test_stage ("%zi bytes of input, pull from the `%s' filter",
+		    *input_size,
+		    chop_class_name ((chop_class_t *)
+				     implementation->unzip_class));
 
-      test_stage ("pull from the `%s' filter",
-		  chop_class_name ((chop_class_t *)
-				   implementation->unzip_class));
+	/* Pull data from UNZIP_FILTER until an end-of-stream error is
+	   caught.  */
+	test_stage_intermediate ("initial data");
+	while (!err)
+	  {
+	    err = chop_filter_pull (unzip_filter, 0 /* don't flush */,
+				    output + output_size,
+				    sizeof (output) - output_size,
+				    &pulled);
+	    output_size += pulled;
+	    if (err)
+	      {
+		if (err == CHOP_FILTER_EMPTY)
+		  /* This CHOP_FILTER_EMPTY error actually comes from the zip
+		     filter which has been called by HANDLE_ZIPPED_INPUT_FAULT
+		     with FLUSH set to 1, and actually finished compressing its
+		     input. */
+		  break;
 
-      /* Pull data from UNZIP_FILTER until an end-of-stream error is
-	 caught.  */
-      test_stage_intermediate ("initial data");
-      while (!err)
-	{
-	  err = chop_filter_pull (unzip_filter, 0 /* don't flush */,
-				  output + output_size,
-				  sizeof (output) - output_size,
-				  &pulled);
-	  output_size += pulled;
-	  if (err)
-	    {
-	      if (err == CHOP_FILTER_EMPTY)
-		/* This CHOP_FILTER_EMPTY error actually comes from the zip
-		   filter which has been called by HANDLE_ZIPPED_INPUT_FAULT
-		   with FLUSH set to 1, and actually finished compressing its
-		   input. */
-		break;
+		chop_error (err, "while pulling data");
+		return 2;
+	      }
+	  }
 
-	      chop_error (err, "while pulling data");
-	      return 2;
-	    }
-	}
+	/* Flush the remaining data from UNZIP_FILTER, i.e. without pulling new
+	   data.  */
+	test_stage_intermediate ("flush");
+	do
+	  {
+	    pulled = 0;
+	    err = chop_filter_pull (unzip_filter, 1 /* start flushing! */,
+				    output + output_size,
+				    sizeof (output) - output_size,
+				    &pulled);
+	    output_size += pulled;
+	  }
+	while ((output_size < sizeof (output)) && (!err));
 
-      /* Flush the remaining data from UNZIP_FILTER, i.e. without pulling new
-	 data.  */
-      test_stage_intermediate ("flush");
-      do
-	{
-	  pulled = 0;
-	  err = chop_filter_pull (unzip_filter, 1 /* start flushing! */,
-				  output + output_size,
-				  sizeof (output) - output_size,
-				  &pulled);
-	  output_size += pulled;
-	}
-      while ((output_size < sizeof (output)) && (!err));
-
-      if ((err) && (err != CHOP_FILTER_EMPTY))
-	{
-	  chop_error (err, "while flushing filter's input");
-	  exit (3);
-	}
+	if ((err) && (err != CHOP_FILTER_EMPTY))
+	  {
+	    chop_error (err, "while flushing filter's input");
+	    exit (3);
+	  }
 
 
-      /* We're done.  */
-      test_debug ("input size was: %i; output size was: %zu",
-		  SIZE_OF_INPUT, output_size);
+	/* We're done.  */
+	test_debug ("input size was: %zi; output size was: %zu",
+		    *input_size, output_size);
 
-      test_assert (output_size == SIZE_OF_INPUT);
-      test_assert (!memcmp (input, output, SIZE_OF_INPUT));
+	test_assert (output_size == *input_size);
+	test_assert (!memcmp (input, output, *input_size));
 
-      chop_object_destroy ((chop_object_t *) zip_filter);
-      chop_object_destroy ((chop_object_t *) unzip_filter);
+	chop_object_destroy ((chop_object_t *) zip_filter);
+	chop_object_destroy ((chop_object_t *) unzip_filter);
 
-      test_stage_result (1);
-    }
+	test_stage_result (1);
+      }
 
   return 0;
 }
