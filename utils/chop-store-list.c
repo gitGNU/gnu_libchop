@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -137,6 +137,14 @@ main (int argc, char *argv[])
       chop_error (err, "while opening `%s' data file \"%s\"",
 		  chop_class_name (db_store_class), store_name);
       return 2;
+    }
+
+  if (chop_store_iterator_class (store) == NULL)
+    {
+      fprintf (stderr, "%s: store of class `%s' does not support "
+	       "sequential access\n", argv[0],
+	       chop_class_name (db_store_class));
+      return 3;
     }
 
   it = chop_class_alloca_instance (chop_store_iterator_class (store));
