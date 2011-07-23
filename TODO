@@ -18,6 +18,14 @@ Copyright 2010, 2011  Ludovic Courtès <ludo@gnu.org>
 
 ** Publish `archival-server' perhaps under the name "Anemoi"
 * Storage
+** Play with GNU tar `tar --listed-incremental'
+
+tar -c -g foo.snar --level=0 /foo/bar | \
+  chop-archiver -A -i chk_block_indexer -I aes256,cbc,sha256,sha1
+
+Problem with this is that this leads to incremental backups, whereas we
+can do O(1) versioned backups.
+
 ** Add recursive directory archival to `chop-archiver' [0/2]
 
   - [ ] Add support in `chop-archiver', a `--recursive' option.
