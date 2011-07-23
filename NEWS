@@ -2,6 +2,13 @@
 
 Changes in 0.5 (since 0.4)
 
+* New features
+
+** The `-z' option of `chop-archiver' now also applies to meta-data
+
+In other words, the zip/unzip filters are now applied both to data and
+meta-data when a specific store is specified with `-f'.
+
 * Bug fixes
 
 ** Fix off-by-one in `fs_block_store'

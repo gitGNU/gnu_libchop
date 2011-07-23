@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -987,6 +987,11 @@ main (int argc, char *argv[])
 	  chop_error (err, "while initializing filtered store");
 	  exit (5);
 	}
+
+      if (raw_store == metastore)
+	/* When the same store is used for both meta-data and data, then
+	   apply the same treatment to both.  */
+	metastore = store;
     }
 
   if (smart_storage && archive_queried)
