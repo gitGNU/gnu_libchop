@@ -1,0 +1,496 @@
+#!/bin/sh
+# aside from this initial boilerplate, this is actually -*- scheme -*- code
+main="(module-ref (resolve-module '(chop-backup)) 'main)"
+exec guile -l "$0" -c "(apply $main (cdr (command-line)))" "$@"
+!#
+;;; Copyright (C) 2011  Ludovic Courtès <ludo@gnu.org>
+;;;
+;;; Libchop is free software: you can redistribute it and/or modify
+;;; it under the terms of the GNU General Public License as published by
+;;; the Free Software Foundation, either version 3 of the License, or
+;;; (at your option) any later version.
+;;;
+;;; Libchop is distributed in the hope that it will be useful,
+;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;;; GNU General Public License for more details.
+;;;
+;;; You should have received a copy of the GNU General Public License
+;;; along with libchop.  If not, see <http://www.gnu.org/licenses/>.
+
+(define-module (chop-backup)
+  #:use-module (chop)
+  #:use-module (srfi srfi-1)
+  #:use-module (srfi srfi-9)
+  #:use-module (srfi srfi-11)
+  #:use-module (srfi srfi-26)
+  #:use-module (rnrs bytevectors)
+  #:use-module (ice-9 match)
+  #:use-module (ice-9 vlist)
+  #:export (main))
+
+;;; Commentary:
+;;;
+;;; This modules provides tools to store (encrypted) backups of whole file
+;;; hierarchies.
+;;;
+;;; TODO: Implement the `restore' operation.  :-)
+;;;
+;;; Code:
+
+
+;;;
+;;; Functional file system traversal.
+;;;
+
+(define (file-system-fold enter? leaf down up skip init file-name)
+  "Traverse the directory at FILE-NAME, recursively.  Enter sub-directories
+only when (ENTER? PATH STAT RESULT) returns true.  When a sub-directory is
+entered, call (DOWN PATH STAT RESULT), where PATH is the path of the
+sub-directory and STAT the result of (lstat PATH); when it is left, call (UP
+PATH STAT RESULT).  For each file in a directory, call (LEAF PATH STAT
+RESULT).  Return the result of these successive applications.  When ENTER?
+returns no, call (SKIP PATH STAT RESULT)."
+
+  (define (mark v s)
+    (vhash-cons (cons (stat:dev s) (stat:ino s)) #t v))
+
+  (define (visited? v s)
+    (vhash-assoc (cons (stat:dev s) (stat:ino s)) v))
+
+  (let loop ((name    file-name)
+             (path    "")
+             (result  init)
+             (visited vlist-null))
+
+    (define full-name
+      (if (string=? path "")
+          name
+          (string-append path "/" name)))
+
+    (define dir-stat
+      (lstat full-name))
+
+    (if (visited? visited dir-stat)
+        (values result visited)
+        (if (enter? full-name dir-stat result)
+            (let ((dir     (opendir full-name))
+                  (visited (mark visited dir-stat)))
+              (let liip ((entry   (readdir dir))
+                         (result  (down full-name dir-stat result))
+                         (subdirs '()))
+                (cond ((eof-object? entry)
+                       (begin
+                         (closedir dir)
+                         (let ((r+v
+                                (fold (lambda (subdir result+visited)
+                                        (call-with-values
+                                            (lambda ()
+                                              (loop subdir
+                                                    full-name
+                                                    (car result+visited)
+                                                    (cdr result+visited)))
+                                          cons))
+                                      (cons result visited)
+                                      subdirs)))
+                           (values (up full-name dir-stat (car r+v))
+                                   (cdr r+v)))))
+                      ((or (string=? entry ".")
+                           (string=? entry ".."))
+                       (liip (readdir dir)
+                             result
+                             subdirs))
+                      (else
+                       (let ((stat
+                              (lstat (string-append full-name "/" entry))))
+                         (cond
+                          ((eq? (stat:type stat) 'directory)
+                           (liip (readdir dir)
+                                 result
+                                 (cons entry subdirs)))
+                          (else
+                           (liip (readdir dir)
+                                 (leaf (string-append full-name "/" entry)
+                                       stat
+                                       result)
+                                 subdirs))))))))
+            (values (skip full-name dir-stat result)
+                    (mark visited dir-stat))))))
+
+
+;;;
+;;; Persistent backup state.
+;;;
+
+(define (cache-directory)
+  (or (getenv "XDG_CACHE_HOME")
+      (string-append (getenv "HOME") "/.cache/chop/backup")))
+
+(define (mkdir-p dir)
+  "Create directory DIR and all its ancestors."
+  (define absolute?
+    (string-prefix? "/" dir))
+
+  (define not-slash
+    (char-set-complement (char-set #\/)))
+
+  (let loop ((components (string-tokenize dir not-slash))
+             (root       (if absolute?
+                             ""
+                             ".")))
+    (or (null? components)
+        (let ((path (string-append root "/" (car components))))
+          (catch 'system-error
+            (lambda ()
+              (mkdir path)
+              (loop (cdr components) path))
+            (lambda args
+              (if (= EEXIST (system-error-errno args))
+                  (loop (cdr components) path)
+                  (apply throw args))))))))
+
+(or (file-exists? (cache-directory))
+    (mkdir-p (cache-directory)))
+
+(define (cache-file name)
+  (string-append (cache-directory) "/" name))
+
+(define %file-index-mapping
+  ;; Map (INODE . DEVICE) to (MTIME . INDEX-TUPLE).
+  (file-based-block-store-open (lookup-class "fs_block_store")
+                               (cache-file "file-index-mapping")
+                               (logior O_CREAT O_RDWR)
+                               #o600))
+
+
+;;;
+;;; Storage pipelines.
+;;;
+
+(define-record-type <pipeline>
+  (make-pipeline stream-filters chopper indexer block-indexer store-filters)
+  pipeline?
+  (stream-filters pipeline-stream-filters)
+  (chopper        pipeline-chopper)
+  (indexer        pipeline-indexer)
+  (block-indexer  pipeline-block-indexer)
+  (store-filters  pipeline-store-filters))
+
+(define (run-storage-pipeline pipeline file-or-stream store)
+  "Pass the contents of FILE-OR-STREAM through PIPELINE, storing the
+resulting blocks in STORE and returning its index handle."
+  (define stream
+    (if (stream? file-or-stream)
+        file-or-stream
+        (file-stream-open file-or-stream)))
+
+  (define stream*
+    (if (null? (pipeline-stream-filters pipeline))
+        stream
+        (let loop ((stream  stream)
+                   (filters (pipeline-stream-filters pipeline)))
+          (if (null? filters)
+              stream
+              (let ((f ((car filters))))
+                (loop (filtered-stream-open stream f)
+                      (cdr filters)))))))
+
+  (define chopper
+    ((pipeline-chopper pipeline) stream*))
+
+  (define indexer
+    ((pipeline-indexer pipeline)))
+
+  (define block-indexer
+    ((pipeline-block-indexer pipeline)))
+
+  (define store*
+    ;; XXX: Use the smart block store.
+    (if (null? (pipeline-store-filters pipeline))
+        store
+        (let loop ((store   store)
+                   (filters (pipeline-store-filters pipeline)))
+          (if (null? filters)
+              store
+              (let-values (((in out) ((car filters))))
+                (loop (filtered-block-store-open in out store)
+                      (cdr filters)))))))
+
+  (indexer-index-blocks indexer chopper block-indexer store* store*))
+
+(define (pipeline-index-handle->tuple pipeline index)
+  "Return an index tuple for INDEX as produced by PIPELINE.  The tuple
+contains information about filters, in addition to INDEX."
+  (define unzip-class
+    (lookup-class "unzip_filter_class"))
+
+  (let ((if (map (lambda (make-filter)
+                   (serialize-object/ascii (make-filter)))
+                 (pipeline-stream-filters pipeline)))
+        (i  ((pipeline-indexer pipeline)))
+        (bi ((pipeline-block-indexer pipeline)))
+        (of (map (lambda (make-filters)
+                   (let-values (((in out) (make-filters)))
+                     (let ((c (object-class out)))
+                       (if (object-is-a? c unzip-class)
+                           (class-name c)
+                           (error "currently limited to zip/unzip filters"
+                                  c)))))      ; FIXME
+                 (pipeline-store-filters pipeline))))
+    (list if (serialize-index-tuple/ascii index i bi) of)))
+
+(define (string->index-tuple str)
+  "Return an index tuple (a 3-element list) from STR."
+  (let ((tuple (call-with-input-string str read)))
+    (match tuple
+      (((stream-filters ...) index (store-filters ...))
+       (let ((index (deserialize-index-tuple/ascii index)))
+         (values index
+                 (map (lambda (sf)
+                        (lambda ()
+                          (make-unzip-filter
+                           (lookup-class sf))))
+                      stream-filters)
+                 (map (lambda (sf)
+                        (lambda ()
+                          (make-unzip-filter
+                           (lookup-class sf))))
+                      store-filters)))))))
+
+
+;;;
+;;; Actual backup.
+;;;
+
+(define %default-storage-pipeline
+  (make-pipeline '()
+                 (lambda (s)
+                   (fixed-size-chopper-open s 8192))
+                 (lambda ()
+                   (tree-indexer-open 256))
+                 (lambda ()
+                   (chk-block-indexer-open (make-cipher cipher-algorithm/aes256
+                                                        cipher-mode/cbc)
+                                           hash-method/sha256
+                                           hash-method/md5))
+                 '()))
+
+(define %text-storage-pipeline
+  ;; Storage pipeline for textual data.
+  (make-pipeline '()
+                 (lambda (s)
+                   (anchor-based-chopper-open s 4096))
+                 (lambda ()
+                   (tree-indexer-open 256))
+                 (lambda ()
+                   (chk-block-indexer-open (make-cipher cipher-algorithm/aes256
+                                                        cipher-mode/cbc)
+                                           hash-method/sha256
+                                           hash-method/sha1))
+                 `(,(lambda ()
+                      (values (make-zlib-zip-filter)
+                              (make-zlib-unzip-filter))))))
+
+(define (store-directory file+index store)
+  "Serialize FILE+INDEX, a list of file name/stat/index tuples, and return
+the index handle of the resulting index tuple.  As a side-effect, write
+FILE+INDEX to store."
+  (define pipeline
+    ;; The pipeline suitable for directories in this s-exp format.
+    %text-storage-pipeline)
+
+  (let* ((str   (with-output-to-string
+                  (lambda ()
+                    (write (map (lambda (f+i)
+                                  (match f+i
+                                    ((file type mtime 0 #f) ; empty file
+                                     (list file type mtime 0 ""))
+                                    ((file type mtime size index)
+                                     (list file type mtime size index))))
+                                file+index)))))
+         (index (run-storage-pipeline pipeline
+                                      (mem-stream-open (string->utf8 str))
+                                      store)))
+    (pipeline-index-handle->tuple pipeline index)))
+
+(define worthless-file?
+  (let ((rx   (make-regexp "(\\.(o|lo|a|so|gcda|gcno|gcda\\.info)|~)$"))
+        (dirs '(".libs" "CVS" ".svn")))
+    (lambda (file-name stat)
+      "Return true if FILE-NAME and STAT designate a worthless file or
+directory."
+      (case (stat:type stat)
+        ((directory)
+         (member file-name dirs))
+        (else
+         (regexp-exec rx file-name))))))
+
+(define (run-storage-pipeline/recursive pipeline dir store)
+  "Store directory DIR into STORE using PIPELINE and return its index
+handle."
+
+  ;; TODO: Replace PIPELINE with a FILE -> STAT -> PIPELINE procedure and
+  ;; make WORTHLESS-FILE? a parameter.
+
+  (define (stat->index-tuple stat)
+    ;; Return the serialized index tuple corresponding to STAT or #f.
+    (let* ((ino   (stat:ino stat))
+           (dev   (stat:dev stat))
+           (entry (false-if-exception
+                   (store-read-block %file-index-mapping
+                                     (string->utf8
+                                      (format #f "(~a . ~a)" ino dev))))))
+      (and entry
+           (match (call-with-input-string (utf8->string entry) read)
+             ((mtime . index-tuple)
+              (and (= mtime (stat:mtime stat))
+                   index-tuple))))))
+
+  (define (cache-index stat index)
+    (let* ((ino   (stat:ino stat))
+           (dev   (stat:dev stat))
+           (mtime (stat:mtime stat))
+           (key   (format #f "(~a . ~a)" ino dev)))
+      (store-write-block %file-index-mapping
+                         (string->utf8 key)
+                         (string->utf8
+                          (format #f "(~a . ~s)" mtime index)))))
+
+  (define (store/cache stat file)
+    (let* ((index  (run-storage-pipeline pipeline file store))
+           (index* (pipeline-index-handle->tuple pipeline index)))
+      (cache-index stat index*)
+      index*))
+
+  (define (store-directory* stat file+index)
+    ;; Like `store-directory', and update %FILE-INDEX-MAPPING with a mapping
+    ;; from STAT to the index tuple of FILE+INDEX.
+    (let* ((index (store-directory file+index store)))
+      (cache-index stat index)
+      index))
+
+  (define (tip-exists? index)
+    ;; Return #t if the root block pointed to by INDEX exists.
+    (let-values (((index indexer fetcher)
+                  (deserialize-index-tuple/ascii index)))
+      (false-if-exception (block-fetcher-fetch fetcher index store))))
+
+  (define (enter-directory? dir-name stat result)
+    ;; Return #t when we want to enter directory DIR-NAME.
+    (and (not (worthless-file? dir-name stat))
+         (match (stat->index-tuple stat)
+           (((_ ...) index (_ ...))
+            (not (tip-exists? index)))
+           (_ #t))))
+
+  (define (process-file file stat result)
+    ;; Return RESULT augmented with FILE's meta-data, taken from STAT, and
+    ;; its index tuple in STORE.  As a side-effect, store FILE to STORE if it
+    ;; isn't there already.
+    (if (worthless-file? file stat)
+        result
+        (let ((index
+               (if (= (stat:size stat) 0)
+                   #f
+                   (or (match (stat->index-tuple stat)
+                         (((stream-filters ...)
+                           index (store-filters ...))
+                          (and (tip-exists? index)
+                               (list stream-filters index store-filters)))
+                         (_ #f))
+                       (store/cache stat file)))))
+          (match result
+            (((file+index ...) result ...)
+             (cons (alist-cons (basename file)
+                               (list (stat:type stat)
+                                     (stat:mtime stat)
+                                     (stat:size stat)
+                                     index)
+                               file+index)
+                   result))))))
+
+  (define (enter-directory dir stat result)
+    ;; Add to RESULT an empty list that will hold DIR's contents.
+    (cons '() result))
+
+  (define (leave-directory dir stat result)
+    ;; Collect from the head of RESULT the file/index returned by
+    ;; `process-file' for each file under DIR, and replace them with DIR's
+    ;; meta-data/index-tuple.  As a side-effect, store DIR's contents to
+    ;; STORE.
+    (match result
+      (((file+index ...) (siblings ...) result ...)
+       (cons (alist-cons (basename dir)
+                         (list (stat:type stat)
+                               (stat:mtime stat)
+                               (stat:size stat)
+                               (store-directory* stat file+index))
+                         siblings)
+             result))))
+
+  (define (skip-directory dir stat result)
+    ;; Skip DIR, either because it is worthless or it hasn't been modified
+    ;; since the last time it was stored.  In the latter case, augment RESULT
+    ;; accordingly.
+    (if (worthless-file? dir stat)
+        result
+        (match result
+          (((siblings ...) result ...)
+           (cons (alist-cons (basename dir)
+                             (list (stat:type stat)
+                                   (stat:mtime stat)
+                                   (stat:size stat)
+                                   (stat->index-tuple stat))
+                             siblings)
+                 result)))))
+
+  (let ((result
+         (file-system-fold enter-directory?
+                           process-file
+                           enter-directory
+                           leave-directory
+                           skip-directory
+                           '(())
+                           dir)))
+    (match result
+      (((((? string?) (? symbol?) (? number?) (? number?) index-tuple)))
+       ;; ("DIR-NAME" directory MTIME SIZE INDEX-TUPLE)
+       index-tuple))))
+
+
+;;;
+;;; Command-line entry point.
+;;;
+
+(define (main store-file file . extra-files)
+  "Backup FILE and EXTRA-FILES, recursively, to STORE-FILE.  Return an index
+tuple that can be used to restore the whole directory hierarchy."
+  (catch 'chop-error
+    (lambda ()
+      (let ((store (file-based-block-store-open (lookup-class "fs_block_store")
+                                                store-file
+                                                (logior O_CREAT O_RDWR)
+                                                #o644)))
+        (if (null? extra-files)
+            (write (run-storage-pipeline/recursive %default-storage-pipeline
+                                                   (canonicalize-path file)
+                                                   store))
+            (let* ((files  (map canonicalize-path (cons file extra-files)))
+                   (stats  (map lstat files))
+                   (tuples (map (cut run-storage-pipeline/recursive
+                                     %default-storage-pipeline <> store)
+                                files))
+                   (files+tuples (map (match-lambda
+                                       ((file stat tuple)
+                                        (list file
+                                              (stat:type stat)
+                                              (stat:mtime stat)
+                                              (stat:size stat)
+                                              tuple)))
+                                      (zip files stats tuples))))
+              ;; Aggregate all of FILES as if it were a single directory.
+              (write (store-directory files+tuples store))))))
+    (lambda (key err . _)
+      (format (current-error-port) "error: ~a~%"
+              (error-message err))))
+  #t)
