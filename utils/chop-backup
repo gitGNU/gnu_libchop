@@ -376,12 +376,11 @@ handle."
       (false-if-exception (block-fetcher-fetch fetcher index store))))
 
   (define (enter-directory? dir-name stat result)
-    ;; Return #t when we want to enter directory DIR-NAME.
-    (and (not (worthless-file? dir-name stat))
-         (match (stat->index-tuple stat)
-           (((_ ...) index (_ ...))
-            (not (tip-exists? index)))
-           (_ #t))))
+    ;; Return #t when we want to enter directory DIR-NAME.  Note that we
+    ;; enter DIR-NAME even if its mtime didn't change because a directory's
+    ;; mtime is typically updated only when files are added or removed, not
+    ;; when they are modified.
+    (not (worthless-file? dir-name stat)))
 
   (define (process-file file stat result)
     ;; Return RESULT augmented with FILE's meta-data, taken from STAT, and
@@ -393,8 +392,7 @@ handle."
                (if (= (stat:size stat) 0)
                    #f
                    (or (match (stat->index-tuple stat)
-                         (((stream-filters ...)
-                           index (store-filters ...))
+                         (((stream-filters ...) index (store-filters ...))
                           (and (tip-exists? index)
                                (list stream-filters index store-filters)))
                          (_ #f))
