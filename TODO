@@ -18,6 +18,15 @@ Copyright 2010, 2011  Ludovic Courtès <ludo@gnu.org>
 
 ** Publish `archival-server' perhaps under the name "Anemoi"
 * Storage
+** Rename `chop-store-convert' to `chop-store-copy'; add `--sync'
+
+The `--sync' option would wrap the target store in a smart block store.
+This way, you could run:
+
+  $ chop-backup /backup/home $HOME
+  $ chop-store-copy --sync /backup/home /somewhere/bak/home
+  $ chop-store-copy --sync /backup/home /elsewhere/foo/home
+
 ** Play with GNU tar `tar --listed-incremental'
 
 tar -c -g foo.snar --level=0 /foo/bar | \
