@@ -427,20 +427,8 @@ handle."
              result))))
 
   (define (skip-directory dir stat result)
-    ;; Skip DIR, either because it is worthless or it hasn't been modified
-    ;; since the last time it was stored.  In the latter case, augment RESULT
-    ;; accordingly.
-    (if (worthless-file? dir stat)
-        result
-        (match result
-          (((siblings ...) result ...)
-           (cons (alist-cons (basename dir)
-                             (list (stat:type stat)
-                                   (stat:mtime stat)
-                                   (stat:size stat)
-                                   (stat->index-tuple stat))
-                             siblings)
-                 result)))))
+    ;; Skip DIR, because it was considered worthless.
+    result)
 
   (let ((result
          (file-system-fold enter-directory?
