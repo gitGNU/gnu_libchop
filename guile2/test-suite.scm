@@ -112,7 +112,7 @@
          (s   (mem-stream-open in)))
     (let loop ((total 0))
       (define bv (make-bytevector 7))
-      (let ((read (false-if-exception (stream-read! s bv))))
+      (let ((read (false-if-end-of-stream (stream-read! s bv))))
         (if (not read)
             (begin
               (stream-close s)
@@ -557,6 +557,17 @@
        (let ((r (bytevector=? v (store-read-block fs k))))
          (store-close fs)
          r)))))
+
+(test-assert "stream->port error reported"
+  (let* ((s (mem-stream-open #vu8(1 2 3 4)))
+         (f (filtered-stream-open s (make-unzip-filter
+                                     (lookup-class "zlib_unzip_filter")))))
+    (catch 'chop-error
+      (lambda ()
+        (pk 'no-error (read (stream->port f)))
+        #f)
+      (lambda (key err . args)
+        (not (= err error/stream-end))))))
 
 (test-end)
 

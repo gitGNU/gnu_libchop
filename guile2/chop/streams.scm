@@ -27,6 +27,7 @@
 
             stream-read!
             stream-close
+            false-if-end-of-stream
 
             port->stream
             stream->port
@@ -102,14 +103,26 @@ ERROR/STREAM-END."
                            ('*))))
     (m (unwrap-stream s))))
 
+(define-syntax false-if-end-of-stream
+  (syntax-rules ()
+    "Return #f if an `error/stream-end' exception is caught."
+    ((_ exp)
+     (catch 'chop-error
+       (lambda ()
+         exp)
+       (lambda (key err . args)
+         (if (= err error/stream-end)
+             #f
+             (apply throw key err args)))))))
+
 (define (stream->port s)
   "Return an input port wrapped around stream S."
   (define (read! bv start count)
     (if (= 0 start)
-        (or (false-if-exception (stream-read! s bv)) 0)
+        (or (false-if-end-of-stream (stream-read! s bv)) 0)
         (let* ((count (- (bytevector-length bv) start))
                (bv*   (make-bytevector count))
-               (read  (or (false-if-exception (stream-read! s bv*)) 0)))
+               (read  (or (false-if-end-of-stream (stream-read! s bv*)) 0)))
           (bytevector-copy! bv* 0 bv start read)
           read)))
 
