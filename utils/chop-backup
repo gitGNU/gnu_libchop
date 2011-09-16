@@ -568,6 +568,47 @@ TUPLE in STORE."
           (put-bytevector out buffer 0 bytes)
           (loop (get-bytevector-n! in buffer 0 buffer-size))))))
 
+(define (restore-tree store tuple dir)
+  "Read the directory pointed to by TUPLE from STORE and restore it under
+directory DIR."
+  (mkdir dir)
+  (let loop ((tuple tuple)
+             (dir   dir))
+    (let ((retrieve (index-tuple->retriever tuple)))
+      (let liip ((entries (read (retrieve store))))
+        (or (null? entries)
+            (eof-object? entries)
+            (begin
+              (match (car entries)
+                ((name 'directory _ _ tuple)
+                 (let ((subdir (string-append dir "/" name)))
+                   (mkdir subdir)
+                   (loop tuple subdir)
+                   #t))
+                ((name 'regular _ _ (or #f ""))
+                 ;; An empty file.
+                 (let ((out (string-append dir "/" name)))
+                   (close (open-output-file out))
+                   #t))
+                ((name 'regular _ _ tuple)
+                 (let ((out (open-output-file (string-append dir "/" name)))
+                       (get (index-tuple->retriever tuple)))
+                   (dump-port (get store) out)
+                   (close out)
+                   #t))
+                ((name 'symlink _ _ tuple)
+                 (let ((out (string-append dir "/" name))
+                       (get (index-tuple->retriever tuple)))
+                   (symlink (call-with-output-string
+                             (cute dump-port (get store) <>))
+                            out)
+                   #t))
+                ((name kind _ _ _)
+                 (warn "file `~a' of type `~a' not restored"
+                       (string-append dir "/" name) kind)
+                 #t))
+              (liip (cdr entries))))))))
+
 
 ;;;
 ;;; Command-line entry point.
@@ -575,7 +616,7 @@ TUPLE in STORE."
 
 (define (show-help)
   (format #t "chop-backup [OPTION] STORE ARGS ...
-Create or access an encrypted file system backup.
+Create or access an encrypted file system snapshot.
 
   -b, --backup           Create an encrypted backup of the given files or
                          directories, store it in file STORE, and return
@@ -590,6 +631,10 @@ Create or access an encrypted file system backup.
 
   -s, --show             Retrieve from STORE and show the contents pointed to
                          by the given tuple.
+
+  -r, --restore          Retrieve from STORE and restore the complete file
+                         system hierarchy pointed to by the given tuple, and
+                         write it to the given directory.
 
   -h, --help             Give this help list
   -V, --version          Print program version
@@ -648,6 +693,10 @@ Report bugs to ~a.~%"
         (option '(#\s "show") #f #f
                 (lambda (opt name arg result)
                   (alist-cons 'action 'show
+                              (alist-delete 'action result eq?))))
+        (option '(#\r "restore") #f #f
+                (lambda (opt name arg result)
+                  (alist-cons 'action 'restore
                               (alist-delete 'action result eq?))))))
 
 (define %default-options
@@ -738,4 +787,12 @@ tuple that can be used to restore the whole directory hierarchy."
           (show store-file tuple))
          (_
           (leave "wrong number of arguments for the `show' operation"))))
+      ((restore)
+       (match args
+         ((store-file tuple out-dir)
+          (let ((store (open-store store-file))
+                (tuple (with-input-from-string tuple read)))
+            (restore-tree store tuple out-dir)))
+         (_
+          (leave "wrong number of arguments for the `restore' operation"))))
       (else (error "what's this?" action)))))
