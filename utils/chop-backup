@@ -541,6 +541,11 @@ TUPLE in STORE."
   (format #t "chop-backup [OPTION] STORE ARGS ...
 Create or access an encrypted file system backup.
 
+  -b, --backup           Create an encrypted backup of the given files or
+                         directories, store it in file STORE, and return
+                         a tuple that designates the backup.  This is the
+                         default action.
+
   -l, --list[=OPTS]      List the contents of the directory pointed to by the
                          tuple specified in ARGS and stored at STORE.  OPTS
                          is a comma-separated list of long or one-letter
@@ -549,9 +554,6 @@ Create or access an encrypted file system backup.
 
   -h, --help             Give this help list
   -V, --version          Print program version
-
-By default, create an encrypted backup of the given files or directories,
-store it in file STORE, and return a tuple that designates the backup.
 
 Report bugs to ~a.~%"
           (libchop-bug-address)))
@@ -578,6 +580,10 @@ Report bugs to ~a.~%"
                   (show-version)
                   (exit 0)))
 
+        (option '(#\b "backup") #f #f
+                (lambda (opt name arg result)
+                  (alist-cons 'action 'backup
+                              (alist-delete 'action result eq?))))
         (option '(#\l "list") #f #t
                 (lambda (opt name arg result)
                   (define canonical-options
