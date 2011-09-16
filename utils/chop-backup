@@ -44,6 +44,18 @@ exec guile -l "$0" -c "(apply $main (cdr (command-line)))" "$@"
 
 
 ;;;
+;;; User interface.
+;;;
+
+(define-syntax warn
+  (syntax-rules ()
+    ((_ message args ...)
+     (begin
+      (format (current-error-port) message args ...)
+      (newline (current-error-port))))))
+
+
+;;;
 ;;; Functional file system traversal.
 ;;;
 
@@ -396,10 +408,21 @@ handle."
                           (format #f "(~a . ~s)" mtime index)))))
 
   (define (store/cache stat file)
-    (let* ((index  (run-storage-pipeline pipeline file store))
-           (index* (pipeline-index-handle->tuple pipeline index)))
-      (cache-index stat index*)
-      index*))
+    (define input
+      (case (stat:type stat)
+        ((symlink)
+         (mem-stream-open (string->utf8 (readlink file))))
+        ((regular) file)
+        (else
+         (warn "file `~a' of type `~a' will not be saved"
+               file (stat:type stat))
+         #f)))
+
+    (and input
+         (let* ((index  (run-storage-pipeline pipeline input store))
+                (index* (pipeline-index-handle->tuple pipeline index)))
+           (cache-index stat index*)
+           index*)))
 
   (define (store-directory* stat file+index)
     ;; Like `store-directory', and update %FILE-INDEX-MAPPING with a mapping
