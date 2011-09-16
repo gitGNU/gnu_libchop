@@ -26,6 +26,7 @@ exec guile -l "$0" -c "(apply $main (cdr (command-line)))" "$@"
   #:use-module (srfi srfi-19)
   #:use-module (srfi srfi-26)
   #:use-module (srfi srfi-37)
+  #:use-module (srfi srfi-60)
   #:use-module (rnrs bytevectors)
   #:use-module ((rnrs io ports) #:select (get-bytevector-n! put-bytevector))
   #:use-module (ice-9 match)
@@ -354,10 +355,10 @@ FILE+INDEX to store."
                   (lambda ()
                     (write (map (lambda (f+i)
                                   (match f+i
-                                    ((file type mtime 0 #f) ; empty file
-                                     (list file type mtime 0 ""))
-                                    ((file type mtime size index)
-                                     (list file type mtime size index))))
+                                    ((file type mtime 0 perms #f) ; empty file
+                                     (list file type mtime 0 perms #f))
+                                    ((file type mtime size perms index)
+                                     (list file type mtime size perms index))))
                                 file+index)))))
          (index (run-storage-pipeline pipeline
                                       (mem-stream-open (string->utf8 str))
@@ -465,6 +466,7 @@ handle."
                                (list (stat:type stat)
                                      (stat:mtime stat)
                                      (stat:size stat)
+                                     (stat:perms stat)
                                      index)
                                file+index)
                    result))))))
@@ -484,6 +486,7 @@ handle."
                          (list (stat:type stat)
                                (stat:mtime stat)
                                (stat:size stat)
+                               (stat:perms stat)
                                (store-directory* stat file+index))
                          siblings)
              result))))
@@ -501,8 +504,9 @@ handle."
                            '(())
                            dir)))
     (match result
-      (((((? string?) (? symbol?) (? number?) (? number?) index-tuple)))
-       ;; ("DIR-NAME" directory MTIME SIZE INDEX-TUPLE)
+      (((((? string?) (? symbol?) (? number?) (? number?) (? number?)
+          index-tuple)))
+       ;; ("DIR-NAME" directory MTIME SIZE PERMS INDEX-TUPLE)
        index-tuple))))
 
 
@@ -523,6 +527,15 @@ TUPLE in STORE."
     (let ((date (time-monotonic->date (make-time time-monotonic 0 epoch))))
       (date->string date "~b ~e ~H:~M")))
 
+  (define (->perms perms)
+    (define (one perms)
+      (string-append (if (bit-set? 2 perms) "r" "-")
+                     (if (bit-set? 1 perms) "w" "-")
+                     (if (bit-set? 0 perms) "x" "-")))
+    (string-append (one (arithmetic-shift perms -6))
+                   (one (logand 7 (arithmetic-shift perms -3)))
+                   (one (logand 7 perms))))
+
   (let loop ((tuple  tuple)
              (indent ""))
     (let ((retrieve (index-tuple->retriever tuple)))
@@ -531,17 +544,18 @@ TUPLE in STORE."
             (eof-object? entries)
             (begin
               (match (car entries)
-                ((name 'directory stamp size tuple)
-                 (format port "~ad ~8,d ~16,a ~a~:[~*~; ~s~]~%"
-                         indent size (->date stamp) name
+                ((name 'directory stamp size perms tuple)
+                 (format port "~ad~a ~8,d ~16,a ~a~:[~*~; ~s~]~%"
+                         indent (->perms perms)
+                         size (->date stamp) name
                          verbose? tuple)
                  (and recursive? (loop tuple (nest indent)))
 
                  ;; XXX: Constant below to work around compiler bug; see
                  ;; <http://savannah.gnu.org/bugs/?34300>.
                  #t)
-                ((name kind stamp size tuple)
-                 (format port "~a~a ~8,d ~16,a ~a~:[~*~; ~s~]~%"
+                ((name kind stamp size perms tuple)
+                 (format port "~a~a~a ~8,d ~16,a ~a~:[~*~; ~s~]~%"
                          indent
                          (case kind
                            ((regular) "-")
@@ -551,6 +565,7 @@ TUPLE in STORE."
                            ((fifo) "f")
                            ((socket) "s")
                            (else "?"))
+                         (->perms perms)
                          size (->date stamp) name
                          verbose? tuple)))
 
@@ -580,30 +595,34 @@ directory DIR."
             (eof-object? entries)
             (begin
               (match (car entries)
-                ((name 'directory _ _ tuple)
+                ((name 'directory _ _ perms tuple)
                  (let ((subdir (string-append dir "/" name)))
                    (mkdir subdir)
+                   (chmod subdir perms)
                    (loop tuple subdir)
                    #t))
-                ((name 'regular _ _ (or #f ""))
+                ((name 'regular _ _ perms (or #f ""))
                  ;; An empty file.
                  (let ((out (string-append dir "/" name)))
                    (close (open-output-file out))
+                   (chmod out perms)
                    #t))
-                ((name 'regular _ _ tuple)
-                 (let ((out (open-output-file (string-append dir "/" name)))
-                       (get (index-tuple->retriever tuple)))
+                ((name 'regular _ _ perms tuple)
+                 (let* ((file (string-append dir "/" name))
+                        (out  (open-output-file file))
+                        (get  (index-tuple->retriever tuple)))
                    (dump-port (get store) out)
                    (close out)
+                   (chmod file perms)
                    #t))
-                ((name 'symlink _ _ tuple)
+                ((name 'symlink _ _ perms tuple)
                  (let ((out (string-append dir "/" name))
                        (get (index-tuple->retriever tuple)))
                    (symlink (call-with-output-string
                              (cute dump-port (get store) <>))
                             out)
                    #t))
-                ((name kind _ _ _)
+                ((name kind _ _ _ _)
                  (warn "file `~a' of type `~a' not restored"
                        (string-append dir "/" name) kind)
                  #t))
@@ -743,6 +762,7 @@ tuple that can be used to restore the whole directory hierarchy."
                                                (stat:type stat)
                                                (stat:mtime stat)
                                                (stat:size stat)
+                                               (stat:perms stat)
                                                tuple)))
                                        (zip files stats tuples))))
                ;; Aggregate all of FILES as if it were a single directory.
