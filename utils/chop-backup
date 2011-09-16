@@ -23,10 +23,13 @@ exec guile -l "$0" -c "(apply $main (cdr (command-line)))" "$@"
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-11)
+  #:use-module (srfi srfi-19)
   #:use-module (srfi srfi-26)
+  #:use-module (srfi srfi-37)
   #:use-module (rnrs bytevectors)
   #:use-module (ice-9 match)
   #:use-module (ice-9 vlist)
+  #:use-module (ice-9 regex)
   #:export (main))
 
 ;;; Commentary:
@@ -176,6 +179,48 @@ returns no, call (SKIP PATH STAT RESULT)."
   (block-indexer  pipeline-block-indexer)
   (store-filters  pipeline-store-filters))
 
+(define (filtered-stream stream filters)
+  "Return a stream that wraps STREAM and is filtered through all of FILTERS."
+  (let loop ((stream  stream)
+             (filters filters))
+    (if (null? filters)
+        stream
+        (let ((f ((car filters))))
+          (loop (filtered-stream-open stream f)
+                (cdr filters))))))
+
+(define (filtered-store store filters)
+  "Return a store that wraps STORE and is filtered through all of FILTERS."
+  (let loop ((store   store)
+             (filters filters))
+    (if (null? filters)
+        store
+        (let-values (((in out) ((car filters))))
+          (loop (filtered-block-store-open in out store)
+                (cdr filters))))))
+
+(define (dual-filter-class class)
+  "Return the ``dual'' of CLASS, a filter class."
+  ;; XXX: Quick & dirty hack for lack of a similar feature at the C level.
+
+  (define (dual-direction dir)
+    (cond ((string=? dir "unzip") "zip")
+          ((string=? dir "zip")   "unzip")
+          (else #f)))
+
+  (define rx
+    (make-regexp "([a-zA-Z]+)_(unzip|zip)_filter"))
+
+  (and (class-inherits? class (lookup-class "filter"))
+       (let* ((name  (class-name class))
+              (match (regexp-exec rx name)))
+         (and match
+              (let ((name      (match:substring match 1))
+                    (direction (match:substring match 2)))
+                (lookup-class (string-append name "_"
+                                             (dual-direction direction)
+                                             "_filter")))))))
+
 (define (run-storage-pipeline pipeline file-or-stream store)
   "Pass the contents of FILE-OR-STREAM through PIPELINE, storing the
 resulting blocks in STORE and returning its index handle."
@@ -185,15 +230,7 @@ resulting blocks in STORE and returning its index handle."
         (file-stream-open file-or-stream)))
 
   (define stream*
-    (if (null? (pipeline-stream-filters pipeline))
-        stream
-        (let loop ((stream  stream)
-                   (filters (pipeline-stream-filters pipeline)))
-          (if (null? filters)
-              stream
-              (let ((f ((car filters))))
-                (loop (filtered-stream-open stream f)
-                      (cdr filters)))))))
+    (filtered-stream stream (pipeline-stream-filters pipeline)))
 
   (define chopper
     ((pipeline-chopper pipeline) stream*))
@@ -206,15 +243,7 @@ resulting blocks in STORE and returning its index handle."
 
   (define store*
     ;; XXX: Use the smart block store.
-    (if (null? (pipeline-store-filters pipeline))
-        store
-        (let loop ((store   store)
-                   (filters (pipeline-store-filters pipeline)))
-          (if (null? filters)
-              store
-              (let-values (((in out) ((car filters))))
-                (loop (filtered-block-store-open in out store)
-                      (cdr filters)))))))
+    (filtered-store store (pipeline-store-filters pipeline)))
 
   (indexer-index-blocks indexer chopper block-indexer store* store*))
 
@@ -239,23 +268,32 @@ contains information about filters, in addition to INDEX."
                  (pipeline-store-filters pipeline))))
     (list if (serialize-index-tuple/ascii index i bi) of)))
 
-(define (string->index-tuple str)
-  "Return an index tuple (a 3-element list) from STR."
-  (let ((tuple (call-with-input-string str read)))
-    (match tuple
-      (((stream-filters ...) index (store-filters ...))
-       (let ((index (deserialize-index-tuple/ascii index)))
-         (values index
-                 (map (lambda (sf)
-                        (lambda ()
-                          (make-unzip-filter
-                           (lookup-class sf))))
-                      stream-filters)
-                 (map (lambda (sf)
-                        (lambda ()
-                          (make-unzip-filter
-                           (lookup-class sf))))
-                      store-filters)))))))
+(define (index-tuple->retriever tuple)
+  "Given TUPLE, return a one-argument procedure which, when passed a store,
+returns a port from which the contents pointed to by TUPLE can be read."
+  (match tuple
+    (((stream-filters ...) index (store-filters ...))
+     (let-values (((index indexer block-fetcher)
+                   (deserialize-index-tuple/ascii index))
+                  ((stream-filters)
+                   (map (lambda (sf)
+                          (lambda ()
+                            (make-unzip-filter
+                             (lookup-class sf))))
+                        stream-filters))
+                  ((store-filters)
+                   (map (lambda (sf)
+                          (lambda ()
+                            (let* ((c (lookup-class sf))
+                                   (d (dual-filter-class c)))
+                              (values (make-zip-filter d)
+                                      (make-unzip-filter c)))))
+                        store-filters)))
+       (lambda (store)
+         (let* ((store  (filtered-store store store-filters))
+                (stream (indexer-fetch-stream indexer index block-fetcher
+                                              store store)))
+           (stream->port (filtered-stream stream stream-filters))))))))
 
 
 ;;;
@@ -445,38 +483,196 @@ handle."
 
 
 ;;;
+;;; Retrieval.
+;;;
+
+(define* (list-directory-contents store tuple port
+                                  #:key (verbose? #f) (recursive? #t))
+  "Write to PORT, in a human-readable way, the contents of the directory at
+TUPLE in STORE."
+  ;; FIXME: Reuse `file-system-fold'.
+
+  (define (nest indent)
+    (string-append indent "    "))
+
+  (define (->date epoch)
+    (let ((date (time-monotonic->date (make-time time-monotonic 0 epoch))))
+      (date->string date "~b ~e ~H:~M")))
+
+  (let loop ((tuple  tuple)
+             (indent ""))
+    (let ((retrieve (index-tuple->retriever tuple)))
+      (let liip ((entries (read (retrieve store))))
+        (or (null? entries)
+            (eof-object? entries)
+            (begin
+              (match (car entries)
+                ((name 'directory stamp size tuple)
+                 (format port "~ad ~8,d ~16,a ~a~:[~*~; ~s~]~%"
+                         indent size (->date stamp) name
+                         verbose? tuple)
+                 (and recursive? (loop tuple (nest indent)))
+
+                 ;; XXX: Constant below to work around compiler bug; see
+                 ;; <http://savannah.gnu.org/bugs/?34300>.
+                 #t)
+                ((name kind stamp size tuple)
+                 (format port "~a~a ~8,d ~16,a ~a~:[~*~; ~s~]~%"
+                         indent
+                         (case kind
+                           ((regular) "-")
+                           ((symlink) "l")
+                           ((block-special) "b")
+                           ((char-special) "c")
+                           ((fifo) "f")
+                           ((socket) "s")
+                           (else "?"))
+                         size (->date stamp) name
+                         verbose? tuple)))
+
+              (liip (cdr entries))))))))
+
+
+;;;
 ;;; Command-line entry point.
 ;;;
 
-(define (main store-file file . extra-files)
+(define (show-help)
+  (format #t "chop-backup [OPTION] STORE ARGS ...
+Create or access an encrypted file system backup.
+
+  -l, --list[=OPTS]      List the contents of the directory pointed to by the
+                         tuple specified in ARGS and stored at STORE.  OPTS
+                         is a comma-separated list of long or one-letter
+                         options: \"r\" or \"recursive\",\"f\" or \"flat\",
+                         \"v\" or \"verbose\", \"c\" or \"concise\".
+
+  -h, --help             Give this help list
+  -V, --version          Print program version
+
+By default, create an encrypted backup of the given files or directories,
+store it in file STORE, and return a tuple that designates the backup.
+
+Report bugs to ~a.~%"
+          (libchop-bug-address)))
+
+(define (show-version)
+  (format #t "chop-backup (libchop) ~a\n" (libchop-version)))
+
+(define (leave fmt . args)
+  (apply format (current-error-port) (string-append fmt "~%") args)
+  (exit 1))
+
+(define (write* obj)
+  (write obj)
+  (newline)
+  obj)
+
+(define %options
+  (list (option '(#\h "help") #f #f
+                (lambda args
+                  (show-help)
+                  (exit 0)))
+        (option '(#\V "version") #f #f
+                (lambda args
+                  (show-version)
+                  (exit 0)))
+
+        (option '(#\l "list") #f #t
+                (lambda (opt name arg result)
+                  (define canonical-options
+                    (fold (lambda (opt result)
+                            (case opt
+                              ((r recursive)
+                               (cons 'recursive result))
+                              ((f flat)
+                               (delq 'recursive result))
+                              ((v verbose)
+                               (cons 'verbose result))
+                              ((c concise)
+                               (delq 'verbose result))
+                              (else result)))
+                          '()
+                          (if arg
+                              (map string->symbol
+                                   (string-split arg #\,))
+                              '())))
+
+                  (alist-cons 'list-options canonical-options
+                              (alist-cons 'action 'list result))))))
+
+(define %default-options
+  '((arguments . ())))
+
+(define (main . args)
   "Backup FILE and EXTRA-FILES, recursively, to STORE-FILE.  Return an index
 tuple that can be used to restore the whole directory hierarchy."
-  (catch 'chop-error
-    (lambda ()
-      (let ((store (file-based-block-store-open (lookup-class "fs_block_store")
-                                                store-file
-                                                (logior O_CREAT O_RDWR)
-                                                #o644)))
-        (if (null? extra-files)
-            (write (run-storage-pipeline/recursive %default-storage-pipeline
-                                                   (canonicalize-path file)
-                                                   store))
-            (let* ((files  (map canonicalize-path (cons file extra-files)))
-                   (stats  (map lstat files))
-                   (tuples (map (cut run-storage-pipeline/recursive
-                                     %default-storage-pipeline <> store)
-                                files))
-                   (files+tuples (map (match-lambda
-                                       ((file stat tuple)
-                                        (list file
-                                              (stat:type stat)
-                                              (stat:mtime stat)
-                                              (stat:size stat)
-                                              tuple)))
-                                      (zip files stats tuples))))
-              ;; Aggregate all of FILES as if it were a single directory.
-              (write (store-directory files+tuples store))))))
-    (lambda (key err . _)
-      (format (current-error-port) "error: ~a~%"
-              (error-message err))))
-  #t)
+  (define (parse-args args)
+    (args-fold args %options
+               (lambda (opt name arg result)
+                 (leave "~A: unrecognized option" opt))
+               (lambda (arg result)
+                 (alist-cons 'arguments
+                             (cons arg
+                                   (assq-ref result 'arguments))
+                             (alist-delete 'arguments result
+                                           eq?)))
+               %default-options))
+
+  (define (open-store file)
+    (file-based-block-store-open (lookup-class "fs_block_store")
+                                 file
+                                 (logior O_CREAT O_RDWR) #o644))
+
+  (define (backup store-file files)
+    (catch 'chop-error
+      (lambda ()
+        (let ((store (open-store store-file)))
+          (match files
+            ((file)
+             (write* (run-storage-pipeline/recursive %default-storage-pipeline
+                                                     (canonicalize-path file)
+                                                     store)))
+            ((files ...)
+             (let* ((files  (map canonicalize-path files))
+                    (stats  (map lstat files))
+                    (tuples (map (cut run-storage-pipeline/recursive
+                                      %default-storage-pipeline <> store)
+                                 files))
+                    (files+tuples (map (match-lambda
+                                        ((file stat tuple)
+                                         (list file
+                                               (stat:type stat)
+                                               (stat:mtime stat)
+                                               (stat:size stat)
+                                               tuple)))
+                                       (zip files stats tuples))))
+               ;; Aggregate all of FILES as if it were a single directory.
+               (write* (store-directory files+tuples store)))))))
+      (lambda (key err . _)
+        (leave "error: ~a" (error-message err)))))
+
+  (false-if-exception (setlocale LC_ALL ""))
+  (let* ((options (parse-args args))
+         (action  (or (assq-ref options 'action) 'backup))
+         (args    (reverse (assq-ref options 'arguments))))
+
+    (case action
+      ((backup)
+       (match args
+         ((store-file files ...)
+          (backup store-file files))
+         (_
+          (leave "too few arguments for `backup' operation"))))
+      ((list)
+       (let ((opts (or (assq-ref options 'list-options) '())))
+         (match args
+           ((store-file tuple)
+            (list-directory-contents (open-store store-file)
+                                     (with-input-from-string tuple read)
+                                     (current-output-port)
+                                     #:verbose? (memq 'verbose opts)
+                                     #:recursive? (memq 'recursive opts)))
+           (_
+            (leave "wrong number of arguments for the `list' operation")))))
+      (else (error "what's this?" action)))))
