@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -545,7 +545,7 @@ chk_block_fetch (chop_block_fetcher_t *block_fetcher,
 			   key_hex, *size, handle->block_size);
 
 	  *size = 0;
-	  err = CHOP_BLOCK_INDEXER_ERROR;
+	  err = CHOP_BLOCK_FETCHER_ERROR;
 
 	  goto finish;
 	}
@@ -573,7 +573,7 @@ chk_block_fetch (chop_block_fetcher_t *block_fetcher,
 				   "wrong `%s' hash", key_hex, hash_name);
 
 		  *size = 0;
-		  err = CHOP_BLOCK_INDEXER_ERROR;
+		  err = CHOP_BLOCK_FETCHER_ERROR;
 		  goto finish;
 		}
 	    }
@@ -585,7 +585,7 @@ chk_block_fetch (chop_block_fetcher_t *block_fetcher,
 			       key_hex, hash_name,
 			       handle->block_id_size, hash_size);
 	      *size = 0;
-	      err = CHOP_BLOCK_INDEXER_ERROR;
+	      err = CHOP_BLOCK_FETCHER_ERROR;
 	      goto finish;
 	    }
 	}
