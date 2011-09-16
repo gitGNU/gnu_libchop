@@ -44,6 +44,7 @@ EXTRA_DIST = chop/config.in test-suite.scm
 	$(SED) -e 's|[@]libdir[@]|$(libdir)|g'				\
 	       -e 's|[@]includedir[@]|$(includedir)|g'			\
 	       -e 's|[@]PACKAGE_VERSION[@]|$(PACKAGE_VERSION)|g'	\
+	       -e 's|[@]PACKAGE_BUGREPORT[@]|$(PACKAGE_BUGREPORT)|g'	\
 	  < "$^" > "$@".tmp
 	mv "$@.tmp" "$@"
 

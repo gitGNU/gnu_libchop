@@ -21,6 +21,7 @@
   #:use-module (chop internal)
   #:re-export (error/not-impl)
   #:export (libchop-version
+            libchop-bug-address
 
             error-message
             bytevector->hex-string
@@ -41,6 +42,10 @@
 (define (libchop-version)
   "Return a version string identifying the libchop version."
   %libchop-version)
+
+(define (libchop-bug-address)
+  "Return the bug-reporting email address for libchop."
+  %libchop-bug-address)
 
 (define error-message
   (let ((f (libchop-function '* "error_message" (chop-error-t))))

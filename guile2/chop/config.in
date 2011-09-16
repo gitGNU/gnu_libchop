@@ -15,11 +15,15 @@
 
 (define-module (chop config)
   #:export (%libchop-version
+            %libchop-bug-address
             %libchop-libdir
             %libchop-includedir))
 
 (define %libchop-version
   "@PACKAGE_VERSION@")
+
+(define %libchop-bug-address
+  "@PACKAGE_BUGREPORT@")
 
 (define %libchop-libdir
   (or (getenv "libchop_libdir") "@libdir@"))
