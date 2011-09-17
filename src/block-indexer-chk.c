@@ -163,17 +163,26 @@ chk_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
     {
       case CHOP_SERIAL_ASCII:
 	{
+	  /* Avoid a stack overflow with the INPUT array below.  */
+	  size = size > 1023 ? 1023 : size;
+
+	  char input[size + 1];
 	  char *comma, *slash;
 	  const char *end;
 
-	  comma = strchr (buffer, ',');
+	  /* Copy BUFFER locally and add a trailing zero to make sure we
+	     don't read past the end.  */
+	  memcpy (input, buffer, size);
+	  input[size] = '\0';
+
+	  comma = strchr (input, ',');
 	  if (!comma)
 	    return CHOP_DESERIAL_CORRUPT_INPUT;
 
 	  /* Read the key.  */
-	  assert (comma - buffer <= sizeof (handle->key));
+	  assert (comma - input <= sizeof (handle->key));
 	  handle->key_size =
-	    chop_base32_string_to_buffer (buffer, comma - buffer,
+	    chop_base32_string_to_buffer (input, comma - input,
 					  handle->key, &end);
 	  if (end != comma)
 	    return CHOP_DESERIAL_CORRUPT_INPUT;
@@ -196,12 +205,12 @@ chk_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 
 	  {
 	    /* Read the block size.  */
-	    long int block_size;
+	    unsigned long int block_size;
 	    const char *start;
 
 	    start = end;
 
-	    block_size = strtol (start, (char **)&end, 16);
+	    block_size = strtoul (start, (char **) &end, 16);
 	    if (end == start)
 	      err = CHOP_DESERIAL_CORRUPT_INPUT;
 	    else if (block_size < 0)
@@ -212,7 +221,7 @@ chk_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 	  }
 
 	  if (!err)
-	    *bytes_read = end - buffer;
+	    *bytes_read = end - input;
 
 	  break;
 	}

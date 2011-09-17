@@ -24,6 +24,7 @@ check_PROGRAMS =				\
   interfaces/cipher				\
   interfaces/block-indexers			\
   interfaces/indexers				\
+  interfaces/deserialize			\
   interfaces/class-lookup
 
 check_PROGRAMS +=				\

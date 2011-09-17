@@ -113,3 +113,4 @@ stamp-h[0-9]
 /guile2/indexers.log
 /guile2/chop/config.scm
 /guile2/filters.log
+/tests/interfaces/deserialize
