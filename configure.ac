@@ -51,7 +51,7 @@ if test "x$GCC" = "xyes"; then
   # used to deal with polymorphism.
   GCC_CFLAGS="-fno-strict-aliasing"
   GCC_CFLAGS="-Wall -Wmissing-prototypes -Wpointer-arith $GCC_CFLAGS"
-  GCC_CFLAGS="-Wdeclaration-after-statement -Wcast-align $GCC_CFLAGS"
+  GCC_CFLAGS="-Wcast-align $GCC_CFLAGS"
 else
   GCC_CFLAGS=""
 fi
