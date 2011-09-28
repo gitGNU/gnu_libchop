@@ -118,6 +118,9 @@ chop_error_t chop_sub_stream_open (chop_stream_t *source,
 
 ** Add a [[http://www.1978th.net/tokyocabinet/][Tokyo Cabinet]] store back-end
 
+
+** Use [[http://hssl.cs.jhu.edu/~neal/woodchuck][Woodchuck]] to schedule block store replication
+
 * User interface
 ** Add an option to specify the format of OpenPGP keys (archiver/block-server)
 ** chop-block-server: Add an option like `--restrict' but with OpenPGP fingerprints
