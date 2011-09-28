@@ -39,8 +39,6 @@ exec guile -l "$0" -c "(apply $main (cdr (command-line)))" "$@"
 ;;; This modules provides tools to store (encrypted) backups of whole file
 ;;; hierarchies.
 ;;;
-;;; TODO: Implement the `restore' operation.  :-)
-;;;
 ;;; Code:
 
 
@@ -178,6 +176,67 @@ returns no, call (SKIP PATH STAT RESULT)."
                                (cache-file "file-index-mapping")
                                (logior O_CREAT O_RDWR)
                                #o600))
+
+
+;;;
+;;; Directory meta-data.
+;;;
+
+;; We want to (1) allow efficient processing of directory data, and (2)
+;; decouple the serialized format of directories from the in-memory
+;; representation.  Thus, we use record types for the in-memory
+;; representations, and s-exps only for the external representation.
+
+(define-record-type <directory>
+  (make-directory previous entries)
+  directory?
+  (previous directory-previous-version)
+  (entries  directory-entries))
+
+(define-record-type <directory-entry>
+  (make-directory-entry name kind mtime size perms tuple)
+  directory-entry?
+  (name   directory-entry-name)
+  (kind   directory-entry-kind)
+  (mtime  directory-entry-mtime)
+  (size   directory-entry-size)
+  (perms  directory-entry-permissions)
+  (tuple  directory-entry-tuple))
+
+(define (directory->sexp dir)
+  "Serialize directory DIR as an s-expression."
+  (define (entry->sexp entry)
+    (map (lambda (get)
+           (get entry))
+         (list directory-entry-name directory-entry-kind
+               directory-entry-mtime directory-entry-size
+               directory-entry-permissions directory-entry-tuple)))
+
+  `(directory
+    (version 0)
+    (previous ,(directory-previous-version dir))
+    (entries ,(map entry->sexp (directory-entries dir)))))
+
+(define (write-directory dir port)
+  "Serialize directory DIR to PORT."
+  (write (directory->sexp dir) port))
+
+(define (sexp->directory exp)
+  "Read EXP, an S-expression, and return the corresponding directory object."
+  (define (sexp->entry exp)
+    (match exp
+      ((name kind mtime size perms tuple)
+       (make-directory-entry name kind mtime size perms tuple))))
+
+  (match exp
+    (('directory ('version  0)
+                 ('previous previous)
+                 ('entries  (entries ...)))
+     (make-directory previous (map sexp->entry entries)))))
+
+(define (read-directory port)
+  "Read a directory from PORT and return it."
+  (sexp->directory (read port)))
 
 
 ;;;
@@ -343,23 +402,13 @@ returns a port from which the contents pointed to by TUPLE can be read."
                       (values (make-zlib-zip-filter)
                               (make-zlib-unzip-filter))))))
 
-(define (store-directory file+index store)
-  "Serialize FILE+INDEX, a list of file name/stat/index tuples, and return
-the index handle of the resulting index tuple.  As a side-effect, write
-FILE+INDEX to store."
+(define (store-directory dir store)
+  "Serialize DIR, write it to STORE, and return its index tuple."
   (define pipeline
     ;; The pipeline suitable for directories in this s-exp format.
     %text-storage-pipeline)
 
-  (let* ((str   (with-output-to-string
-                  (lambda ()
-                    (write (map (lambda (f+i)
-                                  (match f+i
-                                    ((file type mtime 0 perms #f) ; empty file
-                                     (list file type mtime 0 perms #f))
-                                    ((file type mtime size perms index)
-                                     (list file type mtime size perms index))))
-                                file+index)))))
+  (let* ((str   (call-with-output-string (cut write-directory dir <>)))
          (index (run-storage-pipeline pipeline
                                       (mem-stream-open (string->utf8 str))
                                       store)))
@@ -425,10 +474,11 @@ handle."
            (cache-index stat index*)
            index*)))
 
-  (define (store-directory* stat file+index)
+  (define (store-directory* stat entries)
     ;; Like `store-directory', and update %FILE-INDEX-MAPPING with a mapping
-    ;; from STAT to the index tuple of FILE+INDEX.
-    (let* ((index (store-directory file+index store)))
+    ;; from STAT to the index tuple of ENTRIES.
+    (let* ((dir   (make-directory #f entries))
+           (index (store-directory dir store)))
       (cache-index stat index)
       index))
 
@@ -461,14 +511,14 @@ handle."
                          (_ #f))
                        (store/cache stat file)))))
           (match result
-            (((file+index ...) result ...)
-             (cons (alist-cons (basename file)
-                               (list (stat:type stat)
-                                     (stat:mtime stat)
-                                     (stat:size stat)
-                                     (stat:perms stat)
-                                     index)
-                               file+index)
+            (((entries ...) result ...)
+             (cons (cons (make-directory-entry (basename file)
+                                               (stat:type stat)
+                                               (stat:mtime stat)
+                                               (stat:size stat)
+                                               (stat:perms stat)
+                                               index)
+                         entries)
                    result))))))
 
   (define (enter-directory dir stat result)
@@ -481,14 +531,14 @@ handle."
     ;; meta-data/index-tuple.  As a side-effect, store DIR's contents to
     ;; STORE.
     (match result
-      (((file+index ...) (siblings ...) result ...)
-       (cons (alist-cons (basename dir)
-                         (list (stat:type stat)
-                               (stat:mtime stat)
-                               (stat:size stat)
-                               (stat:perms stat)
-                               (store-directory* stat file+index))
-                         siblings)
+      (((entries ...) (siblings ...) result ...)
+       (cons (cons (make-directory-entry (basename dir)
+                                         (stat:type stat)
+                                         (stat:mtime stat)
+                                         (stat:size stat)
+                                         (stat:perms stat)
+                                         (store-directory* stat entries))
+                   siblings)
              result))))
 
   (define (skip-directory dir stat result)
@@ -504,10 +554,8 @@ handle."
                            '(())
                            dir)))
     (match result
-      (((((? string?) (? symbol?) (? number?) (? number?) (? number?)
-          index-tuple)))
-       ;; ("DIR-NAME" directory MTIME SIZE PERMS INDEX-TUPLE)
-       index-tuple))))
+      ((((? directory-entry? dir)))
+       (directory-entry-tuple dir)))))
 
 
 ;;;
@@ -539,25 +587,29 @@ TUPLE in STORE."
   (let loop ((tuple  tuple)
              (indent ""))
     (let ((retrieve (index-tuple->retriever tuple)))
-      (let liip ((entries (read (retrieve store))))
+      (let liip ((entries (directory-entries
+                           (read-directory (retrieve store)))))
         (or (null? entries)
             (eof-object? entries)
-            (begin
-              (match (car entries)
-                ((name 'directory stamp size perms tuple)
-                 (format port "~ad~a ~8,d ~16,a ~a~:[~*~; ~s~]~%"
-                         indent (->perms perms)
-                         size (->date stamp) name
-                         verbose? tuple)
-                 (and recursive? (loop tuple (nest indent)))
+            (let ((e (car entries)))
+              (case (directory-entry-kind e)
+                ((directory)
+                 (format port "~ad~a ~8,d ~16,a ~a~:[~*~; ~s~]~%" indent
+                         (->perms (directory-entry-permissions e))
+                         (directory-entry-size e)
+                         (->date (directory-entry-mtime e))
+                         (directory-entry-name e)
+                         verbose? (directory-entry-tuple e))
+                 (and recursive?
+                      (loop (directory-entry-tuple e) (nest indent)))
 
                  ;; XXX: Constant below to work around compiler bug; see
                  ;; <http://savannah.gnu.org/bugs/?34300>.
                  #t)
-                ((name kind stamp size perms tuple)
+                (else
                  (format port "~a~a~a ~8,d ~16,a ~a~:[~*~; ~s~]~%"
                          indent
-                         (case kind
+                         (case (directory-entry-kind e)
                            ((regular) "-")
                            ((symlink) "l")
                            ((block-special) "b")
@@ -565,9 +617,11 @@ TUPLE in STORE."
                            ((fifo) "f")
                            ((socket) "s")
                            (else "?"))
-                         (->perms perms)
-                         size (->date stamp) name
-                         verbose? tuple)))
+                         (->perms (directory-entry-permissions e))
+                         (directory-entry-size e)
+                         (->date (directory-entry-mtime e))
+                         (directory-entry-name e)
+                         verbose? (directory-entry-tuple e))))
 
               (liip (cdr entries))))))))
 
@@ -590,41 +644,41 @@ directory DIR."
   (let loop ((tuple tuple)
              (dir   dir))
     (let ((retrieve (index-tuple->retriever tuple)))
-      (let liip ((entries (read (retrieve store))))
+      (let liip ((entries (directory-entries
+                           (read-directory (retrieve store)))))
         (or (null? entries)
             (eof-object? entries)
-            (begin
-              (match (car entries)
-                ((name 'directory _ _ perms tuple)
-                 (let ((subdir (string-append dir "/" name)))
+            (let* ((e     (car entries))
+                   (name  (directory-entry-name e))
+                   (perms (directory-entry-permissions e))
+                   (tuple (directory-entry-tuple e))
+                   (file  (string-append dir "/" name)))
+              (case (directory-entry-kind e)
+                ((directory)
+                 (let ((subdir file))
                    (mkdir subdir)
                    (chmod subdir perms)
                    (loop tuple subdir)
                    #t))
-                ((name 'regular _ _ perms (or #f ""))
-                 ;; An empty file.
-                 (let ((out (string-append dir "/" name)))
-                   (close (open-output-file out))
-                   (chmod out perms)
-                   #t))
-                ((name 'regular _ _ perms tuple)
-                 (let* ((file (string-append dir "/" name))
-                        (out  (open-output-file file))
-                        (get  (index-tuple->retriever tuple)))
-                   (dump-port (get store) out)
+                ((regular)
+                 (let ((out (open-output-file file)))
+                   (if tuple                      ; #f means "empty file"
+                       (let ((get (index-tuple->retriever tuple)))
+                         (dump-port (get store) out)
+                         (close out)
+                         (chmod file perms)))
                    (close out)
                    (chmod file perms)
                    #t))
-                ((name 'symlink _ _ perms tuple)
-                 (let ((out (string-append dir "/" name))
-                       (get (index-tuple->retriever tuple)))
+                ((symlink)
+                 (let ((get (index-tuple->retriever tuple)))
                    (symlink (call-with-output-string
                              (cute dump-port (get store) <>))
-                            out)
+                            file)
                    #t))
-                ((name kind _ _ _ _)
+                (else
                  (warn "file `~a' of type `~a' not restored"
-                       (string-append dir "/" name) kind)
+                       file (directory-entry-kind e))
                  #t))
               (liip (cdr entries))))))))
 
@@ -756,17 +810,18 @@ tuple that can be used to restore the whole directory hierarchy."
                     (tuples (map (cut run-storage-pipeline/recursive
                                       %default-storage-pipeline <> store)
                                  files))
-                    (files+tuples (map (match-lambda
-                                        ((file stat tuple)
-                                         (list file
-                                               (stat:type stat)
-                                               (stat:mtime stat)
-                                               (stat:size stat)
-                                               (stat:perms stat)
-                                               tuple)))
-                                       (zip files stats tuples))))
+                    (entries (map (match-lambda
+                                   ((file stat tuple)
+                                    (make-directory-entry (basename file)
+                                                          (stat:type stat)
+                                                          (stat:mtime stat)
+                                                          (stat:size stat)
+                                                          (stat:perms stat)
+                                                          tuple)))
+                                  (zip files stats tuples))))
                ;; Aggregate all of FILES as if it were a single directory.
-               (write* (store-directory files+tuples store)))))))
+               (write* (store-directory (make-directory #f entries)
+                                        store)))))))
       (lambda (key err . _)
         (leave "error: ~a" (error-message err)))))
 
