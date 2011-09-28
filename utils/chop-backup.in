@@ -1,7 +1,9 @@
 #!/bin/sh
 # aside from this initial boilerplate, this is actually -*- scheme -*- code
 main="(module-ref (resolve-module '(chop-backup)) 'main)"
-exec guile -l "$0" -c "(apply $main (cdr (command-line)))" "$@"
+prefix="@prefix@"
+exec ${GUILE:-@GUILE@} -L "@guilemoduledir@" \
+  -l "$0" -c "(apply $main (cdr (command-line)))" "$@"
 !#
 ;;; Copyright (C) 2011  Ludovic Courtès <ludo@gnu.org>
 ;;;
@@ -52,6 +54,10 @@ exec guile -l "$0" -c "(apply $main (cdr (command-line)))" "$@"
      (begin
       (format (current-error-port) message args ...)
       (newline (current-error-port))))))
+
+(if (not (string=? "@PACKAGE_VERSION@" (libchop-version)))
+    (warn "I was written for libchop @PACKAGE_VERSION@ but I'm using ~a!"
+          (libchop-version)))
 
 
 ;;;

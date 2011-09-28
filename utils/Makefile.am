@@ -17,9 +17,18 @@
 
 EXTRA_DIST =
 
+bin_SCRIPTS =
 bin_PROGRAMS = chop-archiver chop-store-list		\
                chop-show-anchors chop-show-similarities	\
 	       chop-block-server chop-store-convert
+
+if HAVE_GUILE2
+
+bin_SCRIPTS += chop-backup
+
+endif HAVE_GUILE2
+
+EXTRA_DIST += chop-backup.in
 
 if HAVE_AVAHI
 
@@ -33,7 +42,7 @@ EXTRA_DIST += chop-store-discover.c
 endif !HAVE_AVAHI
 
 noinst_PROGRAMS = chop-file
-bin_SCRIPTS = chop-vcs
+bin_SCRIPTS += chop-vcs
 EXTRA_DIST += gnutls-init-params.c gnutls-helper.h zip-helper.c
 
 AM_CFLAGS = $(GCC_CFLAGS)
