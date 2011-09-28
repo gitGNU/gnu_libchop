@@ -191,6 +191,11 @@ returns no, call (SKIP PATH STAT RESULT)."
         (write (alist-cons dir tuple (alist-delete dir backups))
                p)))))
 
+(define (most-recent-backup-tuple)
+  "Return the file/tuple pair corresponding to the most recent backup."
+  (and (file-exists? %recent-backups-file)
+       (car (call-with-input-file %recent-backups-file read))))
+
 
 ;;;
 ;;; Directory meta-data.
@@ -846,7 +851,6 @@ tuple that can be used to restore the whole directory hierarchy."
 
   (define (show store-file tuple)
     (let* ((store    (open-store store-file))
-           (tuple    (with-input-from-string tuple read))
            (retrieve (index-tuple->retriever tuple))
            (port     (retrieve store)))
       (dump-port port (current-output-port))
@@ -864,6 +868,7 @@ tuple that can be used to restore the whole directory hierarchy."
           (backup store-file files))
          (_
           (leave "too few arguments for `backup' operation"))))
+
       ((list)
        (let ((opts (or (assq-ref options 'list-options) '())))
          (match args
@@ -873,20 +878,48 @@ tuple that can be used to restore the whole directory hierarchy."
                                      (current-output-port)
                                      #:verbose? (memq 'verbose opts)
                                      #:recursive? (memq 'recursive opts)))
+           ((store-file)
+            (match (most-recent-backup-tuple)
+              (((? string? name) . tuple)
+               (warn "accessing most recent backup of `~a' at `~s'"
+                     name tuple)
+               (list-directory-contents (open-store store-file)
+                                        tuple
+                                        (current-output-port)
+                                        #:verbose? (memq 'verbose opts)
+                                        #:recursive? (memq 'recursive opts)))
+              (_
+               (leave "please specify the tuple of a directory"))))
            (_
             (leave "wrong number of arguments for the `list' operation")))))
+
       ((show)
        (match args
          ((store-file tuple)
-          (show store-file tuple))
+          (show store-file (with-input-from-string tuple read)))
+         ((store-file)
+          (match (most-recent-backup-tuple)
+            (((? string? name) . tuple)
+             (warn "accessing most recent backup of `~a' at `~s'" name tuple)
+             (show store-file tuple))
+            (_
+             (leave "please specify the tuple of a directory"))))
          (_
           (leave "wrong number of arguments for the `show' operation"))))
+
       ((restore)
        (match args
          ((store-file tuple out-dir)
           (let ((store (open-store store-file))
                 (tuple (with-input-from-string tuple read)))
             (restore-tree store tuple out-dir)))
+         ((store-file out-dir)
+          (match (most-recent-backup-tuple)
+            (((? string? name) . tuple)
+             (warn "restoring most recent backup of `~a' at `~s'" name tuple)
+             (restore-tree (open-store store-file) tuple out-dir))
+            (_
+             (leave "please specify the tuple of a directory"))))
          (_
           (leave "wrong number of arguments for the `restore' operation"))))
       (else (error "what's this?" action)))))
