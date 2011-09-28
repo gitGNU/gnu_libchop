@@ -177,6 +177,20 @@ returns no, call (SKIP PATH STAT RESULT)."
                                (logior O_CREAT O_RDWR)
                                #o600))
 
+(define %recent-backups-file
+  ;; A cache containing a list of file/tuple pairs.
+  (cache-file "recent-backups"))
+
+(define (save-backup-tuple dir tuple)
+  "Append the DIR/TUPLE pair to the recent-backups cache file."
+  (let ((backups (if (file-exists? %recent-backups-file)
+                     (call-with-input-file %recent-backups-file read)
+                     '())))
+    (call-with-output-file %recent-backups-file
+      (lambda (p)
+        (write (alist-cons dir tuple (alist-delete dir backups))
+               p)))))
+
 
 ;;;
 ;;; Directory meta-data.
@@ -801,9 +815,11 @@ tuple that can be used to restore the whole directory hierarchy."
         (let ((store (open-store store-file)))
           (match files
             ((file)
-             (write* (run-storage-pipeline/recursive %default-storage-pipeline
-                                                     (canonicalize-path file)
-                                                     store)))
+             (let* ((file  (canonicalize-path file))
+                    (tuple (run-storage-pipeline/recursive %default-storage-pipeline
+                                                           file store)))
+               (save-backup-tuple file tuple)
+               (write* tuple)))
             ((files ...)
              (let* ((files  (map canonicalize-path files))
                     (stats  (map lstat files))
@@ -818,10 +834,13 @@ tuple that can be used to restore the whole directory hierarchy."
                                                           (stat:size stat)
                                                           (stat:perms stat)
                                                           tuple)))
-                                  (zip files stats tuples))))
-               ;; Aggregate all of FILES as if it were a single directory.
-               (write* (store-directory (make-directory #f entries)
-                                        store)))))))
+                                  (zip files stats tuples)))
+
+                    ;; Aggregate all of FILES as if it were a single directory.
+                    (tuple  (store-directory (make-directory #f entries)
+                                             store)))
+               (map save-backup-tuple files tuples)
+               (write* tuple))))))
       (lambda (key err . _)
         (leave "error: ~a" (error-message err)))))
 
