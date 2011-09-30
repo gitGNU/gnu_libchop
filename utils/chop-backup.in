@@ -594,7 +594,8 @@ handle."
 ;;;
 
 (define* (list-directory-contents store tuple port
-                                  #:key (verbose? #f) (recursive? #t))
+                                  #:key (verbose? #f) (recursive? #t)
+                                        (history? #f))
   "Write to PORT, in a human-readable way, the contents of the directory at
 TUPLE in STORE."
   ;; FIXME: Reuse `file-system-fold'.
@@ -638,29 +639,47 @@ TUPLE in STORE."
     (let ((retrieve (index-tuple->retriever tuple)))
       (read-directory (retrieve store))))
 
-  (define (make-previous-version-entry dir)
-    (let ((prev (directory-previous-version dir)))
-      (make-directory-entry "//previous-version//"
-                            'directory
-                            0 0 0
-                            prev)))
+  (define (make-previous-version-entry prev)
+    (make-directory-entry "//previous-version//"
+                          'directory
+                          0 0 0
+                          prev))
 
-  (let loop ((tuple  tuple)
-             (indent ""))
-    (let ((dir (tuple->directory tuple)))
-      (if (directory-previous-version dir)
-          (display-entry (make-previous-version-entry dir)
-                         indent))
-      (let liip ((entries (directory-entries dir)))
-        (or (null? entries)
-            (eof-object? entries)
-            (let ((e (car entries)))
-              (display-entry e indent)
-              (if (and (eq? 'directory (directory-entry-kind e))
-                       recursive?)
-                  (loop (directory-entry-tuple e) (nest indent)))
+  (let loop ((tuple   tuple)
+             (indent  "")
+             (visited vlist-null))                ; tuples of visited dirs
+    (define (visited? tuple)
+      (vhash-assoc tuple visited))
 
-              (liip (cdr entries))))))))
+    ;; Avoid visiting the same directory several times---useful when
+    ;; RECURSIVE? and HISTORY? are both true.
+    (or (and (visited? tuple) visited)
+        (let* ((dir  (tuple->directory tuple))
+               (prev (directory-previous-version dir)))
+          (if (and (not history?) prev)
+              (display-entry (make-previous-version-entry prev) indent))
+
+          (let ((visited
+                 (let liip ((entries (directory-entries dir))
+                            (visited visited))
+                   (or (and (null? entries) visited)
+                       (let ((e (car entries)))
+                         (display-entry e indent)
+                         (liip (cdr entries)
+                               (if (and (eq? 'directory
+                                             (directory-entry-kind e))
+                                        recursive?)
+                                   (loop (directory-entry-tuple e)
+                                         (nest indent)
+                                         (vhash-cons tuple #t visited))
+                                   visited)))))))
+
+            (if (and history? prev)
+                (begin
+                  (display-entry (make-previous-version-entry prev) indent)
+                  (loop prev (nest indent)
+                        (vhash-cons tuple #t visited)))
+                visited))))))
 
 (define (dump-port in out)
   "Read as much data as possible from IN and write it to OUT."
@@ -737,6 +756,7 @@ Create or access an encrypted file system snapshot.
                          tuple specified in ARGS and stored at STORE.  OPTS
                          is a comma-separated list of long or one-letter
                          options: \"r\" or \"recursive\",\"f\" or \"flat\",
+                         \"h\" or \"history\", \"l\" or \"latest\",
                          \"v\" or \"verbose\", \"c\" or \"concise\".
 
   -s, --show             Retrieve from STORE and show the contents pointed to
@@ -787,6 +807,10 @@ Report bugs to ~a.~%"
                                (cons 'recursive result))
                               ((f flat)
                                (delq 'recursive result))
+                              ((h history)
+                               (cons 'history result))
+                              ((l latest)
+                               (delq 'history result))
                               ((v verbose)
                                (cons 'verbose result))
                               ((c concise)
@@ -895,7 +919,8 @@ tuple that can be used to restore the whole directory hierarchy."
                                      (with-input-from-string tuple read)
                                      (current-output-port)
                                      #:verbose? (memq 'verbose opts)
-                                     #:recursive? (memq 'recursive opts)))
+                                     #:recursive? (memq 'recursive opts)
+                                     #:history? (memq 'history opts)))
            ((store-file)
             (match (most-recent-backup-tuple)
               (((? string? name) . tuple)
@@ -905,7 +930,8 @@ tuple that can be used to restore the whole directory hierarchy."
                                         tuple
                                         (current-output-port)
                                         #:verbose? (memq 'verbose opts)
-                                        #:recursive? (memq 'recursive opts)))
+                                        #:recursive? (memq 'recursive opts)
+                                        #:history? (memq 'history opts)))
               (_
                (leave "please specify the tuple of a directory"))))
            (_
