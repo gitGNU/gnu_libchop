@@ -615,44 +615,50 @@ TUPLE in STORE."
                    (one (logand 7 (arithmetic-shift perms -3)))
                    (one (logand 7 perms))))
 
+  (define (display-entry entry indent)
+    (format port "~a~a~a ~8,d ~16,a ~a~:[~*~; ~s~]~%"
+            indent
+            (case (directory-entry-kind entry)
+              ((regular) "-")
+              ((directory) "d")
+              ((symlink) "l")
+              ((block-special) "b")
+              ((char-special) "c")
+              ((fifo) "f")
+              ((socket) "s")
+              (else "?"))
+            (->perms (directory-entry-permissions entry))
+            (directory-entry-size entry)
+            (->date (directory-entry-mtime entry))
+            (directory-entry-name entry)
+            verbose? (directory-entry-tuple entry)))
+
+  (define (tuple->directory tuple)
+    ;; Fetch the directory at TUPLE and return it.
+    (let ((retrieve (index-tuple->retriever tuple)))
+      (read-directory (retrieve store))))
+
+  (define (make-previous-version-entry dir)
+    (let ((prev (directory-previous-version dir)))
+      (make-directory-entry "//previous-version//"
+                            'directory
+                            0 0 0
+                            prev)))
+
   (let loop ((tuple  tuple)
              (indent ""))
-    (let ((retrieve (index-tuple->retriever tuple)))
-      (let liip ((entries (directory-entries
-                           (read-directory (retrieve store)))))
+    (let ((dir (tuple->directory tuple)))
+      (if (directory-previous-version dir)
+          (display-entry (make-previous-version-entry dir)
+                         indent))
+      (let liip ((entries (directory-entries dir)))
         (or (null? entries)
             (eof-object? entries)
             (let ((e (car entries)))
-              (case (directory-entry-kind e)
-                ((directory)
-                 (format port "~ad~a ~8,d ~16,a ~a~:[~*~; ~s~]~%" indent
-                         (->perms (directory-entry-permissions e))
-                         (directory-entry-size e)
-                         (->date (directory-entry-mtime e))
-                         (directory-entry-name e)
-                         verbose? (directory-entry-tuple e))
-                 (and recursive?
-                      (loop (directory-entry-tuple e) (nest indent)))
-
-                 ;; XXX: Constant below to work around compiler bug; see
-                 ;; <http://savannah.gnu.org/bugs/?34300>.
-                 #t)
-                (else
-                 (format port "~a~a~a ~8,d ~16,a ~a~:[~*~; ~s~]~%"
-                         indent
-                         (case (directory-entry-kind e)
-                           ((regular) "-")
-                           ((symlink) "l")
-                           ((block-special) "b")
-                           ((char-special) "c")
-                           ((fifo) "f")
-                           ((socket) "s")
-                           (else "?"))
-                         (->perms (directory-entry-permissions e))
-                         (directory-entry-size e)
-                         (->date (directory-entry-mtime e))
-                         (directory-entry-name e)
-                         verbose? (directory-entry-tuple e))))
+              (display-entry e indent)
+              (if (and (eq? 'directory (directory-entry-kind e))
+                       recursive?)
+                  (loop (directory-entry-tuple e) (nest indent)))
 
               (liip (cdr entries))))))))
 
