@@ -458,8 +458,8 @@ handle."
   ;; TODO: Replace PIPELINE with a FILE -> STAT -> PIPELINE procedure and
   ;; make WORTHLESS-FILE? a parameter.
 
-  (define (stat->index-tuple stat)
-    ;; Return the serialized index tuple corresponding to STAT or #f.
+  (define (stat->cached-entry stat)
+    ;; Return an mtime/tuple pair corresponding to STAT or #f.
     (let* ((ino   (stat:ino stat))
            (dev   (stat:dev stat))
            (entry (false-if-exception
@@ -467,10 +467,15 @@ handle."
                                      (string->utf8
                                       (format #f "(~a . ~a)" ino dev))))))
       (and entry
-           (match (call-with-input-string (utf8->string entry) read)
-             ((mtime . index-tuple)
-              (and (= mtime (stat:mtime stat))
-                   index-tuple))))))
+           (call-with-input-string (utf8->string entry) read))))
+
+  (define (stat->index-tuple stat)
+    ;; Return the serialized index tuple corresponding to STAT or #f.
+    (match (stat->cached-entry stat)
+      ((mtime . index-tuple)
+       (and (= mtime (stat:mtime stat))
+            index-tuple))
+      (_ #f)))
 
   (define (cache-index stat index)
     (let* ((ino   (stat:ino stat))
@@ -502,7 +507,8 @@ handle."
   (define (store-directory* stat entries)
     ;; Like `store-directory', and update %FILE-INDEX-MAPPING with a mapping
     ;; from STAT to the index tuple of ENTRIES.
-    (let* ((dir   (make-directory #f entries))
+    (let* ((prev  (and=> (stat->cached-entry stat) cdr))
+           (dir   (make-directory prev entries))
            (index (store-directory dir store)))
       (cache-index stat index)
       index))
