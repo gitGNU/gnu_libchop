@@ -40,6 +40,12 @@ static const struct pair ascii_serials[] =
       92
     },
 
+    {
+      "hash_index_handle",
+      "3q2hrigwtmsmvqi64cy2yw7szh66drvf/122",
+      36
+    },
+
     { NULL, NULL, 0 }
   };
 

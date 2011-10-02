@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -158,19 +158,27 @@ hih_deserialize (const char *s_buffer, size_t size,
     {
       case CHOP_SERIAL_ASCII:
 	{
-	  unsigned char *slash;
-	  const unsigned char *end;
+	  /* Avoid a stack overflow with the INPUT array below.  */
+	  size = size > 1023 ? 1023 : size;
 
-	  slash = (unsigned char *)strchr ((char *)buffer, '/');
+	  char input[size + 1];
+	  char *slash;
+	  const char *end;
+
+	  /* Copy BUFFER locally and add a trailing zero to make sure we
+	     don't read past the end.  */
+	  memcpy (input, buffer, size);
+	  input[size] = '\0';
+
+	  slash = strchr ((char *) input, '/');
 	  if (!slash)
 	    return CHOP_DESERIAL_CORRUPT_INPUT;
 
 	  /* Read the block ID.  */
-	  assert (slash - buffer <= sizeof (handle->content));
+	  assert (slash - input <= sizeof (handle->content));
 	  handle->key_size =
-	    chop_base32_string_to_buffer ((char *) buffer, slash - buffer,
-					  handle->content,
-					  (const char **) &end);
+	    chop_base32_string_to_buffer (input, slash - input,
+					  handle->content, &end);
 	  if (end != slash)
 	    return CHOP_DESERIAL_CORRUPT_INPUT;
 
@@ -178,12 +186,12 @@ hih_deserialize (const char *s_buffer, size_t size,
 
 	  {
 	    /* Read the block size.  */
-	    long int block_size;
-	    const unsigned char *start;
+	    unsigned long int block_size;
+	    const char *start;
 
 	    start = end;
 
-	    block_size = strtol ((char *)start, (char **)&end, 16);
+	    block_size = strtoul ((char *)start, (char **)&end, 16);
 	    if (end == start)
 	      err = CHOP_DESERIAL_CORRUPT_INPUT;
 	    else if (block_size < 0)
@@ -194,7 +202,7 @@ hih_deserialize (const char *s_buffer, size_t size,
 	  }
 
 	  if (!err)
-	    *bytes_read = end - buffer;
+	    *bytes_read = end - input;
 
 	  break;
 	}
