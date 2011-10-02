@@ -393,6 +393,26 @@ returns a port from which the contents pointed to by TUPLE can be read."
                                               store store)))
            (stream->port (filtered-stream stream stream-filters))))))))
 
+(define (index-tuple->verifier tuple)
+  "Return a verifier procedure that takes a store and returns a symbol
+indicating whether TUPLE is available in that store, missing, corrupt, or
+something else."
+  (let ((retrieve (index-tuple->retriever tuple)))
+    (lambda (store)
+      (catch 'chop-error
+        (lambda ()
+          (let ((port (retrieve store))
+                (void (%make-void-port "w")))
+            (dump-port port void)
+            (close-port port)
+            'ok))
+        (lambda (key err . _)
+          (cond ((eq? err error/store-block-unavailable)
+                 'missing)
+                ((eq? err error/block-indexer-error)
+                 'corrupt)
+                (else 'corrupt)))))))
+
 
 ;;;
 ;;; Actual backup.
@@ -693,6 +713,56 @@ TUPLE in STORE."
           (put-bytevector out buffer 0 bytes)
           (loop (get-bytevector-n! in buffer 0 buffer-size))))))
 
+(define (verify-tree store tuple)
+  "Read the directory pointed to by TUPLE from STORE and check the
+availability and integrity of each file and directory contained in that
+directory, recursively.  Return #t on success, #f otherwise."
+  (define (display-status s)
+    (format #t "~a~%"
+            (case s
+              ((ok) "OK")
+              ((corrupt) "CORRUPT")
+              ((missing) "MISSING")
+              (else s)))
+    (eq? s 'ok))
+
+  (let loop ((tuple tuple)
+             (file  "")
+             (result #t))
+    (let* ((retrieve (index-tuple->retriever tuple))
+           (verify   (index-tuple->verifier tuple))
+           (status   (verify store)))
+      ;; XXX: We're retrieving & decoding TUPLE twice here.
+      (format #t "~a\t~s\t"
+              (match file
+                ("" "/")
+                (_  file))
+              tuple)
+      (display-status status)
+
+      (and (eq? status 'ok)
+           (let liip ((entries (directory-entries
+                                (read-directory (retrieve store))))
+                      (status  status))
+             (or (null? entries)
+                 (let* ((e     (car entries))
+                        (name  (directory-entry-name e))
+                        (tuple (directory-entry-tuple e))
+                        (file  (string-append file "/" name))
+                        (status
+                         (case (directory-entry-kind e)
+                           ((directory)
+                            (loop tuple file status))
+                           (else
+                            (format #t "~a\t~s\t" file tuple)
+                            (if tuple             ; #f means "empty file"
+                                (let ((verify (index-tuple->verifier tuple)))
+                                  (display-status (verify store)))
+                                (display-status 'ok))))))
+
+                   (liip (cdr entries) status))))))))
+
+
 (define (restore-tree store tuple dir)
   "Read the directory pointed to by TUPLE from STORE and restore it under
 directory DIR."
@@ -762,6 +832,10 @@ Create or access an encrypted file system snapshot.
   -s, --show             Retrieve from STORE and show the contents pointed to
                          by the given tuple.
 
+  -c, --check            Check whether the contents of the directory pointed
+                         to by the given tuple are available from STORE,
+                         recursively.
+
   -r, --restore          Retrieve from STORE and restore the complete file
                          system hierarchy pointed to by the given tuple, and
                          write it to the given directory.
@@ -827,6 +901,10 @@ Report bugs to ~a.~%"
         (option '(#\s "show") #f #f
                 (lambda (opt name arg result)
                   (alist-cons 'action 'show
+                              (alist-delete 'action result eq?))))
+        (option '(#\c "check") #f #f
+                (lambda (opt name arg result)
+                  (alist-cons 'action 'verify
                               (alist-delete 'action result eq?))))
         (option '(#\r "restore") #f #f
                 (lambda (opt name arg result)
@@ -951,6 +1029,22 @@ tuple that can be used to restore the whole directory hierarchy."
          (_
           (leave "wrong number of arguments for the `show' operation"))))
 
+      ((verify)
+       (match args
+         ((store-file tuple)
+          (let ((store (open-store store-file))
+                (tuple (with-input-from-string tuple read)))
+            (exit (verify-tree store tuple))))
+         ((store-file)
+          (match (most-recent-backup-tuple)
+            (((? string? name) . tuple)
+             (warn "verifying most recent backup of `~a' at `~s'" name tuple)
+             (exit (verify-tree (open-store store-file) tuple)))
+            (_
+             (leave "please specify the tuple of a directory"))))
+         (_
+          (leave "wrong number of arguments for the `verify' operation"))))
+
       ((restore)
        (match args
          ((store-file tuple out-dir)
@@ -966,4 +1060,5 @@ tuple that can be used to restore the whole directory hierarchy."
              (leave "please specify the tuple of a directory"))))
          (_
           (leave "wrong number of arguments for the `restore' operation"))))
+
       (else (error "what's this?" action)))))
