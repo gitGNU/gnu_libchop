@@ -348,11 +348,19 @@ resulting blocks in STORE and returning its index handle."
 (define (pipeline-index-handle->tuple pipeline index)
   "Return an index tuple for INDEX as produced by PIPELINE.  The tuple
 contains information about filters, in addition to INDEX."
+  (define zip-class
+    (lookup-class "zip_filter_class"))
+
   (define unzip-class
     (lookup-class "unzip_filter_class"))
 
   (let ((if (map (lambda (make-filter)
-                   (serialize-object/ascii (make-filter)))
+                   (let* ((f (make-filter))
+                          (c (object-class f)))
+                     (if (object-is-a? c zip-class)
+                         (class-name (dual-filter-class c))
+                         (error "currently limited to unzip/zip filtered"
+                                c))))             ; FIXME
                  (pipeline-stream-filters pipeline)))
         (i  ((pipeline-indexer pipeline)))
         (bi ((pipeline-block-indexer pipeline)))
