@@ -1,0 +1,64 @@
+# libchop -- a utility library for distributed storage and data backup
+# Copyright (C) 2011  Ludovic Courtès <ludo@gnu.org>
+#
+# Libchop is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Libchop is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with libchop.  If not, see <http://www.gnu.org/licenses/>.
+
+# Test the `chop-backup' command.
+
+source "${srcdir:-$PWD}/lib.sh"
+
+DB_FILE=",,backup.db"
+TMP_FILE=",,backup.tmp"
+XDG_CACHE_HOME="$PWD/backup-cache"
+
+chop_CLEANFILES="$DB_FILE"
+chop_CLEANUP_HOOK='rm -rf "$XDG_CACHE_HOME" "$TMP_FILE"'
+
+# Start from a clean state.
+chop_cleanup
+
+chop-backup --version
+
+index=`chop-backup "$DB_FILE" "$top_srcdir/include"`
+chop_fail_if ! chop-backup --list "$DB_FILE" | grep '^d.*chop$'
+chop_fail_if ! chop-backup --list=recursive "$DB_FILE" '"$index"' | \
+    grep '^ *-r.* indexers\.h$'
+chop_fail_if ! chop-backup --show "$DB_FILE" | grep '^(directory'
+chop_fail_if ! chop-backup --show "$DB_FILE" '"$index"' | grep '^(directory'
+chop_fail_if ! chop-backup --check "$DB_FILE"
+chop_fail_if ! chop-backup --check "$DB_FILE" '"$index"'
+
+index_makefile_am=`chop-backup -lv "$DB_FILE" | grep ' Makefile\.am' | \
+  sed -e's/^.* Makefile\.am \(.*\)$/\1/g'`
+chop_fail_if ! chop-backup -s "$DB_FILE" '"$index_makefile_am"' > "$TMP_FILE"
+chop_fail_if ! cmp "$TMP_FILE" "$top_srcdir/include/Makefile.am"
+
+index_indexers_h=`chop-backup -lv,r "$DB_FILE" | grep ' indexers\.h' | \
+  sed -e's/^.* indexers\.h \(.*\)$/\1/g'`
+chop_fail_if ! chop-backup -s "$DB_FILE" '"$index_indexers_h"' > "$TMP_FILE"
+chop_fail_if ! cmp "$TMP_FILE" "$top_srcdir/include/chop/indexers.h"
+
+rm -rf "$TMP_FILE"
+chop_fail_if ! chop-backup -r "$DB_FILE" "$TMP_FILE"
+rm -rf "$TMP_FILE"
+chop_fail_if ! chop-backup -r "$DB_FILE" '"$index"' "$TMP_FILE"
+
+for file in Makefile.am chop/objects.h chop/block-indexers.h chop/cipher.h
+do
+    chop_fail_if ! cmp "$TMP_FILE/$file" "$top_srcdir/include/$file"
+done
+
+rm -rf "$TMP_FILE"
+
+chop_cleanup

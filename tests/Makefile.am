@@ -40,6 +40,12 @@ check_SCRIPTS =					\
   utils/archiver-fd				\
   utils/block-server
 
+if HAVE_GUILE2
+
+check_SCRIPTS += utils/backup
+
+endif
+
 EXTRA_DIST =					\
   $(check_SCRIPTS)				\
   utils/lib.sh					\
@@ -55,6 +61,8 @@ TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
 # The test scripts need this environment.
 TESTS_ENVIRONMENT =						\
   PATH="$(top_builddir)/utils:$$PATH"				\
+  GUILE_LOAD_PATH="$(abs_top_srcdir)/guile2:$(abs_top_builddir)/guile2:$$GUILE_LOAD_PATH" \
+  libchop_libdir="$(abs_top_builddir)/src"			\
   top_srcdir="$(abs_top_srcdir)" srcdir="$(abs_srcdir)/utils"
 
 AM_CFLAGS = $(GCC_CFLAGS)
