@@ -427,16 +427,20 @@ something else."
 ;;;
 
 (define %default-storage-pipeline
-  (make-pipeline '()
+  (make-pipeline (let ((zip (or (lookup-class "lzo_zip_filter")
+                                (lookup-class "zlib_zip_filter"))))
+                   `(,(lambda ()
+                        ;; Quick input stream compression.
+                        (make-zip-filter zip 1))))
                  (lambda (s)
-                   (fixed-size-chopper-open s 8192))
+                   (fixed-size-chopper-open s 16384))
                  (lambda ()
                    (tree-indexer-open 256))
                  (lambda ()
                    (chk-block-indexer-open (make-cipher cipher-algorithm/aes256
                                                         cipher-mode/cbc)
                                            hash-method/sha256
-                                           hash-method/md5))
+                                           hash-method/sha1))
                  '()))
 
 (define %text-storage-pipeline
@@ -451,9 +455,11 @@ something else."
                                                         cipher-mode/cbc)
                                            hash-method/sha256
                                            hash-method/sha1))
-                 `(,(lambda ()
-                      (values (make-zlib-zip-filter)
-                              (make-zlib-unzip-filter))))))
+
+                 ;; No block-level compression since blocks are encrypted.
+                 ;; TODO: Use filtered block-indexers to perform block-level
+                 ;; compression before encryption.
+                 '()))
 
 (define (store-directory dir store)
   "Serialize DIR, write it to STORE, and return its index tuple."
