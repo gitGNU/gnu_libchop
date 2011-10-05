@@ -594,6 +594,7 @@ CHOOSE-PIPELINE, and return its index handle."
 
   (define (tip-exists? index)
     ;; Return #t if the root block pointed to by INDEX exists.
+    ;; TODO: Add a `block_exists' method to block-fetchers to optimize this.
     (let-values (((index indexer fetcher)
                   (deserialize-index-tuple/ascii index)))
       (false-if-exception (block-fetcher-fetch fetcher index store))))
