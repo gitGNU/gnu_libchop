@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -62,7 +62,8 @@ chop_lzo_unzip_pull (chop_filter_t *filter, int flush,
 #endif
 
 #define ENSURE_LARGE_ENOUGH_BUFFER(_which, _size)			\
-  if (zfilter-> _which ## _buffer_size < (_size))			\
+  if (zfilter-> _which ## _buffer_size					\
+      < (_size) + zfilter-> _which ## _offset)				\
     {									\
       lzo_bytep new_buf;						\
       size_t new_size = zfilter-> _which ## _buffer_size;		\
