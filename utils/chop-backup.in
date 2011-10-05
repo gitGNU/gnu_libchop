@@ -461,17 +461,49 @@ something else."
                  ;; compression before encryption.
                  '()))
 
-(define (store-directory dir store)
-  "Serialize DIR, write it to STORE, and return its index tuple."
-  (define pipeline
-    ;; The pipeline suitable for directories in this s-exp format.
-    %text-storage-pipeline)
+(define %compressed-data-storage-pipeline
+  ;; Storage pipeline for compressed data (MP3, JPG, etc.)
+  (make-pipeline '()
+                 (lambda (s)
+                   (fixed-size-chopper-open s 16384))
+                 (lambda ()
+                   (tree-indexer-open 512))
+                 (lambda ()
+                   ;; Use a more lightweight encryption scheme for speed, and
+                   ;; because the plaintext is essentially random already.
+                   (chk-block-indexer-open (make-cipher cipher-algorithm/blowfish
+                                                        cipher-mode/cbc)
+                                           hash-method/md5
+                                           hash-method/sha1))
+                 '()))
 
-  (let* ((str   (call-with-output-string (cut write-directory dir <>)))
-         (index (run-storage-pipeline pipeline
-                                      (mem-stream-open (string->utf8 str))
-                                      store)))
-    (pipeline-index-handle->tuple pipeline index)))
+
+(define (file-extension file)
+  "Return the extension of file name FILE or #f if it has none."
+  (let ((dot (string-rindex file #\.)))
+    (and dot
+         (substring file (+ 1 dot) (string-length file)))))
+
+(define (most-suitable-pipeline file stat)
+  "Return the most suitable pipeline to store FILE."
+  (define %text-extensions
+    '("txt" "org" "c" "h" "cc" "hh" "cpp" "hpp" "C" "scm" "ss" "sls"
+      "lisp" "el" "scala" "java" "m" "v" "hs" "py" "pl"
+      "am" "in" "ac" "m4" "nix" "xml" "svg"
+      "texi" "texinfo" "tex" "ltx" "sty" "lout" "skb"))
+
+  (define %compressed-extensions
+    '("mp3" "mp4" "mpc" "mpg" "wma" "ogg" "ogv" "avi" "mov"
+      "jpg" "png" "odt" "pack"
+      "gz" "bzip2" "bz2" "xz" "lz" "zip" "tgz" "tbz2" "arj" "rar"))
+
+  (let ((ext (and=> (file-extension file) string-downcase)))
+    (cond ((member ext %text-extensions)
+           %text-storage-pipeline)
+          ((member ext %compressed-extensions)
+           %compressed-data-storage-pipeline)
+          (else
+           %default-storage-pipeline))))
 
 (define worthless-file?
   (let ((rx   (make-regexp "(\\.(o|lo|a|so|gcda|gcno|gcda\\.info)|~)$"))
@@ -485,12 +517,24 @@ directory."
         (else
          (regexp-exec rx file-name))))))
 
-(define (run-storage-pipeline/recursive pipeline dir store)
-  "Store directory DIR into STORE using PIPELINE and return its index
-handle."
 
-  ;; TODO: Replace PIPELINE with a FILE -> STAT -> PIPELINE procedure and
-  ;; make WORTHLESS-FILE? a parameter.
+(define (store-directory dir store)
+  "Serialize DIR, write it to STORE, and return its index tuple."
+  (define pipeline
+    ;; The pipeline suitable for directories in this s-exp format.
+    %text-storage-pipeline)
+
+  (let* ((str   (call-with-output-string (cut write-directory dir <>)))
+         (index (run-storage-pipeline pipeline
+                                      (mem-stream-open (string->utf8 str))
+                                      store)))
+    (pipeline-index-handle->tuple pipeline index)))
+
+(define (run-storage-pipeline/recursive choose-pipeline dir store)
+  "Store directory DIR into STORE using the storage pipeline returned by
+CHOOSE-PIPELINE, and return its index handle."
+
+  ;; TODO: make WORTHLESS-FILE? a parameter.
 
   (define (stat->cached-entry stat)
     ;; Return an mtime/tuple pair corresponding to STAT or #f.
@@ -533,8 +577,9 @@ handle."
          #f)))
 
     (and input
-         (let* ((index  (run-storage-pipeline pipeline input store))
-                (index* (pipeline-index-handle->tuple pipeline index)))
+         (let* ((pipeline (choose-pipeline file stat))
+                (index    (run-storage-pipeline pipeline input store))
+                (index*   (pipeline-index-handle->tuple pipeline index)))
            (cache-index stat index*)
            index*)))
 
@@ -955,15 +1000,15 @@ tuple that can be used to restore the whole directory hierarchy."
           (match files
             ((file)
              (let* ((file  (canonicalize-path file))
-                    (tuple (run-storage-pipeline/recursive %default-storage-pipeline
-                                                           file store)))
+                    (tuple (run-storage-pipeline/recursive
+                            most-suitable-pipeline file store)))
                (save-backup-tuple file tuple)
                (write* tuple)))
             ((files ...)
              (let* ((files  (map canonicalize-path files))
                     (stats  (map lstat files))
                     (tuples (map (cut run-storage-pipeline/recursive
-                                      %default-storage-pipeline <> store)
+                                      most-suitable-pipeline <> store)
                                  files))
                     (entries (map (match-lambda
                                    ((file stat tuple)
