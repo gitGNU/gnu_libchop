@@ -197,10 +197,17 @@ returns no, call (SKIP PATH STAT RESULT)."
         (write (alist-cons dir tuple (alist-delete dir backups))
                p)))))
 
+(define (recent-backups)
+  "Return a list of directory/tuple pairs representing recent backups."
+  (if (file-exists? %recent-backups-file)
+      (call-with-input-file %recent-backups-file read)
+      '()))
+
 (define (most-recent-backup-tuple)
   "Return the file/tuple pair corresponding to the most recent backup."
-  (and (file-exists? %recent-backups-file)
-       (car (call-with-input-file %recent-backups-file read))))
+  (match (recent-backups)
+    ((p _ ...) p)
+    (_         #f)))
 
 
 ;;;
@@ -882,6 +889,8 @@ Create or access an encrypted file system snapshot.
                          a tuple that designates the backup.  This is the
                          default action.
 
+  -R, --recent           List recent backups and their tuple.
+
   -l, --list[=OPTS]      List the contents of the directory pointed to by the
                          tuple specified in ARGS and stored at STORE.  OPTS
                          is a comma-separated list of long or one-letter
@@ -969,6 +978,10 @@ Report bugs to ~a.~%"
         (option '(#\r "restore") #f #f
                 (lambda (opt name arg result)
                   (alist-cons 'action 'restore
+                              (alist-delete 'action result eq?))))
+        (option '(#\R "recent") #f #f
+                (lambda (opt name arg result)
+                  (alist-cons 'action 'list-recent
                               (alist-delete 'action result eq?))))))
 
 (define %default-options
@@ -1120,5 +1133,11 @@ tuple that can be used to restore the whole directory hierarchy."
              (leave "please specify the tuple of a directory"))))
          (_
           (leave "wrong number of arguments for the `restore' operation"))))
+
+      ((list-recent)
+       (format #t "~:{~a\t~s~%~}"
+               (map (lambda (p)
+                      (list (car p) (cdr p)))
+                    (recent-backups))))
 
       (else (error "what's this?" action)))))
