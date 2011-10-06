@@ -594,19 +594,132 @@ read from @var{buffer} in order to deserialize @var{object}.
 @chapter Utilities
 
 Libchop comes with a number of utilities that exercise all its API.
-Using them is actually a good way to become familiar with libchop's
-interfaces and their implementations.
 
-The first tool, @code{chop-archiver}, exposes all of libchop's storage
+The first one, @command{chop-backup}, is an encrypted backup
+application, with some bells and whistles.
+
+The remaining tools offer a lower-level interface.  Using them is
+actually a good way to become familiar with libchop's interfaces and
+their implementations.
+
+The @command{chop-archiver} tool exposes all of libchop's storage
 pipeline, which makes it the main entry point to libchop from the
-command line.  The @code{chop-block-server} tool implements a dumb
+command line.  The @code{chop-block-server} program implements a dumb
 @dfn{block server}, which listens to remote procedure calls (RPCs) to
 read and write data blocks.
 
 @menu
+* Invoking chop-backup::        Encrypted, versioned backups.
 * Invoking chop-archiver::      Storing and restoring data using libchop.
 * Invoking chop-block-server::  Remote data block storage.
 @end menu
+
+@node Invoking chop-backup
+@section Invoking @command{chop-backup}
+
+@cindex backup
+@command{chop-backup} is an encrypted backup application.  It has
+several salient features:
+
+@table @emph
+@item Encrypted.
+The backup data can safely be store at an untrusted site without
+compromising its confidentiality.
+
+@item Tamper-proof.
+The backup's integrity is checked upon recovery.
+
+@item Versioned.
+The history of directory snapshots is recorded.
+
+@item Shareable.
+Each directory/file in a snapshot is identified by a ``tuple'', which is
+necessary and sufficient to retrieve it.  A tuple can be shared with
+others, which gives access to the corresponding file/directory and only
+it.
+
+@item Distributable.
+Backup data can be written to more than one store.
+
+@item Compressed.
+@cindex deduplication
+@cindex single-instance storage
+Similar data among files or versions are coalesced (this is sometimes
+referred to as @dfn{deduplication} or @dfn{single-instance storage}).
+For each file type an appropriate compression method is chosen.
+
+@item Evolutive.
+The application is not bound to any storage, hash, encryption, or
+compression method.  In fact they can all vary from file to file within
+a snapshot.
+@end table
+
+@noindent
+To create a snapshot, type:
+
+@example
+$ chop-backup --backup ~/bak ~/doc/important
+(() "tree_indexer:chk_block_fetcher:chk_index_handle:100:aes256,cbc,sha1...mdfagfq2a/4a" ())
+
+$ chop-backup --backup /net/backup-machine ~/doc/important
+(() "tree_indexer:chk_block_fetcher:chk_index_handle:100:aes256,cbc,sha1...ssqijsady/4a" ())
+@end example
+
+@cindex tpule
+@noindent
+The first command above creates a snapshot of the @file{~/doc/important}
+directory and stores it under @file{~/bak}.  Upon completion it displays
+a @dfn{tuple}, which is the key that is @emph{necessary and sufficient}
+to access the snapshot.  The second command writes a new (possibly
+identical) snapshot to @file{/net/backup-machine}, which could be (say)
+an SSHFS mount point to some backup host.
+
+Because the returned tuples are so important (and hard to type),
+@command{chop-backup} caches a copy of them locally.  They can be
+accessed with the @code{--recent} option:
+
+@example
+$ chop-backup --recent
+/home/ludo/doc/important        (() "tree_indexer...ssqijsady/4a" ())
+@end example
+
+To allow you to retrieve your data even if the host on which
+@command{chop-backup} is run crashes, it is recommended to backup the
+resulting tuple by other means---e.g., by sending it by mail.
+
+The contents of a snapshot can be listed:
+
+@example
+$ chop-backup --list ~/bak
+accessing most recent backup of `/home/ludo/doc/important' at `(() "tree_...gfq2a/4a" ())'
+d---------        0 Jan  1 01:00     //previous-version//
+drwxr-xr-x     4096 Oct  6 22:18     chop
+-rw-r--r--    32001 Oct  6 22:35     Makefile
+-rw-r--r--     1451 Dec  8 10:23     Makefile.am
+-rw-r--r--       59 Dec  8 10:23     .gitignore
+-rw-r--r--    38221 Oct  6 22:20     Makefile.in
+@end example
+
+@noindent
+Since the command did not specify a tuple, @command{chop-backup} assumed
+that the user may be interested in the latest backup that was made.
+
+The special entry @code{//previous-version//} above represents the
+previous snapshot of that directory.  The code @code{--list=verbose}
+option would show its tuple, which could then be passed to
+@command{chop-backup --list} to view specifically that version.
+
+Complete directory trees can be restored:
+
+@example
+$ chop-backup --restore ~/bak out
+@end example
+
+This command restores the latest snapshot and writes it to directory
+@file{out}.
+
+@c FIXME
+@emph{This sentence will disappear when the section is complete.}
 
 @node Invoking chop-archiver
 @section Invoking @code{chop-archiver}
