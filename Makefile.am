@@ -17,7 +17,7 @@
 
 ACLOCAL_AMFLAGS  = -I m4
 
-SUBDIRS = lib src utils include doc
+SUBDIRS = po lib src utils include doc
 
 if HAVE_GUILE
 SUBDIRS += guile

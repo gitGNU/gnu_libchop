@@ -115,3 +115,6 @@ stamp-h[0-9]
 /guile2/filters.log
 /tests/interfaces/deserialize
 /utils/chop-backup
+/po/POTFILES
+/po/stamp-po
+/po/libchop.pot

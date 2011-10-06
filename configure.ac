@@ -41,6 +41,7 @@ gl_EARLY
 AM_PROG_CC_C_O
 
 LT_INIT([disable-static])
+AM_GNU_GETTEXT([external])
 
 # Gnulib
 gl_INIT
@@ -338,6 +339,7 @@ AC_MSG_NOTICE([  GNU Guile 1.8 .................. $have_guile])
 AC_MSG_NOTICE([  GNU Guile 2.x .................. $have_guile2])
 
 AC_CONFIG_FILES([Makefile
+		 po/Makefile.in
 		 guile/pre-inst-guile
 		 lib/Makefile
                  include/Makefile
