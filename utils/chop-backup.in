@@ -48,6 +48,9 @@ exec ${GUILE:-@GUILE@} -L "@guilemoduledir@" \
 ;;; User interface.
 ;;;
 
+(define _ gettext)
+(define N_ ngettext)
+
 (define-syntax warn
   (syntax-rules ()
     ((_ message args ...)
@@ -56,7 +59,7 @@ exec ${GUILE:-@GUILE@} -L "@guilemoduledir@" \
       (newline (current-error-port))))))
 
 (if (not (string=? "@PACKAGE_VERSION@" (libchop-version)))
-    (warn "I was written for libchop @PACKAGE_VERSION@ but I'm using ~a!"
+    (warn (_ "written for libchop @PACKAGE_VERSION@ but using ~a!")
           (libchop-version)))
 
 
@@ -579,7 +582,7 @@ CHOOSE-PIPELINE, and return its index handle."
          (mem-stream-open (string->utf8 (readlink file))))
         ((regular) file)
         (else
-         (warn "file `~a' of type `~a' will not be saved"
+         (warn (_ "file `~a' of type `~a' will not be saved")
                file (stat:type stat))
          #f)))
 
@@ -787,9 +790,9 @@ directory, recursively.  Return #t on success, #f otherwise."
   (define (display-status s)
     (format #t "~a~%"
             (case s
-              ((ok) "OK")
-              ((corrupt) "CORRUPT")
-              ((missing) "MISSING")
+              ((ok) (_ "OK"))
+              ((corrupt) (_ "CORRUPT"))
+              ((missing) (_ "MISSING"))
               (else s)))
     (eq? s 'ok))
 
@@ -870,7 +873,7 @@ directory DIR."
                             file)
                    #t))
                 (else
-                 (warn "file `~a' of type `~a' not restored"
+                 (warn (_ "file `~a' of type `~a' not restored")
                        file (directory-entry-kind e))
                  #t))
               (liip (cdr entries))))))))
@@ -881,39 +884,41 @@ directory DIR."
 ;;;
 
 (define (show-help)
-  (format #t "chop-backup [OPTION] STORE ARGS ...
-Create or access an encrypted file system snapshot.
-
-  -b, --backup           Create an encrypted backup of the given files or
-                         directories, store it in file STORE, and return
-                         a tuple that designates the backup.  This is the
-                         default action.
-
-  -R, --recent           List recent backups and their tuple.
-
+  (display (_ "chop-backup [OPTION] STORE ARGS ...\n"))
+  (display (_ "Create or access an encrypted file system snapshot.\n"))
+  (display (_ "
+  -b, --backup           Create an encrypted backup of the given directories,
+                         store it in file STORE, and return a tuple that
+                         designates the backup (default action)."))
+  (display (_ "
+  -R, --recent           List recent backups and their tuple."))
+  (newline)
+  (display (_ "
   -l, --list[=OPTS]      List the contents of the directory pointed to by the
                          tuple specified in ARGS and stored at STORE.  OPTS
                          is a comma-separated list of long or one-letter
-                         options: \"r\" or \"recursive\",\"f\" or \"flat\",
-                         \"h\" or \"history\", \"l\" or \"latest\",
-                         \"v\" or \"verbose\", \"c\" or \"concise\".
-
+                         options: `r' or `recursive',`f' or `flat',
+                         `h' or `history', `l' or `latest',
+                         `v' or `verbose', `c' or `concise'."))
+  (display (_ "
   -s, --show             Retrieve from STORE and show the contents pointed to
-                         by the given tuple.
-
+                         by the given tuple."))
+  (display (_ "
   -c, --check            Check whether the contents of the directory pointed
                          to by the given tuple are available from STORE,
-                         recursively.
-
+                         recursively."))
+  (display (_ "
   -r, --restore          Retrieve from STORE and restore the complete file
                          system hierarchy pointed to by the given tuple, and
-                         write it to the given directory.
-
-  -h, --help             Give this help list
-  -V, --version          Print program version
-
-Report bugs to ~a.~%"
-          (libchop-bug-address)))
+                         write it to the given directory."))
+  (newline)
+  (display (_"
+  -h, --help             Give this help list."))
+  (display (_ "
+  -V, --version          Print program version."))
+  (newline)
+  (newline)
+  (format #t (_ "Report bugs to ~a.~%") (libchop-bug-address)))
 
 (define (show-version)
   (format #t "chop-backup (libchop) ~a\n" (libchop-version)))
@@ -993,7 +998,7 @@ tuple that can be used to restore the whole directory hierarchy."
   (define (parse-args args)
     (args-fold args %options
                (lambda (opt name arg result)
-                 (leave "~A: unrecognized option" opt))
+                 (leave (_ "~A: unrecognized option") opt))
                (lambda (arg result)
                  (alist-cons 'arguments
                              (cons arg
@@ -1040,7 +1045,7 @@ tuple that can be used to restore the whole directory hierarchy."
                (map save-backup-tuple files tuples)
                (write* tuple))))))
       (lambda (key err . _)
-        (leave "error: ~a" (error-message err)))))
+        (leave (_ "error: ~a") (error-message err)))))
 
   (define (show store-file tuple)
     (let* ((store    (open-store store-file))
@@ -1050,6 +1055,8 @@ tuple that can be used to restore the whole directory hierarchy."
       (store-close store)))
 
   (false-if-exception (setlocale LC_ALL ""))
+  (textdomain "libchop")
+
   (let* ((options (parse-args args))
          (action  (or (assq-ref options 'action) 'backup))
          (args    (reverse (assq-ref options 'arguments))))
@@ -1060,7 +1067,7 @@ tuple that can be used to restore the whole directory hierarchy."
          ((store-file files ...)
           (backup store-file files))
          (_
-          (leave "too few arguments for `backup' operation"))))
+          (leave (_ "too few arguments for `backup' operation")))))
 
       ((list)
        (let ((opts (or (assq-ref options 'list-options) '())))
@@ -1075,7 +1082,7 @@ tuple that can be used to restore the whole directory hierarchy."
            ((store-file)
             (match (most-recent-backup-tuple)
               (((? string? name) . tuple)
-               (warn "accessing most recent backup of `~a' at `~s'"
+               (warn (_ "accessing most recent backup of `~a' at `~s'")
                      name tuple)
                (list-directory-contents (open-store store-file)
                                         tuple
@@ -1084,9 +1091,9 @@ tuple that can be used to restore the whole directory hierarchy."
                                         #:recursive? (memq 'recursive opts)
                                         #:history? (memq 'history opts)))
               (_
-               (leave "please specify the tuple of a directory"))))
+               (leave (_ "please specify the tuple of a directory")))))
            (_
-            (leave "wrong number of arguments for the `list' operation")))))
+            (leave (_ "wrong number of arguments for the `list' operation"))))))
 
       ((show)
        (match args
@@ -1095,12 +1102,13 @@ tuple that can be used to restore the whole directory hierarchy."
          ((store-file)
           (match (most-recent-backup-tuple)
             (((? string? name) . tuple)
-             (warn "accessing most recent backup of `~a' at `~s'" name tuple)
+             (warn (_ "accessing most recent backup of `~a' at `~s'")
+                   name tuple)
              (show store-file tuple))
             (_
-             (leave "please specify the tuple of a directory"))))
+             (leave (_ "please specify the tuple of a directory")))))
          (_
-          (leave "wrong number of arguments for the `show' operation"))))
+          (leave (_ "wrong number of arguments for the `show' operation")))))
 
       ((verify)
        (match args
@@ -1111,12 +1119,13 @@ tuple that can be used to restore the whole directory hierarchy."
          ((store-file)
           (match (most-recent-backup-tuple)
             (((? string? name) . tuple)
-             (warn "verifying most recent backup of `~a' at `~s'" name tuple)
+             (warn (_ "verifying most recent backup of `~a' at `~s'")
+                   name tuple)
              (exit (verify-tree (open-store store-file) tuple)))
             (_
-             (leave "please specify the tuple of a directory"))))
+             (leave (_ "please specify the tuple of a directory")))))
          (_
-          (leave "wrong number of arguments for the `verify' operation"))))
+          (leave (_ "wrong number of arguments for the `verify' operation")))))
 
       ((restore)
        (match args
@@ -1127,12 +1136,13 @@ tuple that can be used to restore the whole directory hierarchy."
          ((store-file out-dir)
           (match (most-recent-backup-tuple)
             (((? string? name) . tuple)
-             (warn "restoring most recent backup of `~a' at `~s'" name tuple)
+             (warn (_ "restoring most recent backup of `~a' at `~s'")
+                   name tuple)
              (restore-tree (open-store store-file) tuple out-dir))
             (_
-             (leave "please specify the tuple of a directory"))))
+             (leave (_ "please specify the tuple of a directory")))))
          (_
-          (leave "wrong number of arguments for the `restore' operation"))))
+          (leave (_ "wrong number of arguments for the `restore' operation")))))
 
       ((list-recent)
        (format #t "~:{~a\t~s~%~}"
