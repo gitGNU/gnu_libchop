@@ -14,12 +14,6 @@ AC_CONFIG_SRCDIR(src/chop.c)
 AC_CONFIG_HEADER(include/chop/chop-config.h)
 AC_CONFIG_MACRO_DIR(m4)
 
-AC_ARG_ENABLE([guile-1.8-bindings],
-	AS_HELP_STRING([--enable-guile-1.8-bindings],
-	  [produce GNU Guile 1.8 bindings (requires Guile 1.8 and G-Wrap)]),
-	[produce_guile_bindings="$enableval"],
-	[produce_guile_bindings="no"])
-
 AC_ARG_WITH([dbus],
 	AS_HELP_STRING([--with-dbus],
 	  [Use D-BUS client/servers (experimental)]),
@@ -237,55 +231,8 @@ if test "x$ac_cv_path_GPERF" = "x"; then
 fi
 AC_SUBST([GPERF])
 
-if test "x$produce_guile_bindings" = "xyes"; then
-  # Check for Guile and G-Wrap
-  AC_PATH_PROG([guile], [guile])
-
-  if test "x$guile" != "x"; then
-     GUILE_PROGS
-     GUILE_FLAGS
-     GUILE_SITE_DIR
-
-  #   AC_CHECK_LIB([guile], [scm_u8vector_elements], [],
-  #     AC_MSG_ERROR([You version of Guile doesn't support SRFI-4 vectors.  Upgrade to 1.7.2 or later.]))
-
-     AC_PATH_PROG([g_wrap_config], [g-wrap-config])
-     if test "x$g_wrap_config" = "x"; then
-       AC_MSG_ERROR([Could not find `g-wrap-config'.  You must have G-Wrap to produce Guile bindings.])
-     else
-       AC_MSG_CHECKING([whether G-Wrap's version is 1.9.7+])
-       if "$g_wrap_config" --version | grep ['1.9.[7-9]'] > /dev/null || \
-	  "$g_wrap_config" --version | grep ['1.9.[1-9][0-9]'] > /dev/null ; then
-	 AC_MSG_RESULT([yes])
-       else
-	 AC_MSG_RESULT([no])
-	 AC_MSG_ERROR([Please, use the right G-Wrap version.])
-       fi
-
-       # Make sure G-Wrap is usable, i.e., its modules are in
-       # `$GUILE_LOAD_PATH' or some such.
-       GUILE_MODULE_AVAILABLE([have_g_wrap_module], [(g-wrap)])
-       if test "x$have_g_wrap_module" = "xno"; then
-	  AC_MSG_ERROR([Module `(g-wrap)' is not in Guile's load path.])
-       fi
-
-       AC_SUBST(GUILE, $guile)
-       AC_SUBST(G_WRAP_CONFIG, $g_wrap_config)
-     fi
-  else
-    AC_MSG_WARN([GNU Guile not found.  Not building Guile bindings.])
-  fi
-fi
-
-if test "x$guile" != "x"; then
-   have_guile="yes"
-else
-   have_guile="no"
-fi
-AM_CONDITIONAL([HAVE_GUILE], [test "x$guile" != "x"])
-
 #
-# GNU Guile 2.x.
+# GNU Guile 2.0.x.
 #
 
 guile2=""
@@ -310,13 +257,14 @@ if test "x$guilemoduledir" = "x"; then
 fi
 AC_SUBST([guilemoduledir])
 
-if test "x$produce_guile_bindings" = "xyes"; then
+if test "x$have_guile2" = "xyes"; then
   if test "$guilemoduledir" != "$GUILE_SITE"; then
      # Guile won't be able to locate the module "out of the box", so
      # warn the user.
      AC_MSG_WARN([`guilemoduledir' ($guilemoduledir) is different from `GUILE_SITE' ($GUILE_SITE).])
-     AC_MSG_WARN([Make sure to adjust the `GUILE_LOAD_PATH' environment variable accordingly,])
-     AC_MSG_WARN([or re-run `configure' with `--with-guilemoduledir=$GUILE_SITE'.])
+     AC_MSG_WARN([Make sure to adjust the `GUILE_LOAD_PATH' and `GUILE_LOAD_COMPILED_PATH'])
+     AC_MSG_WARN([environment variables accordingly, or re-run `configure' with])
+     AC_MSG_WARN([`--with-guilemoduledir=$GUILE_SITE'.])
   fi
 fi
 
@@ -335,12 +283,10 @@ AC_MSG_NOTICE([Networking])
 AC_MSG_NOTICE([  GnuTLS ......................... $have_gnutls])
 AC_MSG_NOTICE([  Avahi .......................... $have_avahi])
 AC_MSG_NOTICE([Languages])
-AC_MSG_NOTICE([  GNU Guile 1.8 .................. $have_guile])
-AC_MSG_NOTICE([  GNU Guile 2.x .................. $have_guile2])
+AC_MSG_NOTICE([  GNU Guile 2.0 .................. $have_guile2])
 
 AC_CONFIG_FILES([Makefile
 		 po/Makefile.in
-		 guile/pre-inst-guile
 		 lib/Makefile
                  include/Makefile
                  src/Makefile
@@ -348,11 +294,9 @@ AC_CONFIG_FILES([Makefile
 		 utils/chop-backup
 		 utils/chop-vcs
 		 tests/Makefile
-		 guile/Makefile
 		 guile2/Makefile
 		 doc/Makefile])
 
-AC_CONFIG_COMMANDS([pre-inst-guile-exec], [chmod +x guile/pre-inst-guile])
 AC_CONFIG_COMMANDS([chop-backup-exec], [chmod +x utils/chop-backup])
 AC_CONFIG_COMMANDS([chop-vcs-exec], [chmod +x utils/chop-vcs])
 

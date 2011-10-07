@@ -1,5 +1,5 @@
 # libchop -- a utility library for distributed storage and data backup
-# Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+# Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
 # Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 #
 # Libchop is free software: you can redistribute it and/or modify
@@ -18,10 +18,6 @@
 ACLOCAL_AMFLAGS  = -I m4
 
 SUBDIRS = po lib src utils include doc
-
-if HAVE_GUILE
-SUBDIRS += guile
-endif
 
 if HAVE_GUILE2
 SUBDIRS += guile2
