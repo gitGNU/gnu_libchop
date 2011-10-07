@@ -7,7 +7,9 @@ AC_INIT([libchop],
         [libchop-devel@nongnu.org])
 AC_CONFIG_AUX_DIR([build-aux])
 
-AM_INIT_AUTOMAKE([1.11 gnu silent-rules std-options subdir-objects \
+dnl XXX: We don't do `std-options' because `chop-backup' emits Guile
+dnl warnings on stderr, which annoys it.
+AM_INIT_AUTOMAKE([1.11 gnu silent-rules subdir-objects \
  color-tests parallel-tests])
 
 AC_CONFIG_SRCDIR(src/chop.c)
