@@ -81,8 +81,12 @@ This document describes libchop version @value{VERSION}.
 @node Introduction
 @chapter Introduction
 
-Libchop is a library and set of utilities for distributed storage and
-data backup.  It was initially designed as the basis for a peer-to-peer,
+Libchop is a set of utilities and library for data backup and
+distributed storage.  Its main application is an encrypted backup
+program with support for versioning, selective sharing, and adaptive
+compression (@pxref{Invoking chop-backup}).
+
+The library itself was initially designed as the basis for a peer-to-peer,
 cooperative backup system.  In such a system, data has to be sent by
 pieces, incrementally, and it may be scattered across several
 participating nodes.  In addition, participating nodes may be untrusted,
@@ -129,7 +133,7 @@ cases of the techniques and algorithms implemented by libchop.
 @cindex index handle
 @cindex abstract index
 
-Libchop defines several fine-grain interfaces for file chopping and
+The libchop library defines several fine-grain interfaces for file chopping and
 indexing.  Objects implementing those interfaces may be composed
 together to form a @dfn{data storage pipeline}: the input of this
 pipeline are the raw contents of a file, and its output is a set of data
@@ -232,27 +236,26 @@ application has specific requirements, and each particular design in
 these classes has its own particularities.
 
 Libchop, as a library or using its stand-alone utilities, can be used to
-build such applications.  For instance, incremental encrypted data
-backup to an untrusted site can be achieved this way:
+build such applications, as demonstrated by @command{chop-backup}
+(@pxref{Invoking chop-backup}).  For instance, incremental encrypted
+data backup to an untrusted site can be achieved this way:
 
 @smallexample
 # Mount the target FTP directory (using a GNU/Hurd translator; on
-# GNU/Linux, `curlftpfs' can be used similarly.)
+# GNU/Linux, `curlftpfs' and `sshfs' can be used similarly.)
 $ settrans -ca backup-site /hurd/ftpfs ftp.example.com:backup
 
-$ tar cf - /pix/holidays |                           \
-  chop-archiver -S fs_block_store -f backup-site     \
-    -i chk_block_indexer -I aes256,cbc,sha256,tiger  \
-    --archive-fd=0
-tree_indexer:chk_block_fetcher:chk_index_handle:64:aes256,cbc,tiger:cntd5...
+$ chop-backup backup-site /pix/holidays
+(() "tree_indexer:chk_block_fetcher:chk_index_handle:100:aes256,cbc,sha1...agfq2a/4a" ())
 @end smallexample
 
-The long line displayed by @code{chop-archiver} is an index handle that
-can eventually be passed to @code{chop-archiver --restore} to restore
-the file.  Although the file is stored as a set of encrypted blocks, it
-can be @dfn{selectively shared}: knowing the index handle is necessary
-and sufficient to retrieve the file.  @xref{Invoking chop-archiver, for
-more examples}.
+The long line displayed by @code{chop-backup} is an @dfn{index handle}
+or @dfn{tuple} that can eventually be passed to @code{chop-backup
+--restore} to restore the directory tree.  Although the directory and
+its contents are stored as a set of encrypted blocks, it can be
+@dfn{shared}: knowing the index handle is necessary and sufficient to
+retrieve the file.  For more information, @pxref{Invoking chop-backup},
+and @ref{Invoking chop-archiver}.
 
 Anonymous peer-to-peer file sharing systems like GNUnet and FreeNet both
 use the same particular configurations of the storage pipeline
@@ -542,7 +545,9 @@ file, unknown file type).
 The @code{chop-archiver} tool is a @dfn{storage client} that exposes
 most of the libchop programming interface at the command line.  It
 stores and retrieves individual files through the libchop storage
-pipeline (@pxref{Overview}).  Users can choose each component of the
+pipeline (@pxref{Overview}).  Unlike @command{chop-backup}, it does not
+natively support directory traversal and versioning; instead, it offers
+a lower-level interface.  Users can choose each component of the
 pipeline, thanks to libchop's introspection capabilities (@pxref{Object
 System}).
 
