@@ -853,8 +853,9 @@ directory DIR."
                 ((directory)
                  (let ((subdir file))
                    (mkdir subdir)
-                   (chmod subdir perms)
+                   (chmod subdir #o700)           ; so we can write to it
                    (loop tuple subdir)
+                   (chmod subdir perms)
                    #t))
                 ((regular)
                  (let ((out (open-output-file file)))
