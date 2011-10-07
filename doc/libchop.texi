@@ -315,8 +315,16 @@ read and write data blocks.
 @section Invoking @command{chop-backup}
 
 @cindex backup
-@command{chop-backup} is an encrypted backup application.  It has
-several salient features:
+@cindex chop-backup
+@command{chop-backup} is an encrypted backup application@footnote{This
+utility is installed only when GNU Guile 2.0 is available.}.  It is
+designed to liberate users from the need to entrust their storage
+providers with data confidentiality, integrity, and availability.  We
+believe this should make users less dependent on any storage providers,
+while making it easier to share storage capacity among distrustful
+people or organizations.
+
+The tool has several salient features towards that goal:
 
 @table @emph
 @item Encrypted.
@@ -326,17 +334,25 @@ compromising its confidentiality.
 @item Tamper-proof.
 The backup's integrity is checked upon recovery.
 
-@item Versioned.
-The history of directory snapshots is recorded.
-
-@item Shareable.
-Each directory/file in a snapshot is identified by a ``tuple'', which is
-necessary and sufficient to retrieve it.  A tuple can be shared with
-others, which gives access to the corresponding file/directory and only
-it.
-
 @item Distributable.
 Backup data can be written to more than one store.
+
+@item Shareable.
+@cindex capabilities
+@cindex principle of least authority (POLA)
+Each directory/file in a snapshot is identified by a ``tuple'', which is
+necessary and sufficient to retrieve it.  A tuple can be shared with
+others, which gives them access to the corresponding file/directory and
+@emph{only} it---in accordance with the principle of least
+authority@footnote{Tuples can be thought of as
+@dfn{capabilities}---i.e., ``unforgeable'', opaque bit strings that
+designate content @emph{and} the right to access it.  Tuples are
+``protected by sparsity'', whereas capabilities in operating systems or
+programming languages are typically ``kernel-protected''.}.
+
+@item Versioned.
+@cindex versioning
+The history of directory snapshots is recorded, at little cost.
 
 @item Compressed.
 @cindex deduplication
@@ -347,8 +363,8 @@ For each file type an appropriate compression method is chosen.
 
 @item Evolutive.
 The application is not bound to any storage, hash, encryption, or
-compression method.  In fact they can all vary from file to file within
-a snapshot.
+compression method.  In fact, all these parameters can vary from file to
+file within a snapshot.
 @end table
 
 @noindent
@@ -362,7 +378,7 @@ $ chop-backup --backup /net/backup-machine ~/doc/important
 (() "tree_indexer:chk_block_fetcher:chk_index_handle:100:aes256,cbc,sha1...ssqijsady/4a" ())
 @end example
 
-@cindex tpule
+@cindex tuple
 @noindent
 The first command above creates a snapshot of the @file{~/doc/important}
 directory and stores it under @file{~/bak}.  Upon completion it displays
@@ -413,10 +429,110 @@ $ chop-backup --restore ~/bak out
 @end example
 
 This command restores the latest snapshot and writes it to directory
-@file{out}.
+@file{out}, preserving file permissions and symbolic links.
 
-@c FIXME
-@emph{This sentence will disappear when the section is complete.}
+For each action, @command{chop-backup} has a corresponding option, as
+seen above.  The list of options is described below.
+
+@table @option
+@item --backup
+@itemx -b
+Create an encrypted backup of the given directories, store it in the
+specified block store, and return a tuple that designates the backup.
+
+For this action, @command{chop-backup} must be passed at least two
+arguments: a file name for the backup store, and one or more directories
+to be backed up.  This is the default action.
+
+@item --recent
+@itemx -R
+List recent backups and their tuple.  For each backup, a line is shown
+with the original directory name and the tuple of its latest backup.
+
+@item --list=[@var{opts}]
+@itemx -l@var{opts}
+List the contents of the directory pointed to by the specified tuple in
+the specified store.
+
+For this action, @command{chop-backup} must be passed at least the file
+name of the store, and optionally the tuple of a directory snapshot.
+
+@var{opts} is a comma-separated list of long or one-letter options:
+
+@table @option
+@item r
+@itemx recursive
+Show the contents of sub-directories, recursively.
+
+@item f
+@itemx flat
+Do not recurse into sub-directories.
+
+@item h
+@itemx history
+Show the contents of previous directory versions, recursively.  Each
+directory version appears as if it were a sub-directory of the next
+version, and called @file{//previous-version//}.
+
+@item l
+@itemx latest
+Show only the latest directory version.
+
+@item v
+@itemx verbose
+Show each file or directory tuple.
+
+@item c
+@itemx concise
+Do not show tuples.
+@end table
+
+For instance, @command{chop-backup -lr,h ~/bak} lists the contents of
+the most recent backup, recursively traversing sub-directories and
+previous directory versions.
+
+@item --show
+@itemx -s
+Show the contents pointed to by the given tuple in the given store.
+
+For this action, @command{chop-backup} must be passed the store's file
+name, and optionally a tuple.
+
+@item --check
+@itemx -c
+Check whether the contents of the directory pointed to by the given
+tuple are available from in the given store, recursively.  Each file is
+marked as @code{OK}, @code{CORRUPT}, or @code{MISSING}; @code{MISSING}
+means that some of the data blocks that comprise the given file were not
+found in the store.
+
+For this action, @command{chop-backup} must be passed the store's file
+name, and optional a tuple pointing to a directory snapshot.
+
+@item --restore
+@itemx -r
+Retrieve from the given store and restore the complete file system
+hierarchy pointed to by the given tuple, and write it to the given
+directory.
+
+For this action, @command{chop-backup} must be passed the store's file
+name, an optional tuple, and the output directory name.
+
+@item --help
+Print a summary of the command-line options and exit.
+
+@item --version
+Print the version number of libchop and exit.
+
+@end table
+
+@noindent
+Under the hood, @command{chop-backup} uses content-hash keys---i.e., the
+@code{chk_block_indexer}---to provide symmetric encryption and
+single-instance storage (@pxref{Block Indexers & Fetchers}).  The rest
+of the storage pipeline, notably choppers and compression filters, is
+chosen as a function of the file type (text file, already-compressed
+file, unknown file type).
 
 @node Invoking chop-archiver
 @section Invoking @code{chop-archiver}
