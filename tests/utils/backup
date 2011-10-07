@@ -49,9 +49,9 @@ index_indexers_h=`chop-backup -lv,r "$DB_FILE" | grep ' indexers\.h' | \
 chop_fail_if ! chop-backup -s "$DB_FILE" '"$index_indexers_h"' > "$TMP_FILE"
 chop_fail_if ! cmp "$TMP_FILE" "$top_srcdir/include/chop/indexers.h"
 
-rm -rf "$TMP_FILE"
+rm -f "$TMP_FILE"
 chop_fail_if ! chop-backup -r "$DB_FILE" "$TMP_FILE"
-rm -rf "$TMP_FILE"
+find "$TMP_FILE" | xargs chmod +w && rm -rf "$TMP_FILE"
 chop_fail_if ! chop-backup -r "$DB_FILE" '"$index"' "$TMP_FILE"
 
 for file in Makefile.am chop/objects.h chop/block-indexers.h chop/cipher.h
@@ -59,6 +59,6 @@ do
     chop_fail_if ! cmp "$TMP_FILE/$file" "$top_srcdir/include/$file"
 done
 
-rm -rf "$TMP_FILE"
+find "$TMP_FILE" | xargs chmod +w && rm -rf "$TMP_FILE"
 
 chop_cleanup
