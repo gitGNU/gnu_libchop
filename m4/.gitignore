@@ -58,3 +58,11 @@ xsize.m4
 /wchar_h.m4
 /write.m4
 /socklen.m4
+/msvc-inval.m4
+/msvc-nothrow.m4
+/nocrash.m4
+/raise.m4
+/read.m4
+/signal_h.m4
+/sys_types_h.m4
+/sys_uio_h.m4
