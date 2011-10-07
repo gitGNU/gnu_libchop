@@ -53,11 +53,10 @@ Optional dependencies:
   GnuTLS 1.4.1 (or compatible --- recommended)
   Avahi 0.6 or later
 
-If you want to build the Guile bindings of libchop (you don't have to),
-then you'll need the following:
+If you want to build the Guile bindings of libchop, which are needed
+for the `chop-backup' tool, you'll need the following:
 
-  GNU Guile 1.8
-  G-Wrap 1.9.7 or later
+  GNU Guile 2.0.x
 
 If building from a fresh checkout:
 
@@ -70,7 +69,7 @@ And that's it.
 
 
 
-Copyright (C) 2010  Ludovic Courtès <ludo@gnu.org>
+Copyright (C) 2010, 2011  Ludovic Courtès <ludo@gnu.org>
 Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
   Copying and distribution of this file, with or without modification,
