@@ -15,7 +15,13 @@
 * libchop: (libchop).      The libchop data storage library.
 @end direntry
 
-Copyright @copyright{} 2010  Ludovic Court@`es
+@dircategory Archiving
+@direntry
+* chop-backup: (libchop)Invoking chop-backup
+                           Encrypted data backup.
+@end direntry
+
+Copyright @copyright{} 2010, 2011  Ludovic Court@`es
 Copyright @copyright{} 2005, 2006  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
 @quotation
@@ -29,10 +35,10 @@ Free Documentation License''.
 @end ifinfo
 
 @titlepage
-@titlefont{Libchop, A Library}
-@sp 1
-@title for Distributed Storage and Data Backup
-@subtitle for libchop @value{VERSION}
+@title{Libchop User's Guide}
+@sp 0.5
+@subtitle Applications & Library for Data Backup and Distributed Storage
+@c @subtitle for libchop @value{VERSION}
 @author Ludovic Court@`es
 
 @page
@@ -40,7 +46,7 @@ Free Documentation License''.
 Edition @value{EDITION} @*
 @value{UPDATED} @*
 
-Copyright @copyright{} 2010  Ludovic Court@`es @*
+Copyright @copyright{} 2010, 2011  Ludovic Court@`es @*
 Copyright @copyright{} 2005, 2006  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
 @quotation
