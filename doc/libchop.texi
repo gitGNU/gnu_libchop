@@ -70,7 +70,6 @@ This document describes libchop version @value{VERSION}.
 @menu
 * Introduction::                Rationale and overview.
 * API Reference::               Using libchop from C.
-* Object System::               Object, classes, serialization, etc.
 * Utilities::                   Command-line interface to libchop.
 * Guile Bindings::              Using libchop from GNU Guile.
 * References::                  Worthy readings and related software.
@@ -297,6 +296,7 @@ This chapter is currently largely incomplete.  Please refer to the
 documentation in the libchop header files.
 
 @menu
+* Object System::               Object, classes, serialization, etc.
 * Input Streams::               
 * Stream Choppers::             
 * Block Stores::                
@@ -304,6 +304,218 @@ documentation in the libchop header files.
 * Stream Indexers::             
 * Filters::                     
 @end menu
+
+@c *********************************************************************
+@node Object System
+@section Object System
+
+@cindex object system
+Libchop comes with its own lightweight reflexive object system defined
+in the @code{<chop/objects.h>} header file.  Given that it is a
+reflexive object system, type information is available at run-time.
+With little overhead, this object system greatly improves the
+flexibility of the library.  The @code{chop-archiver} command line tool
+illustrates how type introspection can be leveraged to provide more
+flexibility (@pxref{Invoking chop-archiver}).
+
+@cindex binary compatibility
+Libchop's object system can be used to provide binary compatibility with
+little overhead: the size of a given class' instances can be known at
+run-time, which allows for caller allocation.  Callers can allocate
+objects of a given class as they prefer (e.g., on the stack) while
+remaining binary-compatible should the class layout
+change.@footnote{Conversely, the Glib family of libraries achieves
+binary compatibility at the cost of removing the possibility for caller
+memory allocation: constructors do not only initialize an object, they
+also allocate its storage on the heap.  The situation in C++ is often
+similar, but C++ has the advantage of having compiler support.}
+
+Let's have a closer look at it.
+
+@menu
+* Declaring and Defining a Class::  
+* Instantiating an Object::     
+* Cloning an Object::           
+* Testing Objects for Equality::  
+* Serializing and Deserializing an Object::  
+@end menu
+
+@node Declaring and Defining a Class
+@subsection Declaring and Defining a Class
+
+@cindex class
+
+At run-time, libchop classes are represented by @code{chop_class_t}
+objects.  The canonical naming scheme for classes is the following.
+Let @code{chbouib} be a libchop class:
+
+@itemize
+@item its C type is named @code{chop_chbouib_t};
+@item its run-time representation is a global @code{chop_class_t}
+object named @code{chop_chbouib_class}.
+@end itemize
+
+Libchop defines macros to declare and define classes while maintaining
+the naming scheme in a consistent way:
+
+@defmac CHOP_DECLARE_RT_CLASS (name, parent_name, fields)
+Declare a class named @var{name}, that is declare the type
+@code{chop_NAME_t} and the global variable @code{chop_NAME_class}.
+@var{fields} should be a list of fields (as in a @code{struct}
+definition).  Note that libchop classes must always inherit (directly
+or not) the @code{object} class.
+
+Example:
+
+@example
+CHOP_DECLARE_RT_CLASS (chbouib, object,
+                       int x;
+                       float y;);
+@end example
+
+@end defmac
+
+@defmac CHOP_DEFINE_RT_CLASS (name, parent_name, ctor, dtor, copy, equalp, serial, dserial)
+Once the class named @var{name} has been declared, this macro defines
+it as being a sub-class of the class named @var{parent_name} (this
+must be the same name as the one used in the declaration!), with
+constructor @var{ctor} and destructor @var{dtor} (both are optional),
+and with copy constructor @var{copy} and equality predicate
+@var{equalp} (both optional too).  Finally, @var{serial} is a pointer
+to a serializer and @var{dserial} and pointer to a deserializer which
+may both be @code{NULL} as well.
+@end defmac
+
+See the @code{<chop/objects.h>} for details.
+
+@node Instantiating an Object
+@subsection Instantiating an Object
+
+Constructors, in libchop, do not allocate memory to store objects:
+they simple @emph{initialize} objects.  Therefore, memory must be
+allocated to store a given an object @emph{before} its constructor is
+called.  Run-time type information turns out to be helpful here: each
+@code{chop_class_t} object contains information about the amount of
+memory needed to store an instance of it.
+
+@deftypefun size_t chop_class_instance_size (const chop_class_t *class)
+Return the size, in bytes, of instances of class @var{class}.
+@end deftypefun
+
+@defmac chop_class_alloca_instance (class)
+Return a pointer to a memory area large enough to store an instance of
+@var{class}.  This macro uses @code{alloca} to allocate storage on the
+stack (see @inforef{Variable Size Automatic, the GNU libc manual,
+libc}, for details).
+@end defmac
+
+@deftypefun chop_error_t chop_object_initialize (chop_object_t *object, const chop_class_t *class)
+Initialize @var{object} as an instance of class @var{class}, thus
+invoking the constructor of @var{class} and the one of its parent
+classes.
+
+As a user, you will not usually call this function directly.  Instead,
+you will call a particular constructor for @var{class} that can take
+additional arguments (e.g., @code{chop_file_stream_open ()}) and which
+will in turn call this function behind the scenes.
+@end deftypefun
+
+@deftypefun void chop_object_destroy (chop_object_t *object)
+Destroy @var{object}, that is deallocate resources associated to it.
+Note that it does not deallocate the memory where @var{object} is
+stored.
+@end deftypefun
+
+It is important to note that all libchop objects must be destroyed
+using @code{chop_object_destroy ()}, regardless of where they are
+stored in memory.
+
+Another way to instantiate an object is described in @ref{Cloning an
+Object}.
+
+
+@node Cloning an Object
+@subsection Cloning an Object
+
+@cindex deep copy
+@cindex clone
+Libchop's object system allows @dfn{deep copies} or @dfn{cloning} of
+objects.  Classes, however, may choose to not implement this feature.
+
+@deftypefun chop_error_t chop_object_copy (const chop_object_t *source, chop_object_t *dest)
+Clone the object pointed to by @var{source} into @var{dest}.  As
+usual, @var{dest} must point to an (uninitialized) memory area large
+enough to hold an instance of @var{source}'s class.  If @var{source}'s
+class does not implement cloning, then a default ``shallow'' copy is
+performed.
+
+Note that, in any case, the copy constructors of the whole class
+hierarchy of @var{source} are invoked, starting from the higher one,
+just like for a regular instantiation (@pxref{Instantiating an
+Object}).
+@end deftypefun
+
+
+@node Testing Objects for Equality
+@subsection Testing Objects for Equality
+
+@cindex equality predicate
+Testing whether two objects are equal or not may be dependant on the
+implementation of their classes.  Classes may implement an
+@dfn{equality predicate} that can be used two compare two
+instances@footnote{This is similar to Scheme's @code{equal?}
+vs. @code{eq?} @inforef{Equivalence predicates, R5RS Equivalence
+Predicates, r5rs}.}.
+
+@deftypefun int chop_object_equal (const chop_object_t *o1, const chop_object_t *o2)
+Return true (non-zero) if objects @var{o1} and @var{o2} are equal.  If
+both objects are instances of the same class but that class does not
+define an equality predicate, they will only be considered equal if
+and only if @code{@var{o1} == @var{o2}}, from a pointer arithmetic
+viewpoint.
+@end deftypefun
+
+
+@node Serializing and Deserializing an Object
+@subsection Serializing and Deserializing an Object
+
+@cindex serialization
+@cindex deserialization
+Classes in libchop may implement a @dfn{serialization} and a
+@dfn{deserialization} methods---these methods may be specified at
+class definition time (@pxref{Declaring and Defining a Class}).
+A serialization method basically converts an object into a portable
+representation of its state as a byte stream.  The deserialization
+operation does the opposite.
+
+The @code{chop_serial_method_t} type defines two standard
+serialization/deserialization methods:
+
+@table @code
+@item CHOP_SERIAL_ASCII
+An object is serialized using only ASCII characters.  This yields
+human-readable representations.
+@item CHOP_SERIAL_BINARY
+An object is serialized using as a byte stream where each byte can
+have any value.  This usually yields to significantly more compact
+representations.
+@end table
+
+@deftypefun chop_error_t chop_object_serialize (const chop_object_t *object, chop_serial_method_t method, chop_buffer_t *buffer)
+Serialize @var{object} according to serialization method @var{method}
+into @var{buffer}.  If no serializer exists for @var{object}'s class,
+@code{CHOP_ERR_NOT_IMPL} is returned.  On success, zero is returned.
+@end deftypefun
+
+@deftypefun chop_error_t chop_object_deserialize (chop_object_t *object, const chop_class_t *class, chop_serial_method_t method, const char *buffer, size_t size, size_t *bytes_read)
+Initialize @var{object}, which is expected to be of type @var{class},
+by deserializing @var{buffer} (of @var{size} bytes), according to
+@var{method}.  On success, zero is returned and @var{object} is
+initialized.  Otherwise, @var{object} is left in an undefined state.
+On success, @var{bytes_read} is set to the number of bytes that were
+read from @var{buffer} in order to deserialize @var{object}.
+@end deftypefun
+
 
 @node Input Streams
 @section Input Streams
@@ -381,218 +593,6 @@ true, then closing @var{stream} will destroy @var{filter}.
 
 @node Filters
 @section Filters
-
-
-@c *********************************************************************
-@node Object System
-@chapter Object System
-
-@cindex object system
-Libchop comes with its own lightweight reflexive object system defined
-in the @code{<chop/objects.h>} header file.  Given that it is a
-reflexive object system, type information is available at run-time.
-With little overhead, this object system greatly improves the
-flexibility of the library.  The @code{chop-archiver} command line tool
-illustrates how type introspection can be leveraged to provide more
-flexibility (@pxref{Invoking chop-archiver}).
-
-@cindex binary compatibility
-Libchop's object system can be used to provide binary compatibility with
-little overhead: the size of a given class' instances can be known at
-run-time, which allows for caller allocation.  Callers can allocate
-objects of a given class as they prefer (e.g., on the stack) while
-remaining binary-compatible should the class layout
-change.@footnote{Conversely, the Glib family of libraries achieves
-binary compatibility at the cost of removing the possibility for caller
-memory allocation: constructors do not only initialize an object, they
-also allocate its storage on the heap.  The situation in C++ is often
-similar, but C++ has the advantage of having compiler support.}
-
-Let's have a closer look at it.
-
-@menu
-* Declaring and Defining a Class::  
-* Instantiating an Object::     
-* Cloning an Object::           
-* Testing Objects for Equality::  
-* Serializing and Deserializing an Object::  
-@end menu
-
-@node Declaring and Defining a Class
-@section Declaring and Defining a Class
-
-@cindex class
-
-At run-time, libchop classes are represented by @code{chop_class_t}
-objects.  The canonical naming scheme for classes is the following.
-Let @code{chbouib} be a libchop class:
-
-@itemize
-@item its C type is named @code{chop_chbouib_t};
-@item its run-time representation is a global @code{chop_class_t}
-object named @code{chop_chbouib_class}.
-@end itemize
-
-Libchop defines macros to declare and define classes while maintaining
-the naming scheme in a consistent way:
-
-@defmac CHOP_DECLARE_RT_CLASS (name, parent_name, fields)
-Declare a class named @var{name}, that is declare the type
-@code{chop_NAME_t} and the global variable @code{chop_NAME_class}.
-@var{fields} should be a list of fields (as in a @code{struct}
-definition).  Note that libchop classes must always inherit (directly
-or not) the @code{object} class.
-
-Example:
-
-@example
-CHOP_DECLARE_RT_CLASS (chbouib, object,
-                       int x;
-                       float y;);
-@end example
-
-@end defmac
-
-@defmac CHOP_DEFINE_RT_CLASS (name, parent_name, ctor, dtor, copy, equalp, serial, dserial)
-Once the class named @var{name} has been declared, this macro defines
-it as being a sub-class of the class named @var{parent_name} (this
-must be the same name as the one used in the declaration!), with
-constructor @var{ctor} and destructor @var{dtor} (both are optional),
-and with copy constructor @var{copy} and equality predicate
-@var{equalp} (both optional too).  Finally, @var{serial} is a pointer
-to a serializer and @var{dserial} and pointer to a deserializer which
-may both be @code{NULL} as well.
-@end defmac
-
-See the @code{<chop/objects.h>} for details.
-
-@node Instantiating an Object
-@section Instantiating an Object
-
-Constructors, in libchop, do not allocate memory to store objects:
-they simple @emph{initialize} objects.  Therefore, memory must be
-allocated to store a given an object @emph{before} its constructor is
-called.  Run-time type information turns out to be helpful here: each
-@code{chop_class_t} object contains information about the amount of
-memory needed to store an instance of it.
-
-@deftypefun size_t chop_class_instance_size (const chop_class_t *class)
-Return the size, in bytes, of instances of class @var{class}.
-@end deftypefun
-
-@defmac chop_class_alloca_instance (class)
-Return a pointer to a memory area large enough to store an instance of
-@var{class}.  This macro uses @code{alloca} to allocate storage on the
-stack (see @inforef{Variable Size Automatic, the GNU libc manual,
-libc}, for details).
-@end defmac
-
-@deftypefun chop_error_t chop_object_initialize (chop_object_t *object, const chop_class_t *class)
-Initialize @var{object} as an instance of class @var{class}, thus
-invoking the constructor of @var{class} and the one of its parent
-classes.
-
-As a user, you will not usually call this function directly.  Instead,
-you will call a particular constructor for @var{class} that can take
-additional arguments (e.g., @code{chop_file_stream_open ()}) and which
-will in turn call this function behind the scenes.
-@end deftypefun
-
-@deftypefun void chop_object_destroy (chop_object_t *object)
-Destroy @var{object}, that is deallocate resources associated to it.
-Note that it does not deallocate the memory where @var{object} is
-stored.
-@end deftypefun
-
-It is important to note that all libchop objects must be destroyed
-using @code{chop_object_destroy ()}, regardless of where they are
-stored in memory.
-
-Another way to instantiate an object is described in @ref{Cloning an
-Object}.
-
-
-@node Cloning an Object
-@section Cloning an Object
-
-@cindex deep copy
-@cindex clone
-Libchop's object system allows @dfn{deep copies} or @dfn{cloning} of
-objects.  Classes, however, may choose to not implement this feature.
-
-@deftypefun chop_error_t chop_object_copy (const chop_object_t *source, chop_object_t *dest)
-Clone the object pointed to by @var{source} into @var{dest}.  As
-usual, @var{dest} must point to an (uninitialized) memory area large
-enough to hold an instance of @var{source}'s class.  If @var{source}'s
-class does not implement cloning, then a default ``shallow'' copy is
-performed.
-
-Note that, in any case, the copy constructors of the whole class
-hierarchy of @var{source} are invoked, starting from the higher one,
-just like for a regular instantiation (@pxref{Instantiating an
-Object}).
-@end deftypefun
-
-
-@node Testing Objects for Equality
-@section Testing Objects for Equality
-
-@cindex equality predicate
-Testing whether two objects are equal or not may be dependant on the
-implementation of their classes.  Classes may implement an
-@dfn{equality predicate} that can be used two compare two
-instances@footnote{This is similar to Scheme's @code{equal?}
-vs. @code{eq?} @inforef{Equivalence predicates, R5RS Equivalence
-Predicates, r5rs}.}.
-
-@deftypefun int chop_object_equal (const chop_object_t *o1, const chop_object_t *o2)
-Return true (non-zero) if objects @var{o1} and @var{o2} are equal.  If
-both objects are instances of the same class but that class does not
-define an equality predicate, they will only be considered equal if
-and only if @code{@var{o1} == @var{o2}}, from a pointer arithmetic
-viewpoint.
-@end deftypefun
-
-
-@node Serializing and Deserializing an Object
-@section Serializing and Deserializing an Object
-
-@cindex serialization
-@cindex deserialization
-Classes in libchop may implement a @dfn{serialization} and a
-@dfn{deserialization} methods---these methods may be specified at
-class definition time (@pxref{Declaring and Defining a Class}).
-A serialization method basically converts an object into a portable
-representation of its state as a byte stream.  The deserialization
-operation does the opposite.
-
-The @code{chop_serial_method_t} type defines two standard
-serialization/deserialization methods:
-
-@table @code
-@item CHOP_SERIAL_ASCII
-An object is serialized using only ASCII characters.  This yields
-human-readable representations.
-@item CHOP_SERIAL_BINARY
-An object is serialized using as a byte stream where each byte can
-have any value.  This usually yields to significantly more compact
-representations.
-@end table
-
-@deftypefun chop_error_t chop_object_serialize (const chop_object_t *object, chop_serial_method_t method, chop_buffer_t *buffer)
-Serialize @var{object} according to serialization method @var{method}
-into @var{buffer}.  If no serializer exists for @var{object}'s class,
-@code{CHOP_ERR_NOT_IMPL} is returned.  On success, zero is returned.
-@end deftypefun
-
-@deftypefun chop_error_t chop_object_deserialize (chop_object_t *object, const chop_class_t *class, chop_serial_method_t method, const char *buffer, size_t size, size_t *bytes_read)
-Initialize @var{object}, which is expected to be of type @var{class},
-by deserializing @var{buffer} (of @var{size} bytes), according to
-@var{method}.  On success, zero is returned and @var{object} is
-initialized.  Otherwise, @var{object} is left in an undefined state.
-On success, @var{bytes_read} is set to the number of bytes that were
-read from @var{buffer} in order to deserialize @var{object}.
-@end deftypefun
 
 
 @c *********************************************************************
