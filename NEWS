@@ -4,15 +4,28 @@ Changes in 0.5 (since 0.4)
 
 * New features
 
+** New encrypted backup utility: `chop-backup'
+
+See the manual for details.
+
 ** The `-z' option of `chop-archiver' now also applies to meta-data
 
 In other words, the zip/unzip filters are now applied both to data and
 meta-data when a specific store is specified with `-f'.
 
+** Guile bindings: New procedures `make-zip-filter' and `make-unzip-filter'
+
 * Bug fixes
 
 ** Fix off-by-one in `fs_block_store'
 ** Fix return value of `fs_block_store.read_block' with non-existent blocks
+** Fix off-by-n in ASCII deserialization of CHK/hash index handles
+** Fix possible infinite loop in `lzo_unzip_filter'
+** guile2: Have `stream->port' let unhandled exceptions through
+
+* Packaging
+
+** G-Wrap-based Guile 1.8 bindings removed
 
 
 Changes in 0.4 (since 0.3)
