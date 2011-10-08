@@ -2,7 +2,7 @@
 
 @c %**start of header
 @setfilename libchop.info
-@settitle Libchop, A Library for Distributed Storage and Data Backup
+@settitle Libchop, Tools & Library for Data Backup and Distributed Storage
 @footnotestyle end
 @setchapternewpage odd
 @c %**end of header
