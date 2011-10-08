@@ -22,8 +22,7 @@ DB_FILE=",,backup.db"
 TMP_FILE=",,backup.tmp"
 XDG_CACHE_HOME="$PWD/backup-cache"
 
-chop_CLEANFILES="$DB_FILE"
-chop_CLEANUP_HOOK='rm -rf "$XDG_CACHE_HOME" "$TMP_FILE"'
+chop_CLEANUP_HOOK='rm -rf "$XDG_CACHE_HOME" "$DB_FILE" "$TMP_FILE"'
 
 # Start from a clean state.
 chop_cleanup
