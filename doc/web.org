@@ -1,4 +1,4 @@
-#+TITLE: libchop, a utility library for distributed storage and data backup
+#+TITLE: libchop, tools & library for data backup and distributed storage
 #+STYLE: <link rel="stylesheet" type="text/css" href="libchop.css" />
 #+OPTIONS: toc:nil num:nil author:nil timestamp:nil creator:nil
 #+LANGUAGE: en
@@ -6,37 +6,43 @@
 #+ATTR_HTML: alt="a chopper" class="logo"
 [[./libchop-icon.png]]
 
-Libchop is a library for distributed storage and data backup, available
-under the terms of the [[http://www.gnu.org/licenses/gpl.html][GNU General Public License]].  It was initially
-designed as a building block for a [[http://tel.archives-ouvertes.fr/tel-00196822/en/][peer-to-peer, cooperative backup
-system]].  In such a system, data has to be sent by pieces, incrementally,
-and it may be scattered across several participating nodes.  In
-addition, participating nodes may be untrusted, which puts data
-confidentiality, integrity, and availability at risk.
+Libchop is a set of utilities and library for data backup and
+distributed storage.  Its main application is =chop-backup=, an
+encrypted backup program with several salient features:
 
-In a nutshell, libchop addresses these issues by providing mechanisms
-to:
+  - *Encrypted.* The backup data can safely be stored at an untrusted
+    site without compromising its confidentiality.
 
-  1. chop an input file into blocks, optionally compressed and/or
-     encrypted, and to store them into a key-value store.  It returns
-     an "abstract index" containing all the information necessary to
-     retrieve the file.
+  - *Tamper-proof.* The backup's integrity is checked upon recovery.
 
-  2. restore (rebuild) a file based on an abstract index, reading
-     blocks from one (or several) stores.  Each block is decoded,
-     deciphered, decompressed, and its integrity is checked according
-     to the methods specified by the abstract index.
+  - *Distributable.* Backup data can be written to more than one store.
 
-Libchop decomposes these task with a fine grain, providing generic
-interfaces for each of the sub-tasks involved.  It also comes with
-several implementations of each of these interfaces, allowing various
-storage strategies to be quickly experimented and compared.
-Implementations of these interfaces provide storage techniques such as
-content-based addressing, content-hash keys, lossless compression, and
-similarity detection.
+  - *Shareable.* Each directory/file in a snapshot is identified by a
+    "tuple", which is necessary and sufficient to retrieve it.  A tuple
+    can be shared with others, which gives them access to the
+    corresponding file/directory and _only_ it.
 
-Libchop was initially developed as part of the author's [[http://tel.archives-ouvertes.fr/tel-00196822/en/][PhD thesis]] in
-the [[http://www.laas.fr/mosaic/][MoSAIC project]].
+  - *Versioned.* The history of directory snapshots is recorded, at
+    little cost.
+
+  - *Compressed.* Similar data among files or versions are coalesced.
+    For each file type an appropriate compression method is chosen.
+
+  - *Evolutive.* The application is not bound to any storage, hash,
+    encryption, or compression method.  In fact, all these parameters
+    can vary from file to file within a snapshot.
+
+[[./manual/libchop.html#Invoking-chop_002dbackup][Read more...]]
+
+The library itself was initially designed as a building block for a
+[[http://tel.archives-ouvertes.fr/tel-00196822/en/][peer-to-peer, cooperative backup system]].  In such a system, data has to
+be sent by pieces, incrementally, and it may be scattered across several
+participating nodes.  In addition, participating nodes may be untrusted,
+which puts data confidentiality, integrity, and availability at risk.
+[[./manual/libchop.html#Introduction][Read more...]]
+
+Libchop was initially developed as part of a [[http://tel.archives-ouvertes.fr/tel-00196822/en/][PhD thesis]] in the [[http://www.laas.fr/mosaic/][MoSAIC
+project]].
 
 * Releases
 
