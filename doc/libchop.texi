@@ -331,7 +331,7 @@ The tool has several salient features towards that goal:
 
 @table @emph
 @item Encrypted.
-The backup data can safely be store at an untrusted site without
+The backup data can safely be stored at an untrusted site without
 compromising its confidentiality.
 
 @item Tamper-proof.
