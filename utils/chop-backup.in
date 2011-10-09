@@ -694,8 +694,14 @@ TUPLE in STORE."
     (string-append indent "    "))
 
   (define (->date epoch)
-    (let ((date (time-monotonic->date (make-time time-monotonic 0 epoch))))
-      (date->string date "~b ~e ~H:~M")))
+    (let* ((now  (current-time time-monotonic))
+           (then (make-time time-monotonic 0 epoch))
+           (date (time-monotonic->date then)))
+      (date->string date
+                    (if (>= (time-second (time-difference now then))
+                            (* 3600 30 6))
+                        "~b ~e  ~Y"
+                        "~b ~e ~H:~M"))))
 
   (define (->perms perms)
     (define (one perms)
