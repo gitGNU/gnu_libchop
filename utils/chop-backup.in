@@ -1051,7 +1051,7 @@ tuple that can be used to restore the whole directory hierarchy."
                                              store)))
                (map save-backup-tuple files tuples)
                (write* tuple))))))
-      (lambda (key err . _)
+      (lambda (key err . rest)
         (leave (_ "error: ~a") (error-message err)))))
 
   (define (show store-file tuple)
