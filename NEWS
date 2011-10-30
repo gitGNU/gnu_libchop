@@ -1,5 +1,23 @@
 -*- Org -*-
 
+Changes in 0.6 (since 0.5)
+
+* New features
+** chop-backup
+*** New `--probe' option
+
+See the manual for details.
+
+*** Several tuples are kept in the recent-backup cache for each directory
+
+Previously, only the tuple pointing to the latest snapshot of each
+directory would be kept.
+
+* Bug fixes
+** chop-backup
+*** The `--list' option displays dates smartly, like GNU ls does
+
+
 Changes in 0.5 (since 0.4)
 
 * New features
