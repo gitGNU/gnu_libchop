@@ -400,6 +400,22 @@ $ chop-backup --recent
 /home/ludo/doc/important        (() "tree_indexer...mdfagfq2a/4a" ())
 @end example
 
+However, the above command does not tell you in which store these
+backups are available.  To check which of these recent backups a given
+store holds, try the @option{--probe} option:
+
+@example
+$ chop-backup --probe ~/bak
+/home/ludo/doc/important        (() "tree_indexer...mdfagfq2a/4a" ())
+
+$ chop-backup --probe /net/backup-machine
+/home/ludo/doc/important        (() "tree_indexer...ssqijsady/4a" ())
+@end example
+
+@noindent
+In this example, there are two stores, each of which holds one snapshot
+of the @file{/home/ludo/doc/important} directory.
+
 To allow you to retrieve your data even if the host on which
 @command{chop-backup} is run crashes, it is recommended to backup the
 resulting tuple by other means---e.g., by sending it by mail.
@@ -452,6 +468,12 @@ to be backed up.  This is the default action.
 @itemx -R
 List recent backups and their tuple.  For each backup, a line is shown
 with the original directory name and the tuple of its latest backup.
+
+@item --probe
+@itemx -p
+List recent backups and their tuple that are available in the given
+store.  The output has the same format as that of @option{--recent} and
+it is a subset of the directory/tuple pairs shown by @option{--recent}.
 
 @item --list=[@var{opts}]
 @itemx -l@var{opts}

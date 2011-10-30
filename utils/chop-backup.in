@@ -507,6 +507,13 @@ something else."
     (and dot
          (substring file (+ 1 dot) (string-length file)))))
 
+(define (indexed-block-exists? index store)
+  "Return #t if the block pointed to by INDEX exists in STORE"
+  ;; TODO: Add a `block_exists' method to block-fetchers to optimize this.
+  (let-values (((index indexer fetcher)
+                (deserialize-index-tuple/ascii index)))
+    (false-if-exception (block-fetcher-fetch fetcher index store))))
+
 (define (most-suitable-pipeline file stat)
   "Return the most suitable pipeline to store FILE."
   (define %text-extensions
@@ -617,10 +624,7 @@ CHOOSE-PIPELINE, and return its index handle."
 
   (define (tip-exists? index)
     ;; Return #t if the root block pointed to by INDEX exists.
-    ;; TODO: Add a `block_exists' method to block-fetchers to optimize this.
-    (let-values (((index indexer fetcher)
-                  (deserialize-index-tuple/ascii index)))
-      (false-if-exception (block-fetcher-fetch fetcher index store))))
+    (indexed-block-exists? index store))
 
   (define (enter-directory? dir-name stat result)
     ;; Return #t when we want to enter directory DIR-NAME.  Note that we
@@ -912,6 +916,9 @@ directory DIR."
                          designates the backup (default action)."))
   (display (_ "
   -R, --recent           List recent backups and their tuple."))
+  (display (_ "
+  -p, --probe            List recent backups and their tuple that are
+                         available in the given store."))
   (newline)
   (display (_ "
   -l, --list[=OPTS]      List the contents of the directory pointed to by the
@@ -1007,6 +1014,10 @@ directory DIR."
         (option '(#\R "recent") #f #f
                 (lambda (opt name arg result)
                   (alist-cons 'action 'list-recent
+                              (alist-delete 'action result eq?))))
+        (option '(#\p "probe") #f #f
+                (lambda (opt name arg result)
+                  (alist-cons 'action 'probe
                               (alist-delete 'action result eq?))))))
 
 (define %default-options
@@ -1170,5 +1181,21 @@ tuple that can be used to restore the whole directory hierarchy."
                    (format #t "~:{~a\t~s~%~}"
                            (map (cut list dir <>) tuples))))
                  (recent-backups)))
+
+      ((probe)
+       (match args
+         ((store-file)
+          (let ((store (open-store store-file)))
+            (for-each (match-lambda
+                       ((dir tuples ...)
+                        (for-each (lambda (tuple)
+                                    (format #t "~a\t~s~%" dir tuple))
+                                  (filter (compose
+                                           (cut indexed-block-exists? <> store)
+                                           (match-lambda ((_ index _) index)))
+                                          tuples))))
+                      (recent-backups))))
+         (_
+          (leave (_ "wrong number of arguments for the `probe' operation")))))
 
       (else (error "what's this?" action)))))
