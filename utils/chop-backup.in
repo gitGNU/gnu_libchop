@@ -190,18 +190,30 @@ returns no, call (SKIP PATH STAT RESULT)."
   ;; A cache containing a list of file/tuple pairs.
   (cache-file "recent-backups"))
 
+(define %max-recent-backup-tuples
+  ;; Maximum number of tuples kept for each directory.
+  50)
+
 (define (save-backup-tuple dir tuple)
   "Append the DIR/TUPLE pair to the recent-backups cache file."
+  (define (strip tuples)
+    (let ((len (length tuples)))
+      (if (<= len %max-recent-backup-tuples)
+          tuples
+          (take tuples %max-recent-backup-tuples))))
+
   (let ((backups (if (file-exists? %recent-backups-file)
                      (call-with-input-file %recent-backups-file read)
                      '())))
     (call-with-output-file %recent-backups-file
       (lambda (p)
-        (write (alist-cons dir tuple (alist-delete dir backups))
-               p)))))
+        (let ((prev (or (assoc-ref backups dir) '())))
+         (write (alist-cons dir (strip (cons tuple prev))
+                            (alist-delete dir backups))
+                p))))))
 
 (define (recent-backups)
-  "Return a list of directory/tuple pairs representing recent backups."
+  "Return a list of directory/tuples pairs representing recent backups."
   (if (file-exists? %recent-backups-file)
       (call-with-input-file %recent-backups-file read)
       '()))
@@ -209,7 +221,8 @@ returns no, call (SKIP PATH STAT RESULT)."
 (define (most-recent-backup-tuple)
   "Return the file/tuple pair corresponding to the most recent backup."
   (match (recent-backups)
-    ((p _ ...) p)
+    (((dir tuple _ ...) _ ...)
+     (cons dir tuple))
     (_         #f)))
 
 
@@ -1152,9 +1165,10 @@ tuple that can be used to restore the whole directory hierarchy."
           (leave (_ "wrong number of arguments for the `restore' operation")))))
 
       ((list-recent)
-       (format #t "~:{~a\t~s~%~}"
-               (map (lambda (p)
-                      (list (car p) (cdr p)))
-                    (recent-backups))))
+       (for-each (match-lambda
+                  ((dir tuples ...)
+                   (format #t "~:{~a\t~s~%~}"
+                           (map (cut list dir <>) tuples))))
+                 (recent-backups)))
 
       (else (error "what's this?" action)))))

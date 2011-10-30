@@ -397,6 +397,7 @@ accessed with the @code{--recent} option:
 @example
 $ chop-backup --recent
 /home/ludo/doc/important        (() "tree_indexer...ssqijsady/4a" ())
+/home/ludo/doc/important        (() "tree_indexer...mdfagfq2a/4a" ())
 @end example
 
 To allow you to retrieve your data even if the host on which
