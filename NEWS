@@ -16,6 +16,7 @@ directory would be kept.
 * Bug fixes
 ** chop-backup
 *** The `--list' option displays dates smartly, like GNU ls does
+*** Fix possible file descriptor exhaustion with `--backup'
 
 
 Changes in 0.5 (since 0.4)

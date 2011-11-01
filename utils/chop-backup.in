@@ -300,14 +300,16 @@ returns no, call (SKIP PATH STAT RESULT)."
   (block-indexer  pipeline-block-indexer)
   (store-filters  pipeline-store-filters))
 
-(define (filtered-stream stream filters)
-  "Return a stream that wraps STREAM and is filtered through all of FILTERS."
+(define* (filtered-stream stream filters #:optional (close-backend? #f))
+  "Return a stream that wraps STREAM and is filtered through all of FILTERS.
+If CLOSE-BACKEND? is true, then closing the returned stream will close
+underlying streams too."
   (let loop ((stream  stream)
              (filters filters))
     (if (null? filters)
         stream
         (let ((f ((car filters))))
-          (loop (filtered-stream-open stream f)
+          (loop (filtered-stream-open stream f close-backend?)
                 (cdr filters))))))
 
 (define (filtered-store store filters)
@@ -351,7 +353,8 @@ resulting blocks in STORE and returning its index handle."
         (file-stream-open file-or-stream)))
 
   (define stream*
-    (filtered-stream stream (pipeline-stream-filters pipeline)))
+    (filtered-stream stream (pipeline-stream-filters pipeline)
+                     (not (stream? file-or-stream))))
 
   (define chopper
     ((pipeline-chopper pipeline) stream*))
@@ -366,7 +369,14 @@ resulting blocks in STORE and returning its index handle."
     ;; XXX: Use the smart block store.
     (filtered-store store (pipeline-store-filters pipeline)))
 
-  (indexer-index-blocks indexer chopper block-indexer store* store*))
+  (dynamic-wind
+    (lambda () #t)
+    (lambda ()
+      (indexer-index-blocks indexer chopper block-indexer store* store*))
+    (lambda ()
+      ;; If we opened STREAM ourselves, then close it.
+      (if (not (stream? file-or-stream))
+          (stream-close stream)))))
 
 (define (pipeline-index-handle->tuple pipeline index)
   "Return an index tuple for INDEX as produced by PIPELINE.  The tuple
