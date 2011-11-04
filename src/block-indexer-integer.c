@@ -179,6 +179,7 @@ ibf_ctor (chop_object_t *object, const chop_class_t *class)
 
   fetcher = (chop_integer_block_fetcher_t *)object;
   fetcher->block_fetcher.fetch_block = integer_block_fetch;
+  fetcher->block_fetcher.block_exists = NULL;
   fetcher->block_fetcher.index_handle_class = &chop_integer_index_handle_class;
 
   return chop_log_init ("integer-block-fetcher", &fetcher->log);
@@ -191,6 +192,7 @@ ibf_dtor (chop_object_t *object)
 
   fetcher = (chop_integer_block_fetcher_t *)object;
   fetcher->block_fetcher.fetch_block = NULL;
+  fetcher->block_fetcher.block_exists = NULL;
   fetcher->block_fetcher.index_handle_class = NULL;
 
   chop_object_destroy ((chop_object_t *)&fetcher->log);

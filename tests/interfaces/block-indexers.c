@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -76,13 +76,7 @@ main (int argc, char *argv[])
   store_class = &chop_gdbm_block_store_class;
 #endif
 
-  unlink (STORE_FILE_NAME);
   store = chop_class_alloca_instance ((chop_class_t *)store_class);
-  err = chop_file_based_store_open (store_class, STORE_FILE_NAME,
-				    O_RDWR | O_CREAT,
-				    S_IRUSR | S_IWUSR,
-				    store);
-  test_check_errcode (err, "opening block store");
 
   /* Initialize a set of block indexers for testing.  */
   block_indexers[block_indexer_count] =
@@ -135,6 +129,13 @@ main (int argc, char *argv[])
       chop_block_fetcher_t *fetcher;
       size_t fetched_bytes, i;
 
+      unlink (STORE_FILE_NAME);
+      err = chop_file_based_store_open (store_class, STORE_FILE_NAME,
+					O_RDWR | O_CREAT,
+					S_IRUSR | S_IWUSR,
+					store);
+      test_check_errcode (err, "opening block store");
+
       class = chop_object_get_class ((chop_object_t *)*bi_it);
       test_stage ("class `%s'", chop_class_name (class));
 
@@ -158,6 +159,10 @@ main (int argc, char *argv[])
 
       for (i = 0; i < BLOCKS_TO_INDEX; i++)
 	{
+	  int exists;
+	  err = chop_block_fetcher_exists (fetcher, index[i], store, &exists);
+	  test_assert (err == CHOP_ERR_NOT_IMPL || (err == 0 && exists));
+
 	  chop_buffer_clear (&buffer);
 	  err = chop_block_fetcher_fetch (fetcher, index[i], store, &buffer,
 					  &fetched_bytes);
@@ -166,17 +171,37 @@ main (int argc, char *argv[])
 	  test_assert (fetched_bytes == chop_buffer_size (&buffer));
 	  test_assert (!memcmp (random_data[i], chop_buffer_content (&buffer),
 				sizeof (random_data[i])));
-
-	  chop_object_destroy ((chop_object_t *)index[i]);
 	}
 
-      chop_object_destroy ((chop_object_t *)fetcher);
-      chop_object_destroy ((chop_object_t *)*bi_it);
+      /* Clear the store and check whether the `block_exists' method returns
+	 0 for non-existent blocks.  */
+      test_stage_intermediate ("exists?");
+
+      chop_object_destroy ((chop_object_t *) store);
+      unlink (STORE_FILE_NAME);
+      err = chop_file_based_store_open (store_class, STORE_FILE_NAME,
+					O_RDWR | O_CREAT,
+					S_IRUSR | S_IWUSR,
+					store);
+      test_check_errcode (err, "opening block store the second time");
+
+      for (i = 0; i < BLOCKS_TO_INDEX; i++)
+	{
+	  int exists;
+
+	  err = chop_block_fetcher_exists (fetcher, index[i], store, &exists);
+	  test_assert (err == CHOP_ERR_NOT_IMPL || (err == 0 && !exists));
+
+	  chop_object_destroy ((chop_object_t *) index[i]);
+	}
+
+      chop_object_destroy ((chop_object_t *) fetcher);
+      chop_object_destroy ((chop_object_t *) *bi_it);
+      chop_object_destroy ((chop_object_t *) store);
 
       test_stage_result (1);
     }
 
-  chop_object_destroy ((chop_object_t *) store);
   chop_buffer_return (&buffer);
 
   unlink (STORE_FILE_NAME);

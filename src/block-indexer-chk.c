@@ -315,6 +315,7 @@ cbf_ctor (chop_object_t *object, const chop_class_t *class)
 
   fetcher = (chop_chk_block_fetcher_t *) object;
   fetcher->block_fetcher.fetch_block = chk_block_fetch;
+  fetcher->block_fetcher.block_exists = NULL;
   fetcher->block_fetcher.index_handle_class = &chop_chk_index_handle_class;
 
   fetcher->cipher_handle = CHOP_CIPHER_HANDLE_NIL;

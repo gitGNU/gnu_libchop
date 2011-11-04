@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -79,7 +79,12 @@ CHOP_DECLARE_RT_CLASS (block_fetcher, object,
 						     const chop_index_handle_t *,
 						     chop_block_store_t *,
 						     chop_buffer_t *,
-						     size_t *););
+						     size_t *);
+
+		       chop_error_t (* block_exists) (struct chop_block_fetcher *,
+						      const chop_index_handle_t *,
+						      chop_block_store_t *,
+						      int *););
 
 
 
@@ -164,6 +169,22 @@ chop_block_fetcher_fetch (chop_block_fetcher_t *__fetcher,
 {
   return (__fetcher->fetch_block (__fetcher, __handle, __store,
 				  __buffer, __size));
+}
+
+/* Using FETCHER, check whether the block pointed to by HANDLE is available.
+   On success, set *EXISTS to 1 if it's available in STORE, 0 if it's not
+   available; otherwise return an error.  */
+static __inline__ chop_error_t
+chop_block_fetcher_exists (chop_block_fetcher_t *__fetcher,
+			   const chop_index_handle_t *__handle,
+			   chop_block_store_t *__store,
+			   int *__exists)
+{
+  if (CHOP_EXPECT_FALSE (__fetcher->block_exists == NULL))
+    return CHOP_ERR_NOT_IMPL;
+
+  return __fetcher->block_exists (__fetcher, __handle, __store,
+				  __exists);
 }
 
 /* Return the index handle class that is associated with the class of block

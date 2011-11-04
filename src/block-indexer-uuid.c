@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -161,6 +161,7 @@ ubf_ctor (chop_object_t *object, const chop_class_t *class)
 
   fetcher = (chop_uuid_block_fetcher_t *)object;
   fetcher->block_fetcher.fetch_block = uuid_block_fetch;
+  fetcher->block_fetcher.block_exists = NULL;
   fetcher->block_fetcher.index_handle_class = &chop_uuid_index_handle_class;
 
   return chop_log_init ("uuid-block-fetcher", &fetcher->log);
@@ -173,6 +174,7 @@ ubf_dtor (chop_object_t *object)
 
   fetcher = (chop_uuid_block_fetcher_t *)object;
   fetcher->block_fetcher.fetch_block = NULL;
+  fetcher->block_fetcher.block_exists = NULL;
   fetcher->block_fetcher.index_handle_class = NULL;
 
   chop_object_destroy ((chop_object_t *)&fetcher->log);

@@ -300,6 +300,7 @@ hbf_ctor (chop_object_t *object, const chop_class_t *class)
 
   fetcher = (chop_hash_block_fetcher_t *) object;
   fetcher->block_fetcher.fetch_block = hash_block_fetch;
+  fetcher->block_fetcher.block_exists = NULL;
   fetcher->block_fetcher.index_handle_class = &chop_hash_index_handle_class;
 
   fetcher->hash_method = CHOP_HASH_NONE;
@@ -314,6 +315,7 @@ hbf_dtor (chop_object_t *object)
 
   fetcher = (chop_hash_block_fetcher_t *)object;
   fetcher->block_fetcher.fetch_block = NULL;
+  fetcher->block_fetcher.block_exists = NULL;
   fetcher->block_fetcher.index_handle_class = NULL;
 
   chop_object_destroy ((chop_object_t *)&fetcher->log);
