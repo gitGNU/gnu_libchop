@@ -50,7 +50,7 @@ static const struct pair ascii_serials[] =
   };
 
 /* Check whether we can serialize/deserialize PAIR.  */
-static int
+static void
 check_serial_deserial (const struct pair *pair)
 {
   static const char junk[] = "012343210";
@@ -116,7 +116,6 @@ int
 main (int argc, char *argv[])
 {
   chop_error_t err;
-  chop_index_handle_t *index;
   const struct pair *pair;
 
   test_init (argv[0]);
