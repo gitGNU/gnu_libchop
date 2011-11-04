@@ -199,7 +199,7 @@ ubf_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
   /* Stateless.  */
   *bytes_read = 0;
 
-  return 0;
+  return err;
 }
 
 CHOP_DEFINE_RT_CLASS (uuid_block_fetcher, block_fetcher,
@@ -228,11 +228,9 @@ uuid_block_fetch (chop_block_fetcher_t *block_fetcher,
 {
   chop_error_t err;
   chop_uuid_index_handle_t *handle;
-  chop_uuid_block_fetcher_t *fetcher;
   char uuid[CHOP_UUID_SIZE];
   chop_block_key_t key;
 
-  fetcher = (chop_uuid_block_fetcher_t *)block_fetcher;
   if (!chop_object_is_a ((chop_object_t *)index,
 			 &chop_uuid_index_handle_class))
     return CHOP_INVALID_ARG;
@@ -344,12 +342,10 @@ uuid_block_index (chop_block_indexer_t *indexer,
 		  chop_index_handle_t *handle)
 {
   chop_error_t err;
-  chop_uuid_block_indexer_t *uuid_indexer;
   chop_uuid_index_handle_t *uuid_handle;
   char uuid[CHOP_UUID_SIZE];
   chop_block_key_t key;
 
-  uuid_indexer = (chop_uuid_block_indexer_t *)indexer;
   err = chop_object_initialize ((chop_object_t *)handle,
 				&chop_uuid_index_handle_class);
   if (err)
