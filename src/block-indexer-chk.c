@@ -307,6 +307,10 @@ static chop_error_t chk_block_fetch (chop_block_fetcher_t *,
 				     chop_block_store_t *,
 				     chop_buffer_t *,
 				     size_t *);
+static chop_error_t chk_block_exists (chop_block_fetcher_t *,
+				      const chop_index_handle_t *,
+				      chop_block_store_t *,
+				      int *);
 
 static chop_error_t
 cbf_ctor (chop_object_t *object, const chop_class_t *class)
@@ -315,7 +319,7 @@ cbf_ctor (chop_object_t *object, const chop_class_t *class)
 
   fetcher = (chop_chk_block_fetcher_t *) object;
   fetcher->block_fetcher.fetch_block = chk_block_fetch;
-  fetcher->block_fetcher.block_exists = NULL;
+  fetcher->block_fetcher.block_exists = chk_block_exists;
   fetcher->block_fetcher.index_handle_class = &chop_chk_index_handle_class;
 
   fetcher->cipher_handle = CHOP_CIPHER_HANDLE_NIL;
@@ -507,6 +511,26 @@ chop_chk_block_fetcher_log (chop_block_fetcher_t *fetcher)
 
   cbf = (chop_chk_block_fetcher_t *) fetcher;
   return (&cbf->log);
+}
+
+static chop_error_t
+chk_block_exists (chop_block_fetcher_t *block_fetcher,
+		  const chop_index_handle_t *index,
+		  chop_block_store_t *store,
+		  int *exists)
+{
+  chop_block_key_t key;
+  chop_chk_index_handle_t *handle;
+
+  if (!chop_object_is_a ((chop_object_t *) index,
+			 &chop_chk_index_handle_class))
+    return CHOP_INVALID_ARG;
+
+  handle = (chop_chk_index_handle_t *) index;
+  chop_block_key_init (&key, handle->block_id, handle->block_id_size,
+		       NULL, NULL);
+
+  return chop_store_block_exists (store, &key, exists);
 }
 
 static chop_error_t

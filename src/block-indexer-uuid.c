@@ -153,6 +153,10 @@ static chop_error_t uuid_block_fetch (chop_block_fetcher_t *,
 				      chop_block_store_t *,
 				      chop_buffer_t *,
 				      size_t *);
+static chop_error_t uuid_block_exists (chop_block_fetcher_t *,
+				       const chop_index_handle_t *,
+				       chop_block_store_t *,
+				       int *);
 
 static chop_error_t
 ubf_ctor (chop_object_t *object, const chop_class_t *class)
@@ -161,7 +165,7 @@ ubf_ctor (chop_object_t *object, const chop_class_t *class)
 
   fetcher = (chop_uuid_block_fetcher_t *)object;
   fetcher->block_fetcher.fetch_block = uuid_block_fetch;
-  fetcher->block_fetcher.block_exists = NULL;
+  fetcher->block_fetcher.block_exists = uuid_block_exists;
   fetcher->block_fetcher.index_handle_class = &chop_uuid_index_handle_class;
 
   return chop_log_init ("uuid-block-fetcher", &fetcher->log);
@@ -218,6 +222,27 @@ chop_uuid_block_fetcher_log (chop_block_fetcher_t *fetcher)
 
   hfetcher = (chop_uuid_block_fetcher_t *)fetcher;
   return (&hfetcher->log);
+}
+
+static chop_error_t
+uuid_block_exists (chop_block_fetcher_t *block_fetcher,
+		   const chop_index_handle_t *index,
+		   chop_block_store_t *store,
+		   int *exists)
+{
+  chop_uuid_index_handle_t *handle;
+  char uuid[CHOP_UUID_SIZE];
+  chop_block_key_t key;
+
+  if (!chop_object_is_a ((chop_object_t *) index,
+			 &chop_uuid_index_handle_class))
+    return CHOP_INVALID_ARG;
+
+  handle = (chop_uuid_index_handle_t *) index;
+  uuid_unparse (handle->uuid, uuid);
+  chop_block_key_init (&key, uuid, CHOP_UUID_SIZE, NULL, NULL);
+
+  return chop_store_block_exists (store, &key, exists);
 }
 
 static chop_error_t
