@@ -519,10 +519,9 @@ something else."
 
 (define (indexed-block-exists? index store)
   "Return #t if the block pointed to by INDEX exists in STORE"
-  ;; TODO: Add a `block_exists' method to block-fetchers to optimize this.
   (let-values (((index indexer fetcher)
                 (deserialize-index-tuple/ascii index)))
-    (false-if-exception (block-fetcher-fetch fetcher index store))))
+    (block-fetcher-exists? fetcher index store)))
 
 (define (most-suitable-pipeline file stat)
   "Return the most suitable pipeline to store FILE."
