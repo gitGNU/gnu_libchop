@@ -403,6 +403,39 @@
               (store-close s)
               r))))))
 
+(test-assert "block-fetcher-exists?"
+  (with-temporary-file
+   (lambda (file)
+     (let* ((s  (file-based-block-store-open (lookup-class "gdbm_block_store")
+                                             file
+                                             (logior O_RDWR O_CREAT)
+                                             #o644))
+            (bi (hash-block-indexer-open hash-method/sha256))
+            (bf (block-indexer-fetcher bi))
+            (bv (u8-list->bytevector (iota 256)))
+            (i  (block-indexer-index bi s bv)))
+       (and (index-handle? i)
+            (let ((r (block-fetcher-exists? bf i s)))
+              (store-close s)
+              r))))))
+
+(test-assert "!block-fetcher-exists?"
+  (with-temporary-file
+   (lambda (file)
+     (let* ((s  (file-based-block-store-open (lookup-class "gdbm_block_store")
+                                             file
+                                             (logior O_RDWR O_CREAT)
+                                             #o644))
+            (i  (deserialize-object/ascii (lookup-class "integer_index_handle")
+                                          "00000007"))
+            (bf (deserialize-object/ascii (lookup-class "integer_block_fetcher")
+                                          "")))
+       (and (index-handle? i)
+            (block-fetcher? bf)
+            (let ((r (block-fetcher-exists? bf i s)))
+              (store-close s)
+              (not r)))))))
+
 (test-end)
 
 

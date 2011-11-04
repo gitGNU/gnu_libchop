@@ -35,6 +35,7 @@
             block-fetcher?
 
             block-fetcher-fetch
+            block-fetcher-exists?
 
             error/block-indexer-error
             error/block-fetcher-error))
@@ -154,3 +155,16 @@ contents as a bytevector."
        b r)
     (values (buffer->bytevector b)
             (dereference-size_t r))))
+
+(define (block-fetcher-exists? bf index store)
+  "Return true if the data pointed to by INDEX exists in STORE, using block
+fetcher BF."
+  (let ((m (libchop-method (unwrap-block-fetcher bf)
+                           "block_fetcher" "block_exists"
+                           ('* '* '* '*)
+                           (includes "#include <chop/block-indexers.h>")))
+        (r (make-int-pointer)))
+    (m (unwrap-block-fetcher bf) (unwrap-index-handle index)
+       (unwrap-object %store-class store)
+       r)
+    (not (= 0 (dereference-int r)))))

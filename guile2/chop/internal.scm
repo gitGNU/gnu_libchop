@@ -34,6 +34,8 @@
             make-pointer-pointer
             make-size_t-pointer
             dereference-size_t
+            make-int-pointer
+            dereference-int
 
             define-libchop-type
             wrap-object
@@ -227,8 +229,8 @@ integer."
   "Return a pointer to a region of sizeof(void *) bytes."
   (gc-malloc-pointerless (compile-time-value (sizeof '*))))
 
-(define sizeof-size_t
-  (compile-time-value (sizeof size_t)))
+(define-compile-time-value sizeof-size_t
+  (sizeof size_t))
 
 (define (make-size_t-pointer)
   "Return a pointer to a region of sizeof(size_t) bytes."
@@ -239,6 +241,21 @@ integer."
   (bytevector-uint-ref (pointer->bytevector p sizeof-size_t)
                        0 (native-endianness)
                        sizeof-size_t))
+
+
+(define-compile-time-value sizeof-int
+  (sizeof int))
+
+(define (make-int-pointer)
+  "Return a pointer to a region of sizeof(int) bytes."
+  (gc-malloc-pointerless sizeof-int))
+
+(define (dereference-int p)
+  "Return the int value pointed to by P."
+  (bytevector-uint-ref (pointer->bytevector p sizeof-int)
+                       0 (native-endianness)
+                       sizeof-int))
+
 
 
 ;;;
