@@ -62,6 +62,7 @@ TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
 TESTS_ENVIRONMENT =						\
   PATH="$(top_builddir)/utils:$$PATH"				\
   GUILE_LOAD_PATH="$(abs_top_srcdir)/guile2:$(abs_top_builddir)/guile2:$$GUILE_LOAD_PATH" \
+  GUILE_LOAD_COMPILED_PATH="$(abs_top_builddir)/guile2:$$GUILE_LOAD_COMPILED_PATH" \
   libchop_libdir="$(abs_top_builddir)/src"			\
   top_srcdir="$(abs_top_srcdir)" srcdir="$(abs_srcdir)/utils"
 
