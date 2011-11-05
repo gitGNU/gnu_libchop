@@ -199,6 +199,7 @@ chop_fs_write_block (chop_block_store_t *store,
 		     const chop_block_key_t *key,
 		     const char *block, size_t size)
 {
+  int saved_errno;
   chop_error_t err = 0;
   char file_name[chop_block_key_size (key) * 2 + 2];
   char *dir_name;
@@ -209,7 +210,9 @@ chop_fs_write_block (chop_block_store_t *store,
   dir_name = dirname (strdupa (file_name));
 
   err = mkdirat (fs->dir_fd, dir_name, S_IRWXU);
-  if (err == 0 || errno == EEXIST)
+  saved_errno = (err != 0) ? errno : 0;
+
+  if (err == 0 || saved_errno == EEXIST)
     {
       int fd;
 
@@ -219,8 +222,9 @@ chop_fs_write_block (chop_block_store_t *store,
 	{
 	  size_t count;
 
-	  /* Overwrite the existing block, if any.  */
-	  ftruncate (fd, 0);
+	  if (saved_errno == EEXIST)
+	    /* Overwrite the existing block, if any.  */
+	    ftruncate (fd, 0);
 
 	  count = full_write (fd, block, size);
 
