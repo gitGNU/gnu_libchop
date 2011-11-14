@@ -638,7 +638,7 @@ hbi_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 	  size_t name_len = 0;
 	  const char *end = buffer;
 
-	  while (isalnum (*end))
+	  while (isalnum (*end) && end - buffer < size)
 	    {
 	      if (name_len >= sizeof (name))
 		return CHOP_DESERIAL_CORRUPT_INPUT;

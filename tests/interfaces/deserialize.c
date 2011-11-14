@@ -44,6 +44,11 @@ static const struct pair ascii_serials[] =
       "3q2hrigwtmsmvqi64cy2yw7szh66drvf/122",
     },
 
+    {
+      "hash_block_indexer",
+      "SHA1"
+    },
+
     { NULL, NULL }
   };
 
