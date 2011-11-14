@@ -24,12 +24,12 @@
 
 #include <testsuite.h>
 #include <stdlib.h>
+#include <string.h>
 
 struct pair
 {
   const char *const class_name;
   const char *const serial;
-  size_t serial_size;
 };
 
 static const struct pair ascii_serials[] =
@@ -37,16 +37,14 @@ static const struct pair ascii_serials[] =
     {
       "chk_index_handle",
       "zqoimseyv5r4cpj3ab64o6y2j6cbatkz5picnvidsyafwnvtrvbq====,grqqeqcihncuevm7xnmnkfp3ukkruk2e/4a",
-      92
     },
 
     {
       "hash_index_handle",
       "3q2hrigwtmsmvqi64cy2yw7szh66drvf/122",
-      36
     },
 
-    { NULL, NULL, 0 }
+    { NULL, NULL }
   };
 
 /* Check whether we can serialize/deserialize PAIR.  */
@@ -59,7 +57,7 @@ check_serial_deserial (const struct pair *pair)
   chop_object_t *object;
   const chop_class_t *klass;
   chop_buffer_t buffer;
-  char with_trailing_junk[pair->serial_size + sizeof junk + 1];
+  char with_trailing_junk[strlen (pair->serial) + sizeof junk + 1];
   size_t read;
 
   test_stage ("instance of `%s'", pair->class_name);
@@ -73,17 +71,17 @@ check_serial_deserial (const struct pair *pair)
   test_stage_intermediate ("with trailing NUL");
   err = chop_object_deserialize (object, klass,
 				 CHOP_SERIAL_ASCII,
-				 pair->serial, pair->serial_size,
+				 pair->serial, strlen (pair->serial),
 				 &read);
 
   test_check_errcode (err, "deserializing");
-  test_assert (read == pair->serial_size);
+  test_assert (read == strlen (pair->serial));
 
   err = chop_object_serialize (object, CHOP_SERIAL_ASCII, &buffer);
   test_check_errcode (err, "serializing");
 
   test_assert (!strncmp (chop_buffer_content (&buffer), pair->serial,
-			 pair->serial_size));
+			 strlen (pair->serial)));
 
   chop_object_destroy (object);
   chop_buffer_clear (&buffer);
@@ -96,17 +94,17 @@ check_serial_deserial (const struct pair *pair)
 
   err = chop_object_deserialize (object, klass,
 				 CHOP_SERIAL_ASCII,
-				 with_trailing_junk, pair->serial_size,
+				 with_trailing_junk, strlen (pair->serial),
 				 &read);
 
   test_check_errcode (err, "deserializing with trailing junk");
-  test_assert (read == pair->serial_size);
+  test_assert (read == strlen (pair->serial));
 
   err = chop_object_serialize (object, CHOP_SERIAL_ASCII, &buffer);
   test_check_errcode (err, "serializing (trailing junk)");
 
   test_assert (!strncmp (chop_buffer_content (&buffer), pair->serial,
-			 pair->serial_size));
+			 strlen (pair->serial)));
 
   test_stage_result (1);
 }
