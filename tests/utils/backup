@@ -21,6 +21,7 @@ source "${srcdir:-$PWD}/lib.sh"
 DB_FILE=",,backup.db"
 TMP_FILE=",,backup.tmp"
 XDG_CACHE_HOME="$PWD/backup-cache"
+export XDG_CACHE_HOME
 
 chop_CLEANUP_HOOK='rm -rf "$XDG_CACHE_HOME" "$DB_FILE" "$TMP_FILE"'
 
