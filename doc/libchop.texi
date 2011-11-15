@@ -1195,6 +1195,141 @@ true, then closing @var{stream} will destroy @var{filter}.
 @node Stream Choppers
 @section Stream Choppers
 
+@cindex chopper
+@cindex stream choppers
+@cindex data blocks
+
+@dfn{Choppers} take a byte stream as input and return a series of
+@dfn{blocks}, which are subsets of the input stream.  Their name comes
+from the fact that they ``chop'' the input stream into smaller blocks.
+They are defined in @file{chop/choppers.h}.
+
+@deftp {Type} chop_chopper_t
+The type of a chopper.
+@end deftp
+
+@deftypevar chop_class_t chop_chopper_class
+The class object for instances of type @code{chop_chopper_t}.
+@end deftypevar
+
+@deftypevar chop_class_t chop_chopper_class
+This meta-class---i.e., a class that inherits from
+@var{chop_class_class}---defines the @code{chop_chopper_generic_open}
+method to instantiate choppers (see below.)
+@end deftypevar
+
+@deftypefun chop_error_t chop_chopper_generic_open ({const chop_chopper_class_t *}@var{class}, chop_stream_t *@var{input}, size_t @var{typical_block_size}, chop_chopper_t *@var{chopper})
+Initialize @var{chopper} as an instance of the @var{class} chopper class
+with input stream @var{input}.  Return zero on success.
+
+The implementation of @var{class} will choose default parameters for the
+specific chopper implementation (class-specific initialization methods
+are described below for fine-tuning of parameters).  However, it should
+make sure that the average block size will be @var{typical_block_size}
+bytes.  If @var{typical_block_size} is zero, then the implementation of
+@var{class} is free to choose any block size.
+@end deftypefun
+
+@deftypefun {chop_stream_t *} chop_chopper_stream ({const chop_chopper_t *}@var{chopper})
+Return the input stream attached to @var{chopper}.
+@end deftypefun
+
+@deftypefun chop_error_t chop_chopper_read_block (chop_chopper_t *@var{chopper}, chop_buffer_t *@var{block}, size_t *@var{size})
+Read a block from @var{chopper} and store its contents into @var{block}.
+On success, @var{block} contains the exact contents of the block---i.e.,
+the contents are "pushed"---, @var{size} contains the size of the block,
+and zero is returned.  On end of stream, @code{*@var{size}} is set to
+zero and @code{CHOP_STREAM_END} is returned.
+@end deftypefun
+
+@deftypefun size_t chop_chopper_typical_block_size ({const chop_chopper_t *}@var{chopper})
+Return the ``typical'' size of the blocks produced by @var{chopper}.
+The meaning of ``typical'' actually depends on the chopper
+implementation.  The value returned can be used as a hint for the
+initial size of block buffers.
+@end deftypefun
+
+@deftypefun void chop_chopper_close (chop_chopper_t *@var{chopper})
+Deallocate any resources associated with @var{chopper}.  Once closed,
+@var{chopper} becomes unusable.
+@end deftypefun
+
+@subsection Stream Chopper Classes
+
+The @code{chop_chopper_t} interface described above is implemented by
+several classes:
+
+@deftypevar chop_chopper_class_t chop_fixed_size_chopper_class
+@deftypevarx chop_chopper_class_t chop_anchor_based_chopper_class
+@deftypevarx chop_chopper_class_t chop_whole_stream_chopper_class
+Classes that inherit from @var{chop_chopper_class}.  All of these
+support the @var{chop_chopper_generic_open} method described above.
+@end deftypevar
+
+@cindex fixed-size chopper
+
+The first class implements the @dfn{fixed-size chopper}, a chopper that
+returns fixed-size blocks:
+
+@deftypefun chop_error_t chop_fixed_size_chopper_init (chop_stream_t *@var{input}, size_t @var{block_size}, int @var{pad_blocks}, chop_chopper_t *@var{chopper})
+Initialize @var{chopper} as a fixed-size stream chopper.  It will read
+data from @var{input} and cut it into blocks of @var{block_size} bytes.
+If @var{pad_blocks} is non-zero, the last block before
+@code{CHOP_STREAM_END} will be padded with zeros to be @var{block_size}
+long.
+@end deftypefun
+
+@cindex anchor-based choppers
+@cindex similarity detection
+@cindex Rabin fingerprints
+
+@noindent
+The second class implements @dfn{anchor-based choppers}.  They return
+blocks of variable size whose boundaries are determined as a
+function of the input stream.  The intent of this chopper is to
+help @emph{detect similarity} among subsets of files; using
+@dfn{single-instance storage}, identical blocks are stored only once,
+which saves storage space.
+
+@deftypefun chop_error_t chop_anchor_based_chopper_init (chop_stream_t *@var{input}, size_t @var{window_size}, unsigned long @var{magic_fpr_mask}, chop_chopper_t *@var{chopper})
+Initialize @var{chopper} as an anchor-based stream chopper.  It will
+read data from @var{input} and produce variably sized blocks.
+
+Anchor-based choppers implement the algorithm described by Udi
+Manber@footnote{Udi Manber, ``Finding similar files in a large file
+system'', USENIX Winter Conference, 1994.}, which itself relies on
+@dfn{Rabin fingerprints}.
+
+Basically, this algorithm allows anchors to be defined deterministically
+within a file such that identical blocks among similar files may be
+discovered.  @var{window_size} is the size of the sliding window used to
+compute fingerprints.  The paper recommends 50.  Lower values may yield
+smaller blocks and better similarity detection.
+
+The probability of finding a block boundary, and therefore the average
+size of blocks, largely depends on the value of @var{magic_fpr_mask},
+the mask that will be applied to each fingerprint to determine whether
+it should yield a block boundary.  The more bits are set in
+@var{magic_fpr_mask}, the less likely a fingerprint will match, and the
+larger the average block size will be.
+@end deftypefun
+
+@cindex whole-stream choppers
+
+@noindent
+Finally, the last class implements @dfn{whole-stream choppers}, which do
+not actually chop the input stream:
+
+@deftypefun chop_error_t chop_whole_stream_chopper_open (chop_stream_t *@var{input}, chop_chopper_t *@var{chopper})
+Initialize @var{chopper} as a whole-stream chopper which fetches data
+from @var{input}.  @var{chopper} will simply return one single block
+containing the entire contents of @var{input}.
+
+Consequently, this can be costly in terms of memory consumption.  Also,
+@var{chop_whole_stream_chopper_class} does not honor at all the
+@var{typical_block_size} argument of @code{chop_chopper_generic_open}.
+@end deftypefun
+
 @node Block Stores
 @section Block Stores
 
