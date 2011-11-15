@@ -1,6 +1,6 @@
 -*- Org -*-
 
-Changes in 0.6 (since 0.5)
+Changes in 0.5.1 (since 0.5)
 
 * New features
 ** chop-backup
@@ -20,10 +20,24 @@ regardless of whether it's available in the given store.
 Previously, only the tuple pointing to the latest snapshot of each
 directory would be kept.
 
-* Bug fixes
+** chop-show-similarities
+
+*** New --blocks option
+*** Choose the fingerprint mask intelligently by default
+
+`chop-show-similarities' attempts to choose the right granularity when
+comparing two files.
+
+* Packaging improvements, bug fixes
+
 ** chop-backup
 *** The `--list' option displays dates smartly, like GNU ls does
 *** Fix possible file descriptor exhaustion with `--backup'
+** library
+*** Fix possible off-by-N in the deserializer of the CHK/hash block indexers
+** Various
+*** Make sure the `utils/backup' test uses the current source code
+*** Document stream choppers, `chop-show-anchors', and `chop-show-similarities'
 
 
 Changes in 0.5 (since 0.4)
