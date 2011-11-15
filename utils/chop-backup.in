@@ -218,12 +218,16 @@ returns no, call (SKIP PATH STAT RESULT)."
       (call-with-input-file %recent-backups-file read)
       '()))
 
-(define (most-recent-backup-tuple)
-  "Return the file/tuple pair corresponding to the most recent backup."
-  (match (recent-backups)
-    (((dir tuple _ ...) _ ...)
-     (cons dir tuple))
-    (_         #f)))
+(define (most-recent-backup-tuple store)
+  "Return the file/tuple pair corresponding to the most recent backup
+available in STORE."
+  (any (match-lambda
+         ((dir tuples ...)
+          (and=> (find (compose (cut indexed-block-exists? <> store)
+                                (match-lambda ((_ index _) index)))
+                       tuples)
+                 (cut cons dir <>))))
+        (recent-backups)))
 
 
 ;;;
@@ -1087,9 +1091,8 @@ tuple that can be used to restore the whole directory hierarchy."
       (lambda (key err . rest)
         (leave (_ "error: ~a") (error-message err)))))
 
-  (define (show store-file tuple)
-    (let* ((store    (open-store store-file))
-           (retrieve (index-tuple->retriever tuple))
+  (define (show store tuple)
+    (let* ((retrieve (index-tuple->retriever tuple))
            (port     (retrieve store)))
       (dump-port port (current-output-port))
       (store-close store)))
@@ -1120,33 +1123,35 @@ tuple that can be used to restore the whole directory hierarchy."
                                      #:recursive? (memq 'recursive opts)
                                      #:history? (memq 'history opts)))
            ((store-file)
-            (match (most-recent-backup-tuple)
-              (((? string? name) . tuple)
-               (warn (_ "accessing most recent backup of `~a' at `~s'")
-                     name tuple)
-               (list-directory-contents (open-store store-file)
-                                        tuple
-                                        (current-output-port)
-                                        #:verbose? (memq 'verbose opts)
-                                        #:recursive? (memq 'recursive opts)
-                                        #:history? (memq 'history opts)))
-              (_
-               (leave (_ "please specify the tuple of a directory")))))
+            (let ((store (open-store store-file)))
+              (match (most-recent-backup-tuple store)
+                (((? string? name) . tuple)
+                 (warn (_ "accessing most recent backup of `~a' at `~s'")
+                       name tuple)
+                 (list-directory-contents store tuple
+                                          (current-output-port)
+                                          #:verbose? (memq 'verbose opts)
+                                          #:recursive? (memq 'recursive opts)
+                                          #:history? (memq 'history opts)))
+                (_
+                 (leave (_ "please specify the tuple of a directory"))))))
            (_
             (leave (_ "wrong number of arguments for the `list' operation"))))))
 
       ((show)
        (match args
          ((store-file tuple)
-          (show store-file (with-input-from-string tuple read)))
+          (show (open-store store-file)
+                (with-input-from-string tuple read)))
          ((store-file)
-          (match (most-recent-backup-tuple)
-            (((? string? name) . tuple)
-             (warn (_ "accessing most recent backup of `~a' at `~s'")
-                   name tuple)
-             (show store-file tuple))
-            (_
-             (leave (_ "please specify the tuple of a directory")))))
+          (let ((store (open-store store-file)))
+            (match (most-recent-backup-tuple store)
+              (((? string? name) . tuple)
+               (warn (_ "accessing most recent backup of `~a' at `~s'")
+                     name tuple)
+               (show store tuple))
+              (_
+               (leave (_ "please specify the tuple of a directory"))))))
          (_
           (leave (_ "wrong number of arguments for the `show' operation")))))
 
@@ -1157,13 +1162,14 @@ tuple that can be used to restore the whole directory hierarchy."
                 (tuple (with-input-from-string tuple read)))
             (exit (verify-tree store tuple))))
          ((store-file)
-          (match (most-recent-backup-tuple)
-            (((? string? name) . tuple)
-             (warn (_ "verifying most recent backup of `~a' at `~s'")
-                   name tuple)
-             (exit (verify-tree (open-store store-file) tuple)))
-            (_
-             (leave (_ "please specify the tuple of a directory")))))
+          (let ((store (open-store store-file)))
+            (match (most-recent-backup-tuple store)
+              (((? string? name) . tuple)
+               (warn (_ "verifying most recent backup of `~a' at `~s'")
+                     name tuple)
+               (exit (verify-tree store tuple)))
+              (_
+               (leave (_ "please specify the tuple of a directory"))))))
          (_
           (leave (_ "wrong number of arguments for the `verify' operation")))))
 
@@ -1174,13 +1180,14 @@ tuple that can be used to restore the whole directory hierarchy."
                 (tuple (with-input-from-string tuple read)))
             (restore-tree store tuple out-dir)))
          ((store-file out-dir)
-          (match (most-recent-backup-tuple)
-            (((? string? name) . tuple)
-             (warn (_ "restoring most recent backup of `~a' at `~s'")
-                   name tuple)
-             (restore-tree (open-store store-file) tuple out-dir))
-            (_
-             (leave (_ "please specify the tuple of a directory")))))
+          (let ((store (open-store store-file)))
+            (match (most-recent-backup-tuple store)
+              (((? string? name) . tuple)
+               (warn (_ "restoring most recent backup of `~a' at `~s'")
+                     name tuple)
+               (restore-tree store tuple out-dir))
+              (_
+               (leave (_ "please specify the tuple of a directory"))))))
          (_
           (leave (_ "wrong number of arguments for the `restore' operation")))))
 

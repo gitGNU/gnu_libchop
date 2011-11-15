@@ -8,6 +8,13 @@ Changes in 0.6 (since 0.5)
 
 See the manual for details.
 
+*** Default to the tuple of a recent backup that is available
+
+The `--show', `--list', and other commands now default to the tuple of
+the most recent backup available in the given store.  Previously, when
+no tuple was given, they would default to the most recent backup,
+regardless of whether it's available in the given store.
+
 *** Several tuples are kept in the recent-backup cache for each directory
 
 Previously, only the tuple pointing to the latest snapshot of each

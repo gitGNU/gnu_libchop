@@ -437,7 +437,8 @@ drwxr-xr-x     4096 Oct  6 22:18     chop
 
 @noindent
 Since the command did not specify a tuple, @command{chop-backup} assumed
-that the user may be interested in the latest backup that was made.
+that the user may be interested in the latest backup that was made
+@emph{and} is available in @file{~/bak}.
 
 The special entry @code{//previous-version//} above represents the
 previous snapshot of that directory.  The code @code{--list=verbose}
