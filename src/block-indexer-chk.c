@@ -761,7 +761,39 @@ static chop_error_t
 cbi_serialize (const chop_object_t *object, chop_serial_method_t method,
 	       chop_buffer_t *buffer)
 {
-  return CHOP_ERR_NOT_IMPL;
+  chop_chk_block_indexer_t *indexer;
+
+  indexer = (chop_chk_block_indexer_t *) object;
+  switch (method)
+    {
+    case CHOP_SERIAL_ASCII:
+      {
+	chop_cipher_handle_t cipher;
+	const char *algo_name, *mode_name, *key_hash_name, *block_id_hash_name;
+
+	cipher = indexer->cipher_handle;
+	algo_name = chop_cipher_algo_name (chop_cipher_algorithm (cipher));
+	mode_name = chop_cipher_mode_name (chop_cipher_mode (cipher));
+	key_hash_name = chop_hash_method_name (indexer->key_hash_method);
+	block_id_hash_name = chop_hash_method_name (indexer->block_id_hash_method);
+
+	chop_buffer_push (buffer, algo_name, strlen (algo_name));
+	chop_buffer_append (buffer, ",", 1);
+	chop_buffer_append (buffer, mode_name, strlen (mode_name));
+	chop_buffer_append (buffer, ",", 1);
+	chop_buffer_append (buffer, key_hash_name, strlen (key_hash_name));
+	chop_buffer_append (buffer, ",", 1);
+	chop_buffer_append (buffer, block_id_hash_name,
+			    strlen (block_id_hash_name) + 1);
+
+	break;
+      }
+
+    default:
+      return CHOP_ERR_NOT_IMPL;
+    }
+
+  return 0;
 }
 
 static chop_error_t
