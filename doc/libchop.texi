@@ -312,6 +312,8 @@ read and write data blocks.
 * Invoking chop-backup::        Encrypted, versioned backups.
 * Invoking chop-archiver::      Storing and restoring data using libchop.
 * Invoking chop-block-server::  Remote data block storage.
+* Invoking chop-show-similarities:: Estimating similarity between two files.
+* Invoking chop-show-anchors::  Studying the anchor-based chopper.
 @end menu
 
 @node Invoking chop-backup
@@ -900,6 +902,41 @@ Produce verbose output.
 
 @end table
 
+@node Invoking chop-show-similarities
+@section Invoking @code{chop-show-similarities}
+
+The @command{chop-show-similarities} tool estimates the similarity
+between two files.  It is an application of anchor-based choppers
+(@pxref{Stream Choppers, anchor-based choppers}).  It is invoked like
+this:
+
+@example
+chop-show-similarities [@var{options}] @var{file1} @var{file2}
+@end example
+
+@c FIXME: Document the options.
+
+@node Invoking chop-show-anchors
+@section Invoking @code{chop-show-anchors}
+
+The @command{chop-show-anchors} shows the blocks yielded by the
+anchor-based chopper on a given input file (@pxref{Stream Choppers,
+anchor-based choppers}).  It is mostly meant as a demonstration or
+development tool to illustrate the behavior of the anchor-based chopper.
+It is run this way:
+
+@example
+chop-show-anchors [@var{options}] @var{file}
+@end example
+
+@noindent
+This command runs an anchor-based chopper on @var{file} and shows the
+contents of @var{file}, interspersed with @code{---} (three hyphens on a
+line of their own) to show block boundaries.
+
+@c FIXME: Document the options.
+
+
 @c *********************************************************************
 @node API Reference
 @chapter API Reference
@@ -1313,6 +1350,13 @@ it should yield a block boundary.  The more bits are set in
 @var{magic_fpr_mask}, the less likely a fingerprint will match, and the
 larger the average block size will be.
 @end deftypefun
+
+@noindent
+An application of anchor-based choppers is
+@command{chop-show-similarities} (@pxref{Invoking
+chop-show-similarities}).  To see how block boundaries are determined,
+use the @command{chop-show-anchors} command (@pxref{Invoking
+chop-show-anchors}).
 
 @cindex whole-stream choppers
 
