@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -37,6 +37,10 @@
 #include <errno.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdbool.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include <argp.h>
 #include <progname.h>
@@ -48,7 +52,12 @@ static int debug = 0;
 static size_t window_size = 48;
 
 /* The magic fingerprint mask.  */
-static unsigned long magic_fpr_mask = 0x1fff; /* the 13 LSBs */
+static unsigned long magic_fpr_mask = 0x1fff; /* the 13 LSBs, i.e. 8 KiB */
+static bool magic_fpr_mask_set = false;
+
+/* The average number of blocks the chopper should produce for each file.
+   This is used to compute a magic fingerprint.  */
+static unsigned int blocks_per_file = 200;
 
 /* The input file names.  */
 static char *file_name1 = NULL, *file_name2 = NULL;
@@ -70,13 +79,15 @@ static struct argp_option options[] =
     { "debug",   'd', 0, 0,
       "Turn on debugging output" },
 
+    { "blocks", 'b', "COUNT", 0,
+      "Produce approximately COUNT blocks per file" },
     { "window-size", 'w', "SIZE", 0,
       "Set the size of windows used when computing fingerprints "
       "to SIZE bytes" },
     { "magic-fpr-mask", 'f', "MASK", 0,
       "Use MASK as the fingerprint mask used to determine whether a "
       "fingerprint is magic, i.e. whether it should yield a block "
-      "boundary" },
+      "boundary (using this option inhibits `-b')" },
 
     { 0, 0, 0, 0, 0 }
   };
@@ -101,6 +112,35 @@ typedef struct
   size_t total_size;
 } block_info_vector_t;
 
+
+/* Return a fingerprint mask that will lead blocks of SIZE bytes on
+   average (technique also used by the `generic_open' method.)  */
+static unsigned long
+fingerprint_mask_for_size (size_t size)
+{
+  unsigned long power_of_two = 1;
+
+  while ((power_of_two << 1) <= size)
+    power_of_two <<= 1;
+
+  return power_of_two - 1;
+}
+
+/* Return a fingerprint mask that will provide reasonably fine-grain
+   similarity detection given the size of FILE1 and FILE2.  */
+static unsigned long
+choose_magic_fingerprint_mask (const char *file1, const char *file2)
+{
+#define MIN(a, b)  (((a) < (b)) ? (a) : (b))
+  struct stat one, two;
+
+  if (stat (file1, &one) == 0 && stat (file2, &two) == 0)
+    return fingerprint_mask_for_size (MIN (one.st_size, two.st_size)
+				      / blocks_per_file);
+  else
+    return magic_fpr_mask;
+#undef MIN
+}
 
 
 /* Read input stream throught CHOPPER and fill in VECTOR with block
@@ -228,12 +268,17 @@ parse_opt (int key, char *arg, struct argp_state *state)
       debug = 1;
       break;
 
+    case 'b':
+      blocks_per_file = atoi (arg);
+      break;
+
     case 'w':
       window_size = atoi (arg);
       break;
 
     case 'f':
       magic_fpr_mask = strtoul (arg, NULL, 0);
+      magic_fpr_mask_set = true;
       break;
 
     case ARGP_KEY_ARG:
@@ -305,6 +350,9 @@ main (int argc, char *argv[])
       chop_error (err, "%s", file_name2);
       return 1;
     }
+
+  if (!magic_fpr_mask_set)
+    magic_fpr_mask = choose_magic_fingerprint_mask (file_name1, file_name2);
 
   err = chop_anchor_based_chopper_init (stream1, window_size, magic_fpr_mask,
 					chopper1);
