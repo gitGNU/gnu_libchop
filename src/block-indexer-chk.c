@@ -816,12 +816,14 @@ cbi_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 	/* The user-visible serialization format is as follows:
 	   CIPHER,CIPHER-MODE,KEY-HASH,BLOCK-ID-HASH.  So, for instance, the
 	   following is a valid combination: "blowfish,cbc,sha1,sha1".  */
-	const char *end;
+	const char *end, *start;
 	char *comma;
 	char *algo_name, *mode_name, *key_hash_name, *block_id_hash_name;
 	chop_cipher_algo_t algo;
 	chop_cipher_mode_t mode;
 	chop_hash_method_t key_hash_method, block_id_hash_method;
+
+	start = buffer;
 
 #define FETCH_NAME(_name)				\
     comma = memchr (buffer, ',', size - *bytes_read);	\
@@ -842,7 +844,7 @@ cbi_deserialize (const char *buffer, size_t size, chop_serial_method_t method,
 
 	/* The last one needs to be treated specially.  */
 	for (end = comma + 1;
-	     *end && isalnum (*end);
+	     *end && isalnum (*end) && end - start < size;
 	     end++);
 	block_id_hash_name = alloca (end - comma);
 	strncpy (block_id_hash_name, comma + 1, end - comma - 1);

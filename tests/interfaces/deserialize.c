@@ -49,6 +49,11 @@ static const struct pair ascii_serials[] =
       "SHA1"
     },
 
+    {
+      "chk_block_indexer",
+      "TWOFISH,ECB,TIGER,RMD160"
+    },
+
     { NULL, NULL }
   };
 
