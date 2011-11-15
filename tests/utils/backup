@@ -54,7 +54,10 @@ chop_fail_if ! chop-backup -r "$DB_FILE" "$TMP_FILE"
 find "$TMP_FILE" | xargs chmod +w && rm -rf "$TMP_FILE"
 chop_fail_if ! chop-backup -r "$DB_FILE" '"$index"' "$TMP_FILE"
 
-for file in Makefile.am chop/objects.h chop/block-indexers.h chop/cipher.h
+# Select all the files that were restored, along with a fixed list of
+# files to make sure $TMP_FILE is not empty or lacking.
+for file in Makefile.am chop/objects.h chop/block-indexers.h chop/cipher.h \
+    `cd "$TMP_FILE" ; find -type f`
 do
     chop_fail_if ! cmp "$TMP_FILE/$file" "$top_srcdir/include/$file"
 done
