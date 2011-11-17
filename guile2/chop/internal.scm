@@ -545,9 +545,9 @@ C function NAME and wraps the resulting pointer with WRAP."
 ;;;
 
 (define register-weak-reference
-  (let ((refs (make-weak-value-hash-table)))
+  (let ((refs (make-weak-key-hash-table)))
     (lambda (source target)
-      (hash-set! refs source target))))
+      (hashq-set! refs source target))))
 
 (define (pointer+ p x)
   (make-pointer (+ (pointer-address p) x)))
