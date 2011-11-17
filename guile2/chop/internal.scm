@@ -85,6 +85,12 @@
     (lambda (size)
       (alloc size what))))
 
+(define gc-realloc
+  ;; Don't use `scm_gc_realloc' because it wants the previous size, and
+  ;; because `GC_realloc' below really knows that size.
+  (pointer->procedure '* (dynamic-func "GC_realloc" (dynamic-link))
+                      (list '* size_t)))
+
 (define-syntax compile-time-value
   (syntax-rules ()
     "Evaluate the given expression at compile time.  The expression must
@@ -498,9 +504,59 @@ C function NAME and wraps the resulting pointer with WRAP."
 ;;; Initialization.
 ;;;
 
-(define init (libchop-function "init" ()))
+;; Provide our own allocation routines so that the GC knows how much heap is
+;; really being used.  This is especially important since object like zip
+;; filters are associated with a fair amount of heap.  The test for this is:
+;;
+;;   (let loop ((i 300000)) (make-zlib-zip-filter) (loop (1- i)))
+;;
+;; Unfortunately, this doesn't work until Guile v2.0.3-20-g46d80ca, which
+;; fixes `procedure->pointer'; before that commit, you typically get a
+;; wrong-type-arg error when returning from `%malloc' or similar.
 
-(init)
+(define %use-custom-allocator?
+  (string>? (version) "2.0.3"))
+
+(if (not %use-custom-allocator?)
+    (begin
+      ;; Simplification of the above, but you get the idea.  :-)
+      (format (current-error-port)
+              "Using Guile ~a, which has a bug leading to memory leaks in libchop.~%"
+              (version))
+      (format (current-error-port)
+              "Please upgrade to Guile 2.0.4 or later.~%")))
+
+(define init
+  (if %use-custom-allocator?
+      (libchop-function "init_with_allocator" ('* '* '*))
+      (libchop-function "init" ())))
+
+(define (%malloc size class)
+  ;; `GC_malloc_atomic' apparently fails with zero-byte allocations, so always
+  ;; ask for more.
+  (let ((size (if (= 0 size) 1 size)))
+    (gc-malloc-pointerless size)))
+
+(define (%realloc ptr size class)
+  (let ((size (if (= 0 size) 1 size)))
+    (gc-realloc ptr size)))
+
+(define (%free ptr class)
+  ;; Let the GC do its job.
+  #t)
+
+;; Keep the C closures in global variables to prevent them from being freed.
+(define %malloc-c-func
+  (procedure->pointer '* %malloc (list size_t '*)))
+(define %realloc-c-func
+  (procedure->pointer '* %realloc (list '* size_t '*)))
+(define %free-c-func
+  (procedure->pointer void %free '(* *)))
+
+(if %use-custom-allocator?
+    (init %malloc-c-func %realloc-c-func %free-c-func)
+    (init))
+
 
 ;; Bootstrap the object system.
 
