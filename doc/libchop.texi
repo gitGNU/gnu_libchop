@@ -917,6 +917,9 @@ chop-show-similarities [@var{options}] @var{file1} @var{file2}
 
 @c FIXME: Document the options.
 
+Note that @url{http://ssdeep.sourceforge.net/, ssdeep} may be a more
+efficient tool for the job.
+
 @node Invoking chop-show-anchors
 @section Invoking @code{chop-show-anchors}
 
