@@ -97,8 +97,8 @@ blocks of BLOCK-SIZE bytes on average."
                                "chopper" "read_block"
                                ('* '* '*)))
         (buf   (make-empty-buffer))
-        (size* (make-bytevector (sizeof size_t))))
-    (m (unwrap-chopper c) buf (bytevector->pointer size*))
+        (size* (make-size_t-pointer)))
+    (m (unwrap-chopper c) buf size*)
     ;; XXX: We assume SIZE* is consistent with BUF.
     (buffer->bytevector buf)))
 

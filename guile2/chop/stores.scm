@@ -145,7 +145,7 @@ closed when the returned store is closed."
 (define (store-read-block store key)
   "Read the block stored under KEY in STORE and return it."
   (let ((buf   (make-empty-buffer))
-        (size* (bytevector->pointer (make-bytevector (sizeof size_t))))
+        (size* (make-size_t-pointer))
         (m     (libchop-method (unwrap-store store) "block_store" "read_block"
                                ('* '* '* '*)
                                (includes "#include <chop/stores.h>"))))
