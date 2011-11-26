@@ -143,8 +143,7 @@ anyway."
                           (input-size 8192))
   "Return a zip filter of type CLASS with the given parameters."
   (and (object-is-a? class (lookup-class "zip_filter_class"))
-       (let* ((z (bytevector->pointer
-                  (make-bytevector (class-instance-size class))))
+       (let* ((z (gc-malloc (class-instance-size class)))
               (p (libchop-slot-ref "zip_filter_class" "generic_open" '*
                                    (unwrap-class class)
                                    "#include <chop/filters.h>"))
@@ -157,8 +156,7 @@ anyway."
 (define* (make-unzip-filter class #:optional (input-size 8192))
   "Return an unzip filter of type CLASS with the given parameters."
   (and (object-is-a? class (lookup-class "unzip_filter_class"))
-       (let* ((z (bytevector->pointer
-                  (make-bytevector (class-instance-size class))))
+       (let* ((z (gc-malloc (class-instance-size class)))
               (p (libchop-slot-ref "unzip_filter_class" "generic_open" '*
                                    (unwrap-class class)
                                    "#include <chop/filters.h>"))

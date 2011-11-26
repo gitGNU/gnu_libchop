@@ -97,7 +97,7 @@ block."
                              "indexer" "index_blocks"
                              ('* '* '* '* '* '*)))
          (ic (block-indexer-index-handle-class bi))
-         (i  (gc-malloc-pointerless (class-instance-size ic))))
+         (i  (gc-malloc (class-instance-size ic))))
     (m (unwrap-indexer indexer)
        (unwrap-object %chopper-class chopper)
        (unwrap-object %block-indexer-class bi)
@@ -113,7 +113,7 @@ fetched from DATA-STORE and META-DATA-STORE, according to BF and INDEXER."
                              "indexer" "fetch_stream"
                              ('* '* '* '* '* '*)))
          (sc (indexer-stream-class indexer))
-         (p  (gc-malloc-pointerless (class-instance-size sc))))
+         (p  (gc-malloc (class-instance-size sc))))
     (m (unwrap-indexer indexer)
        (unwrap-object %index-handle-class index)
        (unwrap-object %block-fetcher-class bf)
@@ -163,9 +163,9 @@ bytes read from S."
                (ic    (wrap-object %class (dereference-pointer icp)))
                (fc    (wrap-object %class (dereference-pointer fcp)))
                (ihc   (wrap-object %class (dereference-pointer ihcp)))
-               (i     (gc-malloc-pointerless (class-instance-size ic)))
-               (bf    (gc-malloc-pointerless (class-instance-size fc)))
-               (ih    (gc-malloc-pointerless (class-instance-size ihc))))
+               (i     (gc-malloc (class-instance-size ic)))
+               (bf    (gc-malloc (class-instance-size fc)))
+               (ih    (gc-malloc (class-instance-size ihc))))
           (stage2 buf len
                   (dereference-pointer icp)
                   (dereference-pointer fcp)

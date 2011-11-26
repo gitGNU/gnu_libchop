@@ -61,6 +61,7 @@
             define-error-code
             raise-chop-error
             error/not-impl
+            gc-malloc
             gc-malloc-pointerless
 
             class-instance-size
@@ -80,6 +81,14 @@
   (let ((alloc
          (pointer->procedure '* (dynamic-func "scm_gc_malloc_pointerless"
                                               (dynamic-link))
+                             (list size_t '*)))
+        (what (string->pointer "chop")))
+    (lambda (size)
+      (alloc size what))))
+
+(define gc-malloc
+  (let ((alloc
+         (pointer->procedure '* (dynamic-func "scm_gc_malloc" (dynamic-link))
                              (list size_t '*)))
         (what (string->pointer "chop")))
     (lambda (size)
@@ -481,9 +490,7 @@ FIELD is assumed to have foreign type TYPE."
        (with-syntax (((params ...)
                       (generate-temporaries #'(args ...))))
          #'(lambda (params ...)
-             (let ((ptr (gc-malloc-pointerless
-                         (class-name-instance-size
-                          class-name))))
+             (let ((ptr (gc-malloc (class-name-instance-size class-name))))
                (init params ... ptr)
                (set-pointer-finalizer! ptr %destroy-object)
                (register-libchop-object! (wrap ptr)))))))))
@@ -532,10 +539,7 @@ C function NAME and wraps the resulting pointer with WRAP."
       (libchop-function "init" ())))
 
 (define (%malloc size class)
-  ;; `GC_malloc_atomic' apparently fails with zero-byte allocations, so always
-  ;; ask for more.
-  (let ((size (if (= 0 size) 1 size)))
-    (gc-malloc-pointerless size)))
+  (gc-malloc size))
 
 (define (%realloc ptr size class)
   (let ((size (if (= 0 size) 1 size)))
@@ -620,8 +624,7 @@ C function NAME and wraps the resulting pointer with WRAP."
         (destroy   (dynamic-func "chop_buffer_return" libchop)))
     (lambda* (#:optional (size 0))
       "Return a pointer to a new `chop_buffer_t' object."
-      (let ((buf (bytevector->pointer
-                  (make-bytevector %size-of-chop_buffer_t))))
+      (let ((buf (gc-malloc %size-of-chop_buffer_t)))
         (init buf size)
         (set-pointer-finalizer! buf destroy)
         buf))))

@@ -124,7 +124,7 @@
                             "class" "deserializer"
                             ('* size_t int '* '*)
                             (includes "#include <chop/objects.h>")))
-         (p (gc-malloc-pointerless (class-instance-size c)))
+         (p (gc-malloc (class-instance-size c)))
          (r (make-size_t-pointer))
          (e (s (bytevector->pointer bv) (bytevector-length bv) m
                p r)))

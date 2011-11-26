@@ -75,8 +75,7 @@ details."
   "Return a chopper of type CLASS draining input from STREAM and return
 blocks of BLOCK-SIZE bytes on average."
   (and (object-is-a? class (lookup-class "chopper_class"))
-       (let* ((c (bytevector->pointer
-                  (make-bytevector (class-instance-size class))))
+       (let* ((c (gc-malloc (class-instance-size class)))
               (p (libchop-slot-ref "chopper_class" "generic_open" '*
                                    (unwrap-class class)
                                    "#include <chop/choppers.h>"))

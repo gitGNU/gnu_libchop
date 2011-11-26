@@ -121,8 +121,7 @@ BLOCK-ID-HASH-METHOD hash of the cipher text."
                              ('* '* '* size_t '*)
                              (includes "#include <chop/block-indexers.h>")))
          (ic (block-indexer-index-handle-class bi))
-         (i  (bytevector->pointer
-              (make-bytevector (class-instance-size ic)))))
+         (i  (gc-malloc (class-instance-size ic))))
     (m (unwrap-block-indexer bi)
        (unwrap-object %store-class store)
        (bytevector->pointer bv)
@@ -132,7 +131,7 @@ BLOCK-ID-HASH-METHOD hash of the cipher text."
 
 (define (block-indexer-fetcher bi)
   "Return a new fetcher that is the dual of BI."
-  (let ((p (gc-malloc-pointerless
+  (let ((p (gc-malloc
             (class-instance-size (block-indexer-fetcher-class bi))))
         (m (libchop-method (unwrap-block-indexer bi)
                            "block_indexer" "init_fetcher"

@@ -69,8 +69,7 @@
   "Open the file-based store of type CLASS stored at FILE with the given
 OPEN-FLAGS and MODE."
   (and (object-is-a? class (lookup-class "file_based_store_class"))
-       (let* ((s (bytevector->pointer
-                  (make-bytevector (class-instance-size class))))
+       (let* ((s (gc-malloc (class-instance-size class)))
               (p (libchop-slot-ref "file_based_store_class"
                                    "generic_open" '*
                                    (unwrap-class class)
