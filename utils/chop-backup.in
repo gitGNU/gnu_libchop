@@ -575,14 +575,14 @@ something else."
            %default-storage-pipeline))))
 
 (define worthless-file?
-  (let ((rx   (make-regexp "(\\.(o|lo|a|so|gcda|gcno|gcda\\.info|tmp)|~)$"))
+  (let ((rx   (make-regexp "(\\.(o|lo|la|a|so|gcda|gcno|gcda\\.info|tmp|swp)|~)$"))
         (dirs '(".libs" ".deps" "autom4te.cache" "CVS" ".svn")))
     (lambda (file-name stat)
       "Return true if FILE-NAME and STAT designate a worthless file or
 directory."
       (case (stat:type stat)
         ((directory)
-         (member file-name dirs))
+         (member (basename file-name) dirs))
         (else
          (regexp-exec rx file-name))))))
 
