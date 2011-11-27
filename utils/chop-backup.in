@@ -27,6 +27,8 @@ exec ${GUILE:-@GUILE@} -L "@guilemoduledir@" \
   #:use-module (srfi srfi-11)
   #:use-module (srfi srfi-19)
   #:use-module (srfi srfi-26)
+  #:use-module (srfi srfi-34)
+  #:use-module (srfi srfi-35)
   #:use-module (srfi srfi-37)
   #:use-module (srfi srfi-60)
   #:use-module (rnrs bytevectors)
@@ -304,6 +306,29 @@ available in STORE."
   (block-indexer  pipeline-block-indexer)
   (store-filters  pipeline-store-filters))
 
+(define-condition-type &pipeline-error &error
+  pipeline-error?
+  (pipeline       pipeline-error-pipeline)        ; the pipeline
+  (libchop-error  pipeline-error-libchop-error))  ; libchop error code
+
+(define-condition-type &pipeline-storage-error &pipeline-error
+  pipeline-storage-error?
+  (input pipeline-storage-error-input))           ; input stream or file name
+
+(define-syntax with-pipeline-storage-error-handling
+  (syntax-rules ()
+    "Convert any libchop error to a SRFI-35 error condition with additional
+info, such as the input stream."
+    ((_ pl i body ...)
+     (catch 'chop-error
+       (lambda ()
+         body ...)
+       (lambda (key err . rest)
+         (raise (condition (&pipeline-storage-error
+                            (pipeline pl)
+                            (libchop-error err)
+                            (input i)))))))))
+
 (define* (filtered-stream stream filters #:optional (close-backend? #f))
   "Return a stream that wraps STREAM and is filtered through all of FILTERS.
 If CLOSE-BACKEND? is true, then closing the returned stream will close
@@ -376,7 +401,8 @@ resulting blocks in STORE and returning its index handle."
   (dynamic-wind
     (lambda () #t)
     (lambda ()
-      (indexer-index-blocks indexer chopper block-indexer store* store*))
+      (with-pipeline-storage-error-handling pipeline file-or-stream
+        (indexer-index-blocks indexer chopper block-indexer store* store*)))
     (lambda ()
       ;; If we opened STREAM ourselves, then close it.
       (if (not (stream? file-or-stream))
@@ -1062,11 +1088,15 @@ tuple that can be used to restore the whole directory hierarchy."
         (let ((store (open-store store-file)))
           (match files
             ((file)
-             (let* ((file  (canonicalize-path file))
-                    (tuple (run-storage-pipeline/recursive
-                            most-suitable-pipeline file store)))
-               (save-backup-tuple file tuple)
-               (write* tuple)))
+             (guard (c ((pipeline-storage-error? c)
+                        (leave (_ "error: while creating backup of `~a': ~a~%")
+                               (pipeline-storage-error-input c)
+                               (error-message (pipeline-error-libchop-error c)))))
+               (let* ((file  (canonicalize-path file))
+                      (tuple (run-storage-pipeline/recursive
+                              most-suitable-pipeline file store)))
+                 (save-backup-tuple file tuple)
+                 (write* tuple))))
             ((files ...)
              (let* ((files  (map canonicalize-path files))
                     (stats  (map lstat files))
@@ -1215,3 +1245,8 @@ tuple that can be used to restore the whole directory hierarchy."
           (leave (_ "wrong number of arguments for the `probe' operation")))))
 
       (else (error "what's this?" action)))))
+
+;; Local Variables:
+;; eval: (put 'guard 'scheme-indent-function 1)
+;; eval: (put 'with-pipeline-storage-error-handling 'scheme-indent-function 2)
+;; End:
