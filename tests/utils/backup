@@ -69,6 +69,10 @@ index3=`chop-backup "$DB_FILE" "$top_srcdir/include"`
 chop_fail_if test '"$index2"' != '"$index"'
 chop_fail_if test '"$index3"' != '"$index"'
 
+# Thus, the `include' directory should appear only once in the recent
+# backup list.
+chop_fail_if test '`chop-backup --recent | grep /include | wc -l`' -ne 1
+
 find "$TMP_FILE" | xargs chmod +w && rm -rf "$TMP_FILE"
 
 chop_cleanup

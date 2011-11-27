@@ -199,7 +199,8 @@ returns no, call (SKIP PATH STAT RESULT)."
 (define (save-backup-tuple dir tuple)
   "Append the DIR/TUPLE pair to the recent-backups cache file."
   (define (strip tuples)
-    (let ((len (length tuples)))
+    (let* ((tuples (delete-duplicates tuples))
+           (len    (length tuples)))
       (if (<= len %max-recent-backup-tuples)
           tuples
           (take tuples %max-recent-backup-tuples))))
