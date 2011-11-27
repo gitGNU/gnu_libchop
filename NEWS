@@ -1,5 +1,27 @@
 -*- Org -*-
 
+Changes in 0.5.2 (since 0.5.1)
+
+* New features
+
+** chop-backup
+
+*** The same tuple is returned when a directory is unchanged
+
+Previously `chop-backup --backup' would return a different tuple each
+time a directory is backed up, regardless of whether it actually
+changed.  While the previous introduced negligible storage overhead,
+because the actual data was not duplicated, it led to uselessly longer
+version chains and counter-intuitive behavior.
+
+* Bug fixes
+
+** Fix memory leak in the Guile bindings
+
+This could lead to unbounded memory growth, for instance when storing
+many files where each needed a zip filter.
+
+
 Changes in 0.5.1 (since 0.5)
 
 * New features
