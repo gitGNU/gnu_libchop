@@ -624,15 +624,15 @@ CHOOSE-PIPELINE, and return its index handle."
             index-tuple))
       (_ #f)))
 
-  (define (cache-index stat index)
-    (let* ((ino   (stat:ino stat))
-           (dev   (stat:dev stat))
-           (mtime (stat:mtime stat))
-           (key   (format #f "(~a . ~a)" ino dev)))
+  (define* (cache-index stat index #:optional stamp)
+    (let* ((ino    (stat:ino stat))
+           (dev    (stat:dev stat))
+           (stamp  (or stamp (stat:mtime stat)))
+           (key    (format #f "(~a . ~a)" ino dev)))
       (store-write-block %file-index-mapping
                          (string->utf8 key)
                          (string->utf8
-                          (format #f "(~a . ~s)" mtime index)))))
+                          (format #f "(~s . ~s)" stamp index)))))
 
   (define (store/cache stat file)
     (define input
@@ -655,11 +655,24 @@ CHOOSE-PIPELINE, and return its index handle."
   (define (store-directory* stat entries)
     ;; Like `store-directory', and update %FILE-INDEX-MAPPING with a mapping
     ;; from STAT to the index tuple of ENTRIES.
-    (let* ((prev  (and=> (stat->cached-entry stat) cdr))
-           (dir   (make-directory prev entries))
-           (index (store-directory dir store)))
-      (cache-index stat index)
-      index))
+    (define (do-store prev-tuple)
+      (let* ((dir   (make-directory prev-tuple entries))
+             (index (store-directory dir store)))
+        ;; Since mtime can't be used to determine whether DIR changed, store
+        ;; its list of entries in the file/index mapping.
+        (cache-index stat index (directory->sexp dir))
+        index))
+
+    (let ((prev-entry (stat->cached-entry stat)))
+      (if (pair? prev-entry)
+          (let* ((prev-tuple   (cdr prev-entry))
+                 (prev-dir     (car prev-entry))
+                 (prev-entries (directory-entries
+                                (sexp->directory prev-dir))))
+            (if (lset= equal? prev-entries entries)
+                prev-tuple                        ; directory unchanged
+                (do-store prev-tuple)))
+          (do-store #f))))
 
   (define (tip-exists? index)
     ;; Return #t if the root block pointed to by INDEX exists.

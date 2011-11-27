@@ -380,7 +380,7 @@ $ chop-backup --backup ~/bak ~/doc/important
 (() "tree_indexer:chk_block_fetcher:chk_index_handle:100:aes256,cbc,sha1...mdfagfq2a/4a" ())
 
 $ chop-backup --backup /net/backup-machine ~/doc/important
-(() "tree_indexer:chk_block_fetcher:chk_index_handle:100:aes256,cbc,sha1...ssqijsady/4a" ())
+(() "tree_indexer:chk_block_fetcher:chk_index_handle:100:aes256,cbc,sha1...mdfagfq2a/4a" ())
 @end example
 
 @cindex tuple
@@ -391,6 +391,21 @@ a @dfn{tuple}, which is the key that is @emph{necessary and sufficient}
 to access the snapshot.  The second command writes a new (possibly
 identical) snapshot to @file{/net/backup-machine}, which could be (say)
 an SSHFS mount point to some backup host.
+
+@cindex referential transparency (@command{chop-backup})
+Since @file{~/doc/important} was unchanged between the two runs,
+@command{chop-backup} returned the exact same tuple@footnote{In other
+words, @command{chop-backup --backup} can be said to be
+@emph{referentially transparent}, a notion functional programmers are
+familiar with.  It also looks very scientific to present it this way,
+doesn't it?}.  If the contents of that directory, or file meta-data such
+as permissions or modification time are changed, @command{chop-backup}
+returns a different tuple:
+
+@example
+$ chop-backup --backup /mnt/usb-key ~/doc/important
+(() "tree_indexer:chk_block_fetcher:chk_index_handle:100:aes256,cbc,sha1...ssqijsady/4a" ())
+@end example
 
 Because the returned tuples are so important (and hard to type),
 @command{chop-backup} caches a copy of them locally.  They can be
@@ -407,10 +422,10 @@ backups are available.  To check which of these recent backups a given
 store holds, try the @option{--probe} option:
 
 @example
-$ chop-backup --probe ~/bak
+$ chop-backup --probe /net/backup-machine
 /home/ludo/doc/important        (() "tree_indexer...mdfagfq2a/4a" ())
 
-$ chop-backup --probe /net/backup-machine
+$ chop-backup --probe /mnt/usb-key
 /home/ludo/doc/important        (() "tree_indexer...ssqijsady/4a" ())
 @end example
 

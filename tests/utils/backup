@@ -62,6 +62,13 @@ do
     chop_fail_if ! cmp "$TMP_FILE/$file" "$top_srcdir/include/$file"
 done
 
+# Doing it a second and third time should yield the same index
+# (assuming the directory and its meta-data were left unchanged.)
+index2=`chop-backup "$DB_FILE" "$top_srcdir/include"`
+index3=`chop-backup "$DB_FILE" "$top_srcdir/include"`
+chop_fail_if test '"$index2"' != '"$index"'
+chop_fail_if test '"$index3"' != '"$index"'
+
 find "$TMP_FILE" | xargs chmod +w && rm -rf "$TMP_FILE"
 
 chop_cleanup
