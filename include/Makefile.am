@@ -1,5 +1,5 @@
 # libchop -- a utility library for distributed storage
-# Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+# Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
 # Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 #
 # Libchop is free software: you can redistribute it and/or modify
@@ -18,7 +18,6 @@
 
 nobase_include_HEADERS = chop/block-indexers.h	\
 			 chop/block-server.h	\
-			 chop/block_rstore.h	\
 			 chop/buffers.h		\
 			 chop/errors.h		\
 			 chop/chop.h		\
@@ -42,3 +41,4 @@ endif
 
 # Built in `src/'.
 BUILT_SOURCES = chop/block_rstore.h
+nodist_nobase_include_HEADERS = chop/block_rstore.h
