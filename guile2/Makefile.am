@@ -65,7 +65,8 @@ nobase_nodist_guilemodule_DATA = $(BUILT_SOURCES) $(GOBJECTS)
 	CC="$(CC)" LIBTOOL="$(LIBTOOL)"						\
 	GUILE_AUTO_COMPILE=0							\
 	GUILE_LOAD_COMPILED_PATH="$(builddir):$$GUILE_LOAD_COMPILED_PATH"	\
-	guile-tools compile -L "$(srcdir)" $(GUILEC_FLAGS) -o "$@" "$<"
+	guile-tools compile -L "$(builddir)" -L "$(srcdir)" $(GUILEC_FLAGS)	\
+	  -o "$@" "$<"
 
 TESTS_ENVIRONMENT =							\
   libchop_libdir="$(abs_top_builddir)/src"				\
