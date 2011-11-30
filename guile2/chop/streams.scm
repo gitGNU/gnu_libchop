@@ -68,15 +68,12 @@
       "Return a new input stream whose input is drained from stream BACKEND
 and filtered through FILTER.  If CLOSE-BACKEND? is true, then BACKEND will be
 closed when the returned stream is closed."
-      (let ((s (f (unwrap-stream backend)
-                  (if close-backend?
-                      proxy/eventually-close
-                      proxy/leave-as-is)
-                  (unwrap-object (lookup-class "filter") filter)
-                  0)))
-        (register-weak-reference s filter)
-        (register-weak-reference s backend)
-        s))))
+      (f (unwrap-stream backend)
+         (if close-backend?
+             proxy/eventually-close
+             proxy/leave-as-is)
+         (unwrap-object (lookup-class "filter") filter)
+         0))))
 
 
 ;;;

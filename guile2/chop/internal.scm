@@ -521,22 +521,17 @@ C function NAME and wraps the resulting pointer with WRAP."
 ;; fixes `procedure->pointer'; before that commit, you typically get a
 ;; wrong-type-arg error when returning from `%malloc' or similar.
 
-(define %use-custom-allocator?
-  (string>? (version) "2.0.3"))
-
-(if (not %use-custom-allocator?)
+(if (string<=? (version) "2.0.3")
     (begin
       ;; Simplification of the above, but you get the idea.  :-)
       (format (current-error-port)
-              "Using Guile ~a, which has a bug leading to memory leaks in libchop.~%"
+              "Using Guile ~a, which has a bug in its foreign function interface.~%"
               (version))
       (format (current-error-port)
               "Please upgrade to Guile 2.0.4 or later.~%")))
 
 (define init
-  (if %use-custom-allocator?
-      (libchop-function "init_with_allocator" ('* '* '*))
-      (libchop-function "init" ())))
+  (libchop-function "init_with_allocator" ('* '* '*)))
 
 (define (%malloc size class)
   (gc-malloc size))
@@ -557,9 +552,7 @@ C function NAME and wraps the resulting pointer with WRAP."
 (define %free-c-func
   (procedure->pointer void %free '(* *)))
 
-(if %use-custom-allocator?
-    (init %malloc-c-func %realloc-c-func %free-c-func)
-    (init))
+(init %malloc-c-func %realloc-c-func %free-c-func)
 
 
 ;; Bootstrap the object system.

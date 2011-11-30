@@ -95,16 +95,12 @@ contents of blocks that are written to it, OUTPUT-FILTER to filter the
 contents of blocks as they are read from it, and uses BACKEND as the
 underlying block store.  If CLOSE-BACKEND? is true, then BACKEND will be
 closed when the returned store is closed."
-      (let ((s (f (unwrap-object %filter-class input-filter)
-                  (unwrap-object %filter-class output-filter)
-                  (unwrap-store backend)
-                  (if close-backend?
-                      proxy/eventually-close
-                      proxy/leave-as-is))))
-        (register-weak-reference s input-filter)
-        (register-weak-reference s output-filter)
-        (register-weak-reference s backend)
-        s))))
+      (f (unwrap-object %filter-class input-filter)
+         (unwrap-object %filter-class output-filter)
+         (unwrap-store backend)
+         (if close-backend?
+             proxy/eventually-close
+             proxy/leave-as-is)))))
 
 ;; FIXME: sunrpc-block-store-open
 ;; FIXME: sunrpc/tls-block-store-simple-open

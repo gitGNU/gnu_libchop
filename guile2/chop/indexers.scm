@@ -120,11 +120,7 @@ fetched from DATA-STORE and META-DATA-STORE, according to BF and INDEXER."
        (unwrap-object %store-class data-store)
        (unwrap-object %store-class meta-data-store)
        p)
-    (let ((s (register-libchop-object! (wrap-object %stream-class p))))
-      (register-weak-reference s bf)
-      (register-weak-reference s data-store)
-      (register-weak-reference s meta-data-store)
-      s)))
+    (register-libchop-object! (wrap-object %stream-class p))))
 
 (define serialize-index-tuple/ascii
   (let ((f (libchop-function "ascii_serialize_index_tuple"
