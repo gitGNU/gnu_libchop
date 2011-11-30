@@ -370,6 +370,10 @@ For each file type an appropriate compression method is chosen.
 The application is not bound to any storage, hash, encryption, or
 compression method.  In fact, all these parameters can vary from file to
 file within a snapshot.
+
+@item Fast.
+Only files and directories changed since the last run are read; only
+pieces of data missing in the target snapshot are written.
 @end table
 
 @noindent
@@ -386,11 +390,13 @@ $ chop-backup --backup /net/backup-machine ~/doc/important
 @cindex tuple
 @noindent
 The first command above creates a snapshot of the @file{~/doc/important}
-directory and stores it under @file{~/bak}.  Upon completion it displays
-a @dfn{tuple}, which is the key that is @emph{necessary and sufficient}
-to access the snapshot.  The second command writes a new (possibly
+directory and stores it under @file{~/bak}, which we thereafter refer to
+as a @dfn{store} or @dfn{block store}.  Upon completion it displays a
+@dfn{tuple}, which is the key that is @emph{necessary and sufficient} to
+access the snapshot.  The second command writes a new (possibly
 identical) snapshot to @file{/net/backup-machine}, which could be (say)
-an SSHFS mount point to some backup host.
+an SSHFS mount point to some backup host.  In both cases, only data not
+already available in the target store is actually written to it.
 
 @cindex referential transparency (@command{chop-backup})
 Since @file{~/doc/important} was unchanged between the two runs,
