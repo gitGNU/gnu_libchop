@@ -87,6 +87,22 @@ Additional information is available from the [[http://savannah.nongnu.org/projec
 
 Test coverage information is [[./coverage/][available here]].
 
+* Related Work
+
+  - [[http://plan9.bell-labs.com/magic/man2html/8/venti][Plan 9's Venti]] provides unencrypted content-addressable storage and
+    archival.
+
+  - [[http://tahoe-lafs.org/][Tahoe-LAFS]] is a distributed file system, where data is encrypted but
+    remains selectively shareable; it handles redundancy automatically.
+    It has a =backup= sub-command.
+
+  - [[http://www.kitten-technologies.co.uk/project.php?project=ugarit][Ugarit]], a nice content-addressable backup & archival system written
+    in Chicken Scheme.  The main differences compared to =chop-backup=
+    are that it does not use content-hash keys for encryption (a
+    symmetric encryption key must be kept in a =ugarit.conf= file), and
+    lacks adaptive compression and content-based chopping (it doesn't
+    implement [[./manual/libchop.html#Overview][the storage pipeline found in libchop]].)
+
 #+BEGIN_CENTER
 [[http://www.gnu.org/graphics/gplv3-127x51.png]]
 #+END_CENTER
