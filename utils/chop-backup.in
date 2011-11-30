@@ -525,6 +525,10 @@ something else."
                  ;; compression before encryption.
                  '()))
 
+(define %directory-storage-pipeline
+  ;; The pipeline suitable for directories in this s-exp format.
+  %text-storage-pipeline)
+
 (define %compressed-data-storage-pipeline
   ;; Storage pipeline for compressed data (MP3, JPG, etc.)
   (make-pipeline '()
@@ -590,15 +594,11 @@ directory."
 
 (define (store-directory dir store)
   "Serialize DIR, write it to STORE, and return its index tuple."
-  (define pipeline
-    ;; The pipeline suitable for directories in this s-exp format.
-    %text-storage-pipeline)
-
   (let* ((str   (call-with-output-string (cut write-directory dir <>)))
-         (index (run-storage-pipeline pipeline
+         (index (run-storage-pipeline %directory-storage-pipeline
                                       (mem-stream-open (string->utf8 str))
                                       store)))
-    (pipeline-index-handle->tuple pipeline index)))
+    (pipeline-index-handle->tuple %directory-storage-pipeline index)))
 
 (define (run-storage-pipeline/recursive choose-pipeline dir store)
   "Store directory DIR into STORE using the storage pipeline returned by
@@ -667,12 +667,22 @@ CHOOSE-PIPELINE, and return its index handle."
     (let ((prev-entry (stat->cached-entry stat)))
       (if (pair? prev-entry)
           (let* ((prev-tuple   (cdr prev-entry))
-                 (prev-dir     (car prev-entry))
-                 (prev-entries (directory-entries
-                                (sexp->directory prev-dir))))
+                 (prev-dir     (sexp->directory (car prev-entry)))
+                 (prev-entries (directory-entries prev-dir)))
             (if (lset= equal? prev-entries entries)
-                prev-tuple                        ; directory unchanged
-                (do-store prev-tuple)))
+                (match prev-tuple                 ; directory unchanged
+                  ((_ index _)
+                   (if (tip-exists? index)
+                       prev-tuple
+                       (let ((index (store-directory prev-dir store)))
+                         (if (equal? index prev-tuple)
+                             index
+                             (raise (condition    ; XXX: not very appropriate
+                                     (&pipeline-storage-error
+                                      (pipeline %directory-storage-pipeline)
+                                      (libchop-error 0)
+                                      (input prev-dir)))))))))
+                (do-store prev-tuple)))           ; directory changed
           (do-store #f))))
 
   (define (tip-exists? index)

@@ -73,6 +73,18 @@ chop_fail_if test '"$index3"' != '"$index"'
 # backup list.
 chop_fail_if test '`chop-backup --recent | grep /include | wc -l`' -ne 1
 
+# Remove the root block.
+root_block="`echo $index | sed -es'|^.*,\([a-z2-7]\+\)/.*$|\1|g'`"
+rm "$DB_FILE/`echo $root_block | cut -c 1-2`/`echo $root_block | cut -c 3-`"
+chop_fail_if chop-backup --check '"$DB_FILE"' '"$index"'
+
+# Re-run the backup: nothing has changed, so it should just re-create
+# the root block, under the same name.
+index4=`chop-backup "$DB_FILE" "$top_srcdir/include"`
+chop_fail_if test '"$index4"' != '"$index"'
+chop_fail_if ! chop-backup --check '"$DB_FILE"' '"$index"'
+
+
 find "$TMP_FILE" | xargs chmod +w && rm -rf "$TMP_FILE"
 
 chop_cleanup
