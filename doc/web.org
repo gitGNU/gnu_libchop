@@ -73,19 +73,19 @@ A mailing list for bug reports and general discussion is available at
 
 * Development
 
-Development occurs using the Git distributed revision control system.  A
-copy of the source code repository can be obtained using the following
-command:
+  - Git repository at [[http://git.savannah.gnu.org/cgit/libchop.git][=git://git.sv.gnu.org/libchop.git=]]
 
-#+BEGIN_SRC sh
-git clone git://git.sv.gnu.org/libchop.git
-#+END_SRC
+  - [[http://savannah.nongnu.org/projects/libchop][Savannah project page]]
 
-The repository can be [[http://git.savannah.gnu.org/cgit/libchop.git][browsed on-line]].
+  - continuous integration
 
-Additional information is available from the [[http://savannah.nongnu.org/projects/libchop][Savannah project page]]. 
+    + [[http://hydra.nixos.org/project/libchop][libchop at =hydra.nixos.org=]]
 
-Test coverage information is [[./coverage/][available here]].
+    + [[http://hydra.nixos.org/job/libchop/master/tarball/latest][latest tarball & manual]]
+
+    + [[http://hydra.nixos.org/job/libchop/master/build/latest][latest pre-compiled binaries installable with Nix]]
+
+    + [[http://hydra.nixos.org/job/libchop/master/coverage/latest][latest test coverage report]]
 
 * Related Work
 
