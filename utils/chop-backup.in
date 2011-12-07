@@ -149,8 +149,9 @@ returns no, call (SKIP PATH STAT RESULT)."
 ;;;
 
 (define (cache-directory)
-  (or (getenv "XDG_CACHE_HOME")
-      (string-append (getenv "HOME") "/.cache/chop/backup")))
+  (string-append (or (getenv "XDG_CACHE_HOME")
+                     (string-append (getenv "HOME") "/.cache"))
+                 "/chop/backup"))
 
 (define (mkdir-p dir)
   "Create directory DIR and all its ancestors."
