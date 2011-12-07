@@ -28,7 +28,6 @@
 
 #ifdef HAVE_GNUTLS
 # include <gnutls/gnutls.h>
-# include <gnutls/extra.h>
 #endif
 
 #include <stdio.h>

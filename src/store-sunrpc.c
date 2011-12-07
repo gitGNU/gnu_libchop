@@ -31,7 +31,6 @@
 # include <chop/store-sunrpc-tls.h>
 
 # include <gnutls/gnutls.h>
-# include <gnutls/extra.h>
 # include <gnutls/openpgp.h>
 #endif
 
@@ -195,51 +194,32 @@ static chop_error_t
 make_default_tls_session (gnutls_session_t session,
 			  void *params)
 {
-  /* We pretty much always want message authentication.  */
-  static const int mac_prio[] =
-    { GNUTLS_MAC_SHA1, GNUTLS_MAC_RMD160, GNUTLS_MAC_MD5, 0 };
+  /* Choice of a cipher suite:
 
-  /* Often, we won't need encryption at all because the data being stored is
-     already encrypted.  However, there is no anonymous authentication
-     ciphersuite that supports `NULL' encryption.  */
-  static const int cipher_prio[] =
-    { GNUTLS_CIPHER_NULL, GNUTLS_CIPHER_ARCFOUR_128,
-      GNUTLS_CIPHER_AES_128_CBC, GNUTLS_CIPHER_AES_256_CBC,
-      GNUTLS_CIPHER_3DES_CBC, GNUTLS_CIPHER_DES_CBC,
-      GNUTLS_CIPHER_RIJNDAEL_128_CBC, GNUTLS_CIPHER_RIJNDAEL_256_CBC,
-      0 };
+     - We pretty much always want message authentication.
 
-  /* Likewise, we will rarely need compression.  */
-  static const int compression_prio[] =
-    { GNUTLS_COMP_NULL, GNUTLS_COMP_DEFLATE, 0 };
+     - Often, we won't need encryption at all because the data being stored
+       is already encrypted.  However, there is no anonymous authentication
+       ciphersuite that supports `NULL' encryption.
 
+     - Likewise, compression is rarely needed.  */
 
   chop_error_t err = 0;
   chop_tls_params_t *tls_params = (chop_tls_params_t *)params;
-
-  gnutls_set_default_priority (session);
-  gnutls_compression_set_priority (session, compression_prio);
+  const char *err_pos;
 
   if (tls_params->pubkey_file && tls_params->privkey_file)
     {
       /* OpenPGP authentication.  */
-      static const int cert_type_priority[2] = { GNUTLS_CRT_OPENPGP, 0 };
-      static const int kx_prio[] =
-	{ GNUTLS_KX_RSA, GNUTLS_KX_RSA_EXPORT, GNUTLS_KX_DHE_RSA,
-	  GNUTLS_KX_DHE_DSS, 0 };
-
+      static const char prio[] = "NORMAL:-CTYPE-ALL:+CTYPE-OPENPGP";
       gnutls_certificate_credentials_t certcred;
-
-      err = gnutls_global_init_extra ();
-      if (err)
-	goto failed;
 
       err = gnutls_certificate_allocate_credentials (&certcred);
       if (err)
 	goto failed;
 
       /* Require OpenPGP authentication.  */
-      gnutls_certificate_type_set_priority (session, cert_type_priority);
+      gnutls_priority_set_direct (session, prio, &err_pos);
 
       err =
 	gnutls_certificate_set_openpgp_key_file (certcred,
@@ -260,23 +240,17 @@ make_default_tls_session (gnutls_session_t session,
 	  gnutls_certificate_free_credentials (certcred);
 	  goto failed;
 	}
-
-      gnutls_kx_set_priority (session, kx_prio);
     }
   else
     {
       /* Anonymous authentication.  */
-      static const int kx_prio[] = { GNUTLS_KX_ANON_DH, 0 };
+      static const char prio[] = "NORMAL:-KX-ALL:+KX-ANON-DH";
       gnutls_anon_client_credentials_t anoncred;
 
       gnutls_anon_allocate_client_credentials (&anoncred);
       gnutls_credentials_set (session, GNUTLS_CRD_ANON, &anoncred);
-      gnutls_kx_set_priority (session, kx_prio);
+      gnutls_priority_set_direct (session, prio, &err_pos);
     }
-
-
-  gnutls_mac_set_priority (session, mac_prio);
-  gnutls_cipher_set_priority (session, cipher_prio);
 
   return 0;
 

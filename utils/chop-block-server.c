@@ -50,7 +50,6 @@
 
 #ifdef HAVE_GNUTLS
 # include <gnutls/gnutls.h>
-# include <gnutls/extra.h>
 # include <gnutls/openpgp.h>
 
 # include <chop/sunrpc-tls.h>
@@ -540,45 +539,24 @@ static gnutls_rsa_params_t              server_rsa_params;
 static int
 make_tls_session (gnutls_session *session, void *closure)
 {
-  /* We pretty much always want message authentication.  */
-  static const int mac_prio[] =
-    { GNUTLS_MAC_SHA1, GNUTLS_MAC_RMD160, GNUTLS_MAC_MD5, 0 };
-
-  /* Often, we won't need encryption at all because the data being stored is
-     already encrypted.  However, there is no anonymous authentication
-     ciphersuite that supports `NULL' encryption.  */
-  static const int cipher_prio[] =
-    { GNUTLS_CIPHER_NULL, GNUTLS_CIPHER_ARCFOUR_128,
-      GNUTLS_CIPHER_AES_128_CBC, GNUTLS_CIPHER_AES_256_CBC, 0 };
-
-  /* Likewise, we will rarely need compression.  */
-  static const int compression_prio[] =
-    { GNUTLS_COMP_NULL, GNUTLS_COMP_DEFLATE, 0 };
-
   int err;
+  const char *err_pos;
 
   info ("preparing new TLS session for incoming connection");
   err = gnutls_init (session, GNUTLS_SERVER);
   if (err)
     return -1;
 
-  gnutls_set_default_priority (*session);
-
   if (tls_use_openpgp_authentication)
     {
       /* OpenPGP authentication.  */
-      static const int cert_type_priority[2] = { GNUTLS_CRT_OPENPGP, 0 };
-      static const int kx_prio[] =
-	{ GNUTLS_KX_RSA, GNUTLS_KX_RSA_EXPORT, GNUTLS_KX_DHE_RSA,
-	  GNUTLS_KX_DHE_DSS, 0 };
+      static const char prio[] = "NORMAL:-CTYPE-ALL:+CTYPE-OPENPGP";
 
       /* Require OpenPGP authentication.  */
-      gnutls_certificate_type_set_priority (*session, cert_type_priority);
+      gnutls_priority_set_direct (*session, prio, &err_pos);
 
       gnutls_credentials_set (*session, GNUTLS_CRD_CERTIFICATE,
 			      server_certcred);
-
-      gnutls_kx_set_priority (*session, kx_prio);
 
       /* Request client certificate if any.  */
       gnutls_certificate_server_set_request (*session, GNUTLS_CERT_REQUEST);
@@ -586,15 +564,11 @@ make_tls_session (gnutls_session *session, void *closure)
   else
     {
       /* Anonymous authentication.  */
-      static const int kx_prio[] = { GNUTLS_KX_ANON_DH, 0 };
+      static const char prio[] = "NORMAL:-KX-ALL:+KX-ANON-DH";
 
+      gnutls_priority_set_direct (*session, prio, &err_pos);
       gnutls_credentials_set (*session, GNUTLS_CRD_ANON, server_anoncred);
-      gnutls_kx_set_priority (*session, kx_prio);
     }
-
-  gnutls_mac_set_priority (*session, mac_prio);
-  gnutls_cipher_set_priority (*session, cipher_prio);
-  gnutls_compression_set_priority (*session, compression_prio);
 
   gnutls_dh_set_prime_bits (*session, DH_BITS);
 
@@ -653,14 +627,6 @@ initialize_tls_parameters (void)
 
   if (tls_use_openpgp_authentication)
     {
-      err = gnutls_global_init_extra ();
-      if (err)
-	{
-	  info ("failed to initialize GNUtls extra: %s",
-		gnutls_strerror (err));
-	  exit (1);
-	}
-
       err = gnutls_certificate_allocate_credentials (&server_certcred);
       if (err)
 	{
@@ -685,6 +651,7 @@ initialize_tls_parameters (void)
       if (err)
 	exit (1);
 
+      /* XXX: Use `gnutls_certificate_set_params_function'?  */
       gnutls_certificate_set_dh_params (server_certcred, server_dh_params);
       gnutls_certificate_set_rsa_export_params (server_certcred,
 						server_rsa_params);
