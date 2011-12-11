@@ -92,6 +92,11 @@ A mailing list for bug reports and general discussion is available at
   - [[http://plan9.bell-labs.com/magic/man2html/8/venti][Plan 9's Venti]] provides unencrypted content-addressable storage and
     archival.
 
+  - [[https://gnunet.org/][GNUnet]] uses content-hash keys for its file sharing service (like
+    =chop-backup=).  Some of the [[https://gnunet.org/bibliography/keyword/GNUnet][early papers on its data encoding
+    scheme]] (ECRS) were instrumental in the design of parts of libchop
+    and =chop-backup=.
+
   - [[http://tahoe-lafs.org/][Tahoe-LAFS]] is a distributed file system, where data is encrypted but
     remains selectively shareable; it handles redundancy automatically.
     It has a =backup= sub-command.
