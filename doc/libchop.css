@@ -1,24 +1,28 @@
 /* CSS style for libchop by Ludovic Courtès <ludo@gnu.org>.  */
 
 body {
-  font-family: monospace;
+  font-family: CousineRegular, monospace;
   margin: 5% 15% 5% 15%;
   background: #000;
   color: #fff;
   text-align: left;
 }
 
+b { font-family: CousineBold, monospace; font-weight: bold; }
+i { font-family: CousineItalic, monospace; font-weight: normal; }
+code { font-family: CousineRegular, monospace; font-weight: normal; }
+
 .title {
-  font-family: sans-serif;
+  font-family: junction, sans-serif;
   font-weight: bolder;
   font-size: x-large;
   text-align: right;
   color: #B4DC14;
-  margin-left: 15%;
+  margin-left: 20%;
 }
 
 h2 {
-  font-family: sans-serif;
+  font-family: junction, sans-serif;
   font-weight: bolder;
   font-size: x-large;
 }
@@ -37,3 +41,52 @@ img.logo { float: right; margin: 20px 0px 20px 20px; }
 
 p.author { color: #ddd; text-align: right; }
 p.date { color: #ddd; text-align: right; }
+
+
+/* Fonts! */
+
+/* http://www.theleagueofmoveabletype.com/junction */
+@font-face {
+    font-family: 'junction';
+    src: url('Junction-webfont.ttf') format('truetype'),
+         url('Junction-webfont.svg#junctionregularRegular') format('svg');
+    font-weight: normal;
+    font-style: normal;
+}
+
+/* http://www.fontsquirrel.com/fonts/cousine */
+@font-face {
+    font-family: 'CousineRegular';
+    src: url('Cousine-Regular-Latin-webfont.ttf') format('truetype'),
+         url('Cousine-Regular-Latin-webfont.svg#CousineRegular') format('svg');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+@font-face {
+    font-family: 'CousineItalic';
+    src: url('Cousine-Italic-Latin-webfont.ttf') format('truetype'),
+         url('Cousine-Italic-Latin-webfont.svg#CousineItalic') format('svg');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+@font-face {
+    font-family: 'CousineBold';
+    src: url('Cousine-Bold-Latin-webfont.ttf') format('truetype'),
+         url('Cousine-Bold-Latin-webfont.svg#CousineBold') format('svg');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+@font-face {
+    font-family: 'CousineBoldItalic';
+    src: url('Cousine-BoldItalic-Latin-webfont.ttf') format('truetype'),
+         url('Cousine-BoldItalic-Latin-webfont.svg#CousineBoldItalic') format('svg');
+    font-weight: normal;
+    font-style: normal;
+
+}
