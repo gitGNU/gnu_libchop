@@ -23,6 +23,7 @@
   #:use-module (srfi srfi-26)
   #:use-module (ice-9 popen)
   #:use-module (ice-9 match)
+  #:use-module (ice-9 format)
   #:re-export (%libchop-libdir)
   #:export (c-offset-of
             c-size-of

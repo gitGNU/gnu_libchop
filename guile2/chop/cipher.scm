@@ -1,4 +1,4 @@
-;;; Copyright (C) 2011  Ludovic Courtès <ludo@gnu.org>
+;;; Copyright (C) 2011, 2012  Ludovic Courtès <ludo@gnu.org>
 ;;;
 ;;; Libchop is free software: you can redistribute it and/or modify
 ;;; it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
   #:use-module (chop internal)
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-9 gnu)
+  #:use-module (ice-9 format)
   #:export (cipher-algorithm?
             cipher-algorithm-key-size
             cipher-algorithm-block-size
