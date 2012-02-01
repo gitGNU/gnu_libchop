@@ -239,7 +239,7 @@ AC_SUBST([GPERF])
 #
 
 guile2=""
-PKG_CHECK_EXISTS([guile-2.0],
+PKG_CHECK_EXISTS([guile-2.0 >= 2.0.5],
   [if test "x`$PKG_CONFIG guile-2.0 --variable bindir`" = "x"; then
      AC_PATH_PROG([GUILE], [guile])
    else
@@ -256,15 +256,6 @@ else
    AC_MSG_CHECKING([the Guile version])
    guile_version="`$PKG_CONFIG guile-2.0 --modversion`"
    AC_MSG_RESULT([$guile_version])
-
-   case "$guile_version" in
-     2.0.[[0123]])
-       # Warn about the `procedure->pointer' bug fixed in Guile
-       # v2.0.3-20-g46d80ca.
-       AC_MSG_WARN([Using Guile $guile_version, which has a bug in its foreign function interface.])
-       AC_MSG_WARN([Please upgrade to Guile 2.0.4 or later.])
-       ;;
-   esac
 fi
 AM_CONDITIONAL([HAVE_GUILE2], [test "x$have_guile2" = "xyes"])
 

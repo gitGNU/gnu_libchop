@@ -1,4 +1,4 @@
-;;; Copyright (C) 2010, 2011  Ludovic Courtès <ludo@gnu.org>
+;;; Copyright (C) 2010, 2011, 2012  Ludovic Courtès <ludo@gnu.org>
 ;;;
 ;;; Libchop is free software: you can redistribute it and/or modify
 ;;; it under the terms of the GNU General Public License as published by
@@ -516,19 +516,6 @@ C function NAME and wraps the resulting pointer with WRAP."
 ;; filters are associated with a fair amount of heap.  The test for this is:
 ;;
 ;;   (let loop ((i 300000)) (make-zlib-zip-filter) (loop (1- i)))
-;;
-;; Unfortunately, this doesn't work until Guile v2.0.3-20-g46d80ca, which
-;; fixes `procedure->pointer'; before that commit, you typically get a
-;; wrong-type-arg error when returning from `%malloc' or similar.
-
-(if (string<=? (version) "2.0.3")
-    (begin
-      ;; Simplification of the above, but you get the idea.  :-)
-      (format (current-error-port)
-              "Using Guile ~a, which has a bug in its foreign function interface.~%"
-              (version))
-      (format (current-error-port)
-              "Please upgrade to Guile 2.0.4 or later.~%")))
 
 (define init
   (libchop-function "init_with_allocator" ('* '* '*)))
