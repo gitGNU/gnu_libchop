@@ -1,5 +1,5 @@
 # libchop -- a utility library for distributed storage and data backup
-# Copyright (C) 2010, 2011  Ludovic Courtès <ludo@gnu.org>
+# Copyright (C) 2010, 2011, 2012  Ludovic Courtès <ludo@gnu.org>
 #
 # Libchop is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -32,10 +32,14 @@ SOURCES =					\
 SOURCES_NOT_COMPILED =				\
   srfi/srfi-64.upstream.scm
 
+SOURCES_NOT_INSTALLED =				\
+  chop/tests.scm
+
 BUILT_SOURCES = chop/config.scm
 CLEANFILES = $(BUILT_SOURCES) *.log
 
 nobase_dist_guilemodule_DATA = $(SOURCES) $(SOURCES_NOT_COMPILED)
+nobase_noinst_DATA = $(SOURCES_NOT_INSTALLED)
 
 EXTRA_DIST = chop/config.in test-suite.scm
 
@@ -53,7 +57,9 @@ if HAVE_GUILE2
 GUILEC_FLAGS = -Wunbound-variable -Warity-mismatch -Wunused-toplevel -Wformat
 
 # XXX: This expression relies on a GNU extension.
-GOBJECTS = $(SOURCES:%.scm=%.go) $(BUILT_SOURCES:%.scm=%.go)
+GOBJECTS =							\
+  $(SOURCES:%.scm=%.go) $(SOURCES_NOT_INSTALLED:%.scm=%.go)	\
+  $(BUILT_SOURCES:%.scm=%.go)
 
 CLEANFILES += $(GOBJECTS)
 nobase_nodist_guilemodule_DATA = $(BUILT_SOURCES) $(GOBJECTS)

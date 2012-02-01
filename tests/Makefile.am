@@ -1,5 +1,5 @@
 # libchop -- a utility library for distributed storage and data backup
-# Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
+# Copyright (C) 2008, 2010, 2011, 2012  Ludovic Courtès <ludo@gnu.org>
 # Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 #
 # Libchop is free software: you can redistribute it and/or modify
@@ -42,7 +42,9 @@ check_SCRIPTS =					\
 
 if HAVE_GUILE2
 
-check_SCRIPTS += utils/backup
+check_SCRIPTS +=				\
+  utils/backup					\
+  utils/backup-command
 
 endif
 
@@ -65,7 +67,8 @@ TESTS_ENVIRONMENT =						\
   GUILE_LOAD_PATH="$(abs_top_srcdir)/guile2:$(abs_top_builddir)/guile2:$$GUILE_LOAD_PATH" \
   GUILE_LOAD_COMPILED_PATH="$(abs_top_builddir)/guile2:$$GUILE_LOAD_COMPILED_PATH" \
   libchop_libdir="$(abs_top_builddir)/src"			\
-  top_srcdir="$(abs_top_srcdir)" srcdir="$(abs_srcdir)/utils"
+  top_srcdir="$(abs_top_srcdir)" srcdir="$(abs_srcdir)/utils"	\
+  top_builddir="$(abs_top_builddir)" builddir="$(abs_builddir)"
 
 AM_CFLAGS = $(GCC_CFLAGS)
 AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include	\

@@ -1,90 +1,137 @@
-# libchop -- a utility library for distributed storage and data backup
-# Copyright (C) 2011  Ludovic Courtès <ludo@gnu.org>
-#
-# Libchop is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# Libchop is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with libchop.  If not, see <http://www.gnu.org/licenses/>.
+#!/bin/sh
+# aside from this initial boilerplate, this is actually -*- scheme -*- code
 
-# Test the `chop-backup' command.
+# This test assumes `TESTS_ENVIRONMENT' set up Guile's search path
+# correctly.
 
-source "${srcdir:-$PWD}/lib.sh"
+exec ${GUILE:-guile} -L "$top_builddir/utils" \
+  -l "$0" -c "(apply $main (cdr (command-line)))" "$@"
+!#
+;;; Copyright (C) 2012  Ludovic Courtès <ludo@gnu.org>
+;;;
+;;; Libchop is free software: you can redistribute it and/or modify
+;;; it under the terms of the GNU General Public License as published by
+;;; the Free Software Foundation, either version 3 of the License, or
+;;; (at your option) any later version.
+;;;
+;;; Libchop is distributed in the hope that it will be useful,
+;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;;; GNU General Public License for more details.
+;;;
+;;; You should have received a copy of the GNU General Public License
+;;; along with libchop.  If not, see <http://www.gnu.org/licenses/>.
 
-DB_FILE=",,backup.db"
-TMP_FILE=",,backup.tmp"
-XDG_CACHE_HOME="$PWD/backup-cache"
-export XDG_CACHE_HOME
+(setenv "XDG_CACHE_HOME"
+        (string-append (getcwd) "/backup-cache"))
 
-chop_CLEANUP_HOOK='rm -rf "$XDG_CACHE_HOME" "$DB_FILE" "$TMP_FILE"'
+(define-module (backup-test)
+  #:use-module (chop-backup)
+  #:use-module (chop tests)
+  #:use-module (ice-9 ftw)
+  #:use-module (ice-9 regex)
+  #:use-module (srfi srfi-26)
+  #:use-module (srfi srfi-34)
+  #:use-module (srfi srfi-35)
+  #:use-module (srfi srfi-64))
 
-# Start from a clean state.
-chop_cleanup
+;; Some tests check error messages.
+(setlocale LC_ALL "C")
 
-chop-backup --version
+(define (temporary-file-name)
+  (let ((dir (or (getenv "builddir") (getcwd))))
+    (format #f "backup-test-~x-~x" (getpid) (car (gettimeofday)))))
 
-index=`chop-backup "$DB_FILE" "$top_srcdir/include"`
-chop_fail_if ! chop-backup --list "$DB_FILE" | grep '^d.*chop$'
-chop_fail_if ! chop-backup --list=recursive "$DB_FILE" '"$index"' | \
-    grep '^ *-r.* indexers\.h$'
-chop_fail_if ! chop-backup --show "$DB_FILE" | grep '^(directory'
-chop_fail_if ! chop-backup --show "$DB_FILE" '"$index"' | grep '^(directory'
-chop_fail_if ! chop-backup --check "$DB_FILE"
-chop_fail_if ! chop-backup --check "$DB_FILE" '"$index"'
+(define %top-srcdir
+  (or (getenv "top_srcdir")
+      (error "please define $top_srcdir")))
 
-index_makefile_am=`chop-backup -lv "$DB_FILE" | grep ' Makefile\.am' | \
-  sed -e's/^.* Makefile\.am \(.*\)$/\1/g'`
-chop_fail_if ! chop-backup -s "$DB_FILE" '"$index_makefile_am"' > "$TMP_FILE"
-chop_fail_if ! cmp "$TMP_FILE" "$top_srcdir/include/Makefile.am"
+(define %test-dir
+  (temporary-file-name))
 
-index_indexers_h=`chop-backup -lv,r "$DB_FILE" | grep ' indexers\.h' | \
-  sed -e's/^.* indexers\.h \(.*\)$/\1/g'`
-chop_fail_if ! chop-backup -s "$DB_FILE" '"$index_indexers_h"' > "$TMP_FILE"
-chop_fail_if ! cmp "$TMP_FILE" "$top_srcdir/include/chop/indexers.h"
+(mkdir %test-dir)
 
-rm -f "$TMP_FILE"
-chop_fail_if ! chop-backup -r "$DB_FILE" "$TMP_FILE"
-find "$TMP_FILE" | xargs chmod +w && rm -rf "$TMP_FILE"
-chop_fail_if ! chop-backup -r "$DB_FILE" '"$index"' "$TMP_FILE"
-
-# Select all the files that were restored, along with a fixed list of
-# files to make sure $TMP_FILE is not empty or lacking.
-for file in Makefile.am chop/objects.h chop/block-indexers.h chop/cipher.h \
-    `cd "$TMP_FILE" ; find -type f`
-do
-    chop_fail_if ! cmp "$TMP_FILE/$file" "$top_srcdir/include/$file"
-done
-
-# Doing it a second and third time should yield the same index
-# (assuming the directory and its meta-data were left unchanged.)
-index2=`chop-backup "$DB_FILE" "$top_srcdir/include"`
-index3=`chop-backup "$DB_FILE" "$top_srcdir/include"`
-chop_fail_if test '"$index2"' != '"$index"'
-chop_fail_if test '"$index3"' != '"$index"'
-
-# Thus, the `include' directory should appear only once in the recent
-# backup list.
-chop_fail_if test '`chop-backup --recent | grep /include | wc -l`' -ne 1
-
-# Remove the root block.
-root_block="`echo $index | sed -es'|^.*,\([a-z2-7]\+\)/.*$|\1|g'`"
-rm "$DB_FILE/`echo $root_block | cut -c 1-2`/`echo $root_block | cut -c 3-`"
-chop_fail_if chop-backup --check '"$DB_FILE"' '"$index"'
-
-# Re-run the backup: nothing has changed, so it should just re-create
-# the root block, under the same name.
-index4=`chop-backup "$DB_FILE" "$top_srcdir/include"`
-chop_fail_if test '"$index4"' != '"$index"'
-chop_fail_if ! chop-backup --check '"$DB_FILE"' '"$index"'
+(define %include-dir
+  (string-append %top-srcdir "/include"))
 
 
-find "$TMP_FILE" | xargs chmod +w && rm -rf "$TMP_FILE"
 
-chop_cleanup
+
+(test-begin "run-storage-pipeline-recursive")
+
+(test-assert "unchanged dir ⇒ same tuple"
+  (with-temporary-store
+   (lambda (store)
+     (let ((t1 (run-storage-pipeline/recursive (const %default-storage-pipeline)
+                                               %include-dir
+                                               store))
+           (t2 (run-storage-pipeline/recursive (const %default-storage-pipeline)
+                                               %include-dir
+                                               store))
+           (t3 (run-storage-pipeline/recursive (lambda (file stat)
+                                                 %default-storage-pipeline)
+                                               %include-dir
+                                               store)))
+       (and (pair? t1) (equal? t1 t2) (equal? t2 t3))))))
+
+(test-assert "EACCES on file"
+  (with-temporary-store
+   (lambda (store)
+     (with-file-tree %test-dir (directory "root"
+                                          (("a") ("b") ("c" #o000)))
+       (guard (c ((pipeline-storage-error? c)
+                  (and (eq? (pipeline-error-pipeline c)
+                            %default-storage-pipeline)
+                       (string=? "c"
+                                 (basename (pipeline-storage-error-input c)))
+                       (= EACCES (pipeline-error-libchop-error c)))))
+         (run-storage-pipeline/recursive (const %default-storage-pipeline)
+                                         (string-append %test-dir "/root")
+                                         store)
+
+         ;; Never reached.
+         #f)))))
+
+(test-assert "EACCES on sub-directory"
+  (with-temporary-store
+   (lambda (store)
+     (with-file-tree %test-dir (directory "root"
+                                          (("a") ("b")
+                                           (directory "subdir" #o000
+                                                      (("c") ("d")))))
+       (let ((port (open-output-string)))
+         (with-error-to-port port
+           (lambda ()
+             (run-storage-pipeline/recursive (const %default-storage-pipeline)
+                                             (string-append %test-dir "/root")
+                                             store)))
+
+         (string-match "subdir.*ignored" (get-output-string port)))))))
+
+(test-end)
+
+
+(gc) ;; stress the GC
+
+(rmdir %test-dir)
+
+;; rm -rf $XDG_CACHE_HOME
+(file-system-fold (lambda (dir stat result) #t)   ; enter?
+                  (lambda (file stat result)      ; leaf
+                    (delete-file file))
+                  (lambda (dir stat result)       ; down
+                    result)
+                  (lambda (dir stat result)       ; up
+                    (rmdir dir))
+                  (lambda (dir stat result)       ; skip
+                    result)
+                  (lambda (dir stat errno result) ; error
+                    #f)
+                  #t
+                  (getenv "XDG_CACHE_HOME"))
+
+(exit (= (test-runner-fail-count (test-runner-current)) 0))
+
+;;; Local Variables:
+;;; eval: (put 'test-assert 'scheme-indent-function 1)
+;;; End:

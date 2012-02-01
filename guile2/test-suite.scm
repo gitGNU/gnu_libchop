@@ -1,5 +1,5 @@
 ;;; libchop -- a utility library for distributed storage and data backup
-;;; Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
+;;; Copyright (C) 2008, 2010, 2011, 2012  Ludovic Courtès <ludo@gnu.org>
 ;;; Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 ;;;
 ;;; Libchop is free software: you can redistribute it and/or modify
@@ -26,21 +26,12 @@
   #:use-module (chop block-indexers)
   #:use-module (chop indexers)
   #:use-module (chop filters)
+  #:use-module (chop tests)
   #:use-module (rnrs bytevectors)
   #:use-module (rnrs io ports)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-11)
   #:use-module (srfi srfi-64))
-
-(define (with-temporary-file proc)
-  (let ((file (tmpnam)))
-    (dynamic-wind
-      (lambda ()
-        #t)
-      (lambda ()
-        (proc file))
-      (lambda ()
-        (delete-file file)))))
 
 
 ;;;
@@ -84,15 +75,6 @@
 ;;;
 
 (test-begin "streams")
-
-(define (make-random-bytevector n)
-  (let ((bv (make-bytevector n)))
-    (let loop ((i 0))
-      (if (< i n)
-          (begin
-            (bytevector-u8-set! bv i (random 256))
-            (loop (1+ i)))
-          bv))))
 
 (test-assert "/dev/null"
   (stream? (file-stream-open "/dev/null")))

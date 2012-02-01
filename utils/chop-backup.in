@@ -38,7 +38,41 @@ exec ${GUILE:-@GUILE@} -L "@guilemoduledir@" \
   #:use-module (ice-9 vlist)
   #:use-module (ice-9 regex)
   #:use-module (ice-9 format)
-  #:export (main))
+  #:export (pipeline?
+            make-pipeline
+            pipeline-stream-filters
+            pipeline-chopper
+            pipeline-indexer
+            pipeline-block-indexer
+            pipeline-store-filters
+
+            &pipeline-error
+            pipeline-error?
+            pipeline-error-pipeline
+            pipeline-error-libchop-error
+
+            &pipeline-storage-error
+            pipeline-storage-error?
+            pipeline-storage-error-input
+
+            run-storage-pipeline
+            run-storage-pipeline/recursive
+
+            %default-storage-pipeline
+
+            directory?
+            directory-entries
+            directory-previous-version
+
+            directory-entry?
+            directory-entry-kind
+            directory-entry-mtime
+            directory-entry-name
+            directory-entry-permissions
+            directory-entry-size
+            directory-entry-tuple
+
+            main))
 
 ;;; Commentary:
 ;;;
