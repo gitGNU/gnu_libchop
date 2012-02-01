@@ -28,12 +28,18 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
 (define-module (backup-test)
   #:use-module (chop-backup)
   #:use-module (chop tests)
+  #:use-module (chop objects)
+  #:use-module (chop streams)
+  #:use-module (chop stores)
+  #:use-module (chop indexers)
   #:use-module (ice-9 ftw)
   #:use-module (ice-9 regex)
   #:use-module (srfi srfi-26)
   #:use-module (srfi srfi-34)
   #:use-module (srfi srfi-35)
-  #:use-module (srfi srfi-64))
+  #:use-module (srfi srfi-64)
+  #:use-module (rnrs bytevectors)
+  #:use-module (rnrs io ports))
 
 ;; Some tests check error messages.
 (setlocale LC_ALL "C")
@@ -54,7 +60,68 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
 (define %include-dir
   (string-append %top-srcdir "/include"))
 
+
+(test-begin "run-storage-pipeline")
 
+(test-assert "retrievable"
+  (with-temporary-store
+   (lambda (store)
+     (let* ((bv     (make-random-bytevector (random-file-size)))
+            (input  (mem-stream-open bv))
+            (index  (run-storage-pipeline %default-storage-pipeline
+                                          input store))
+            (tuple  (pipeline-index-handle->tuple %default-storage-pipeline
+                                                  index))
+            (retr   (index-tuple->retriever tuple))
+            (output (get-bytevector-all (retr store))))
+       (bytevector=? bv output)))))
+
+(test-assert "verify: ok"
+  (with-temporary-store
+   (lambda (store)
+     (let* ((bv     (make-random-bytevector (random-file-size)))
+            (input  (mem-stream-open bv))
+            (index  (run-storage-pipeline %default-storage-pipeline
+                                          input store))
+            (tuple  (pipeline-index-handle->tuple %default-storage-pipeline
+                                                  index))
+            (verify (index-tuple->verifier tuple)))
+       (eq? 'ok (verify store))))))
+
+(test-assert "verify: missing"
+  (with-temporary-store
+   (lambda (store)
+     (let* ((bv     (make-random-bytevector (random-file-size)))
+            (input  (mem-stream-open bv))
+            (index  (run-storage-pipeline %default-storage-pipeline
+                                          input store))
+            (tuple  (pipeline-index-handle->tuple %default-storage-pipeline
+                                                  index))
+            (verify (index-tuple->verifier tuple)))
+       ;; XXX: Use `block-indexer-delete-block' when it exists.
+       (store-delete-block store (index-handle->block-key index))
+       (eq? 'missing (verify store))))))
+
+(test-assert "repair root block"
+  ;; Same as above, and repair the root block.
+  (with-temporary-store
+   (lambda (store)
+     (let* ((bv     (make-random-bytevector (random-file-size)))
+            (input  (mem-stream-open bv))
+            (index  (run-storage-pipeline %default-storage-pipeline
+                                          input store))
+            (tuple  (pipeline-index-handle->tuple %default-storage-pipeline
+                                                  index))
+            (verify (index-tuple->verifier tuple)))
+       ;; XXX: Use `block-indexer-delete-block' when it exists.
+       (store-delete-block store (index-handle->block-key index))
+       (and (eq? 'missing (verify store))
+            (object=? (run-storage-pipeline %default-storage-pipeline
+                                            (mem-stream-open bv) store)
+                      index)
+            (eq? 'ok (verify store)))))))
+
+(test-end)
 
 
 (test-begin "run-storage-pipeline-recursive")

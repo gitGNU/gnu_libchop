@@ -21,12 +21,16 @@
   #:use-module (rnrs io ports)
   #:use-module (srfi srfi-26)
   #:use-module (ice-9 match)
+  #:use-module (chop core)
   #:use-module (chop objects)
   #:use-module (chop stores)
+  #:use-module (chop indexers)
   #:export (with-temporary-file
             with-temporary-store
             with-file-tree
-            make-random-bytevector))
+            make-random-bytevector
+            random-file-size
+            index-handle->block-key))
 
 (define (with-temporary-file proc)
   (let ((file (tmpnam)))
@@ -64,6 +68,19 @@
   (call-with-output-file file
     (lambda (p)
       (put-bytevector p (make-random-bytevector size)))))
+
+(define (index-handle->block-key index)
+  "Return the block key corresponding to INDEX as a bytevector."
+  ;; XXX: This is a hack as it breaks the block-indexer interface and makes
+  ;; assumptions about the serialization format.
+  (cond ((object-is-a? index (lookup-class "chk_index_handle"))
+         (let* ((serial (serialize-object/ascii index))
+                (comma  (string-index serial #\,))
+                (slash  (string-rindex serial #\/)))
+           (base32-string->bytevector
+            (substring serial (1+ comma) slash))))
+        (else
+         (error "unsupported index handle class" index))))
 
 
 ;;;

@@ -57,12 +57,17 @@ exec ${GUILE:-@GUILE@} -L "@guilemoduledir@" \
 
             run-storage-pipeline
             run-storage-pipeline/recursive
+            pipeline-index-handle->tuple
+            index-tuple->retriever
+            index-tuple->verifier
 
             %default-storage-pipeline
 
             directory?
             directory-entries
             directory-previous-version
+            read-directory
+            write-directory
 
             directory-entry?
             directory-entry-kind
