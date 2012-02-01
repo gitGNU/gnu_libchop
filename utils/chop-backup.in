@@ -5,7 +5,7 @@ prefix="@prefix@"
 exec ${GUILE:-@GUILE@} -L "@guilemoduledir@" \
   -l "$0" -c "(apply $main (cdr (command-line)))" "$@"
 !#
-;;; Copyright (C) 2011  Ludovic Courtès <ludo@gnu.org>
+;;; Copyright (C) 2011, 2012  Ludovic Courtès <ludo@gnu.org>
 ;;;
 ;;; Libchop is free software: you can redistribute it and/or modify
 ;;; it under the terms of the GNU General Public License as published by
@@ -33,9 +33,11 @@ exec ${GUILE:-@GUILE@} -L "@guilemoduledir@" \
   #:use-module (srfi srfi-60)
   #:use-module (rnrs bytevectors)
   #:use-module ((rnrs io ports) #:select (get-bytevector-n! put-bytevector))
+  #:use-module (ice-9 ftw)
   #:use-module (ice-9 match)
   #:use-module (ice-9 vlist)
   #:use-module (ice-9 regex)
+  #:use-module (ice-9 format)
   #:export (main))
 
 ;;; Commentary:
@@ -63,85 +65,6 @@ exec ${GUILE:-@GUILE@} -L "@guilemoduledir@" \
 (if (not (string=? "@PACKAGE_VERSION@" (libchop-version)))
     (warn (_ "written for libchop @PACKAGE_VERSION@ but using ~a!")
           (libchop-version)))
-
-
-;;;
-;;; Functional file system traversal.
-;;;
-
-(define (file-system-fold enter? leaf down up skip init file-name)
-  "Traverse the directory at FILE-NAME, recursively.  Enter sub-directories
-only when (ENTER? PATH STAT RESULT) returns true.  When a sub-directory is
-entered, call (DOWN PATH STAT RESULT), where PATH is the path of the
-sub-directory and STAT the result of (lstat PATH); when it is left, call (UP
-PATH STAT RESULT).  For each file in a directory, call (LEAF PATH STAT
-RESULT).  Return the result of these successive applications.  When ENTER?
-returns no, call (SKIP PATH STAT RESULT)."
-
-  (define (mark v s)
-    (vhash-cons (cons (stat:dev s) (stat:ino s)) #t v))
-
-  (define (visited? v s)
-    (vhash-assoc (cons (stat:dev s) (stat:ino s)) v))
-
-  (let loop ((name    file-name)
-             (path    "")
-             (result  init)
-             (visited vlist-null))
-
-    (define full-name
-      (if (string=? path "")
-          name
-          (string-append path "/" name)))
-
-    (define dir-stat
-      (lstat full-name))
-
-    (if (visited? visited dir-stat)
-        (values result visited)
-        (if (enter? full-name dir-stat result)
-            (let ((dir     (opendir full-name))
-                  (visited (mark visited dir-stat)))
-              (let liip ((entry   (readdir dir))
-                         (result  (down full-name dir-stat result))
-                         (subdirs '()))
-                (cond ((eof-object? entry)
-                       (begin
-                         (closedir dir)
-                         (let ((r+v
-                                (fold (lambda (subdir result+visited)
-                                        (call-with-values
-                                            (lambda ()
-                                              (loop subdir
-                                                    full-name
-                                                    (car result+visited)
-                                                    (cdr result+visited)))
-                                          cons))
-                                      (cons result visited)
-                                      subdirs)))
-                           (values (up full-name dir-stat (car r+v))
-                                   (cdr r+v)))))
-                      ((or (string=? entry ".")
-                           (string=? entry ".."))
-                       (liip (readdir dir)
-                             result
-                             subdirs))
-                      (else
-                       (let ((stat
-                              (lstat (string-append full-name "/" entry))))
-                         (cond
-                          ((eq? (stat:type stat) 'directory)
-                           (liip (readdir dir)
-                                 result
-                                 (cons entry subdirs)))
-                          (else
-                           (liip (readdir dir)
-                                 (leaf (string-append full-name "/" entry)
-                                       stat
-                                       result)
-                                 subdirs))))))))
-            (values (skip full-name dir-stat result)
-                    (mark visited dir-stat))))))
 
 
 ;;;
@@ -747,12 +670,20 @@ CHOOSE-PIPELINE, and return its index handle."
     ;; Skip DIR, because it was considered worthless.
     result)
 
+  (define (report-error dir stat errno result)
+    ;; DIR is unreadable, so ignore it.
+    ;; TODO: Add an option to error out?
+    (format (current-error-port) (_ "~a ignored: ~a~%")
+            dir (strerror errno))
+    result)
+
   (let ((result
          (file-system-fold enter-directory?
                            process-file
                            enter-directory
                            leave-directory
                            skip-directory
+                           report-error
                            '(())
                            dir)))
     (match result
