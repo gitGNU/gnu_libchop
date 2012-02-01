@@ -1,4 +1,4 @@
-;;; Copyright (C) 2011  Ludovic Courtès <ludo@gnu.org>
+;;; Copyright (C) 2011, 2012  Ludovic Courtès <ludo@gnu.org>
 ;;;
 ;;; Libchop is free software: you can redistribute it and/or modify
 ;;; it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 
             store-read-block
             store-write-block
+            store-delete-block
             store-close
 
             error/unknown-store
@@ -158,6 +159,14 @@ closed when the returned store is closed."
        (bytevector->key key)
        (bytevector->pointer buffer)
        (bytevector-length buffer))))
+
+(define (store-delete-block store key)
+  "Delete from STORE the block pointed to by KEY.  Return KEY."
+  (let ((m (libchop-method (unwrap-store store) "block_store" "delete_block"
+                           ('* '*)
+                           (includes "#include <chop/stores.h>"))))
+    (m (unwrap-store store) (bytevector->key key))
+    key))
 
 (define (store-close store)
   "Close STORE."

@@ -184,6 +184,21 @@
          (store-close s)
          r)))))
 
+(test-assert "store-delete-block"
+  (with-temporary-store
+   (lambda (s)
+     (let ((k #vu8(1 2 3 4))
+           (v (make-random-bytevector 123)))
+       (store-write-block s k v)
+       (and (bytevector=? v (store-read-block s k))
+            (eq? k (store-delete-block s k))
+            (catch 'chop-error
+              (lambda ()
+                (store-read-block s k)
+                #f)
+              (lambda (key err . rest)
+                (= err error/store-block-unavailable))))))))
+
 (test-end)
 
 
