@@ -304,7 +304,8 @@ resulting blocks in STORE and returning its index handle."
   (define stream
     (if (stream? file-or-stream)
         file-or-stream
-        (file-stream-open file-or-stream)))
+        (with-pipeline-storage-error-handling pipeline file-or-stream
+          (file-stream-open file-or-stream))))
 
   (define stream*
     (filtered-stream stream (pipeline-stream-filters pipeline)
