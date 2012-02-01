@@ -1,6 +1,6 @@
 #!/bin/sh
 # aside from this initial boilerplate, this is actually -*- scheme -*- code
-main="(module-ref (resolve-module '(chop-backup)) 'main)"
+main="(module-ref (resolve-module '(chop-backup)) 'chop-backup)"
 prefix="@prefix@"
 exec ${GUILE:-@GUILE@} -L "@guilemoduledir@" \
   -l "$0" -c "(apply $main (cdr (command-line)))" "$@"
@@ -72,7 +72,7 @@ exec ${GUILE:-@GUILE@} -L "@guilemoduledir@" \
             directory-entry-size
             directory-entry-tuple
 
-            main))
+            chop-backup))
 
 ;;; Commentary:
 ;;;
@@ -1053,7 +1053,7 @@ directory DIR."
 (define %default-options
   '((arguments . ())))
 
-(define (main . args)
+(define (chop-backup . args)
   "Backup FILE and EXTRA-FILES, recursively, to STORE-FILE.  Return an index
 tuple that can be used to restore the whole directory hierarchy."
   (define (parse-args args)
