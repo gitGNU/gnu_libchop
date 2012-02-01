@@ -256,6 +256,10 @@ else
    AC_MSG_CHECKING([the Guile version])
    guile_version="`$PKG_CONFIG guile-2.0 --modversion`"
    AC_MSG_RESULT([$guile_version])
+
+   AC_MSG_CHECKING([Guile's default site directory])
+   GUILE_SITE="`$PKG_CONFIG guile-2.0 --variable=sitedir`"
+   AC_MSG_RESULT([$GUILE_SITE])
 fi
 AM_CONDITIONAL([HAVE_GUILE2], [test "x$have_guile2" = "xyes"])
 
@@ -265,7 +269,7 @@ fi
 AC_SUBST([guilemoduledir])
 
 if test "x$have_guile2" = "xyes"; then
-  if test "$guilemoduledir" != "$GUILE_SITE"; then
+  if test "`eval echo $guilemoduledir`" != "$GUILE_SITE"; then
      # Guile won't be able to locate the module "out of the box", so
      # warn the user.
      AC_MSG_WARN([`guilemoduledir' ($guilemoduledir) is different from `GUILE_SITE' ($GUILE_SITE).])
