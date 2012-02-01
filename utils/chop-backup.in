@@ -584,7 +584,7 @@ CHOOSE-PIPELINE, and return its index handle."
   (define (stat->index-tuple stat)
     ;; Return the serialized index tuple corresponding to STAT or #f.
     (match (stat->cached-entry stat)
-      ((mtime . index-tuple)
+      (((? integer? mtime) . index-tuple)
        (and (= mtime (stat:mtime stat))
             index-tuple))
       (_ #f)))
