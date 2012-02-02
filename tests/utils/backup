@@ -4,6 +4,11 @@
 # This test assumes `TESTS_ENVIRONMENT' set up Guile's search path
 # correctly.
 
+# Export this before launching Guile so it can be used as the
+# compilation cache.
+XDG_CACHE_HOME="$builddir/backup-cache"
+export XDG_CACHE_HOME
+
 exec ${GUILE:-guile} -L "$top_builddir/utils" \
   -l "$0" -c "(apply $main (cdr (command-line)))" "$@"
 !#
@@ -21,9 +26,6 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
 ;;;
 ;;; You should have received a copy of the GNU General Public License
 ;;; along with libchop.  If not, see <http://www.gnu.org/licenses/>.
-
-(setenv "XDG_CACHE_HOME"
-        (string-append (getcwd) "/backup-cache"))
 
 (define-module (backup-test)
   #:use-module (chop-backup)
