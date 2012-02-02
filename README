@@ -48,7 +48,7 @@ Optional dependencies:
   SleepyCat's Berkeley DB (BDB) 4.x (x >= 3)
   zlib
   libbz2
-  liblzo2
+  LZO >= 2.06
 
   GnuTLS 1.4.1 (or compatible --- recommended)
   Avahi 0.6 or later
@@ -69,7 +69,7 @@ And that's it.
 
 
 
-Copyright (C) 2010, 2011  Ludovic Courtès <ludo@gnu.org>
+Copyright (C) 2010, 2011, 2012  Ludovic Courtès <ludo@gnu.org>
 Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
   Copying and distribution of this file, with or without modification,

@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2012  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -150,6 +150,10 @@ chop_lzo_zip_pull (chop_filter_t *filter, int flush,
 	    {
 	      /* Encode `avail_in' and `avail_out' to ease per-block
 		 decompression.  */
+
+	      /* Make sure LZO provided us with at most what we asked for.
+		 This assertion fails sometimes with LZO 2.03, a problem that
+		 LZO 2.06 does not have.  */
 	      assert (zfilter->avail_out + 8 <= zfilter->output_buffer_size);
 
 	      if ((zfilter->avail_in & ~0xffffffffUL)
