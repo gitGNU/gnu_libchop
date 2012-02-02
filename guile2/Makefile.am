@@ -39,7 +39,7 @@ BUILT_SOURCES = chop/config.scm
 CLEANFILES = $(BUILT_SOURCES) *.log
 
 nobase_dist_guilemodule_DATA = $(SOURCES) $(SOURCES_NOT_COMPILED)
-nobase_noinst_DATA = $(SOURCES_NOT_INSTALLED)
+nobase_dist_noinst_DATA = $(SOURCES_NOT_INSTALLED)
 
 EXTRA_DIST = chop/config.in test-suite.scm
 
