@@ -21,19 +21,29 @@
   #:use-module (rnrs io ports)
   #:use-module (srfi srfi-26)
   #:use-module (ice-9 match)
+  #:use-module (ice-9 format)
   #:use-module (chop core)
   #:use-module (chop objects)
   #:use-module (chop stores)
   #:use-module (chop indexers)
-  #:export (with-temporary-file
+  #:export (temporary-file-name
+            with-temporary-file
             with-temporary-store
             with-file-tree
             make-random-bytevector
             random-file-size
             index-handle->block-key))
 
+(define %tmpdir
+  ;; Honor `$TMPDIR', which tmpnam(3) doesn't do.
+  (or (getenv "TMPDIR") "/tmp"))
+
+(define* (temporary-file-name #:optional (stem "libchop-guile-test"))
+  "Return a (hopefully unique) temporary file name."
+  (format #f "~a-~x-~x-~x" stem (getpid) (current-time) (random #x10000)))
+
 (define (with-temporary-file proc)
-  (let ((file (tmpnam)))
+  (let ((file (string-append %tmpdir "/" (temporary-file-name))))
     (dynamic-wind
       (lambda ()
         #t)

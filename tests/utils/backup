@@ -54,9 +54,6 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
 ;;; Helpers.
 ;;;
 
-(define (temporary-file-name)
-  (format #f "backup-test-~x-~x" (getpid) (car (gettimeofday))))
-
 (define %top-srcdir
   (or (getenv "top_srcdir")
       (error "please define $top_srcdir")))
