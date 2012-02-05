@@ -541,6 +541,33 @@ For instance, @command{chop-backup -lr,h ~/bak} lists the contents of
 the most recent backup, recursively traversing sub-directories and
 previous directory versions.
 
+@item --log
+@itemx -L
+@cindex change log
+Show the changes in the directory specified by the given tuple, at the
+specified store, compared to earlier versions.  The output is similar in
+spirit to that of @code{git whatchanged}---i.e., one or several letters
+indicate how a file was affected:
+
+@table @code
+@item A
+the file was added;
+
+@item M
+the file was modified;
+
+@item T
+the file was touched---i.e., its modification time changed but its
+contents did not;
+
+@item D
+the file was deleted.
+
+@end table
+
+Renamed files are identified by an arrow indicating their old and new
+name.
+
 @item --show
 @itemx -s
 Show the contents pointed to by the given tuple in the given store.

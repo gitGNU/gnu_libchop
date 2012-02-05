@@ -845,6 +845,38 @@ CHOOSE-PIPELINE, and return its index handle."
 ;;; Retrieval.
 ;;;
 
+(define (time->short-date-string time)
+  "Return a short, fixed-length, human-readable date string for TIME."
+  (let* ((now  (current-time time-monotonic))
+         (then (make-time time-monotonic 0 time))
+         (date (time-monotonic->date then)))
+    (date->string date
+                  (if (>= (time-second (time-difference now then))
+                          (* 3600 30 6))
+                      "~b ~e  ~Y"
+                      "~b ~e ~H:~M"))))
+
+(define (file-kind->string kind)
+  (case kind
+    ((regular) "-")
+    ((directory) "d")
+    ((symlink) "l")
+    ((block-special) "b")
+    ((char-special) "c")
+    ((fifo) "f")
+    ((socket) "s")
+    (else "?")))
+
+(define (permissions->string perms)
+  "Return an `ls'-like string to denote permission bits PERMS."
+  (define (one perms)
+    (string-append (if (bit-set? 2 perms) "r" "-")
+                   (if (bit-set? 1 perms) "w" "-")
+                   (if (bit-set? 0 perms) "x" "-")))
+  (string-append (one (arithmetic-shift perms -6))
+                 (one (logand 7 (arithmetic-shift perms -3)))
+                 (one (logand 7 perms))))
+
 (define* (list-directory-contents store tuple port
                                   #:key (verbose? #f) (recursive? #t)
                                         (history? #f))
@@ -855,40 +887,13 @@ TUPLE in STORE."
   (define (nest indent)
     (string-append indent "    "))
 
-  (define (->date epoch)
-    (let* ((now  (current-time time-monotonic))
-           (then (make-time time-monotonic 0 epoch))
-           (date (time-monotonic->date then)))
-      (date->string date
-                    (if (>= (time-second (time-difference now then))
-                            (* 3600 30 6))
-                        "~b ~e  ~Y"
-                        "~b ~e ~H:~M"))))
-
-  (define (->perms perms)
-    (define (one perms)
-      (string-append (if (bit-set? 2 perms) "r" "-")
-                     (if (bit-set? 1 perms) "w" "-")
-                     (if (bit-set? 0 perms) "x" "-")))
-    (string-append (one (arithmetic-shift perms -6))
-                   (one (logand 7 (arithmetic-shift perms -3)))
-                   (one (logand 7 perms))))
-
   (define (display-entry entry indent)
     (format port "~a~a~a ~8,d ~16,a ~a~:[~*~; ~s~]~%"
             indent
-            (case (directory-entry-kind entry)
-              ((regular) "-")
-              ((directory) "d")
-              ((symlink) "l")
-              ((block-special) "b")
-              ((char-special) "c")
-              ((fifo) "f")
-              ((socket) "s")
-              (else "?"))
-            (->perms (directory-entry-permissions entry))
+            (file-kind->string (directory-entry-kind entry))
+            (permissions->string (directory-entry-permissions entry))
             (directory-entry-size entry)
-            (->date (directory-entry-mtime entry))
+            (time->short-date-string (directory-entry-mtime entry))
             (directory-entry-name entry)
             verbose? (directory-entry-tuple entry)))
 
@@ -950,6 +955,77 @@ TUPLE in STORE."
         (begin
           (put-bytevector out buffer 0 bytes)
           (loop (get-bytevector-n! in buffer 0 buffer-size))))))
+
+(define (show-log store tuple)
+  "Show the change log of the directory pointed to by TUPLE in STORE."
+  (define (retrieve tuple)
+    (let ((fetch (index-tuple->retriever tuple)))
+      (false-if-block-unavailable (fetch store))))
+
+  (define (properties->string props)
+    (define prop->letter
+      '((touched . "T")
+        (modified . "M")
+        (permissions . "P")))
+
+    (string-pad (fold (lambda (p+l r)
+                        (if (memq (car p+l) props)
+                            (string-append (cdr p+l) r)
+                            r))
+                      ""
+                      prop->letter)
+                4))
+
+  (let ((dir (read-directory (retrieve tuple))))
+    (let loop ((tuple    tuple)
+               (current  dir)
+               (previous (and=> (directory-previous-version dir)
+                                (compose read-directory retrieve))))
+      (if (directory? previous)
+          (let-values (((added changed deleted)
+                        (directory-changes current previous)))
+            (format #t (_ "directory ~s~%~%") tuple)
+            (for-each (match-lambda
+                        (($ <directory-entry> name kind mtime size perms tuple)
+                         (format #t "       A ~a~a ~8,d ~a  ~a~%"
+                                 (file-kind->string kind)
+                                 (permissions->string perms)
+                                 size
+                                 (time->short-date-string mtime)
+                                 name)))
+                      added)
+            (for-each (match-lambda
+                       ((new old (props ...))
+                        (match new
+                          (($ <directory-entry> name kind mtime size perms
+                              tuple)
+                           (format #t "    ~a ~a~a ~8,d ~a  ~a~%"
+                                   (properties->string props)
+                                   (file-kind->string kind)
+                                   (permissions->string perms)
+                                   size
+                                   (time->short-date-string mtime)
+                                   (if (memq 'renamed props)
+                                       (format #f "~a -> ~a"
+                                               (directory-entry-name old) name)
+                                       name))))))
+                      changed)
+            (let ((pad (make-string (+ 9 (string-length
+                                          (time->short-date-string 0)))
+                                    #\space)))
+              (for-each (lambda (e)
+                          (format #t "       D ~a~a ~a  ~a~%"
+                                  (file-kind->string (directory-entry-kind e))
+                                  (permissions->string 0)
+                                  pad (directory-entry-name e)))
+                        deleted))
+            (newline)
+            (let ((tuple    (directory-previous-version current))
+                  (current  previous)
+                  (previous (and=> (directory-previous-version previous)
+                                   (compose read-directory retrieve))))
+              (loop tuple current previous)))))
+    (store-close store)))
 
 (define (verify-tree store tuple)
   "Read the directory pointed to by TUPLE from STORE and check the
@@ -1073,6 +1149,9 @@ directory DIR."
                          `h' or `history', `l' or `latest',
                          `v' or `verbose', `c' or `concise'."))
   (display (_ "
+  -L, --log              Show the changes since the last version in the tuple
+                         specified in ARGS and stored at STORE."))
+  (display (_ "
   -s, --show             Retrieve from STORE and show the contents pointed to
                          by the given tuple."))
   (display (_ "
@@ -1144,6 +1223,10 @@ directory DIR."
 
                   (alist-cons 'list-options canonical-options
                               (alist-cons 'action 'list result))))
+        (option '(#\L "log") #f #f
+                (lambda (opt name arg result)
+                  (alist-cons 'action 'log
+                              (alist-delete 'action result eq?))))
         (option '(#\s "show") #f #f
                 (lambda (opt name arg result)
                   (alist-cons 'action 'show
@@ -1273,6 +1356,23 @@ tuple that can be used to restore the whole directory hierarchy."
                  (leave (_ "please specify the tuple of a directory"))))))
            (_
             (leave (_ "wrong number of arguments for the `list' operation"))))))
+
+      ((log)
+       (match args
+         ((store-file tuple)
+          (show-log (open-store store-file)
+                    (with-input-from-string tuple read)))
+         ((store-file)
+          (let ((store (open-store store-file)))
+            (match (most-recent-backup-tuple store)
+              (((? string? name) . tuple)
+               (warn (_ "accessing most recent backup of `~a' at `~s'")
+                     name tuple)
+               (show-log store tuple))
+              (_
+               (leave (_ "please specify the tuple of a directory"))))))
+         (_
+          (leave (_ "wrong number of arguments for the `log' operation")))))
 
       ((show)
        (match args

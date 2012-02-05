@@ -84,6 +84,24 @@ index4=`chop-backup "$DB_FILE" "$top_srcdir/include"`
 chop_fail_if test '"$index4"' != '"$index"'
 chop_fail_if ! chop-backup --check '"$DB_FILE"' '"$index"'
 
+# At this point, $TMP_FILE contains a copy of $top_srcdir/include.
+# Create a backup of it, and add/delete files.
+index=`chop-backup "$DB_FILE" "$TMP_FILE"`
+
+chmod +w "$TMP_FILE"
+echo "nouveau" > "$TMP_FILE/added-file"
+rm "$TMP_FILE/Makefile.am"
+chmod 700 "$TMP_FILE/chop"
+
+index2=`chop-backup "$DB_FILE" "$TMP_FILE"`
+
+added="`chop-backup --log "$DB_FILE" | grep 'A .* added-file'`"
+deleted="`chop-backup --log "$DB_FILE" | grep 'D .* Makefile.am'`"
+perms="`chop-backup --log "$DB_FILE" "$index2" | grep 'P .* chop'`"
+
+chop_fail_if test '"x$added"' = "x"
+chop_fail_if test '"x$deleted"' = "x"
+chop_fail_if test '"x$perms"' = "x"
 
 find "$TMP_FILE" | xargs chmod +w && rm -rf "$TMP_FILE"
 
