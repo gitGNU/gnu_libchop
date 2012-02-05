@@ -39,6 +39,7 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
   #:use-module (ice-9 match)
   #:use-module (ice-9 format)
   #:use-module (srfi srfi-1)
+  #:use-module (srfi srfi-11)
   #:use-module (srfi srfi-26)
   #:use-module (srfi srfi-34)
   #:use-module (srfi srfi-35)
@@ -137,6 +138,154 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
                                             (mem-stream-open bv) store)
                       index)
             (eq? 'ok (verify store)))))))
+
+(test-end)
+
+
+(test-begin "directory-changes")
+
+(test-assert "added"
+  (let* ((e   (make-directory-entry "b" 'regular 234 234 234 'something))
+         (new (make-directory-entry "a" 'regular 123 123 #o755 'some-tuple))
+         (d1  (make-directory #f (list e)))
+         (d2  (make-directory 'prev (list e new))))
+    (let-values (((added changed deleted) (directory-changes d2 d1)))
+      (and (match added
+             (((? (cut eq? new <>))) #t)
+             (_ #f))
+           (null? deleted)
+           (null? changed)))))
+
+(test-assert "modified"
+  (let* ((e   (make-directory-entry "b" 'regular 234 234 234 'something))
+         (old (make-directory-entry "a" 'regular 123 123 #o644 'some-tuple))
+         (new (make-directory-entry "a" 'regular 123 123 #o644 'some-other-tuple))
+         (d1  (make-directory #f (list old e)))
+         (d2  (make-directory 'prev (list e new))))
+    (let-values (((added changed deleted) (directory-changes d2 d1)))
+      (and (null? deleted) (null? added)
+           (match changed
+             (((x y ('modified)))
+              (and (eq? x new) (eq? y old))))))))
+
+(test-assert "touched"
+  (let* ((e   (make-directory-entry "b" 'regular 234 234 234 'something))
+         (old (make-directory-entry "a" 'regular 123 123 #o644 'some-tuple))
+         (new (make-directory-entry "a" 'regular 124 123 #o644 'some-tuple))
+         (d1  (make-directory #f (list old e)))
+         (d2  (make-directory 'prev (list e new))))
+    (let-values (((added changed deleted) (directory-changes d2 d1)))
+      (and (null? deleted) (null? added)
+           (match changed
+             (((x y ('touched)))
+              (and (eq? x new) (eq? y old))))))))
+
+(test-assert "permissions"
+  (let* ((e   (make-directory-entry "b" 'regular 234 234 234 'something))
+         (old (make-directory-entry "a" 'regular 123 123 #o644 'some-tuple))
+         (new (make-directory-entry "a" 'regular 123 123 #o755 'some-tuple))
+         (d1  (make-directory #f (list old e)))
+         (d2  (make-directory 'prev (list e new))))
+    (let-values (((added changed deleted) (directory-changes d2 d1)))
+      (and (null? deleted) (null? added)
+           (match changed
+             (((x y ('permissions)))
+              (and (eq? x new) (eq? y old))))))))
+
+(test-assert "renamed"
+  (let* ((e   (make-directory-entry "b" 'regular 234 234 234 'something))
+         (old (make-directory-entry "a" 'regular 123 123 #o644 'some-tuple))
+         (new (make-directory-entry "z" 'regular 123 123 #o644 'some-tuple))
+         (d1  (make-directory #f (list old e)))
+         (d2  (make-directory 'prev (list e new))))
+    (let-values (((added changed deleted) (directory-changes d2 d1)))
+      (and (null? deleted) (null? added)
+           (match changed
+             (((x y ('renamed)))
+              (and (eq? x new) (eq? y old))))))))
+
+(test-assert "empty files not renamed"
+  (let* ((old (make-directory-entry "a" 'regular 123 0 #o644 #f))
+         (new (make-directory-entry "b" 'regular 123 0 #o644 #f))
+         (d1  (make-directory #f (list old)))
+         (d2  (make-directory 'prev (list new))))
+    (let-values (((added changed deleted) (directory-changes d2 d1)))
+      (and (null? changed)
+           (equal? (list old) deleted)
+           (equal? (list new) added)))))
+
+(test-assert "renamed + permissions"
+  (let* ((e   (make-directory-entry "b" 'regular 234 234 234 'something))
+         (old (make-directory-entry "a" 'regular 123 123 #o644 'some-tuple))
+         (new (make-directory-entry "c" 'regular 123 123 #o755 'some-tuple))
+         (d1  (make-directory #f (list old e)))
+         (d2  (make-directory 'prev (list e new))))
+    (let-values (((added changed deleted) (directory-changes d2 d1)))
+      (and (null? deleted) (null? added)
+           (match changed
+             (((x y ('permissions 'renamed)))
+              (and (eq? x new) (eq? y old))))))))
+
+(test-assert "modified + permissions"
+  (let* ((e   (make-directory-entry "b" 'regular 234 234 234 'something))
+         (old (make-directory-entry "a" 'regular 123 123 #o644 'some-tuple))
+         (new (make-directory-entry "a" 'regular 123 123 #o755 'some-other-tuple))
+         (d1  (make-directory #f (list old e)))
+         (d2  (make-directory 'prev (list e new))))
+    (let-values (((added changed deleted) (directory-changes d2 d1)))
+      (and (null? deleted) (null? added)
+           (match changed
+             (((x y ('permissions 'modified)))
+              (and (eq? x new) (eq? y old))))))))
+
+(test-assert "deleted"
+  (let* ((e1  (make-directory-entry "a" 'regular 234 234 #o400 'something))
+         (e2  (make-directory-entry "b" 'regular 123 123 #o644 'some-tuple))
+         (e3  (make-directory-entry "c" 'regular 123 123 #o755 'some-other-tuple))
+         (d1  (make-directory #f (list e1 e2 e3)))
+         (d2  (make-directory 'prev (list e1 e2))))
+    (let-values (((added changed deleted) (directory-changes d2 d1)))
+      (and (null? changed) (null? added)
+           (equal? deleted (list e3))))))
+
+(test-assert "modified + deleted"
+  (let* ((e1  (make-directory-entry "a" 'regular 123 123 #o400 'something))
+         (e2  (make-directory-entry "a" 'regular 234 234 #o400 'some-tuple))
+         (e3  (make-directory-entry "b" 'regular 123 123 #o755 'some-other-tuple))
+         (d1  (make-directory #f (list e1 e3)))
+         (d2  (make-directory 'prev (list e2))))
+    (let-values (((added changed deleted) (directory-changes d2 d1)))
+      (and (equal? deleted (list e3))
+           (null? added)
+           (match changed
+             (((x y ('modified)))
+              (and (eq? x e2) (eq? y e1))))))))
+
+(test-assert "modified + permissions + deleted + added"
+  (let* ((e1  (make-directory-entry "a" 'regular 123 123 #o400 'something))
+         (e2  (make-directory-entry "a" 'regular 234 234 #o420 'some-tuple))
+         (e3  (make-directory-entry "b" 'regular 123 123 #o755
+                                    'some-other-tuple))
+         (e4  (make-directory-entry "c" 'regular 456 456 #o755
+                                    'yet-another-tuple))
+         (d1  (make-directory #f (list e1 e3)))
+         (d2  (make-directory 'prev (list e2 e4))))
+    (let-values (((added changed deleted) (directory-changes d2 d1)))
+      (and (equal? deleted (list e3))
+           (equal? added (list e4))
+           (match changed
+             (((x y ('permissions 'modified)))
+              (and (eq? x e2) (eq? y e1))))))))
+
+(test-assert "identical file deleted"
+  ;; Make sure removing one of several identical files is seen as such.
+  (let* ((e1  (make-directory-entry "a" 'regular 123 123 #o400 'something))
+         (e2  (make-directory-entry "b" 'regular 234 123 #o420 'something))
+         (d1  (make-directory #f (list e1 e2)))
+         (d2  (make-directory 'prev (list e1))))
+    (let-values (((added changed deleted) (directory-changes d2 d1)))
+      (and (equal? deleted (list e2))
+           (null? added) (null? changed)))))
 
 (test-end)
 

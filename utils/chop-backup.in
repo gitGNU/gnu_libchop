@@ -68,6 +68,7 @@ exec ${GUILE:-@GUILE@} -L "@guilemoduledir@" \
             directory-previous-version
             read-directory
             write-directory
+            make-directory                   ; internal, for testing purposes
 
             directory-entry?
             directory-entry-kind
@@ -76,6 +77,9 @@ exec ${GUILE:-@GUILE@} -L "@guilemoduledir@" \
             directory-entry-permissions
             directory-entry-size
             directory-entry-tuple
+            make-directory-entry             ; internal, for testing purposes
+
+            directory-changes
 
             chop-backup))
 
@@ -255,6 +259,112 @@ available in STORE."
 (define (read-directory port)
   "Read a directory from PORT and return it."
   (sexp->directory (read port)))
+
+(define (directory-changes new old)
+  "Return 3 values: the list of new entries, the list of changed entries, and
+the list of deleted entries.  The list of changed entries contains tuples of
+the form (NEW OLD (PROPS ...)), where NEW is the new entry, OLD is the
+previous version, and PROPS is a list of symbols summarizing the differences
+from OLD and NEW."
+  (define (make-lookup-proc key entries)
+    (let ((k->e (fold (lambda (e r)
+                        (vhash-cons (key e) e r))
+                      vlist-null
+                      entries)))
+      (lambda (e)
+        (and=> (vhash-assoc (key e) k->e) cdr))))
+
+  (define same-named-old-entry
+    (make-lookup-proc directory-entry-name (directory-entries old)))
+
+  (define same-tuple-old-entry
+    (make-lookup-proc directory-entry-tuple (directory-entries old)))
+
+  (define same-named-new-entry
+    (make-lookup-proc directory-entry-name (directory-entries new)))
+
+  (define (modified? old new)
+    (define kind (directory-entry-kind old))
+    (define tuple (directory-entry-tuple old))
+    (match new
+      (($ <directory-entry> _ (? (negate (cut eq? kind <>))))
+       #t)
+      (($ <directory-entry> _ _ _ _ _ (? (negate (cut equal? tuple <>))))
+       #t)
+      (_ #f)))
+
+  (define (touched? old new)
+    (define kind (directory-entry-kind old))
+    (define mtime (directory-entry-mtime old))
+    (define tuple (directory-entry-tuple old))
+
+    (match new
+      (($ <directory-entry> _ (? (negate (cut eq? kind <>))))
+       #f)
+      (($ <directory-entry> _ (? (cut eq? kind <>))
+          (? (negate (cut = mtime <>))) _ _
+          (? (cut equal? tuple <>)))
+       #t)
+      (_ #f)))
+
+  (define (renamed? old new)
+    (and (not (string=? (directory-entry-name old)
+                        (directory-entry-name new)))
+         (not (same-named-new-entry old))))
+
+  (define (permissions-changed? old new)
+    (define perms (directory-entry-permissions old))
+
+    (match new
+      (($ <directory-entry> _ _ _ _
+          (? (negate (cut = perms <>))))
+       #t)
+      (_ #f)))
+
+  (define tag/predicate
+    `((renamed     . ,renamed?)
+      (modified    . ,modified?)
+      (touched     . ,touched?)
+      (permissions . ,permissions-changed?)))
+
+  (define (entry-properties old new)
+    (if old
+        (fold (lambda (t+p r)
+                (match t+p
+                  ((tag . predicate)
+                   (if (predicate old new) (cons tag r) r))))
+              '()
+              tag/predicate)
+        `(new)))
+
+  (let ((new+changed (fold (lambda (new r)
+                             (let ((old (or (same-named-old-entry new)
+                                            (and (directory-entry-tuple new)
+                                                 (same-tuple-old-entry new)))))
+                               (match r
+                                 (((added ...) (changed ...))
+                                  (if old
+                                      (let ((props (entry-properties old new)))
+                                        (if (null? props)
+                                            r
+                                            (list added
+                                                  (cons (list new old props)
+                                                        changed))))
+                                      (list (cons new added) changed))))))
+                           '(() ())
+                           (directory-entries new))))
+    (values (first new+changed)
+            (second new+changed)
+
+            ;; Entries *not* deleted are those left intact in NEW and those
+            ;; that appear in CHANGED.
+            (remove (lambda (old)                 ; XXX: inefficient
+                      (or (equal? (same-named-new-entry old) old)
+                          (find (match-lambda
+                                 ((_ o (_ ...))
+                                  (eq? o old)))
+                                (second new+changed))))
+                    (directory-entries old)))))
 
 
 ;;;
