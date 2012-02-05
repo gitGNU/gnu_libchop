@@ -170,6 +170,11 @@
     (store-write-block s #vu8(1 2 3) #vu8(7 7))
     #t))
 
+(test-assert "false-if-block-unavailable"
+  (with-temporary-store
+   (lambda (s)
+     (not (false-if-block-unavailable (store-read-block s #vu8(1 2 3)))))))
+
 (test-assert "gdbm"
   (with-temporary-file
    (lambda (file)

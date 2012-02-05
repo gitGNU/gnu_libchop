@@ -29,6 +29,8 @@
             store-delete-block
             store-close
 
+            false-if-block-unavailable
+
             error/unknown-store
             error/store-block-unavailable
             error/store-error
@@ -137,6 +139,18 @@ closed when the returned store is closed."
                                       %null-pointer))))
         (hashq-set! refs key bv)
         key))))
+
+(define-syntax false-if-block-unavailable
+  (syntax-rules ()
+    "Return #f if an `error/store-block-unavailable' exception is caught."
+    ((_ exp)
+     (catch 'chop-error
+       (lambda ()
+         exp)
+       (lambda (key err . args)
+         (if (= err error/store-block-unavailable)
+             #f
+             (apply throw key err args)))))))
 
 (define (store-read-block store key)
   "Read the block stored under KEY in STORE and return it."
