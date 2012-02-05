@@ -1,5 +1,5 @@
 # libchop -- a utility library for distributed storage and data backup
-# Copyright (C) 2010  Ludovic Courtès <ludo@gnu.org>
+# Copyright (C) 2010, 2012  Ludovic Courtès <ludo@gnu.org>
 #
 # Libchop is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,7 +21,12 @@ source "${srcdir:-$PWD}/lib.sh"
 DB_FILE=",,block-server.db"
 TMP_FILE=",,block-server.tmp"
 ADDRESS="127.0.0.1"
-PORT=8884
+
+# Choose the port number as a function of the PID to avoid collisions
+# when several instances of the test run simultaneously on the same
+# machine.
+PORT=`expr $$ / 2`
+PORT=`expr $PORT + 1023`
 
 chop_CLEANFILES="$DB_FILE $TMP_FILE"
 
