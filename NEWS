@@ -6,6 +6,11 @@ Changes in 0.5.2 (since 0.5.1)
 
 ** chop-backup
 
+*** New `--log' option
+
+This option shows a change log for a directory backup, similar in spirit
+to the `git whatchanged' command.
+
 *** The same tuple is returned when a directory is unchanged
 
 Previously `chop-backup --backup' would return a different tuple each
