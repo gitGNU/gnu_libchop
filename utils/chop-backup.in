@@ -1186,6 +1186,53 @@ directory DIR."
   (newline)
   obj)
 
+;; Sub-options are used for command-line options that have additional
+;; sub-options---e.g., `--list=recursive,v'.
+(define-record-type <suboption>
+  (make-suboption long short default? converse)
+  suboption?
+  (long       suboption-long)
+  (short      suboption-short)
+  (default?   suboption-default?)
+  (converse   suboption-converse))
+
+(define-syntax suboption-pair
+  (syntax-rules (/)
+    ((_ long short / converse-long converse-short)
+     (letrec ((default  (make-suboption 'long 'short #t
+                                        (delay converse)))
+              (converse (make-suboption 'converse-long 'converse-short
+                                        #f (delay default))))
+       (list default converse)))))
+
+(define-syntax suboptions
+  (syntax-rules ()
+    ((_ (option-pair ...) ...)
+     `(,@(suboption-pair option-pair ...) ...))))
+
+(define (canonicalize-suboptions suboptions opt-string)
+  "Parse string OPT-STRING, a comma-separated list of sub-options, according
+to SUBOPTIONS and return a symbol list showing enabled options."
+  (fold (lambda (opt result)
+          (let ((spec (find (lambda (s)
+                              (or (eq? opt (suboption-long s))
+                                  (eq? opt (suboption-short s))))
+                            suboptions)))
+            (if spec
+                (if (suboption-default? spec)
+                    (cons (suboption-long spec) result)
+                    (delq (suboption-long (force (suboption-converse spec)))
+                          result))
+                (begin
+                  (format (current-error-port)
+                          (_ "~s: unsupported suboption~%") opt)
+                  (exit 1)))))
+        '()
+        (if opt-string
+            (map string->symbol
+                 (string-split opt-string #\,))
+            '())))
+
 (define %options
   (list (option '(#\h "help") #f #f
                 (lambda args
@@ -1201,31 +1248,13 @@ directory DIR."
                   (alist-cons 'action 'backup
                               (alist-delete 'action result eq?))))
         (option '(#\l "list") #f #t
-                (lambda (opt name arg result)
-                  (define canonical-options
-                    (fold (lambda (opt result)
-                            (case opt
-                              ((r recursive)
-                               (cons 'recursive result))
-                              ((f flat)
-                               (delq 'recursive result))
-                              ((h history)
-                               (cons 'history result))
-                              ((l latest)
-                               (delq 'history result))
-                              ((v verbose)
-                               (cons 'verbose result))
-                              ((c concise)
-                               (delq 'verbose result))
-                              (else result)))
-                          '()
-                          (if arg
-                              (map string->symbol
-                                   (string-split arg #\,))
-                              '())))
-
-                  (alist-cons 'list-options canonical-options
-                              (alist-cons 'action 'list result))))
+                (let ((subopts (suboptions (recursive r / flat f)
+                                           (history h / latest l)
+                                           (verbose v / concise c))))
+                  (lambda (opt name arg result)
+                    (let ((opts (canonicalize-suboptions subopts arg)))
+                      (alist-cons 'list-options opts
+                                  (alist-cons 'action 'list result))))))
         (option '(#\L "log") #f #f
                 (lambda (opt name arg result)
                   (alist-cons 'action 'log
