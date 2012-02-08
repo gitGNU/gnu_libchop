@@ -80,6 +80,7 @@ exec ${GUILE:-@GUILE@} -L "@guilemoduledir@" \
             make-directory-entry             ; internal, for testing purposes
 
             directory-changes
+            directory-changes/recursive
 
             chop-backup))
 
@@ -365,6 +366,60 @@ from OLD and NEW."
                                   (eq? o old)))
                                 (second new+changed))))
                     (directory-entries old)))))
+
+(define (directory-changes/recursive new old fetch)
+  "Return the changes between directories NEW and OLD, recursively.  FETCH is
+called to retrieve sub-directories; it is passed a tuple and must return
+either a directory or #f.  The result is as for `directory-changes' except
+that all directory entries are `scoped': instead of just ENTRY, the result
+contains a path like (GRAND-PARENT-DIR-ENTRY PARENT-DIR-ENTRY ENTRY)."
+  (define (->values lst)
+    (apply values lst))
+
+  (define-syntax-rule (->list body)
+    (call-with-values (lambda () body) list))
+
+  (let loop ((new     new)
+             (old     old)
+             (added   '())
+             (changed '())
+             (deleted '())
+             (rpath-new '())        ; reverse paths (list of sub-dir entries)
+             (rpath-old '()))
+    (define (scope entry rpath)
+      (reverse (cons entry rpath)))
+
+    (define scope-new (cut scope <> rpath-new))
+    (define scope-old (cut scope <> rpath-old))
+
+    (let-values (((added* changed* deleted*) (directory-changes new old)))
+      (->values
+       (fold (lambda (changes a+c+d)
+               (match a+c+d
+                 ((added changed deleted)
+                  (match changes
+                    (((and new ($ <directory-entry> _ 'directory))
+                      (and old ($ <directory-entry> _ 'directory))
+                      (props ...))
+                     (let ((rpathn (cons new rpath-new))
+                           (rpatho (cons old rpath-old))
+                           (new    (fetch (directory-entry-tuple new)))
+                           (old    (fetch (directory-entry-tuple old))))
+                       (if (and (directory? new) (directory? old))
+                           (->list (loop new old added changed deleted
+                                         rpathn rpatho))
+                           `(,added
+                             ((,(scope-new new) ,(scope-old old) ,props)
+                              ,@changed)
+                             ,deleted))))
+                    ((new old (props ...))
+                     `(,added
+                       ((,(scope-new new) ,(scope-old old) ,props) ,@changed)
+                       ,deleted))))))
+             (list (append (map scope-new added*) added)
+                   changed
+                   (append (map scope-old deleted*) deleted))
+             changed*)))))
 
 
 ;;;

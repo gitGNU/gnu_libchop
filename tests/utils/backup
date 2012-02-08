@@ -287,6 +287,69 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
       (and (equal? deleted (list e2))
            (null? added) (null? changed)))))
 
+(test-assert "recursive: changed"
+  (let* ((e1  (make-directory-entry "a" 'regular 123 123 #o400 'something))
+         (e2  (make-directory-entry "a" 'regular 234 123 #o420 'something))
+         (e3  (make-directory-entry "c" 'regular 77 0 #o440 'something-else))
+         (sd1 (make-directory #f (list e1)))
+         (sd2 (make-directory #f (list e2)))      ; E1 touched -> E2
+         (e4  (make-directory-entry "sub" 'directory 0 0 #o700 'subdir1-tuple))
+         (e5  (make-directory-entry "sub" 'directory 0 0 #o700 'subdir2-tuple))
+         (get (lambda (tuple)
+                (case tuple
+                  ((subdir1-tuple) sd1)
+                  ((subdir2-tuple) sd2)
+                  (else (error "unknown" tuple)))))
+         (d1  (make-directory #f (list e4 e3)))
+         (d2  (make-directory 'prev (list e5 e3))))
+    (let-values (((added changed deleted)
+                  (directory-changes/recursive d2 d1 get)))
+      (and (equal? changed
+                   `(((,e5 ,e2) (,e4 ,e1) (permissions touched))))
+           (null? added) (null? deleted)))))
+
+(test-assert "recursive: added"
+  (let* ((e1  (make-directory-entry "a" 'regular 123 123 #o400 'a-tuple))
+         (e2  (make-directory-entry "b" 'regular 234 123 #o420 'b-tuple))
+         (e3  (make-directory-entry "c" 'regular 77 0 #o440 'c-tuple))
+         (sd1 (make-directory #f (list e1)))
+         (sd2 (make-directory #f (list e1 e2)))   ; add entry E2 in subdir
+         (e4  (make-directory-entry "sub" 'directory 0 0 #o700 'subdir1-tuple))
+         (e5  (make-directory-entry "sub" 'directory 0 0 #o700 'subdir2-tuple))
+         (e6  (make-directory-entry "d" 'regular 77 0 #o440 'd-tuple))
+         (get (lambda (tuple)
+                (case tuple
+                  ((subdir1-tuple) sd1)
+                  ((subdir2-tuple) sd2)
+                  (else (error "unknown" tuple)))))
+         (d1  (make-directory #f (list e4 e3)))
+         (d2  (make-directory 'prev (list e3 e5 e6)))) ; add entry E6
+    (let-values (((added changed deleted)
+                  (directory-changes/recursive d2 d1 get)))
+      (and (equal? added `((,e5 ,e2) (,e6)))
+           (null? deleted) (null? changed)))))
+
+(test-assert "recursive: deleted"
+  (let* ((e1  (make-directory-entry "a" 'regular 123 123 #o400 'a-tuple))
+         (e2  (make-directory-entry "b" 'regular 234 123 #o420 'b-tuple))
+         (e3  (make-directory-entry "c" 'regular 77 0 #o440 'c-tuple))
+         (sd1 (make-directory #f (list e1 e2)))
+         (sd2 (make-directory #f (list e1)))      ; remove entry E2 in subdir
+         (e4  (make-directory-entry "sub" 'directory 0 0 #o700 'subdir1-tuple))
+         (e5  (make-directory-entry "sub" 'directory 0 0 #o700 'subdir2-tuple))
+         (e6  (make-directory-entry "d" 'regular 77 0 #o440 'd-tuple))
+         (get (lambda (tuple)
+                (case tuple
+                  ((subdir1-tuple) sd1)
+                  ((subdir2-tuple) sd2)
+                  (else (error "unknown" tuple)))))
+         (d1  (make-directory #f (list e4 e3 e6)))
+         (d2  (make-directory 'prev (list e3 e5)))) ; remove entry E6
+    (let-values (((added changed deleted)
+                  (directory-changes/recursive d2 d1 get)))
+      (and (equal? deleted `((,e4 ,e2) (,e6)))
+           (null? added) (null? changed)))))
+
 (test-end)
 
 
