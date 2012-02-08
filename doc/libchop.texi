@@ -541,8 +541,8 @@ For instance, @command{chop-backup -lr,h ~/bak} lists the contents of
 the most recent backup, recursively traversing sub-directories and
 previous directory versions.
 
-@item --log
-@itemx -L
+@item --log=[@var{opts}]
+@itemx -L@var{opts}
 @cindex change log
 Show the changes in the directory specified by the given tuple, at the
 specified store, compared to earlier versions.  The output is similar in
@@ -567,6 +567,20 @@ the file was deleted.
 
 Renamed files are identified by an arrow indicating their old and new
 name.
+
+@var{opts} can be a comma-separated list of these suboptions:
+
+@table @option
+@item r
+@itemx recursive
+Show the contents of sub-directories, recursively.  This operation takes
+time proportional to the depth and size of the modified sub-directories.
+
+@item f
+@itemx flat
+Do not recurse into sub-directories (this is the default).
+
+@end table
 
 @item --show
 @itemx -s

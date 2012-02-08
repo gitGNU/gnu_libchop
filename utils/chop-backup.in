@@ -421,6 +421,26 @@ contains a path like (GRAND-PARENT-DIR-ENTRY PARENT-DIR-ENTRY ENTRY)."
                    (append (map scope-old deleted*) deleted))
              changed*)))))
 
+(define (directory-changes/recursive* new old fetch)
+  "Same as the above, but change entry names to contain a complete path."
+  (define flatten-entry
+    (match-lambda
+     ((parent-dirs ... ($ <directory-entry> name kind mtime size perms tuple))
+      (make-directory-entry (string-join (append (map directory-entry-name
+                                                      parent-dirs)
+                                                 (list name))
+                                         "/")
+                            kind mtime size perms tuple))))
+
+  (let-values (((added changed deleted)
+                (directory-changes/recursive new old fetch)))
+    (values (map flatten-entry added)
+            (map (match-lambda
+                  ((new old (props ...))
+                   (list (flatten-entry new) (flatten-entry old) props)))
+                 changed)
+            (map flatten-entry deleted))))
+
 
 ;;;
 ;;; Storage pipelines.
@@ -1011,8 +1031,18 @@ TUPLE in STORE."
           (put-bytevector out buffer 0 bytes)
           (loop (get-bytevector-n! in buffer 0 buffer-size))))))
 
-(define (show-log store tuple)
-  "Show the change log of the directory pointed to by TUPLE in STORE."
+(define* (show-log store tuple #:key (recursive? #f))
+  "Show the change log of the directory pointed to by TUPLE in STORE.  When
+RECURSIVE?, show changes recursively."
+  (define directory-changes*
+    (if recursive?
+        (let ((fetch (lambda (tuple)
+                       (false-if-block-unavailable
+                        (let ((retr (index-tuple->retriever tuple)))
+                          (read-directory (retr store)))))))
+          (cut directory-changes/recursive* <> <> fetch))
+        directory-changes))
+
   (define (retrieve tuple)
     (let ((fetch (index-tuple->retriever tuple)))
       (fetch store)))
@@ -1039,7 +1069,7 @@ TUPLE in STORE."
                                  (compose read-directory retrieve))))
        (if (directory? previous)
            (let-values (((added changed deleted)
-                         (directory-changes current previous)))
+                         (directory-changes* current previous)))
              (format #t (_ "directory ~s~%~%") tuple)
              (for-each (match-lambda
                         (($ <directory-entry> name kind mtime size perms tuple)
@@ -1310,10 +1340,12 @@ to SUBOPTIONS and return a symbol list showing enabled options."
                     (let ((opts (canonicalize-suboptions subopts arg)))
                       (alist-cons 'list-options opts
                                   (alist-cons 'action 'list result))))))
-        (option '(#\L "log") #f #f
-                (lambda (opt name arg result)
-                  (alist-cons 'action 'log
-                              (alist-delete 'action result eq?))))
+        (option '(#\L "log") #f #t
+                (let ((subopts (suboptions (recursive r / flat f))))
+                  (lambda (opt name arg result)
+                    (let ((opts (canonicalize-suboptions subopts arg)))
+                      (alist-cons 'log-options opts
+                                  (alist-cons 'action 'log result))))))
         (option '(#\s "show") #f #f
                 (lambda (opt name arg result)
                   (alist-cons 'action 'show
@@ -1445,21 +1477,24 @@ tuple that can be used to restore the whole directory hierarchy."
             (leave (_ "wrong number of arguments for the `list' operation"))))))
 
       ((log)
-       (match args
-         ((store-file tuple)
-          (show-log (open-store store-file)
-                    (with-input-from-string tuple read)))
-         ((store-file)
-          (let ((store (open-store store-file)))
-            (match (most-recent-backup-tuple store)
-              (((? string? name) . tuple)
-               (warn (_ "accessing most recent backup of `~a' at `~s'")
-                     name tuple)
-               (show-log store tuple))
-              (_
-               (leave (_ "please specify the tuple of a directory"))))))
-         (_
-          (leave (_ "wrong number of arguments for the `log' operation")))))
+       (let ((opts (or (assq-ref options 'log-options) '())))
+         (match args
+           ((store-file tuple)
+            (show-log (open-store store-file)
+                      (with-input-from-string tuple read)
+                      #:recursive? (memq 'recursive opts)))
+           ((store-file)
+            (let ((store (open-store store-file)))
+              (match (most-recent-backup-tuple store)
+                (((? string? name) . tuple)
+                 (warn (_ "accessing most recent backup of `~a' at `~s'")
+                       name tuple)
+                 (show-log store tuple
+                           #:recursive? (memq 'recursive opts)))
+                (_
+                 (leave (_ "please specify the tuple of a directory"))))))
+           (_
+            (leave (_ "wrong number of arguments for the `log' operation"))))))
 
       ((show)
        (match args
