@@ -960,7 +960,7 @@ TUPLE in STORE."
   "Show the change log of the directory pointed to by TUPLE in STORE."
   (define (retrieve tuple)
     (let ((fetch (index-tuple->retriever tuple)))
-      (false-if-block-unavailable (fetch store))))
+      (fetch store)))
 
   (define (properties->string props)
     (define prop->letter
@@ -976,16 +976,17 @@ TUPLE in STORE."
                       prop->letter)
                 4))
 
-  (let ((dir (read-directory (retrieve tuple))))
-    (let loop ((tuple    tuple)
-               (current  dir)
-               (previous (and=> (directory-previous-version dir)
-                                (compose read-directory retrieve))))
-      (if (directory? previous)
-          (let-values (((added changed deleted)
-                        (directory-changes current previous)))
-            (format #t (_ "directory ~s~%~%") tuple)
-            (for-each (match-lambda
+  (false-if-block-unavailable
+   (let ((dir (read-directory (retrieve tuple))))
+     (let loop ((tuple    tuple)
+                (current  dir)
+                (previous (and=> (directory-previous-version dir)
+                                 (compose read-directory retrieve))))
+       (if (directory? previous)
+           (let-values (((added changed deleted)
+                         (directory-changes current previous)))
+             (format #t (_ "directory ~s~%~%") tuple)
+             (for-each (match-lambda
                         (($ <directory-entry> name kind mtime size perms tuple)
                          (format #t "       A ~a~a ~8,d ~a  ~a~%"
                                  (file-kind->string kind)
@@ -993,39 +994,41 @@ TUPLE in STORE."
                                  size
                                  (time->short-date-string mtime)
                                  name)))
-                      added)
-            (for-each (match-lambda
-                       ((new old (props ...))
-                        (match new
-                          (($ <directory-entry> name kind mtime size perms
-                              tuple)
-                           (format #t "    ~a ~a~a ~8,d ~a  ~a~%"
-                                   (properties->string props)
-                                   (file-kind->string kind)
-                                   (permissions->string perms)
-                                   size
-                                   (time->short-date-string mtime)
-                                   (if (memq 'renamed props)
-                                       (format #f "~a -> ~a"
-                                               (directory-entry-name old) name)
-                                       name))))))
-                      changed)
-            (let ((pad (make-string (+ 9 (string-length
-                                          (time->short-date-string 0)))
-                                    #\space)))
-              (for-each (lambda (e)
-                          (format #t "       D ~a~a ~a  ~a~%"
-                                  (file-kind->string (directory-entry-kind e))
-                                  (permissions->string 0)
-                                  pad (directory-entry-name e)))
-                        deleted))
-            (newline)
-            (let ((tuple    (directory-previous-version current))
-                  (current  previous)
-                  (previous (and=> (directory-previous-version previous)
-                                   (compose read-directory retrieve))))
-              (loop tuple current previous)))))
-    (store-close store)))
+                       added)
+             (for-each (match-lambda
+                        ((new old (props ...))
+                         (match new
+                           (($ <directory-entry> name kind mtime size perms
+                               tuple)
+                            (format #t "    ~a ~a~a ~8,d ~a  ~a~%"
+                                    (properties->string props)
+                                    (file-kind->string kind)
+                                    (permissions->string perms)
+                                    size
+                                    (time->short-date-string mtime)
+                                    (if (memq 'renamed props)
+                                        (format #f "~a -> ~a"
+                                                (directory-entry-name old)
+                                                name)
+                                        name))))))
+                       changed)
+             (let ((pad (make-string (+ 9 (string-length
+                                           (time->short-date-string 0)))
+                                     #\space)))
+               (for-each (lambda (e)
+                           (format #t "       D ~a~a ~a  ~a~%"
+                                   (file-kind->string (directory-entry-kind e))
+                                   (permissions->string 0)
+                                   pad (directory-entry-name e)))
+                         deleted))
+             (newline)
+             (let ((tuple    (directory-previous-version current))
+                   (current  previous)
+                   (previous (and=> (directory-previous-version previous)
+                                    (compose read-directory retrieve))))
+               (loop tuple current previous)))))))
+
+  (store-close store))
 
 (define (verify-tree store tuple)
   "Read the directory pointed to by TUPLE from STORE and check the
