@@ -756,7 +756,9 @@ CHOOSE-PIPELINE, and return its index handle."
   ;; TODO: make WORTHLESS-FILE? a parameter.
 
   (define (stat->cached-entry stat)
-    ;; Return an mtime/tuple pair corresponding to STAT or #f.
+    ;; Return an mtime/tuple pair corresponding to STAT, or a
+    ;; directory-sexp/tuple pair when the cached entry was a directory, or
+    ;; #f.
     (let* ((ino   (stat:ino stat))
            (dev   (stat:dev stat))
            (entry (false-if-exception
@@ -813,26 +815,26 @@ CHOOSE-PIPELINE, and return its index handle."
         (cache-index stat index (directory->sexp dir))
         index))
 
-    (let ((prev-entry (stat->cached-entry stat)))
-      (if (pair? prev-entry)
-          (let* ((prev-tuple   (cdr prev-entry))
-                 (prev-dir     (sexp->directory (car prev-entry)))
-                 (prev-entries (directory-entries prev-dir)))
-            (if (lset= equal? prev-entries entries)
-                (match prev-tuple                 ; directory unchanged
-                  ((_ index _)
-                   (if (tip-exists? index)
-                       prev-tuple
-                       (let ((index (store-directory prev-dir store)))
-                         (if (equal? index prev-tuple)
-                             index
-                             (raise (condition    ; XXX: not very appropriate
-                                     (&pipeline-storage-error
-                                      (pipeline %directory-storage-pipeline)
-                                      (libchop-error 0)
-                                      (input prev-dir)))))))))
-                (do-store prev-tuple)))           ; directory changed
-          (do-store #f))))
+    (match (stat->cached-entry stat)
+      (((and dir-sexp ('directory _ ...)) . prev-tuple)
+       ;; There's a cached entry for STAT, and it was a directory.
+       (let* ((prev-dir     (sexp->directory dir-sexp))
+              (prev-entries (directory-entries prev-dir)))
+         (if (lset= equal? prev-entries entries)
+             (match prev-tuple                    ; directory unchanged
+               ((_ index _)
+                (if (tip-exists? index)
+                    prev-tuple
+                    (let ((index (store-directory prev-dir store)))
+                      (if (equal? index prev-tuple)
+                          index
+                          (raise (condition       ; XXX: not very appropriate
+                                  (&pipeline-storage-error
+                                   (pipeline %directory-storage-pipeline)
+                                   (libchop-error 0)
+                                   (input prev-dir)))))))))
+             (do-store prev-tuple))))             ; directory changed
+      (_ (do-store #f))))
 
   (define (tip-exists? index)
     ;; Return #t if the root block pointed to by INDEX exists.
