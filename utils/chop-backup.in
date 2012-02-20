@@ -545,7 +545,6 @@ resulting blocks in STORE and returning its index handle."
     ((pipeline-block-indexer pipeline)))
 
   (define store*
-    ;; XXX: Use the smart block store.
     (filtered-store store (pipeline-store-filters pipeline)))
 
   (dynamic-wind
@@ -1395,7 +1394,7 @@ tuple that can be used to restore the whole directory hierarchy."
   (define (backup store-file files)
     (catch 'chop-error
       (lambda ()
-        (let ((store (open-store store-file)))
+        (let ((store (smart-block-store-open (open-store store-file) #t)))
           (match files
             ((file)
              (guard (c ((pipeline-storage-error? c)
