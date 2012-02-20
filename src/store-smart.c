@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2012  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -40,27 +40,28 @@ sbs_dtor (chop_object_t *object)
   chop_smart_block_store_t *smart =
     (chop_smart_block_store_t *) object;
 
-  switch (smart->backend_ps)
-    {
-    case CHOP_PROXY_LEAVE_AS_IS:
-      break;
+  if (smart->backend != NULL)
+    switch (smart->backend_ps)
+      {
+      case CHOP_PROXY_LEAVE_AS_IS:
+	break;
 
-    case CHOP_PROXY_EVENTUALLY_CLOSE:
-      chop_store_close (smart->backend);
-      break;
+      case CHOP_PROXY_EVENTUALLY_CLOSE:
+	chop_store_close (smart->backend);
+	break;
 
-    case CHOP_PROXY_EVENTUALLY_DESTROY:
-      chop_object_destroy ((chop_object_t *) smart->backend);
-      break;
+      case CHOP_PROXY_EVENTUALLY_DESTROY:
+	chop_object_destroy ((chop_object_t *) smart->backend);
+	break;
 
-    case CHOP_PROXY_EVENTUALLY_FREE:
-      chop_object_destroy ((chop_object_t *) smart->backend);
-      free (smart->backend);
-      break;
+      case CHOP_PROXY_EVENTUALLY_FREE:
+	chop_object_destroy ((chop_object_t *) smart->backend);
+	free (smart->backend);
+	break;
 
-    default:
-      abort ();
-    }
+      default:
+	abort ();
+      }
 
   smart->backend = NULL;
 }
@@ -179,7 +180,8 @@ chop_smart_block_store_close (chop_block_store_t *store)
   chop_smart_block_store_t *smart =
     (chop_smart_block_store_t *) store;
 
-  if (smart->backend_ps == CHOP_PROXY_EVENTUALLY_CLOSE)
+  if (smart->backend_ps == CHOP_PROXY_EVENTUALLY_CLOSE
+      && smart->backend != NULL)
     err = chop_store_close (smart->backend);
   else
     err = 0;
