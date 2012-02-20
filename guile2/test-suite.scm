@@ -204,6 +204,24 @@
               (lambda (key err . rest)
                 (= err error/store-block-unavailable))))))))
 
+(test-assert "smart-block-store-open"
+  (with-temporary-file
+   (lambda (file)
+     (let* ((s  (file-based-block-store-open (lookup-class "gdbm_block_store")
+                                             file
+                                             (logior O_RDWR O_CREAT)
+                                             #o644))
+            (s* (smart-block-store-open s #t))
+            (k  #vu8(1 2 3 4 5))
+            (v1 (u8-list->bytevector (iota 256)))
+            (v2 (u8-list->bytevector (iota 256 255 -1))))
+       (store-write-block s* k v1)                ; goes through
+       (store-write-block s* k v2)                ; doesn't go through
+       (let ((r (and (bytevector=? v1 (store-read-block s* k))
+                     (bytevector=? v1 (store-read-block s k)))))
+         (store-close s*)
+         r)))))
+
 (test-end)
 
 

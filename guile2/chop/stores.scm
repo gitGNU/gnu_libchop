@@ -23,6 +23,7 @@
             dummy-proxy-block-store-open
             file-based-block-store-open
             filtered-block-store-open
+            smart-block-store-open
 
             store-read-block
             store-write-block
@@ -101,6 +102,20 @@ closed when the returned store is closed."
       (f (unwrap-object %filter-class input-filter)
          (unwrap-object %filter-class output-filter)
          (unwrap-store backend)
+         (if close-backend?
+             proxy/eventually-close
+             proxy/leave-as-is)))))
+
+(define smart-block-store-open
+  (let ((f (libchop-type-constructor "smart_block_store_open"
+                                     ('* int)
+                                     "smart_block_store" wrap-store)))
+    (lambda* (backend #:optional close-backend?)
+      "Return a smart block store that wraps BACKEND.  The returned block
+store forwards `write_block' requests to BACKEND only when the block to be
+written doesn't already exist on BACKEND.  When CLOSE-BACKEND? is true,
+BACKEND is closed when the smart block store is closed."
+      (f (unwrap-store backend)
          (if close-backend?
              proxy/eventually-close
              proxy/leave-as-is)))))
