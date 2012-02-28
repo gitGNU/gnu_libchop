@@ -404,6 +404,44 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
 
          (string-match "subdir.*ignored" (get-output-string port)))))))
 
+(test-assert "repair root blocks"
+  (with-temporary-store
+   (lambda (store)
+     (with-file-tree %test-dir (directory "root" (("a") ("b")))
+       (let* ((dir       (string-append %test-dir "/root"))
+              (tuple     (run-storage-pipeline/recursive
+                          (const %default-storage-pipeline)
+                          dir store))
+              (retr      (index-tuple->retriever tuple))
+              (dir*      (read-directory (retr store)))
+              (roots     (cons tuple (map directory-entry-tuple
+                                          (directory-entries dir*))))
+              (root-keys (map (match-lambda
+                               ((_ (= deserialize-index-tuple/ascii
+                                      index)
+                                   _)
+                                (index-handle->block-key index)))
+                              roots))
+              (verifiers (map index-tuple->verifier roots))
+              (verify*   (lambda ()
+                           (delete-duplicates
+                            (map (lambda (verify) (verify store))
+                                 verifiers)))))
+         (and (equal? '(ok) (verify*))
+              (begin
+                ;; Remove all the root keys, and make sure the
+                ;; verifiers fail.
+                (for-each (cut store-delete-block store <>) root-keys)
+                (equal? '(missing) (verify*)))
+
+              ;; Store again.
+              (equal? (run-storage-pipeline/recursive
+                       (const %default-storage-pipeline) dir store)
+                      tuple)
+
+              ;; Make sure the verifiers are happy.
+              (equal? '(ok) (verify*))))))))
+
 (test-assert "read-directory"
   (with-temporary-store
    (lambda (store)
@@ -465,4 +503,5 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
 
 ;;; Local Variables:
 ;;; eval: (put 'test-assert 'scheme-indent-function 1)
+;;; eval: (put 'with-file-tree 'scheme-indent-function 2)
 ;;; End:
