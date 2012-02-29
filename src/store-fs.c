@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2010, 2011  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2010, 2011, 2012  Ludovic Courtès <ludo@gnu.org>
 
    Libchop is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
 #include <chop/logs.h>
 #include <alloca.h>
 #include <string.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -199,7 +200,8 @@ chop_fs_write_block (chop_block_store_t *store,
 		     const chop_block_key_t *key,
 		     const char *block, size_t size)
 {
-  int saved_errno;
+  int fd;
+  bool new_dir = false;
   chop_error_t err = 0;
   char file_name[chop_block_key_size (key) * 2 + 2];
   char *dir_name;
@@ -209,32 +211,39 @@ chop_fs_write_block (chop_block_store_t *store,
   block_file_name (key, file_name);
   dir_name = dirname (strdupa (file_name));
 
-  err = mkdirat (fs->dir_fd, dir_name, S_IRWXU);
-  saved_errno = (err != 0) ? errno : 0;
-
-  if (err == 0 || saved_errno == EEXIST)
+ try:
+  /* Speculate that DIR_NAME already exists.  In practice, this is the case
+     most of the time when a store is populated since there are only 1024
+     possible values for DIR_NAME.  */
+  fd = openat (fs->dir_fd, file_name, O_CREAT | O_WRONLY,
+	       S_IRUSR | S_IWUSR);
+  if (fd >= 0)
     {
-      int fd;
+      size_t count;
 
-      fd = openat (fs->dir_fd, file_name, O_CREAT | O_WRONLY,
-		   S_IRUSR | S_IWUSR);
-      if (fd >= 0)
-	{
-	  size_t count;
+      if (!new_dir)
+	/* Overwrite the existing block, if any.  */
+	ftruncate (fd, 0);
 
-	  if (saved_errno == EEXIST)
-	    /* Overwrite the existing block, if any.  */
-	    ftruncate (fd, 0);
+      count = full_write (fd, block, size);
 
-	  count = full_write (fd, block, size);
+      if (count < size)
+	err = errno;
+      else
+	err = 0;
 
-	  if (count < size)
-	    err = errno;
-	  else
-	    err = 0;
-
-	  close (fd);
-	}
+      close (fd);
+    }
+  else if (errno == ENOENT)
+    {
+      /* DIR_NAME doesn't exist yet.  */
+      new_dir = true;
+      err = mkdirat (fs->dir_fd, dir_name, S_IRWXU);
+      if (err == 0)
+	goto try;
+      else if (errno == EEXIST)
+	/* DIR_NAME was created in the meantime.  */
+	goto try;
       else
 	err = errno;
     }
