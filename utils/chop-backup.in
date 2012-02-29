@@ -749,9 +749,12 @@ directory."
     (pipeline-index-handle->tuple %directory-storage-pipeline index)))
 
 (define* (run-storage-pipeline/recursive choose-pipeline dir store
-                                         #:key (repair? #f))
+                                         #:key (repair? #f) (file-stored #f))
   "Store directory DIR into STORE using the storage pipeline returned by
-CHOOSE-PIPELINE, and return its index handle."
+CHOOSE-PIPELINE, and return its index handle.  When REPAIR? is true, store
+all the blocks of each file, regardless of whether their root block is
+already in STORE.  Call FILE-STORED as (FILE-STORED FILE STAT TUPLE CHANGED?)
+to notify of a new file stored."
 
   ;; TODO: make WORTHLESS-FILE? a parameter.
 
@@ -804,16 +807,20 @@ CHOOSE-PIPELINE, and return its index handle."
            (cache-index stat index*)
            index*)))
 
-  (define (store-directory* stat entries)
+  (define (store-directory* dir stat entries)
     ;; Like `store-directory', and update %FILE-INDEX-MAPPING with a mapping
     ;; from STAT to the index tuple of ENTRIES.
+    (define (notify tuple changed?)
+      (and file-stored (file-stored dir stat tuple changed?))
+      tuple)
+
     (define (do-store prev-tuple)
       (let* ((dir   (make-directory prev-tuple entries))
              (index (store-directory dir store)))
         ;; Since mtime can't be used to determine whether DIR changed, store
         ;; its list of entries in the file/index mapping.
         (cache-index stat index (directory->sexp dir))
-        index))
+        (notify index #t)))
 
     (match (stat->cached-entry stat)
       (((and dir-sexp ('directory _ ...)) . prev-tuple)
@@ -824,7 +831,7 @@ CHOOSE-PIPELINE, and return its index handle."
              (match prev-tuple                    ; directory unchanged
                ((_ index _)
                 (if (tip-exists? index)
-                    prev-tuple
+                    (notify prev-tuple #f)
                     (let ((index (store-directory prev-dir store)))
                       (if (equal? index prev-tuple)
                           index
@@ -856,6 +863,10 @@ CHOOSE-PIPELINE, and return its index handle."
     ;; Return RESULT augmented with FILE's meta-data, taken from STAT, and
     ;; its index tuple in STORE.  As a side-effect, store FILE to STORE if it
     ;; isn't there already.
+    (define (notify tuple changed?)
+      (and file-stored (file-stored file stat tuple changed?))
+      tuple)
+
     (if (worthless-file? file stat)
         result
         (let ((index
@@ -864,9 +875,11 @@ CHOOSE-PIPELINE, and return its index handle."
                    (or (match (stat->index-tuple stat)
                          (((stream-filters ...) index (store-filters ...))
                           (and (tip-exists? index)
-                               (list stream-filters index store-filters)))
+                               (notify (list stream-filters index
+                                             store-filters)
+                                       #f)))
                          (_ #f))
-                       (store/cache stat file)))))
+                       (notify (store/cache stat file) #t)))))
           (match result
             (((entries ...) result ...)
              (cons (cons (make-directory-entry (basename file)
@@ -894,7 +907,7 @@ CHOOSE-PIPELINE, and return its index handle."
                                          (stat:mtime stat)
                                          (stat:size stat)
                                          (stat:perms stat)
-                                         (store-directory* stat entries))
+                                         (store-directory* dir stat entries))
                    siblings)
              result))))
 
@@ -1231,7 +1244,8 @@ directory DIR."
                          store it in file STORE, and return a tuple that
                          designates the backup (default action).  OPTS is a
                          comma-separated list of long or one-letter options:
-                         `f' or `fast', `r' or `repair'."))
+                         `f' or `fast', `r' or `repair', `q' or `quiet',
+                         `v' or `verbose'."))
   (display (_ "
   -R, --recent           List recent backups and their tuple."))
   (display (_ "
@@ -1338,7 +1352,8 @@ to SUBOPTIONS and return a symbol list showing enabled options."
                   (exit 0)))
 
         (option '(#\b "backup") #f #t
-                (let ((subopts (suboptions (repair r / fast f))))
+                (let ((subopts (suboptions (repair r / fast f)
+                                           (verbose v / quiet q))))
                   (lambda (opt name arg result)
                     (let ((opts (canonicalize-suboptions subopts arg)))
                       (alist-cons 'backup-options opts
@@ -1401,7 +1416,11 @@ tuple that can be used to restore the whole directory hierarchy."
                                  file
                                  (logior O_CREAT O_RDWR) #o644))
 
-  (define (backup store-file files repair?)
+  (define (backup store-file files repair? verbose?)
+    (define (notify file stat tuple changed?)
+      (format (current-error-port) (_ "`~a' -> ~@y~:[ [unchanged]~;~]~%")
+              file tuple changed?))
+
     (catch 'chop-error
       (lambda ()
         (let ((store (smart-block-store-open (open-store store-file) #t)))
@@ -1414,7 +1433,8 @@ tuple that can be used to restore the whole directory hierarchy."
                (let* ((file  (canonicalize-path file))
                       (tuple (run-storage-pipeline/recursive
                               most-suitable-pipeline file store
-                              #:repair? repair?)))
+                              #:repair? repair?
+                              #:file-stored (and verbose? notify))))
                  (save-backup-tuple file tuple)
                  (write* tuple))))
             ((files ...)
@@ -1422,7 +1442,8 @@ tuple that can be used to restore the whole directory hierarchy."
                     (stats  (map lstat files))
                     (tuples (map (cut run-storage-pipeline/recursive
                                       most-suitable-pipeline <> store
-                                      #:repair? repair?)
+                                      #:repair? repair?
+                                      #:file-stored (and verbose? notify))
                                  files))
                     (entries (map (match-lambda
                                    ((file stat tuple)
@@ -1460,7 +1481,9 @@ tuple that can be used to restore the whole directory hierarchy."
        (let ((opts (or (assq-ref options 'backup-options) '())))
          (match args
            ((store-file files ...)
-            (backup store-file files (memq 'repair opts)))
+            (backup store-file files
+                    (memq 'repair opts)
+                    (memq 'verbose opts)))
            (_
             (leave (_ "too few arguments for `backup' operation"))))))
 

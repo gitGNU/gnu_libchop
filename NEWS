@@ -26,6 +26,7 @@ to the `git whatchanged' command.
 Repair all the blocks of files in a directory backup, at the expense of
 increased CPU and bandwidth usage.
 
+**** New `--backup=verbose' suboption
 **** The same tuple is returned when a directory is unchanged
 
 Previously `chop-backup --backup' would return a different tuple each

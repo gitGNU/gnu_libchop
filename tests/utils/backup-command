@@ -65,9 +65,11 @@ done
 # Doing it a second and third time should yield the same index
 # (assuming the directory and its meta-data were left unchanged.)
 index2=`chop-backup "$DB_FILE" "$top_srcdir/include"`
-index3=`chop-backup "$DB_FILE" "$top_srcdir/include"`
+index3=`chop-backup -bv "$DB_FILE" "$top_srcdir/include" 2> ,,backup-verbose-output`
 chop_fail_if test '"$index2"' != '"$index"'
 chop_fail_if test '"$index3"' != '"$index"'
+chop_fail_if ! grep '"chop.h.*->.*unchanged"' ,,backup-verbose-output
+rm -rf ,,backup-verbose-output
 
 # Thus, the `include' directory should appear only once in the recent
 # backup list.

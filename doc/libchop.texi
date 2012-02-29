@@ -507,6 +507,16 @@ blocks of files to the store, regardless of whether their root blocks
 were already available.  This is useful when @code{chop-backup --check}
 reported some blocks as missing.  It is much more CPU- and I/O-intensive
 than @option{fast}.
+
+@item q
+@itemx quiet
+Do not print anything except the resulting tuple.  This is the default.
+
+@item v
+@itemx verbose
+Print on the standard error output each file being stored, along with an
+indication as to whether it actually needed to be processed.
+
 @end table
 
 @item --recent
