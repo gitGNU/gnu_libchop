@@ -1,22 +1,32 @@
 -*- Org -*-
 
-Changes in 0.5.2 (since 0.5.1)
+#+TITLE: History of user-visible libchop changes
 
-* New features
+Copyright (C) 2010, 2011, 2012  Ludovic Courtès <ludo@gnu.org>
 
-** chop-backup
+  Copying and distribution of this file, with or without modification,
+  are permitted in any medium without royalty provided the copyright
+  notice and this notice are preserved.
 
-*** New `--log' option
+Please report bugs to <libchop-devel@nongnu.org>.
+
+* Changes in 0.5.2 (since 0.5.1)
+
+** New features
+
+*** chop-backup
+
+**** New `--log' option
 
 This option shows a change log for a directory backup, similar in spirit
 to the `git whatchanged' command.
 
-*** New `--backup=repair' suboption
+**** New `--backup=repair' suboption
 
 Repair all the blocks of files in a directory backup, at the expense of
 increased CPU and bandwidth usage.
 
-*** The same tuple is returned when a directory is unchanged
+**** The same tuple is returned when a directory is unchanged
 
 Previously `chop-backup --backup' would return a different tuple each
 time a directory is backed up, regardless of whether it actually
@@ -24,125 +34,121 @@ changed.  While the previous introduced negligible storage overhead,
 because the actual data was not duplicated, it led to uselessly longer
 version chains and counter-intuitive behavior.
 
-*** Improved error diagnostics for the `--backup' operation
+**** Improved error diagnostics for the `--backup' operation
 
 `chop-backup --backup' now warns about directories that cannot be
 accessed; when a unreadable file is encountered, an error message is
 emitted and `chop-backup' exits.
 
-*** Improved test suite framework
+**** Improved test suite framework
 
 `chop-backup' now has an additional Scheme-level test suite, under
 `tests/utils/backup'.
 
-* Bug fixes
+** Bug fixes
 
-** Fix memory leak in the Guile bindings
+*** Fix memory leak in the Guile bindings
 
 This could lead to unbounded memory growth, for instance when storing
 many files where each needed a zip filter.
 
-** A couple of Guile bugs were exposed, which were fixed in Guile 2.0.5
+*** A couple of Guile bugs were exposed, which were fixed in Guile 2.0.5
 
 Thus, GNU Guile >= 2.0.5 is now required.
 
-
-Changes in 0.5.1 (since 0.5)
+* Changes in 0.5.1 (since 0.5)
 
-* New features
-** chop-backup
-*** New `--probe' option
+** New features
+*** chop-backup
+**** New `--probe' option
 
 See the manual for details.
 
-*** Default to the tuple of a recent backup that is available
+**** Default to the tuple of a recent backup that is available
 
 The `--show', `--list', and other commands now default to the tuple of
 the most recent backup available in the given store.  Previously, when
 no tuple was given, they would default to the most recent backup,
 regardless of whether it's available in the given store.
 
-*** Several tuples are kept in the recent-backup cache for each directory
+**** Several tuples are kept in the recent-backup cache for each directory
 
 Previously, only the tuple pointing to the latest snapshot of each
 directory would be kept.
 
-** chop-show-similarities
+*** chop-show-similarities
 
-*** New --blocks option
-*** Choose the fingerprint mask intelligently by default
+**** New --blocks option
+**** Choose the fingerprint mask intelligently by default
 
 `chop-show-similarities' attempts to choose the right granularity when
 comparing two files.
 
-* Packaging improvements, bug fixes
+** Packaging improvements, bug fixes
 
-** chop-backup
-*** The `--list' option displays dates smartly, like GNU ls does
-*** Fix possible file descriptor exhaustion with `--backup'
-** library
-*** Fix possible off-by-N in the deserializer of the CHK/hash block indexers
-** Various
-*** Make sure the `utils/backup' test uses the current source code
-*** Document stream choppers, `chop-show-anchors', and `chop-show-similarities'
+*** chop-backup
+**** The `--list' option displays dates smartly, like GNU ls does
+**** Fix possible file descriptor exhaustion with `--backup'
+*** library
+**** Fix possible off-by-N in the deserializer of the CHK/hash block indexers
+*** Various
+**** Make sure the `utils/backup' test uses the current source code
+**** Document stream choppers, `chop-show-anchors', and `chop-show-similarities'
 
-
-Changes in 0.5 (since 0.4)
+* Changes in 0.5 (since 0.4)
 
-* New features
+** New features
 
-** New encrypted backup utility: `chop-backup'
+*** New encrypted backup utility: `chop-backup'
 
 See the manual for details.
 
-** The `-z' option of `chop-archiver' now also applies to meta-data
+*** The `-z' option of `chop-archiver' now also applies to meta-data
 
 In other words, the zip/unzip filters are now applied both to data and
 meta-data when a specific store is specified with `-f'.
 
-** Guile bindings: New procedures `make-zip-filter' and `make-unzip-filter'
+*** Guile bindings: New procedures `make-zip-filter' and `make-unzip-filter'
 
-* Bug fixes
+** Bug fixes
 
-** Fix off-by-one in `fs_block_store'
-** Fix return value of `fs_block_store.read_block' with non-existent blocks
-** Fix off-by-n in ASCII deserialization of CHK/hash index handles
-** Fix possible infinite loop in `lzo_unzip_filter'
-** guile2: Have `stream->port' let unhandled exceptions through
+*** Fix off-by-one in `fs_block_store'
+*** Fix return value of `fs_block_store.read_block' with non-existent blocks
+*** Fix off-by-n in ASCII deserialization of CHK/hash index handles
+*** Fix possible infinite loop in `lzo_unzip_filter'
+*** guile2: Have `stream->port' let unhandled exceptions through
 
-* Packaging
+** Packaging
 
-** G-Wrap-based Guile 1.8 bindings removed
+*** G-Wrap-based Guile 1.8 bindings removed
 
-
-Changes in 0.4 (since 0.3)
+* Changes in 0.4 (since 0.3)
 
-* New features
+** New features
 
-** New Scheme bindings for GNU Guile 2.0
+*** New Scheme bindings for GNU Guile 2.0
 
 See "Guile Bindings" in the manual for details.  The Guile 1.8 bindings
 based on G-Wrap will be removed in a future version.
 
-** New `--archive-fd' option for `chop-archiver'
+*** New `--archive-fd' option for `chop-archiver'
 
 This allows the archival of data from an arbitrary file descriptor,
 as in "tar cf - /foo/bar | chop-archiver --archive-fd".
 
-** New `CTR' and `AESWRAP' cipher modes (from libgcrypt)
+*** New `CTR' and `AESWRAP' cipher modes (from libgcrypt)
 
-** New function: `chop_file_stream_open_fd'
+*** New function: `chop_file_stream_open_fd'
 
-* Packaging improvement, bug fixes
+** Packaging improvement, bug fixes
 
 See `ChangeLog' for details.
 
-
-Changes in 0.3 (since 0.2)
+* Changes in 0.3 (since 0.2)
 
-* New features
+** New features
 
-** New file system based block store
+*** New file system based block store
 
 The `chop_fs_block_store' stores data blocks as a tree of files in the
 user's file system, in a way similar to what Git does.  The main
@@ -150,14 +156,14 @@ advantage is its file system interface.  It makes it easy to rsync it to
 a remote site or to publish it over FTP or HTTP, for instance, which can
 be useful when the remote site cannot run `chop-block-server'.
 
-** Block-level data integrity checks
+*** Block-level data integrity checks
 
 The `chk' and `hash' block fetchers now return an error when retrieving
 a block that has been tampered with.  They do so by comparing the hash
 of the block with its key, and expect them to be the same.
 
 
-** `chop-archiver --archive' implements incremental storage by default
+*** `chop-archiver --archive' implements incremental storage by default
 
 By default, only blocks not already available in the block store are
 written.  It makes incremental storage very fast (e.g., when
@@ -166,15 +172,8 @@ that contains data similar to what's already available in the store) and
 saves bandwidth when using a remote block store.  The `--no-smart-store'
 option disables it.
 
-* Packaging
+** Packaging
 
-** GNU gperf is now required
+*** GNU gperf is now required
 
-** A C99 compiler is now required (instead of C89)
-
-
-Copyright (C) 2010, 2011  Ludovic Courtès <ludo@gnu.org>
-
-  Copying and distribution of this file, with or without modification,
-  are permitted in any medium without royalty provided the copyright
-  notice and this notice are preserved.
+*** A C99 compiler is now required (instead of C89)
