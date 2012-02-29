@@ -11,6 +11,11 @@ Changes in 0.5.2 (since 0.5.1)
 This option shows a change log for a directory backup, similar in spirit
 to the `git whatchanged' command.
 
+*** New `--backup=repair' suboption
+
+Repair all the blocks of files in a directory backup, at the expense of
+increased CPU and bandwidth usage.
+
 *** The same tuple is returned when a directory is unchanged
 
 Previously `chop-backup --backup' would return a different tuple each
