@@ -77,3 +77,8 @@ AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include	\
 
 LIBS = $(top_builddir)/src/libchop.la		\
        $(top_builddir)/lib/libgnu.la
+
+CLEANFILES =					\
+  directory-changes.log				\
+  run-storage-pipeline.log			\
+  run-storage-pipeline-recursive.log
