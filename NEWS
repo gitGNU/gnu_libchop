@@ -46,6 +46,8 @@ emitted and `chop-backup' exits.
 `chop-backup' now has an additional Scheme-level test suite, under
 `tests/utils/backup'.
 
+**** Documentation improvements
+
 ** Bug fixes
 
 *** Fix memory leak in the Guile bindings
