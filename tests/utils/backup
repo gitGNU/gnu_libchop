@@ -30,6 +30,7 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
 (define-module (backup-test)
   #:use-module (chop-backup)
   #:use-module (chop tests)
+  #:use-module (chop core)
   #:use-module (chop objects)
   #:use-module (chop streams)
   #:use-module (chop stores)
@@ -436,7 +437,83 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
 
               ;; Store again.
               (equal? (run-storage-pipeline/recursive
+                       (const %default-storage-pipeline) dir store
+                       #:repair? #f)
+                      tuple)
+
+              ;; Make sure the verifiers are happy.
+              (equal? '(ok) (verify*))))))))
+
+(test-assert "repair non-root blocks"
+  (with-temporary-file-tree
+   (lambda (file)
+     (define (store-block-keys)
+       ;; Return the keys of all the blocks in STORE.
+       ;; XXX: Replace this hack when the block iterator API has bindings.
+       (file-system-fold (const #t)                 ; enter?
+                         (lambda (path stat result) ; leaf
+                           (let ((b32 (string-append (basename (dirname path))
+                                                     (basename path))))
+                             (cons (base32-string->bytevector b32)
+                                   result)))
+                         (lambda (path stat result) ; down
+                           result)
+                         (lambda (path stat result) ; up
+                           result)
+                         (lambda (path stat result) ; skip
+                           result)
+                         (lambda (path stat errno result) ; error
+                           result)
+                         '()
+                         file))
+
+     (with-file-tree %test-dir (directory "root" (("a") ("b")))
+       (let* ((store     (file-based-block-store-open
+                          (lookup-class "fs_block_store")
+                          file (logior O_RDWR O_CREAT) #o644))
+              (dir       (string-append %test-dir "/root"))
+              (tuple     (run-storage-pipeline/recursive
+                          (const %default-storage-pipeline)
+                          dir store))
+              (retr      (index-tuple->retriever tuple))
+              (dir*      (read-directory (retr store)))
+              (roots     (cons tuple (map directory-entry-tuple
+                                          (directory-entries dir*))))
+              (root-keys (map (match-lambda
+                               ((_ (= deserialize-index-tuple/ascii
+                                      index)
+                                   _)
+                                (index-handle->block-key index)))
+                              roots))
+              (non-roots (remove (lambda (key)
+                                   (member key root-keys))
+                                 (store-block-keys)))
+              (verifiers (map index-tuple->verifier roots))
+              (verify*   (lambda ()
+                           (delete-duplicates
+                            (map (lambda (verify) (verify store))
+                                 verifiers)))))
+         (and (equal? '(ok) (verify*))
+              (not (null? non-roots))
+              (begin
+                ;; Remove all the keys but the root keys, and make
+                ;; sure the verifiers fail.
+                (for-each (cut store-delete-block store <>) non-roots)
+                (equal? '(missing) (verify*)))
+
+              ;; Store again.
+              (equal? (run-storage-pipeline/recursive
                        (const %default-storage-pipeline) dir store)
+                      tuple)
+
+              ;; This didn't repair anything because the root keys were still
+              ;; there.
+              (equal? '(missing) (verify*))
+
+              ;; So this time repair for good.
+              (equal? (run-storage-pipeline/recursive
+                       (const %default-storage-pipeline) dir store
+                       #:repair? #t)
                       tuple)
 
               ;; Make sure the verifiers are happy.

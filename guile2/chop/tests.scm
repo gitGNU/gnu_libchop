@@ -20,6 +20,7 @@
   #:use-module (rnrs bytevectors)
   #:use-module (rnrs io ports)
   #:use-module (srfi srfi-26)
+  #:use-module (ice-9 ftw)
   #:use-module (ice-9 match)
   #:use-module (ice-9 format)
   #:use-module (chop core)
@@ -28,8 +29,10 @@
   #:use-module (chop indexers)
   #:export (temporary-file-name
             with-temporary-file
+            with-temporary-file-tree
             with-temporary-store
             with-file-tree
+            delete-file/recursive
             make-random-bytevector
             random-file-size
             index-handle->block-key))
@@ -42,7 +45,25 @@
   "Return a (hopefully unique) temporary file name."
   (format #f "~a-~x-~x-~x" stem (getpid) (current-time) (random #x10000)))
 
-(define (with-temporary-file proc)
+(define (delete-file/recursive dir)
+  "Delete the file tree at DIR, recursively.  Also known as `rm -rf'.  Use
+with care."
+  (file-system-fold (lambda (dir stat result) #t)   ; enter?
+                    (lambda (file stat result)      ; leaf
+                      (delete-file file))
+                    (lambda (dir stat result)       ; down
+                      ;;(chmod dir #o755)
+                      result)
+                    (lambda (dir stat result)       ; up
+                      (rmdir dir))
+                    (lambda (dir stat result)       ; skip
+                      result)
+                    (lambda (dir stat errno result) ; error
+                      #f)
+                    #t
+                    dir))
+
+(define (with-temporary-file-or-tree proc delete)
   (let ((file (string-append %tmpdir "/" (temporary-file-name))))
     (dynamic-wind
       (lambda ()
@@ -50,7 +71,12 @@
       (lambda ()
         (proc file))
       (lambda ()
-        (delete-file file)))))
+        (delete file)))))
+
+(define with-temporary-file
+  (cut with-temporary-file-or-tree <> delete-file))
+(define with-temporary-file-tree
+  (cut with-temporary-file-or-tree <> delete-file/recursive))
 
 (define (with-temporary-store proc)
   (with-temporary-file

@@ -748,7 +748,8 @@ directory."
                                       store)))
     (pipeline-index-handle->tuple %directory-storage-pipeline index)))
 
-(define (run-storage-pipeline/recursive choose-pipeline dir store)
+(define* (run-storage-pipeline/recursive choose-pipeline dir store
+                                         #:key (repair? #f))
   "Store directory DIR into STORE using the storage pipeline returned by
 CHOOSE-PIPELINE, and return its index handle."
 
@@ -835,9 +836,14 @@ CHOOSE-PIPELINE, and return its index handle."
              (do-store prev-tuple))))             ; directory changed
       (_ (do-store #f))))
 
-  (define (tip-exists? index)
-    ;; Return #t if the root block pointed to by INDEX exists.
-    (indexed-block-exists? index store))
+  (define tip-exists?
+    ;; Return #t if the root block pointed to by INDEX exists and REPAIR? is
+    ;; #f.  The latter allows to ensure that all the blocks of a file are
+    ;; actually stored, not just the tip, at the expense of having to process
+    ;; each file.
+    (if repair?
+        (const #f)
+        (cut indexed-block-exists? <> store)))
 
   (define (enter-directory? dir-name stat result)
     ;; Return #t when we want to enter directory DIR-NAME.  Note that we
