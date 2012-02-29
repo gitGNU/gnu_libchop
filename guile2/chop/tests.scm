@@ -124,8 +124,8 @@ with care."
 ;;;
 
 (define (random-file-size)
-  (define %average (* 1024 1024))                 ; 1 MiB
-  (define %stddev  (* 16 1024))                   ; 16 KiB
+  (define %average (* 1024 512))                  ; 512 KiB
+  (define %stddev  (* 1024 64))                   ; 64 KiB
   (inexact->exact
    (max 0 (round (+ %average (* %stddev (random:normal)))))))
 
