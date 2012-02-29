@@ -479,14 +479,35 @@ For each action, @command{chop-backup} has a corresponding option, as
 seen above.  The list of options is described below.
 
 @table @option
-@item --backup
-@itemx -b
+@item --backup=[@var{opts}]
+@itemx -b@var{opts}
 Create an encrypted backup of the given directories, store it in the
 specified block store, and return a tuple that designates the backup.
 
 For this action, @command{chop-backup} must be passed at least two
 arguments: a file name for the backup store, and one or more directories
 to be backed up.  This is the default action.
+
+@var{opts} is a comma-separated list of long or one-letter options:
+
+@table @option
+@item f
+@itemx fast
+When the root block of a file is available in the store, assume all the
+file's blocks are available.  This allows @command{chop-backup} to avoid
+reading the file and passing it through the storage pipeline, thereby
+significantly saving I/O and CPU time.
+
+This is the default mode of operation.
+
+@item r
+@itemx repair
+This option is the converse of @option{fast}: attempt to write all the
+blocks of files to the store, regardless of whether their root blocks
+were already available.  This is useful when @code{chop-backup --check}
+reported some blocks as missing.  It is much more CPU- and I/O-intensive
+than @option{fast}.
+@end table
 
 @item --recent
 @itemx -R
@@ -599,6 +620,10 @@ found in the store.
 
 For this action, @command{chop-backup} must be passed the store's file
 name, and optional a tuple pointing to a directory snapshot.
+
+As with @code{--restore}, all the file blocks are retrieved from the
+store and passed through the storage pipeline, which deciphers them,
+checks their integrity, and reassembles them.
 
 @item --restore
 @itemx -r

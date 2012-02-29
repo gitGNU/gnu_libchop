@@ -84,6 +84,14 @@ index4=`chop-backup "$DB_FILE" "$top_srcdir/include"`
 chop_fail_if test '"$index4"' != '"$index"'
 chop_fail_if ! chop-backup --check '"$DB_FILE"' '"$index"'
 
+# Remove blocks at random.
+rm -f "$DB_FILE/"*/*2*
+
+# Repair them.
+index5=`chop-backup -br "$DB_FILE" "$top_srcdir/include"`
+chop_fail_if '"$index5"' != '"$index"'
+chop_fail_if ! chop-backup --check '"$DB_FILE"' '"$index"'
+
 # At this point, $TMP_FILE contains a copy of $top_srcdir/include.
 # Create a backup of it, and add/delete files.
 index=`chop-backup "$DB_FILE" "$TMP_FILE"`

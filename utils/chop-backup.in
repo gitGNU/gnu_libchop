@@ -1227,9 +1227,11 @@ directory DIR."
   (display (_ "chop-backup [OPTION] STORE ARGS ...\n"))
   (display (_ "Create or access an encrypted file system snapshot.\n"))
   (display (_ "
-  -b, --backup           Create an encrypted backup of the given directories,
+  -b, --backup[=OPTS]    Create an encrypted backup of the given directories,
                          store it in file STORE, and return a tuple that
-                         designates the backup (default action)."))
+                         designates the backup (default action).  OPTS is a
+                         comma-separated list of long or one-letter options:
+                         `f' or `fast', `r' or `repair'."))
   (display (_ "
   -R, --recent           List recent backups and their tuple."))
   (display (_ "
@@ -1335,10 +1337,12 @@ to SUBOPTIONS and return a symbol list showing enabled options."
                   (show-version)
                   (exit 0)))
 
-        (option '(#\b "backup") #f #f
-                (lambda (opt name arg result)
-                  (alist-cons 'action 'backup
-                              (alist-delete 'action result eq?))))
+        (option '(#\b "backup") #f #t
+                (let ((subopts (suboptions (repair r / fast f))))
+                  (lambda (opt name arg result)
+                    (let ((opts (canonicalize-suboptions subopts arg)))
+                      (alist-cons 'backup-options opts
+                                  (alist-cons 'action 'backup result))))))
         (option '(#\l "list") #f #t
                 (let ((subopts (suboptions (recursive r / flat f)
                                            (history h / latest l)
@@ -1397,7 +1401,7 @@ tuple that can be used to restore the whole directory hierarchy."
                                  file
                                  (logior O_CREAT O_RDWR) #o644))
 
-  (define (backup store-file files)
+  (define (backup store-file files repair?)
     (catch 'chop-error
       (lambda ()
         (let ((store (smart-block-store-open (open-store store-file) #t)))
@@ -1409,14 +1413,16 @@ tuple that can be used to restore the whole directory hierarchy."
                                (error-message (pipeline-error-libchop-error c)))))
                (let* ((file  (canonicalize-path file))
                       (tuple (run-storage-pipeline/recursive
-                              most-suitable-pipeline file store)))
+                              most-suitable-pipeline file store
+                              #:repair? repair?)))
                  (save-backup-tuple file tuple)
                  (write* tuple))))
             ((files ...)
              (let* ((files  (map canonicalize-path files))
                     (stats  (map lstat files))
                     (tuples (map (cut run-storage-pipeline/recursive
-                                      most-suitable-pipeline <> store)
+                                      most-suitable-pipeline <> store
+                                      #:repair? repair?)
                                  files))
                     (entries (map (match-lambda
                                    ((file stat tuple)
@@ -1451,11 +1457,12 @@ tuple that can be used to restore the whole directory hierarchy."
 
     (case action
       ((backup)
-       (match args
-         ((store-file files ...)
-          (backup store-file files))
-         (_
-          (leave (_ "too few arguments for `backup' operation")))))
+       (let ((opts (or (assq-ref options 'backup-options) '())))
+         (match args
+           ((store-file files ...)
+            (backup store-file files (memq 'repair opts)))
+           (_
+            (leave (_ "too few arguments for `backup' operation"))))))
 
       ((list)
        (let ((opts (or (assq-ref options 'list-options) '())))
