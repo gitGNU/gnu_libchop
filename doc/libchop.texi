@@ -1481,6 +1481,139 @@ Consequently, this can be costly in terms of memory consumption.  Also,
 @node Block Indexers & Fetchers
 @section Block Indexers & Fetchers
 
+@dfn{Block indexers} take a chunk of data and a block store, add that
+block to the block store (possibly after processing it), and return an
+@dfn{index handle} that @emph{names} this block.  The dual of block
+indexers are @dfn{block fetchers}: given an index handle and a block
+store, they return the original chunk of data.
+
+@deftp {Type} chop_block_indexer_t
+@deftpx {Type} chop_block_fetcher_t
+The type of a block indexer or fetcher, respectively.
+@end deftp
+
+@deftp {Type} chop_index_handle_t
+The type of an abstract index handle.
+@end deftp
+
+The classes associated with a block indexer can be accessed with the
+following functions.
+
+@deftypefun {const chop_class_t *} chop_block_indexer_fetcher_class ({const chop_block_indexer_t *}@var{indexer})
+Return the block fetcher class associated with the class of
+@var{indexer}.
+@end deftypefun
+
+@deftypefun {const chop_class_t *} chop_block_indexer_index_handle_class ({const chop_block_indexer_t *}@var{indexer})
+Return the index handle class associated with the class of
+@var{indexer}.
+@end deftypefun
+
+@deftypefun chop_error_t chop_block_indexer_initialize_fetcher ({const chop_block_indexer_t *}@var{indexer}, {chop_block_fetcher_t *}@var{fetcher})
+Initialize @var{fetcher} as a block fetcher corresponding to block
+indexer @var{indexer}.  @var{fetcher} must point to a memory area large
+enough to contain an instance of the fetcher class associated to
+@var{indexer}'s class.
+@end deftypefun
+
+Storing and retrieving a chunk of data is achieved using the methods
+below.
+
+@deftypefun chop_error_t chop_block_indexer_index ({chop_block_indexer_t *}@var{indexer}, {chop_block_store_t *}@var{store}, {const char *}@var{buffer}, size_t size, {chop_index_handle_t *}@var{handle})
+Using @var{indexer}, index the @var{size}-byte long data block pointed
+to by @var{buffer} to @var{store}.  On success, return zero and
+initialize @var{handle} with an index handle sufficient to restore that
+block from @var{store} using the corresponding fetcher.  Otherwise,
+return an error.
+@end deftypefun
+
+@deftypefun chop_error_t chop_block_fetcher_fetch ({chop_block_fetcher_t *}@var{fetcher}, {const chop_index_handle_t *}@var{handle}, {chop_block_store_t *}@var{store}, {chop_buffer_t *}@var{buffer}, {size_t *}@var{size})
+Using @var{fetcher}, fetch from @var{store} the data block whose index
+handle is @var{handle}.  On success, fill in @var{buffer} with its
+contents and set @var{size} to its size in bytes.
+@end deftypefun
+
+@deftypefun chop_error_t chop_block_fetcher_exists ({chop_block_fetcher_t *}@var{fetcher}, {const chop_index_handle_t *}@var{handle}, {chop_block_store_t *}@var{store}, {int *}@var{exists})
+Using @var{fetcher}, check whether the block pointed to by @var{handle}
+is available.  On success, set @code{*@var{exists}} to 1 if it's
+available in @var{store}, 0 if it's not available; otherwise return an
+error.
+@end deftypefun
+
+@c TODO: Finish.
+
+@subsection Block Indexer Classes
+
+The block indexer, block fetcher, and index handle interfaces described
+above have several implementations.
+
+@deftypevar chop_class_t chop_hash_block_indexer_class
+@deftypevarx chop_class_t chop_chk_block_indexer_class
+@deftypevarx chop_class_t chop_uuid_block_indexer_class
+@deftypevarx chop_class_t chop_integer_block_indexer_class
+Classes that inherit from @var{chop_block_indexer_class}.
+@end deftypevar
+
+@deftypevar chop_class_t chop_hash_block_fetcher_class
+@deftypevarx chop_class_t chop_chk_block_fetcher_class
+@deftypevarx chop_class_t chop_uuid_block_fetcher_class
+@deftypevarx chop_class_t chop_integer_block_fetcher_class
+Classes that inherit from @var{chop_block_fetcher_class}, and are the
+dual of the above.
+@end deftypevar
+
+@cindex single-instance storage
+The most important block indexer classes are @code{hash} and @code{chk},
+described below.  Both use cryptographic hashes to determine a the key
+under which a block is stored.  Consequently, they provide the
+@dfn{single-instance storage} property: a given chunk of data is always
+stored only once in the block store.
+
+@deftypefun chop_error_t chop_hash_block_indexer_open (chop_hash_method_t @var{hash_method}, {chop_block_indexer_t *}@var{indexer})
+@cindex content-based addressing
+@cindex compare-by-hash
+Initialize @var{indexer} as a hash block indexer.  @var{indexer} will
+use @var{hash_method} to compute the identifier of the given block and
+will use that identifier when storing the block.  It leaves the block
+contents unchanged.  This technique is known as @dfn{content-based
+addressing}, or @dfn{compare-by-hash}.
+@end deftypefun
+
+@deftypefun chop_error_t chop_chk_block_indexer_open (chop_cipher_handle_t @var{cipher_handle}, int @var{owns_cipher_handle}, chop_hash_method_t @var{key_hash_method}, chop_hash_method_t @var{block_id_hash_method}, {chop_block_indexer_t *}@var{block_indexer})
+@cindex content-hash key
+@cindex CHK
+@cindex convergent encryption
+Initialize @var{block_indexer} as a @dfn{content-hash key} (CHK) block
+indexer.  @var{block_indexer} will cipher data blocks using
+@var{cipher_handle} and the block's hash yielded by
+@var{key_hash_method} (this is symmetric ciphering).  Finally,
+@var{block_indexer} will compute the block's identifier using
+@var{block_id_hash_method}.
+
+This technique is known as @dfn{convergent encryption}, and the index
+yielded is sometimes referred to as a @dfn{content-hash key} (in
+GNUnet/FreeNet terminology.)  For more details, @ref{References}.
+@end deftypefun
+
+@deftypefun chop_error_t chop_uuid_block_indexer_open ({chop_block_indexer_t *}@var{block_indexer})
+Initialize @var{block_indexer} as a UUID block indexer.  In other words,
+@var{block_indexer} will then yield DCE-compatible Universally Unique
+Identifiers for each block, using @code{libuuid} (provided it was
+available at compilation time).
+
+Therefore, @var{block_indexer} will not have the single-instance storage
+property, unlike the @code{chk} and @code{hash} block indexers.
+@end deftypefun
+
+@deftypefun chop_error_t chop_integer_block_indexer_open ({unsigned long} @var{start}, {chop_block_indexer_t *}@var{indexer})
+Initialize @var{indexer} as an indexer that will simply return
+consecutive 32-bit integers as block IDs, starting from @var{start}.
+
+Such indexers are mostly useful for benchmarking.  They lack the
+single-instance storage property, and can actually overwrite previous
+blocks given that the returned block keys are not universally unique.
+@end deftypefun
+
 @node Stream Indexers
 @section Stream Indexers
 
