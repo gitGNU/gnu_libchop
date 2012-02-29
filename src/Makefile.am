@@ -1,5 +1,5 @@
 # libchop -- a utility library for distributed storage and data backup
-# Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
+# Copyright (C) 2008, 2010, 2011, 2012  Ludovic Courtès <ludo@gnu.org>
 # Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 #
 # Libchop is free software: you can redistribute it and/or modify
@@ -53,7 +53,8 @@ libchop_la_CFLAGS = $(AM_CFLAGS)
 
 AM_CFLAGS = $(GCC_CFLAGS)
 AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include	\
-	      -I$(top_srcdir)/lib     -I$(top_builddir)/lib
+	      -I$(top_srcdir)/lib     -I$(top_builddir)/lib	\
+	      -DGCRYPT_NO_MPI_MACROS -DGCRYPT_NO_DEPRECATED
 
 # Gnulib
 libchop_la_LIBADD = $(top_builddir)/lib/libgnu.la
