@@ -444,7 +444,7 @@ chop_fs_first_block (chop_block_store_t *store,
       char *raw;
       const char *end;
       size_t key_size;
-      raw = malloc (sizeof base32);
+      raw = chop_malloc (sizeof base32, &chop_fs_block_iterator_class);
       if (raw == NULL)
 	return ENOMEM;
       key_size = chop_base32_string_to_buffer (base32, sizeof base32 - 1,
@@ -523,6 +523,9 @@ chop_fs_next_block (chop_block_iterator_t *it)
     {
       /* We have an entry, so compute the corresponding key and store it in
 	 IT.  */
+
+      chop_block_key_free (&fsit->block_iterator.key);
+
       char base32[2 + fsit->sub_entry.d_reclen + 1];
       strcpy (base32, fsit->subdir_name);
       memcpy (base32 + 2, fsit->sub_entry.d_name, fsit->sub_entry.d_reclen);
@@ -531,7 +534,7 @@ chop_fs_next_block (chop_block_iterator_t *it)
       char *raw;
       const char *end;
       size_t key_size;
-      raw = malloc (sizeof base32);
+      raw = chop_malloc (sizeof base32, &chop_fs_block_iterator_class);
       if (raw == NULL)
 	return ENOMEM;
       key_size = chop_base32_string_to_buffer (base32, sizeof base32 - 1,
