@@ -1,5 +1,5 @@
 /* Continuous integration of libchop with Hydra/Nix.
-   Copyright (C) 2011  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2011, 2012  Ludovic Courtès <ludo@gnu.org>
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -66,10 +66,10 @@ let
       , gnulib ? { outPath = <gnulib>; } }:
 
       pkgs.releaseTools.sourceTarball {
-        name = "libchop";
+        name = "libchop-tarball";
         src = libchopSrc;
         buildNativeInputs = (buildNativeInputsFrom pkgs)
-          ++ (with pkgs; [ git texinfo texLive gettext_0_18 cvs ]);
+          ++ (with pkgs; [ git texinfo texLive gettext_0_18 cvs emacs ]);
         buildInputs = buildInputsFrom pkgs;
 
         preAutoconf =
@@ -86,12 +86,19 @@ let
           '';
 
         postDist =
-          # Tell Hydra about our manual.
+          # Tell Hydra about our manual and release notes.
           '' make -C doc libchop.pdf libchop.html
              cp -rv doc/libchop.{pdf,html} "$out"
-             ( echo "doc-pdf manual $out/libchop.pdf" ;         \
-               echo "doc manual $out/libchop.html index.html" ) \
-               >> $out/nix-support/hydra-build-products
+
+             emacs --batch --load=org.el --visit=NEWS \
+                   --funcall org-export-as-html-batch
+             cp -v NEWS.html "$out"
+
+             cat >> $out/nix-support/hydra-build-products <<EOF
+doc-pdf manual $out/libchop.pdf
+doc manual $out/libchop.html index.html
+doc release-notes $out/NEWS.html
+EOF
           '';
 
         inherit meta succeedOnFailure keepBuildDirectory;
