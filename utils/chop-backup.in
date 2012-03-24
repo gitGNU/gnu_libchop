@@ -610,8 +610,11 @@ returns a port from which the contents pointed to by TUPLE can be read."
        (lambda (store)
          (let* ((store  (filtered-store store store-filters))
                 (stream (indexer-fetch-stream indexer index block-fetcher
-                                              store store)))
-           (stream->port (filtered-stream stream stream-filters))))))))
+                                              store store))
+                (port   (stream->port (filtered-stream stream
+                                                       stream-filters))))
+           (set-port-filename! port (object->string tuple))
+           port))))))
 
 (define (index-tuple->verifier tuple)
   "Return a verifier procedure that takes a store and returns a symbol
