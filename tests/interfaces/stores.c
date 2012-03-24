@@ -27,6 +27,7 @@
 #include <testsuite.h>
 
 #include <stdio.h>
+#include <stdbool.h>
 
 /* Write the SIZE bytes pointed to by BYTES under KEY in STORE.  */
 static void
@@ -88,13 +89,29 @@ test_block (chop_block_store_t *store, const chop_block_key_t *key,
       exit (5);
     }
 
-  chop_buffer_clear (&buffer);
+  chop_buffer_return (&buffer);
+}
+
+/* Return the index of K within KEYS, or abort if not found.  */
+static size_t
+key_index (size_t size, const chop_block_key_t keys[size],
+	   const chop_block_key_t *k)
+{
+  size_t index;
+
+  for (index = 0; index < size; index++)
+    if (chop_block_key_equal (k, &keys[index]))
+      return index;
+
+  abort ();
 }
 
 
 int
 main (int argc, char *argv[])
 {
+#define BLOCK_COUNT 12
+
   static const chop_file_based_store_class_t *classes[] =
     {
       &chop_gdbm_block_store_class,
@@ -114,8 +131,9 @@ main (int argc, char *argv[])
 
   chop_error_t err;
   const chop_file_based_store_class_t **class;
-  char random_bytes[64];
-  chop_block_key_t random_key;
+  char random_bytes[64][BLOCK_COUNT];
+  chop_block_key_t keys[BLOCK_COUNT];
+  size_t i;
 
   test_init (argv[0]);
   test_init_random_seed ();
@@ -123,9 +141,12 @@ main (int argc, char *argv[])
   err = chop_init ();
   test_check_errcode (err, "initializing libchop");
 
-  test_randomize_input (random_bytes, sizeof random_bytes);
-  chop_block_key_init (&random_key, random_bytes, sizeof random_bytes,
-		       NULL, NULL);
+  for (i = 0; i < BLOCK_COUNT; i++)
+    {
+      test_randomize_input (random_bytes[i], sizeof random_bytes[i]);
+      chop_block_key_init (&keys[i], random_bytes[i], sizeof random_bytes[i],
+			   NULL, NULL);
+    }
 
   for (class = classes;
        *class != NULL;
@@ -153,15 +174,21 @@ main (int argc, char *argv[])
 	  exit (1);
 	}
 
-      /* Write RANDOM_BYTES under RANDOM_KEY.  */
-      test_block (store, &random_key, random_bytes, sizeof random_bytes);
+      /* Write BLOCK_COUNT blocks and make sure STORE is in a consistent
+	 state.  */
+      for (i = 0; i < BLOCK_COUNT; i++)
+	test_block (store, &keys[i],
+		    random_bytes[i], sizeof random_bytes[i]);
 
       /* Iterating over blocks (optional).  */
       if (chop_store_iterator_class (store))
 	{
+	  bool block_found[BLOCK_COUNT];
 	  const chop_block_key_t *key;
 	  const chop_class_t *it_class = chop_store_iterator_class (store);
 	  it = chop_class_alloca_instance (it_class);
+
+	  memset (block_found, 0, sizeof block_found);
 
 	  err = chop_store_first_block (store, it);
 	  test_check_errcode (err, "getting an iterator to the first block");
@@ -170,24 +197,43 @@ main (int argc, char *argv[])
 	  key = chop_block_iterator_key (it);
 	  test_assert (key != NULL);
 
-	  test_assert (chop_block_key_equal (key, &random_key));
+	  block_found[key_index (BLOCK_COUNT, keys, key)] = true;
+
+	  for (i = 1; i < BLOCK_COUNT; i++)
+	    {
+	      err = chop_block_iterator_next (it);
+	      test_assert (!err);
+
+	      key = chop_block_iterator_key (it);
+	      test_assert (key != NULL);
+
+	      test_assert (!block_found[key_index (BLOCK_COUNT, keys, key)]);
+	      block_found[key_index (BLOCK_COUNT, keys, key)] = true;
+	    }
 
 	  err = chop_block_iterator_next (it);
 	  test_assert (err == CHOP_STORE_END);
 	  test_assert (chop_block_iterator_is_nil (it));
 
-	  chop_object_destroy ((chop_object_t *)it);
+	  /* Make sure everything was found.  */
+	  for (i = 0; i < BLOCK_COUNT; i++)
+	    test_assert (block_found[i]);
+
+	  chop_object_destroy ((chop_object_t *) it);
 	}
       else
 	test_stage_intermediate ("(no block iterators)");
 
       /* Delete.  */
-      err = chop_store_delete_block (store, &random_key);
-      test_assert (!err);
+      for (i = 0; i < BLOCK_COUNT; i++)
+	{
+	  err = chop_store_delete_block (store, &keys[i]);
+	  test_assert (!err);
 
-      err = chop_store_block_exists (store, &random_key, &exists);
-      test_assert (!err);
-      test_assert (!exists);
+	  err = chop_store_block_exists (store, &keys[i], &exists);
+	  test_assert (!err);
+	  test_assert (!exists);
+	}
 
       /* Close.  */
       err = chop_store_close (store);
