@@ -28,6 +28,68 @@
 
 #include <stdio.h>
 
+/* Write the SIZE bytes pointed to by BYTES under KEY in STORE.  */
+static void
+test_block (chop_block_store_t *store, const chop_block_key_t *key,
+	    const char *bytes, size_t size)
+{
+  chop_error_t err;
+  chop_buffer_t buffer;
+  int exists = 0;
+  size_t amount = 0;
+
+  chop_buffer_init (&buffer, size);
+
+  err = chop_store_block_exists (store, key, &exists);
+  test_check_errcode (err, "calling `block_exists'");
+  test_assert (!exists);
+
+  err = chop_store_read_block (store, key, &buffer, &amount);
+  test_assert (err == CHOP_STORE_BLOCK_UNAVAIL);
+  test_assert (amount == 0 && chop_buffer_size (&buffer) == 0);
+
+  /* Write */
+  err = chop_store_write_block (store, key,
+				bytes, size);
+  if (err)
+    {
+      chop_error (err, "while writing to a `%s' store",
+		  chop_class_name (chop_object_get_class
+				   ((chop_object_t *) store)));
+      exit (2);
+    }
+
+  /* Exists? */
+  err = chop_store_block_exists (store, key, &exists);
+  if (err)
+    {
+      chop_error (err, "while querying a `%s' store",
+		  chop_class_name (chop_object_get_class
+				   ((chop_object_t *) store)));
+      exit (3);
+    }
+
+  /* Read */
+  err = chop_store_read_block (store, key, &buffer, &amount);
+  if (err)
+    {
+      chop_error (err, "while reading from a `%s' store",
+		  chop_class_name (chop_object_get_class
+				   ((chop_object_t *) store)));
+      exit (4);
+    }
+  if (amount < size)
+    {
+      chop_error (0,
+		  "read only %zu bytes instead of %zu from a `%s' store",
+		  amount, size,
+		  chop_class_name (chop_object_get_class
+				   ((chop_object_t *) store)));
+      exit (5);
+    }
+
+  chop_buffer_clear (&buffer);
+}
 
 
 int
@@ -54,7 +116,6 @@ main (int argc, char *argv[])
   const chop_file_based_store_class_t **class;
   char random_bytes[64];
   chop_block_key_t random_key;
-  chop_buffer_t buffer;
 
   test_init (argv[0]);
   test_init_random_seed ();
@@ -62,20 +123,18 @@ main (int argc, char *argv[])
   err = chop_init ();
   test_check_errcode (err, "initializing libchop");
 
-  test_randomize_input (random_bytes, sizeof (random_bytes));
-  chop_block_key_init (&random_key, random_bytes, sizeof (random_bytes),
+  test_randomize_input (random_bytes, sizeof random_bytes);
+  chop_block_key_init (&random_key, random_bytes, sizeof random_bytes,
 		       NULL, NULL);
-  chop_buffer_init (&buffer, sizeof (random_bytes));
 
   for (class = classes;
        *class != NULL;
        class++)
     {
       chop_error_t err;
-      int exists = 0;
-      size_t amount = 0;
       chop_block_store_t *store;
       chop_block_iterator_t *it;
+      int exists = 0;
 
       test_stage ("the `%s' class",
 		  chop_class_name ((chop_class_t *)*class));
@@ -94,49 +153,8 @@ main (int argc, char *argv[])
 	  exit (1);
 	}
 
-      err = chop_store_block_exists (store, &random_key, &exists);
-      test_check_errcode (err, "calling `block_exists'");
-      test_assert (!exists);
-
-      err = chop_store_read_block (store, &random_key, &buffer, &amount);
-      test_assert (err == CHOP_STORE_BLOCK_UNAVAIL);
-      test_assert (amount == 0 && chop_buffer_size (&buffer) == 0);
-
-      /* Write */
-      err = chop_store_write_block (store, &random_key,
-				    random_bytes, sizeof (random_bytes));
-      if (err)
-	{
-	  chop_error (err, "while writing to a `%s' store",
-		      chop_class_name ((chop_class_t *) *class));
-	  exit (2);
-	}
-
-      /* Exists? */
-      err = chop_store_block_exists (store, &random_key, &exists);
-      if (err)
-	{
-	  chop_error (err, "while querying a `%s' store",
-		      chop_class_name ((chop_class_t *) *class));
-	  exit (3);
-	}
-
-      /* Read */
-      err = chop_store_read_block (store, &random_key, &buffer, &amount);
-      if (err)
-	{
-	  chop_error (err, "while reading from a `%s' store",
-		      chop_class_name ((chop_class_t *) *class));
-	  exit (4);
-	}
-      if (amount < sizeof (random_bytes))
-	{
-	  chop_error (0,
-		      "read only %zu bytes instead of %zu from a `%s' store",
-		      amount, sizeof (random_bytes),
-		      chop_class_name ((chop_class_t *) *class));
-	  exit (5);
-	}
+      /* Write RANDOM_BYTES under RANDOM_KEY.  */
+      test_block (store, &random_key, random_bytes, sizeof random_bytes);
 
       /* Iterating over blocks (optional).  */
       if (chop_store_iterator_class (store))
@@ -181,7 +199,6 @@ main (int argc, char *argv[])
 	}
 
       chop_object_destroy ((chop_object_t *) store);
-      chop_buffer_clear (&buffer);
 
       test_stage_result (1);
     }
