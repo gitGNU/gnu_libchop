@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <dirent.h>
 #include <errno.h>
 #include <sys/stat.h>
 #include <libgen.h>
@@ -47,6 +48,8 @@ CHOP_DECLARE_RT_CLASS_WITH_METACLASS (fs_block_store, block_store,
 				      int eventually_close;);
 
 static chop_error_t chop_fs_close (chop_block_store_t *);
+static chop_error_t chop_fs_next_block (chop_block_iterator_t *it);
+
 
 /* A generic open method, common to all file-based block stores.  */
 static chop_error_t
@@ -96,6 +99,49 @@ CHOP_DEFINE_RT_CLASS_WITH_METACLASS (fs_block_store, block_store,
 				     NULL, NULL, /* No copy/equalp */
 				     NULL, NULL  /* No serial/deserial */);
 
+
+/* Iterators.  */
+
+CHOP_DECLARE_RT_CLASS (fs_block_iterator, block_iterator,
+		       int top_dir_fd;
+		       int subdir_fd;
+		       char subdir_name[3];
+		       DIR *top_dir;
+		       DIR *subdir;
+		       struct dirent top_entry;
+		       struct dirent sub_entry;)
+
+static chop_error_t
+fsi_ctor (chop_object_t *object, const chop_class_t *class)
+{
+  chop_fs_block_iterator_t *fsit = (chop_fs_block_iterator_t *) object;
+
+  fsit->block_iterator.next = chop_fs_next_block;
+
+  fsit->top_dir_fd = fsit->subdir_fd = -1;
+  fsit->top_dir = fsit->subdir = NULL;
+
+  return 0;
+}
+
+static void
+fsi_dtor (chop_object_t *object)
+{
+  chop_fs_block_iterator_t *fsit = (chop_fs_block_iterator_t *) object;
+
+  /* Close the directories.  The associated file descriptors get closed at
+     the same time.  */
+
+  if (fsit->top_dir != NULL)
+    closedir (fsit->top_dir);
+  if (fsit->subdir != NULL)
+    closedir (fsit->subdir);
+}
+
+CHOP_DEFINE_RT_CLASS (fs_block_iterator, block_iterator,
+		      fsi_ctor, fsi_dtor,
+		      NULL, NULL,
+		      NULL, NULL);
 
 
 /* Set NAME to the relative file name for KEY.  NAME must be twice the size
@@ -114,6 +160,15 @@ block_file_name (const chop_block_key_t *key, char *name)
   memcpy (name, buffer, 2);
   strcpy (&name[2], "/");
   strcat (name, &buffer[2]);
+}
+
+/* Return true if NAME is "." or "..".  */
+static inline bool
+dot_or_dot_dot (const char *name)
+{
+  return (name[0] == '.'
+	  && (name[1] == '\0'
+	      || (name[1] == '.' && name[2] == '\0')));
 }
 
 static chop_error_t
@@ -293,13 +348,201 @@ chop_fs_delete_block (chop_block_store_t *store,
   return err;
 }
 
+static void
+free_key (char *key, void *unused)
+{
+  free (key);
+}
+
 static chop_error_t
 chop_fs_first_block (chop_block_store_t *store,
 		     chop_block_iterator_t *it)
 {
-  return CHOP_ERR_NOT_IMPL;
+  chop_error_t err;
+  chop_fs_block_iterator_t *fsit = (chop_fs_block_iterator_t *) it;
+
+  err = chop_object_initialize ((chop_object_t *) it,
+				&chop_fs_block_iterator_class);
+  if (err == 0)
+    {
+      struct dirent *result;
+      chop_fs_block_store_t *fs = (chop_fs_block_store_t *) store;
+
+      fsit->top_dir_fd = dup (fs->dir_fd);
+      if (fsit->top_dir_fd < 0)
+	{
+	  err = errno;
+	  goto error;
+	}
+
+      fsit->top_dir = fdopendir (fsit->top_dir_fd);
+      if (fsit->top_dir == NULL)
+	{
+	  err = errno;
+	  goto error;
+	}
+
+      do
+	{
+	  err = readdir_r (fsit->top_dir, &fsit->top_entry, &result);
+	  if (result == NULL)
+	    {
+	      err = CHOP_STORE_END;
+	      goto error;
+	    }
+	  if (err != 0)
+	    {
+	      err = errno;
+	      goto error;
+	    }
+	}
+      while (dot_or_dot_dot (fsit->top_entry.d_name));
+
+      memcpy (fsit->subdir_name, fsit->top_entry.d_name, 2);
+      fsit->subdir_name[2] = '\0';
+
+      fsit->subdir_fd = openat (fsit->top_dir_fd, fsit->top_entry.d_name,
+				O_DIRECTORY | O_RDONLY);
+      if (fsit->subdir_fd < 0)
+	{
+	  err = errno;
+	  goto error;
+	}
+
+      fsit->subdir = fdopendir (fsit->subdir_fd);
+      if (fsit->subdir == NULL)
+	{
+	  err = errno;
+	  goto error;
+	}
+
+      do
+	{
+	  err = readdir_r (fsit->subdir, &fsit->sub_entry, &result);
+	  if (result == NULL)
+	    {
+	      err = CHOP_STORE_END;
+	      goto error;
+	    }
+	  if (err != 0)
+	    {
+	      err = errno;
+	      goto error;
+	    }
+	}
+      while (dot_or_dot_dot (fsit->sub_entry.d_name));
+
+      fsit->block_iterator.nil = 0;
+
+      /* We have an entry, so compute the corresponding key and store it in
+	 IT.  */
+      char base32[2 + fsit->sub_entry.d_reclen + 1];
+      strcpy (base32, fsit->subdir_name);
+      memcpy (base32 + 2, fsit->sub_entry.d_name, fsit->sub_entry.d_reclen);
+      base32[2 + fsit->sub_entry.d_reclen] = '\0';
+
+      char *raw;
+      const char *end;
+      size_t key_size;
+      raw = malloc (sizeof base32);
+      if (raw == NULL)
+	return ENOMEM;
+      key_size = chop_base32_string_to_buffer (base32, sizeof base32 - 1,
+					       raw, &end);
+
+      chop_block_key_init (&fsit->block_iterator.key,
+			   raw, key_size, free_key, NULL);
+
+      return 0;
+    }
+
+  return err;
+
+ error:
+  chop_object_destroy ((chop_object_t *) it);
+  return err;
 }
 
+static chop_error_t
+chop_fs_next_block (chop_block_iterator_t *it)
+{
+  chop_error_t err;
+  struct dirent *result;
+  chop_fs_block_iterator_t *fsit = (chop_fs_block_iterator_t *) it;
+
+ retry:
+  do
+    {
+      err = readdir_r (fsit->subdir, &fsit->sub_entry, &result);
+
+      if (result == NULL)
+	{
+	  /* We're done with this sub-directory; jump to the next one.  */
+	  closedir (fsit->subdir);
+	  fsit->subdir_fd = -1;
+	  fsit->subdir = NULL;
+
+	  do
+	    {
+	      err = readdir_r (fsit->top_dir, &fsit->top_entry, &result);
+	      if (result == NULL)
+		{
+		  err = CHOP_STORE_END;
+		  fsit->block_iterator.nil = 1;
+		}
+	      else if (err != 0)
+		err = errno;
+	    }
+	  while (err == 0 && dot_or_dot_dot (fsit->top_entry.d_name));
+
+	  if (err == 0)
+	    {
+	      memcpy (fsit->subdir_name, fsit->top_entry.d_name, 2);
+
+	      fsit->subdir_fd = openat (fsit->top_dir_fd, fsit->top_entry.d_name,
+					O_DIRECTORY | O_RDONLY);
+	      if (fsit->subdir_fd < 0)
+		err = errno;
+	      else
+		{
+		  fsit->subdir = fdopendir (fsit->subdir_fd);
+		  if (fsit->subdir == NULL)
+		    err = errno;
+		  else
+		    /* We entered the next sub-directory, so try again.  */
+		    goto retry;
+		}
+	    }
+	}
+      else if (err != 0)
+	err = errno;
+    }
+  while (err == 0 && dot_or_dot_dot (fsit->sub_entry.d_name));
+
+  if (err == 0)
+    {
+      /* We have an entry, so compute the corresponding key and store it in
+	 IT.  */
+      char base32[2 + fsit->sub_entry.d_reclen + 1];
+      strcpy (base32, fsit->subdir_name);
+      memcpy (base32 + 2, fsit->sub_entry.d_name, fsit->sub_entry.d_reclen);
+      base32[2 + fsit->sub_entry.d_reclen] = '\0';
+
+      char *raw;
+      const char *end;
+      size_t key_size;
+      raw = malloc (sizeof base32);
+      if (raw == NULL)
+	return ENOMEM;
+      key_size = chop_base32_string_to_buffer (base32, sizeof base32 - 1,
+					       raw, &end);
+
+      chop_block_key_init (&fsit->block_iterator.key,
+			   raw, key_size, free_key, NULL);
+    }
+
+  return err;
+}
 
 static chop_error_t
 chop_fs_sync (chop_block_store_t *store)
@@ -341,7 +584,7 @@ chop_fs_store_open (int dir_fd, int eventually_close,
 
   store->name = chop_strdup (log_name,
 			     (chop_class_t *) &chop_fs_block_store_class);
-  store->iterator_class = NULL; /* XXX: not yet supported */
+  store->iterator_class = &chop_fs_block_iterator_class;
   store->block_exists = chop_fs_block_exists;
   store->read_block = chop_fs_read_block;
   store->write_block = chop_fs_write_block;

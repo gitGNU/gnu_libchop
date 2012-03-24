@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2012  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -536,7 +536,8 @@ extern const chop_class_t chop_hash_index_handle_class,
 extern const chop_class_t chop_gdbm_block_iterator_class,
   chop_tdb_block_iterator_class,
   chop_bdb_block_iterator_class,
-  chop_qdbm_block_iterator_class;
+  chop_qdbm_block_iterator_class,
+  chop_fs_block_iterator_class;
 
 const struct chop_class_entry *
 chop_lookup_class_entry (const char *str, unsigned int len);
