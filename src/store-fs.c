@@ -313,7 +313,7 @@ chop_fs_close (chop_block_store_t *store)
   chop_fs_block_store_t *fs =
     (chop_fs_block_store_t *) store;
 
-  if (fs->eventually_close)
+  if (fs->eventually_close && fs->dir_fd >= 0)
     close (fs->dir_fd);
 
   fs->dir_fd = -1;
