@@ -151,8 +151,8 @@ exec ${GUILE:-@GUILE@} -L "@guilemoduledir@" \
 
 (define %file-index-mapping
   ;; Map (INODE . DEVICE) to (MTIME . INDEX-TUPLE).
-  (file-based-block-store-open (lookup-class "fs_block_store")
-                               (cache-file "file-index-mapping")
+  (file-based-block-store-open (lookup-class "gdbm_block_store")
+                               (cache-file "file-index-mapping.gdbm")
                                (logior O_CREAT O_RDWR)
                                #o600))
 

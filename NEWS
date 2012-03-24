@@ -14,7 +14,26 @@ Please report bugs to <libchop-devel@nongnu.org>.
 
 ** New features
 
-*** The file-system block store implements the iterator interface
+*** chop-backup
+
+**** The file-index mapping is now stored in GDBM format
+
+The file-index mapping (under ~/.cache/chop/backup/file-index-mapping,
+by default) is now stored in GDBM format, which is more space-efficient.
+
+When upgrading, users are encouraged to run the following command to
+restore the previous one:
+
+  $ chop-store-convert -S fs_block_store -D gdbm_block_store \
+       ~/.cache/chop/backup/file-index-mapping{,.gdbm}
+
+This is not strictly required; however, having an up-to-date file-index
+mapping allows `chop-backup' to quickly determine whether files have
+changed, thus speeding up backups.
+
+*** library
+
+**** The file-system block store implements the iterator interface
 
 What this means in practice is that file-system block stores can be
 converted with `chop-store-convert' and accessed with `chop-store-list'.
