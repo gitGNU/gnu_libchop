@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2012  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -48,6 +48,9 @@ store_dtor (chop_object_t *object)
 
   /* This guarantees that all stores are closed when they are destroyed.  */
   chop_store_close (store);
+
+  if (store->name != NULL)
+    chop_free (store->name, chop_object_get_class (object));
 
   store->name = NULL;
   store->block_exists = NULL;
