@@ -65,7 +65,9 @@ exec ${GUILE:-@GUILE@} -L "@guilemoduledir@" \
 
             directory?
             directory-entries
+            directory-previous-versions
             directory-previous-version
+            directory-previous-version*
             read-directory
             write-directory
             make-directory                   ; internal, for testing purposes
@@ -78,6 +80,10 @@ exec ${GUILE:-@GUILE@} -L "@guilemoduledir@" \
             directory-entry-size
             directory-entry-tuple
             make-directory-entry             ; internal, for testing purposes
+
+            directory-version-error?
+            directory-version-error-version
+            directory-version-error-sexp
 
             directory-changes
             directory-changes/recursive
@@ -164,14 +170,18 @@ exec ${GUILE:-@GUILE@} -L "@guilemoduledir@" \
   ;; Maximum number of tuples kept for each directory.
   50)
 
+(define (strip lst max)
+  "Return at most the MAX first items of LST."
+  (let* ((len (length lst)))
+    (if (<= len max)
+        lst
+        (take lst max))))
+
 (define (save-backup-tuple dir tuple)
   "Append the DIR/TUPLE pair to the recent-backups cache file."
-  (define (strip tuples)
-    (let* ((tuples (delete-duplicates tuples))
-           (len    (length tuples)))
-      (if (<= len %max-recent-backup-tuples)
-          tuples
-          (take tuples %max-recent-backup-tuples))))
+  (define (strip* tuples)
+    (strip (delete-duplicates tuples)
+           %max-recent-backup-tuples))
 
   (let ((backups (if (file-exists? %recent-backups-file)
                      (call-with-input-file %recent-backups-file read)
@@ -179,7 +189,7 @@ exec ${GUILE:-@GUILE@} -L "@guilemoduledir@" \
     (call-with-output-file %recent-backups-file
       (lambda (p)
         (let ((prev (or (assoc-ref backups dir) '())))
-         (write (alist-cons dir (strip (cons tuple prev))
+         (write (alist-cons dir (strip* (cons tuple prev))
                             (alist-delete dir backups))
                 p))))))
 
@@ -213,7 +223,7 @@ available in STORE."
 (define-record-type <directory>
   (make-directory previous entries)
   directory?
-  (previous directory-previous-version)
+  (previous directory-previous-versions)          ; (TUPLE ....)
   (entries  directory-entries))
 
 (define-record-type <directory-entry>
@@ -226,6 +236,33 @@ available in STORE."
   (perms  directory-entry-permissions)
   (tuple  directory-entry-tuple))
 
+;; Error raised when an unsupported directory version format is encountered.
+(define-condition-type &directory-version-error &error
+  directory-version-error?
+  (version directory-version-error-version)
+  (sexp    directory-version-error-sexp))
+
+(define %max-directory-previous-tuples
+  ;; Maximum number of tuples to keep in the `previous' field of directories.
+  ;; The idea to keep more than one is that if a particular version is
+  ;; missing on a store, we can still jump to an older one and rebuild a
+  ;; version chain.
+  10)
+
+(define (directory-previous-version dir)          ; backward compatibility
+  "Return the most recent previous version of DIR."
+  (match (directory-previous-versions dir)
+    ((head _ ...) head)
+    (_            #f)))
+
+(define (directory-previous-version* dir store)
+  "Return the most recent previous version of DIR available in STORE, or #f
+if none is available."
+  (find (match-lambda
+         (((_ ...) (? string? index) (_ ...))
+          (indexed-block-exists? index store)))
+        (directory-previous-versions dir)))
+
 (define (directory->sexp dir)
   "Serialize directory DIR as an s-expression."
   (define (entry->sexp entry)
@@ -235,9 +272,14 @@ available in STORE."
                directory-entry-mtime directory-entry-size
                directory-entry-permissions directory-entry-tuple)))
 
+  ;; Version history
+  ;;
+  ;;  - version 1
+  ;;      `previous' is a list of tuples, instead of a single tuple
+
   `(directory
-    (version 0)
-    (previous ,(directory-previous-version dir))
+    (version 1)
+    (previous ,(directory-previous-versions dir))
     (entries ,(map entry->sexp (directory-entries dir)))))
 
 (define (write-directory dir port)
@@ -255,7 +297,17 @@ available in STORE."
     (('directory ('version  0)
                  ('previous previous)
                  ('entries  (entries ...)))
-     (make-directory previous (map sexp->entry entries)))))
+     ;; `previous' used to be a single tuple or #f.
+     (make-directory (if previous (list previous) '())
+                     (map sexp->entry entries)))
+    (('directory ('version  1 _ ...)
+                 ('previous (previous ...))
+                 ('entries  (entries ...)))
+     (make-directory previous (map sexp->entry entries)))
+    (('directory ('version v ...) . _)
+     (raise (condition (&directory-version-error
+                        (version v)
+                        (sexp exp)))))))
 
 (define (read-directory port)
   "Read a directory from PORT and return it."
@@ -817,8 +869,8 @@ to notify of a new file stored."
       (and file-stored (file-stored dir stat tuple changed?))
       tuple)
 
-    (define (do-store prev-tuple)
-      (let* ((dir   (make-directory prev-tuple entries))
+    (define (do-store prev-tuples)
+      (let* ((dir   (make-directory prev-tuples entries))
              (index (store-directory dir store)))
         ;; Since mtime can't be used to determine whether DIR changed, store
         ;; its list of entries in the file/index mapping.
@@ -832,7 +884,7 @@ to notify of a new file stored."
               (prev-entries (directory-entries prev-dir)))
          (if (lset= equal? prev-entries entries)
              (match prev-tuple                    ; directory unchanged
-               ((_ index _)
+               ((_ (? string? index) _)
                 (if (tip-exists? index)
                     (notify prev-tuple #f)
                     (let ((index (store-directory prev-dir store)))
@@ -843,8 +895,12 @@ to notify of a new file stored."
                                    (pipeline %directory-storage-pipeline)
                                    (libchop-error 0)
                                    (input prev-dir)))))))))
-             (do-store prev-tuple))))             ; directory changed
-      (_ (do-store #f))))
+                                                  ; directory changed
+             (let* ((versions    (directory-previous-versions prev-dir))
+                    (prev-tuples (cons prev-tuple versions)))
+               (do-store (strip prev-tuples
+                                %max-directory-previous-tuples))))))
+      (_ (do-store '()))))
 
   (define tip-exists?
     ;; Return #t if the root block pointed to by INDEX exists and REPAIR? is
@@ -1016,7 +1072,7 @@ TUPLE in STORE."
     ;; RECURSIVE? and HISTORY? are both true.
     (or (and (visited? tuple) visited)
         (let* ((dir  (tuple->directory tuple))
-               (prev (directory-previous-version dir)))
+               (prev (directory-previous-version* dir store)))
           (if (and (not history?) prev)
               (display-entry (make-previous-version-entry prev) indent))
 
@@ -1088,7 +1144,7 @@ RECURSIVE?, show changes recursively."
    (let ((dir (read-directory (retrieve tuple))))
      (let loop ((tuple    tuple)
                 (current  dir)
-                (previous (and=> (directory-previous-version dir)
+                (previous (and=> (directory-previous-version* dir store)
                                  (compose read-directory retrieve))))
        (if (directory? previous)
            (let-values (((added changed deleted)
@@ -1130,9 +1186,9 @@ RECURSIVE?, show changes recursively."
                                    pad (directory-entry-name e)))
                          deleted))
              (newline)
-             (let ((tuple    (directory-previous-version current))
+             (let ((tuple    (directory-previous-version* current store))
                    (current  previous)
-                   (previous (and=> (directory-previous-version previous)
+                   (previous (and=> (directory-previous-version* previous store)
                                     (compose read-directory retrieve))))
                (loop tuple current previous)))))))
 
@@ -1459,7 +1515,7 @@ tuple that can be used to restore the whole directory hierarchy."
                                   (zip files stats tuples)))
 
                     ;; Aggregate all of FILES as if it were a single directory.
-                    (tuple  (store-directory (make-directory #f entries)
+                    (tuple  (store-directory (make-directory '() entries)
                                              store)))
                (map save-backup-tuple files tuples)
                (write* tuple))))))

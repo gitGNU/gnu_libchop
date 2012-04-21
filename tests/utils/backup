@@ -148,8 +148,8 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
 (test-assert "added"
   (let* ((e   (make-directory-entry "b" 'regular 234 234 234 'something))
          (new (make-directory-entry "a" 'regular 123 123 #o755 'some-tuple))
-         (d1  (make-directory #f (list e)))
-         (d2  (make-directory 'prev (list e new))))
+         (d1  (make-directory '() (list e)))
+         (d2  (make-directory '(prev) (list e new))))
     (let-values (((added changed deleted) (directory-changes d2 d1)))
       (and (match added
              (((? (cut eq? new <>))) #t)
@@ -161,8 +161,8 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
   (let* ((e   (make-directory-entry "b" 'regular 234 234 234 'something))
          (old (make-directory-entry "a" 'regular 123 123 #o644 'some-tuple))
          (new (make-directory-entry "a" 'regular 123 123 #o644 'some-other-tuple))
-         (d1  (make-directory #f (list old e)))
-         (d2  (make-directory 'prev (list e new))))
+         (d1  (make-directory '() (list old e)))
+         (d2  (make-directory '(prev) (list e new))))
     (let-values (((added changed deleted) (directory-changes d2 d1)))
       (and (null? deleted) (null? added)
            (match changed
@@ -173,8 +173,8 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
   (let* ((e   (make-directory-entry "b" 'regular 234 234 234 'something))
          (old (make-directory-entry "a" 'regular 123 123 #o644 'some-tuple))
          (new (make-directory-entry "a" 'regular 124 123 #o644 'some-tuple))
-         (d1  (make-directory #f (list old e)))
-         (d2  (make-directory 'prev (list e new))))
+         (d1  (make-directory '() (list old e)))
+         (d2  (make-directory '(prev) (list e new))))
     (let-values (((added changed deleted) (directory-changes d2 d1)))
       (and (null? deleted) (null? added)
            (match changed
@@ -185,8 +185,8 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
   (let* ((e   (make-directory-entry "b" 'regular 234 234 234 'something))
          (old (make-directory-entry "a" 'regular 123 123 #o644 'some-tuple))
          (new (make-directory-entry "a" 'regular 123 123 #o755 'some-tuple))
-         (d1  (make-directory #f (list old e)))
-         (d2  (make-directory 'prev (list e new))))
+         (d1  (make-directory '() (list old e)))
+         (d2  (make-directory '(prev) (list e new))))
     (let-values (((added changed deleted) (directory-changes d2 d1)))
       (and (null? deleted) (null? added)
            (match changed
@@ -197,8 +197,8 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
   (let* ((e   (make-directory-entry "b" 'regular 234 234 234 'something))
          (old (make-directory-entry "a" 'regular 123 123 #o644 'some-tuple))
          (new (make-directory-entry "z" 'regular 123 123 #o644 'some-tuple))
-         (d1  (make-directory #f (list old e)))
-         (d2  (make-directory 'prev (list e new))))
+         (d1  (make-directory '() (list old e)))
+         (d2  (make-directory '(prev) (list e new))))
     (let-values (((added changed deleted) (directory-changes d2 d1)))
       (and (null? deleted) (null? added)
            (match changed
@@ -208,8 +208,8 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
 (test-assert "empty files not renamed"
   (let* ((old (make-directory-entry "a" 'regular 123 0 #o644 #f))
          (new (make-directory-entry "b" 'regular 123 0 #o644 #f))
-         (d1  (make-directory #f (list old)))
-         (d2  (make-directory 'prev (list new))))
+         (d1  (make-directory '() (list old)))
+         (d2  (make-directory '(prev) (list new))))
     (let-values (((added changed deleted) (directory-changes d2 d1)))
       (and (null? changed)
            (equal? (list old) deleted)
@@ -219,8 +219,8 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
   (let* ((e   (make-directory-entry "b" 'regular 234 234 234 'something))
          (old (make-directory-entry "a" 'regular 123 123 #o644 'some-tuple))
          (new (make-directory-entry "c" 'regular 123 123 #o755 'some-tuple))
-         (d1  (make-directory #f (list old e)))
-         (d2  (make-directory 'prev (list e new))))
+         (d1  (make-directory '() (list old e)))
+         (d2  (make-directory '(prev) (list e new))))
     (let-values (((added changed deleted) (directory-changes d2 d1)))
       (and (null? deleted) (null? added)
            (match changed
@@ -231,8 +231,8 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
   (let* ((e   (make-directory-entry "b" 'regular 234 234 234 'something))
          (old (make-directory-entry "a" 'regular 123 123 #o644 'some-tuple))
          (new (make-directory-entry "a" 'regular 123 123 #o755 'some-other-tuple))
-         (d1  (make-directory #f (list old e)))
-         (d2  (make-directory 'prev (list e new))))
+         (d1  (make-directory '() (list old e)))
+         (d2  (make-directory '(prev) (list e new))))
     (let-values (((added changed deleted) (directory-changes d2 d1)))
       (and (null? deleted) (null? added)
            (match changed
@@ -243,8 +243,8 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
   (let* ((e1  (make-directory-entry "a" 'regular 234 234 #o400 'something))
          (e2  (make-directory-entry "b" 'regular 123 123 #o644 'some-tuple))
          (e3  (make-directory-entry "c" 'regular 123 123 #o755 'some-other-tuple))
-         (d1  (make-directory #f (list e1 e2 e3)))
-         (d2  (make-directory 'prev (list e1 e2))))
+         (d1  (make-directory '() (list e1 e2 e3)))
+         (d2  (make-directory '(prev) (list e1 e2))))
     (let-values (((added changed deleted) (directory-changes d2 d1)))
       (and (null? changed) (null? added)
            (equal? deleted (list e3))))))
@@ -253,8 +253,8 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
   (let* ((e1  (make-directory-entry "a" 'regular 123 123 #o400 'something))
          (e2  (make-directory-entry "a" 'regular 234 234 #o400 'some-tuple))
          (e3  (make-directory-entry "b" 'regular 123 123 #o755 'some-other-tuple))
-         (d1  (make-directory #f (list e1 e3)))
-         (d2  (make-directory 'prev (list e2))))
+         (d1  (make-directory '() (list e1 e3)))
+         (d2  (make-directory '(prev) (list e2))))
     (let-values (((added changed deleted) (directory-changes d2 d1)))
       (and (equal? deleted (list e3))
            (null? added)
@@ -269,8 +269,8 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
                                     'some-other-tuple))
          (e4  (make-directory-entry "c" 'regular 456 456 #o755
                                     'yet-another-tuple))
-         (d1  (make-directory #f (list e1 e3)))
-         (d2  (make-directory 'prev (list e2 e4))))
+         (d1  (make-directory '() (list e1 e3)))
+         (d2  (make-directory '(prev) (list e2 e4))))
     (let-values (((added changed deleted) (directory-changes d2 d1)))
       (and (equal? deleted (list e3))
            (equal? added (list e4))
@@ -282,8 +282,8 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
   ;; Make sure removing one of several identical files is seen as such.
   (let* ((e1  (make-directory-entry "a" 'regular 123 123 #o400 'something))
          (e2  (make-directory-entry "b" 'regular 234 123 #o420 'something))
-         (d1  (make-directory #f (list e1 e2)))
-         (d2  (make-directory 'prev (list e1))))
+         (d1  (make-directory '() (list e1 e2)))
+         (d2  (make-directory '(prev) (list e1))))
     (let-values (((added changed deleted) (directory-changes d2 d1)))
       (and (equal? deleted (list e2))
            (null? added) (null? changed)))))
@@ -292,8 +292,8 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
   (let* ((e1  (make-directory-entry "a" 'regular 123 123 #o400 'something))
          (e2  (make-directory-entry "a" 'regular 234 123 #o420 'something))
          (e3  (make-directory-entry "c" 'regular 77 0 #o440 'something-else))
-         (sd1 (make-directory #f (list e1)))
-         (sd2 (make-directory #f (list e2)))      ; E1 touched -> E2
+         (sd1 (make-directory '() (list e1)))
+         (sd2 (make-directory '() (list e2)))      ; E1 touched -> E2
          (e4  (make-directory-entry "sub" 'directory 0 0 #o700 'subdir1-tuple))
          (e5  (make-directory-entry "sub" 'directory 0 0 #o700 'subdir2-tuple))
          (get (lambda (tuple)
@@ -301,8 +301,8 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
                   ((subdir1-tuple) sd1)
                   ((subdir2-tuple) sd2)
                   (else (error "unknown" tuple)))))
-         (d1  (make-directory #f (list e4 e3)))
-         (d2  (make-directory 'prev (list e5 e3))))
+         (d1  (make-directory '() (list e4 e3)))
+         (d2  (make-directory '(prev) (list e5 e3))))
     (let-values (((added changed deleted)
                   (directory-changes/recursive d2 d1 get)))
       (and (equal? changed
@@ -313,8 +313,8 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
   (let* ((e1  (make-directory-entry "a" 'regular 123 123 #o400 'a-tuple))
          (e2  (make-directory-entry "b" 'regular 234 123 #o420 'b-tuple))
          (e3  (make-directory-entry "c" 'regular 77 0 #o440 'c-tuple))
-         (sd1 (make-directory #f (list e1)))
-         (sd2 (make-directory #f (list e1 e2)))   ; add entry E2 in subdir
+         (sd1 (make-directory '() (list e1)))
+         (sd2 (make-directory '() (list e1 e2)))   ; add entry E2 in subdir
          (e4  (make-directory-entry "sub" 'directory 0 0 #o700 'subdir1-tuple))
          (e5  (make-directory-entry "sub" 'directory 0 0 #o700 'subdir2-tuple))
          (e6  (make-directory-entry "d" 'regular 77 0 #o440 'd-tuple))
@@ -323,8 +323,8 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
                   ((subdir1-tuple) sd1)
                   ((subdir2-tuple) sd2)
                   (else (error "unknown" tuple)))))
-         (d1  (make-directory #f (list e4 e3)))
-         (d2  (make-directory 'prev (list e3 e5 e6)))) ; add entry E6
+         (d1  (make-directory '() (list e4 e3)))
+         (d2  (make-directory '(prev) (list e3 e5 e6)))) ; add entry E6
     (let-values (((added changed deleted)
                   (directory-changes/recursive d2 d1 get)))
       (and (equal? added `((,e5 ,e2) (,e6)))
@@ -334,8 +334,8 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
   (let* ((e1  (make-directory-entry "a" 'regular 123 123 #o400 'a-tuple))
          (e2  (make-directory-entry "b" 'regular 234 123 #o420 'b-tuple))
          (e3  (make-directory-entry "c" 'regular 77 0 #o440 'c-tuple))
-         (sd1 (make-directory #f (list e1 e2)))
-         (sd2 (make-directory #f (list e1)))      ; remove entry E2 in subdir
+         (sd1 (make-directory '() (list e1 e2)))
+         (sd2 (make-directory '() (list e1)))      ; remove entry E2 in subdir
          (e4  (make-directory-entry "sub" 'directory 0 0 #o700 'subdir1-tuple))
          (e5  (make-directory-entry "sub" 'directory 0 0 #o700 'subdir2-tuple))
          (e6  (make-directory-entry "d" 'regular 77 0 #o440 'd-tuple))
@@ -344,8 +344,8 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
                   ((subdir1-tuple) sd1)
                   ((subdir2-tuple) sd2)
                   (else (error "unknown" tuple)))))
-         (d1  (make-directory #f (list e4 e3 e6)))
-         (d2  (make-directory 'prev (list e3 e5)))) ; remove entry E6
+         (d1  (make-directory '() (list e4 e3 e6)))
+         (d2  (make-directory '(prev) (list e3 e5)))) ; remove entry E6
     (let-values (((added changed deleted)
                   (directory-changes/recursive d2 d1 get)))
       (and (equal? deleted `((,e4 ,e2) (,e6)))
@@ -404,6 +404,73 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
                                              store)))
 
          (string-match "subdir.*ignored" (get-output-string port)))))))
+
+(test-assert "directory versions"
+  ;; Make sure directory versions are recorded.
+  (with-temporary-store
+   (lambda (store)
+     (with-file-tree %test-dir (directory "root"
+                                          (("a") ("b") ("c")))
+       (define (store-dir)
+         (run-storage-pipeline/recursive (const %default-storage-pipeline)
+                                         (string-append %test-dir "/root")
+                                         store))
+
+       (let ((v1 (store-dir)))
+         (call-with-output-file (string-append %test-dir "/root/a")
+           (cute put-bytevector <> (make-random-bytevector 123)))
+         (let ((v2 (store-dir)))
+           (call-with-output-file (string-append %test-dir "/root/b")
+             (cute put-bytevector <> (make-random-bytevector 456)))
+           (let* ((v3   (store-dir))
+                  (retr (index-tuple->retriever v3))
+                  (dir  (read-directory (retr store))))
+             (and (equal? (list v1 v2 v3)
+                          (delete-duplicates (list v1 v2 v3)))
+
+                  ;; XXX: Use `take' because of old versions coming from
+                  ;; previous tests.
+                  (equal? (list v2 v1)
+                          (take (directory-previous-versions dir) 2))
+
+                  (equal? v2 (directory-previous-version* dir store))))))))))
+
+(test-assert "directory versions across stores"
+  ;; Same as above, but using two stores.
+  (with-temporary-store
+   (lambda (store1)
+     (with-temporary-store
+      (lambda (store2)
+        (with-file-tree %test-dir (directory "root"
+                                             (("a") ("b") ("c")))
+          (define (store-dir store)
+            (run-storage-pipeline/recursive (const %default-storage-pipeline)
+                                            (string-append %test-dir "/root")
+                                            store))
+
+          (let ((v1 (store-dir store1)))
+            (call-with-output-file (string-append %test-dir "/root/a")
+              (cute put-bytevector <> (make-random-bytevector 123)))
+            (let ((v2 (store-dir store2)))
+              (call-with-output-file (string-append %test-dir "/root/b")
+                (cute put-bytevector <> (make-random-bytevector 456)))
+              (let* ((v3   (store-dir store1))
+                     (retr (index-tuple->retriever v3))
+                     (dir  (read-directory (retr store1))))
+                (and (equal? (list v1 v2 v3)
+                             (delete-duplicates (list v1 v2 v3)))
+
+                     ;; XXX: Use `take' because of old versions coming from
+                     ;; previous tests.
+                     (equal? (list v2 v1)
+                             (take (directory-previous-versions dir) 2))
+
+                     ;; STORE1 only has V1 as the previous version.
+                     (equal? v1 (directory-previous-version* dir store1))
+
+                     ;; STORE2 has V2.
+                     (equal? v2
+                             (directory-previous-version* dir store2))))))))))))
 
 (test-assert "repair root blocks"
   (with-temporary-store
@@ -553,6 +620,59 @@ exec ${GUILE:-guile} -L "$top_builddir/utils" \
                               (lambda (e1 e2)
                                 (string< (car e1) (car e2))))
                         e)))))))))
+
+(define sexp->directory
+  (@@ (chop-backup) sexp->directory))
+
+(test-assert "directory v0"
+  ;; Make sure version 0 of the directory format can be read.
+  (let* ((i1 "tree_indexer:chk_block_fetcher:chk_index_handle:100:aes256,cbc,sha1:if64usigbi64ojyt6ilh7hs73duljrctlidpyamzoc4oukrairbq====,cgxlgcu7topw7g6tj75npbtklyie6su3/ca")
+         (i2 "tree_indexer:chk_block_fetcher:chk_index_handle:100:aes256,cbc,sha1:apjhstqk4qic326stvde3stoh2ifkpx5iipti7kuqtug3kpacjfa====,uassmpfxtatkj5dzhjjgtmkdcceuxqpw/4a")
+         (i3 "tree_indexer:chk_block_fetcher:chk_index_handle:200:blowfish,cbc,sha1:auujog3mnzxh3pkqkf7agyyntu======,2xbdwxbbc3l42tniehvrypaf7vugvgji/9a")
+         (sexp `(directory
+                 (version 0)
+                 (previous (() ,i1 ()))           ; single tuple
+                 (entries (("sub" directory 1292169840 4096 493 (() ,i2 ()))
+                           ("file" regular 1292169858 18348460 420 (() ,i3 ())))))))
+    (equal? (sexp->directory sexp)
+            (make-directory (list `(() ,i1 ()))
+                            (list (make-directory-entry "sub" 'directory
+                                                        1292169840 4096 493
+                                                        `(() ,i2 ()))
+                                  (make-directory-entry "file" 'regular
+                                                        1292169858 18348460 420
+                                                        `(() ,i3 ())))))))
+
+(test-assert "directory v1"
+  ;; Make sure version 1 of the directory format can be read.
+  (let* ((i1 "tree_indexer:chk_block_fetcher:chk_index_handle:100:aes256,cbc,sha1:if64usigbi64ojyt6ilh7hs73duljrctlidpyamzoc4oukrairbq====,cgxlgcu7topw7g6tj75npbtklyie6su3/ca")
+         (i2 "tree_indexer:chk_block_fetcher:chk_index_handle:100:aes256,cbc,sha1:apjhstqk4qic326stvde3stoh2ifkpx5iipti7kuqtug3kpacjfa====,uassmpfxtatkj5dzhjjgtmkdcceuxqpw/4a")
+         (i3 "tree_indexer:chk_block_fetcher:chk_index_handle:200:blowfish,cbc,sha1:auujog3mnzxh3pkqkf7agyyntu======,2xbdwxbbc3l42tniehvrypaf7vugvgji/9a")
+         (sexp `(directory
+                 (version 1)
+                 (previous ((() ,i1 ()) (("lzo_unzip_filter") ,i2 ())))
+                 (entries (("sub" directory 1292169840 4096 493 (() ,i2 ()))
+                           ("file" regular 1292169858 18348460 420 (() ,i3 ())))))))
+    (equal? (sexp->directory sexp)
+            (make-directory `((() ,i1 ()) (("lzo_unzip_filter") ,i2 ()))
+                            (list (make-directory-entry "sub" 'directory
+                                                        1292169840 4096 493
+                                                        `(() ,i2 ()))
+                                  (make-directory-entry "file" 'regular
+                                                        1292169858 18348460 420
+                                                        `(() ,i3 ())))))))
+
+(test-assert "directory-version-error"
+  (let ((sexp '(directory (version 77 88 99)
+                          (foo ->) (bar ?))))
+    (guard (c ((directory-version-error? c)
+               (and (equal? (directory-version-error-version c)
+                            '(77 88 99))
+                    (equal? (directory-version-error-sexp c)
+                            sexp))))
+      (let ((p (call-with-output-string (cut write sexp <>))))
+        (read-directory (open-input-string p))
+        #f))))
 
 (test-end)
 
