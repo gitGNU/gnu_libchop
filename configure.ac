@@ -43,6 +43,10 @@ AM_GNU_GETTEXT_VERSION([0.18.1.1])
 # Gnulib
 gl_INIT
 
+dnl Explicitly check for `pkg-config', to make sure it's done by the time
+dnl the `PKG_CHECK_MODULES' invocations below are reached.
+PKG_PROG_PKG_CONFIG
+
 # GCC specifics.
 if test "x$GCC" = "xyes"; then
   # We absolutely need `-fno-strict-aliasing' because of the casts
