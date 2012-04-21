@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2011, 2012  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -221,7 +221,7 @@ display_request_info (const char *name, struct svc_req *req)
       {
 	int err;
 	unsigned char caller_key_id[8], caller_key_id_ascii[17];
-	gnutls_openpgp_key_t peer_key;
+	gnutls_openpgp_crt_t peer_key;
 	gnutls_session_t session;
 
 	err = svctls_getsession (req->rq_xprt, &session);
@@ -582,7 +582,7 @@ finalize_tls_session (gnutls_session_t session, void *closure)
     {
       int err;
       unsigned char caller_key_id[8], caller_key_id_ascii[17];
-      gnutls_openpgp_key_t peer_key;
+      gnutls_openpgp_crt_t peer_key;
 
       peer_key = gnutls_session_get_ptr (session);
 
@@ -671,7 +671,7 @@ tls_authorizer (gnutls_session_t session, void *unused)
   int err;
   const gnutls_datum_t *peer_cert;
   unsigned int peer_cert_len;
-  gnutls_openpgp_key_t peer_key;
+  gnutls_openpgp_crt_t peer_key;
   char fpr[4096], fpr_ascii[8193];
   size_t fpr_len = 0;
 
@@ -693,8 +693,11 @@ tls_authorizer (gnutls_session_t session, void *unused)
   if (err)
     goto failed;
 
+  /* XXX: With GnuTLS ca. 3.0.8, it used to be that `get_peers' above would
+     return a base64 certificate.  As of 3.0.18, it returns a raw
+     certificate.  */
   err = gnutls_openpgp_key_import (peer_key, peer_cert,
-				   GNUTLS_OPENPGP_FMT_BASE64);
+				   GNUTLS_OPENPGP_FMT_RAW);
   if (err)
     goto handle_error;
 

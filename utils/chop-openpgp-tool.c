@@ -76,7 +76,7 @@ static int verbose = 0;
 /* OpenPGP key pair for OpenPGP authentication.  */
 static char *openpgp_pubkey_file = NULL;
 static char *openpgp_privkey_file = NULL;
-static gnutls_openpgp_key_fmt_t openpgp_key_format = GNUTLS_OPENPGP_FMT_BASE64;
+static gnutls_openpgp_crt_fmt_t openpgp_key_format = GNUTLS_OPENPGP_FMT_BASE64;
 
 /* What to show.  */
 static int show_all = 0;
@@ -182,10 +182,10 @@ unload_file (gnutls_datum_t *content)
 
 static int
 import_openpgp_keys (const char *pubkey_file,
-		     gnutls_openpgp_key_t pubkey,
+		     gnutls_openpgp_crt_t pubkey,
 		     const char *privkey_file,
 		     gnutls_openpgp_privkey_t privkey,
-		     gnutls_openpgp_key_fmt_t format)
+		     gnutls_openpgp_crt_fmt_t format)
 {
   int err;
   gnutls_datum_t key_content = { NULL, 0 };
@@ -229,7 +229,7 @@ import_openpgp_keys (const char *pubkey_file,
 /* Displaying information about keys.  */
 
 static int
-show_key_id (gnutls_openpgp_key_t key)
+show_key_id (gnutls_openpgp_crt_t key)
 {
   int err;
   unsigned char id[8];
@@ -247,7 +247,7 @@ show_key_id (gnutls_openpgp_key_t key)
 }
 
 static int
-show_key_fingerprint (gnutls_openpgp_key_t key)
+show_key_fingerprint (gnutls_openpgp_crt_t key)
 {
   int err;
   char fpr[4096];
@@ -268,7 +268,7 @@ show_key_fingerprint (gnutls_openpgp_key_t key)
 }
 
 static int
-show_pubkey_pk_algorithm (gnutls_openpgp_key_t pubkey)
+show_pubkey_pk_algorithm (gnutls_openpgp_crt_t pubkey)
 {
   gnutls_pk_algorithm_t algo;
   unsigned int bits;
@@ -296,7 +296,7 @@ show_privkey_pk_algorithm (gnutls_openpgp_privkey_t pubkey)
 }
 
 static int
-show_key_names (gnutls_openpgp_key_t pubkey)
+show_key_names (gnutls_openpgp_crt_t pubkey)
 {
   int err, i;
   char name[4096];
@@ -320,7 +320,7 @@ show_key_names (gnutls_openpgp_key_t pubkey)
 }
 
 static int
-show_pubkey_usage (gnutls_openpgp_key_t pubkey)
+show_pubkey_usage (gnutls_openpgp_crt_t pubkey)
 {
   int err;
   unsigned int key_usage;
@@ -369,7 +369,7 @@ main (int argc, char *argv[])
 
   int err;
   chop_error_t cerr;
-  gnutls_openpgp_key_t pubkey;
+  gnutls_openpgp_crt_t pubkey;
   gnutls_openpgp_privkey_t privkey;
 
   /* Parse arguments.  */
