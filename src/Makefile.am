@@ -103,8 +103,8 @@ endif
 
 if HAVE_GNUTLS
 libchop_la_SOURCES += sunrpc-tls.c
-libchop_la_CFLAGS  += $(LIBGNUTLS_CFLAGS) $(LIBGNUTLS_EXTRA_CFLAGS)
-libchop_la_LDFLAGS += $(LIBGNUTLS_LIBS) $(LIBGNUTLS_EXTRA_LIBS)
+libchop_la_CFLAGS  += $(LIBGNUTLS_CFLAGS)
+libchop_la_LDFLAGS += $(LIBGNUTLS_LIBS)
 else
 EXTRA_DIST += sunrpc-tls.c
 endif
@@ -149,7 +149,7 @@ libchop_store_browsers_la_CFLAGS   = $(AVAHI_CFLAGS) $(AM_CFLAGS)
 endif
 
 if HAVE_GNUTLS
-AM_CFLAGS += $(LIBGNUTLS_CFLAGS) $(LIBGNUTLS_EXTRA_CFLAGS)
+AM_CFLAGS += $(LIBGNUTLS_CFLAGS)
 endif
 
 BUILT_SOURCES += errors.c

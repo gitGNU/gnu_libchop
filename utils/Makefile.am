@@ -1,5 +1,5 @@
 # libchop -- a utility library for distributed storage and data backup
-# Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
+# Copyright (C) 2008, 2010, 2011, 2012  Ludovic Courtès <ludo@gnu.org>
 # Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 #
 # Libchop is free software: you can redistribute it and/or modify
@@ -67,8 +67,8 @@ if HAVE_GNUTLS
 bin_PROGRAMS += chop-openpgp-tool
 
 chop_openpgp_tool_CFLAGS =					\
-  $(AM_CFLAGS) $(LIBGNUTLS_CFLAGS) $(LIBGNUTLS_EXTRA_CFLAGS)
-chop_openpgp_tool_LDADD = $(LIBGNUTLS_LIBS) $(LIBGNUTLS_EXTRA_LIBS) \
+  $(AM_CFLAGS) $(LIBGNUTLS_CFLAGS)
+chop_openpgp_tool_LDADD = $(LIBGNUTLS_LIBS)		\
 			  -L$(top_builddir)/src -lchop
 endif
 

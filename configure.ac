@@ -178,11 +178,13 @@ else
 fi
 
 dnl GnuTLS (recommended).
-PKG_CHECK_MODULES([LIBGNUTLS], [gnutls], [have_gnutls=yes], [have_gnutls=no])
-PKG_CHECK_MODULES([LIBGNUTLS_EXTRA], [gnutls-extra], [have_gnutls_extra=yes], [have_gnutls_extra=no])
-AM_CONDITIONAL([HAVE_GNUTLS],
-  test "x$have_gnutls" = "xyes" && test "x$have_gnutls_extra" = "xyes")
-if test "x$have_gnutls" = "xyes" && test "x$have_gnutls_extra" = "xyes"; then
+dnl Require version 3.0.5 at least because previous versions had OpenPGP
+dnl support in a separate GnuTLS-Extra library.
+PKG_CHECK_MODULES([LIBGNUTLS], [gnutls >= 3.0.5],
+  [have_gnutls=yes], [have_gnutls=no])
+
+AM_CONDITIONAL([HAVE_GNUTLS], [test "x$have_gnutls" = "xyes"])
+if test "x$have_gnutls" = "xyes"; then
    AC_DEFINE([HAVE_GNUTLS], 1, [Tells whether GnuTLS is available.])
 fi
 
@@ -205,7 +207,6 @@ AM_CONDITIONAL([HAVE_DBUS],
 
 
 # Avahi.
-AC_MSG_CHECKING([whether Avahi is available])
 PKG_CHECK_MODULES([AVAHI], [avahi-client], [have_avahi="yes"], [have_avahi="no"])
 if test "x$have_avahi" = "xyes"; then
    AC_DEFINE([HAVE_AVAHI], 1, [Tells whether Avahi is available.])
