@@ -55,6 +55,23 @@ else
 fi
 AC_SUBST([GCC_CFLAGS])
 
+dnl Check for Sun/ONC RPC headers and library in libc.
+AC_CHECK_HEADER([rpc/types.h], [HAVE_ONC_RPC=yes], [HAVE_ONC_RPC=no])
+AC_SEARCH_LIBS([clnt_create], [], [:], [HAVE_ONC_RPC=no])
+if test "x$HAVE_ONC_RPC" != "xyes"; then
+   dnl Since libc doesn't have Sun/ONC RPC support (e.g., glibc >= 2.14),
+   dnl check whether TI-RPC is available.
+   PKG_CHECK_MODULES([LIBTIRPC], [libtirpc], [HAVE_ONC_RPC=yes], [HAVE_ONC_RPC=no])
+else
+   dnl Always do as if we were using TI-RPC.
+   LIBTIRPC_LIBS=""
+   LIBTIRPC_CFLAGS=""
+fi
+
+if test "x$HAVE_ONC_RPC" != "xyes"; then
+   AC_MSG_ERROR([No Sun/ONC RPC found.  Please install TI-RPC.])
+fi
+
 dnl ONC RPC's `rpcgen'.
 AC_PATH_PROG([RPCGEN], [rpcgen])
 if test "x$RPCGEN" = "x"; then

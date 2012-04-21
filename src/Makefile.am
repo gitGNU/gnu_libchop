@@ -22,8 +22,14 @@ EXTRA_DIST = filter-zip-push-pull.c store-generic-db.c	\
 lib_LTLIBRARIES = libchop.la libchop-block-server.la \
                   libchop-store-browsers.la
 
-libchop_la_LDFLAGS = -version-info 0:0:0 $(LTLIBINTL)
-libchop_block_server_la_LDFLAGS = -version-info 0:0:0
+libchop_la_LDFLAGS =				\
+  -version-info 0:0:0				\
+  $(LTLIBINTL) $(LIBTIRPC_LIBS)
+
+libchop_block_server_la_LDFLAGS =		\
+  -version-info 0:0:0				\
+  $(LIBTIRPC_LIBS)
+
 libchop_store_browsers_la_LDFLAGS = -version-info 0:0:0
 
 libchop_la_SOURCES = chop.c logs.c				\
@@ -49,7 +55,7 @@ libchop_la_SOURCES = chop.c logs.c				\
 		     stream-filtered.c				\
 		     base32.c
 
-libchop_la_CFLAGS = $(AM_CFLAGS)
+libchop_la_CFLAGS = $(AM_CFLAGS) $(LIBTIRPC_CFLAGS)
 
 AM_CFLAGS = $(GCC_CFLAGS)
 AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include	\
@@ -122,11 +128,13 @@ BUILT_SOURCES  = $(rpc_headers) $(rpc_server_stubs)
 libchop_block_server_la_SOURCES   = block-server.c $(rpc_xdr)
 libchop_block_server_la_LIBADD    = libchop.la $(AM_LIBS)
 libchop_block_server_la_CPPFLAGS  = $(AM_CPPFLAGS)
+libchop_block_server_la_CFLAGS    = $(LIBTIRPC_CFLAGS)
+
 
 if HAVE_AVAHI
 libchop_block_server_la_SOURCES  += store-publisher-avahi.c
 libchop_block_server_la_LIBADD   += $(AVAHI_LIBS)
-libchop_block_server_la_CFLAGS    = $(AVAHI_CFLAGS) $(AM_CFLAGS)
+libchop_block_server_la_CFLAGS   += $(AVAHI_CFLAGS) $(AM_CFLAGS)
 else
 EXTRA_DIST += store-publisher-avahi.c
 endif

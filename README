@@ -39,7 +39,9 @@ Mandatory dependencies:
 
   GNU gperf
   GNU libgcrypt 1.2
-  Sun/ONC RPC framework (part of the GNU C Library)
+  Sun/ONC RPC framework
+    either from the GNU C Library <= 2.13
+    or TI-RPC
 
 Optional dependencies:
 
