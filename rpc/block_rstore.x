@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2012  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -63,12 +63,12 @@ program BLOCK_STORE_PROGRAM
 
       /* Sync the block store.  */
       int
-      SYNC () = 4;
+      SYNC (void) = 4;
 
       /* Say goodbye to the block store.  This also calls `sync', hence the
 	 return code.  */
       int
-      CLOSE () = 5;
+      CLOSE (void) = 5;
     } = 0;
 } = 70000;
 
