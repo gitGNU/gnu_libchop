@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2012  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -22,7 +22,6 @@
 #include <chop/chop.h>
 
 #include <gnutls/gnutls.h>
-#include <gnutls/extra.h>
 #include <gnutls/openpgp.h>
 
 #include <sys/types.h>
@@ -392,8 +391,6 @@ main (int argc, char *argv[])
 
   err = gnutls_global_init ();
   handle_error (err, "initializing GnuTLS");
-  err = gnutls_global_init_extra ();
-  handle_error (err, "initializing GnuTLS-extra");
 
   err = gnutls_openpgp_key_init (&pubkey);
   handle_error (err, "initializing public key");
