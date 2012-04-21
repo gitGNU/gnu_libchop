@@ -16,6 +16,17 @@ Please report bugs to <libchop-devel@nongnu.org>.
 
 *** chop-backup
 
+**** Directories now hold several previous-version pointers
+
+This provides additional redundancy for the backup history.  In
+particular, if a given directory is backed up to several stores,
+`chop-backup' can still reconstruct that part of the directory history
+that is available on any of these stores.
+
+This change introduces a new internal format for directory snapshots.
+It cannot be read by older versions of `chop-backup'.  However, current
+`chop-backup' can still read the previous format.
+
 **** The file-index mapping is now stored in GDBM format
 
 The file-index mapping (under ~/.cache/chop/backup/file-index-mapping,
