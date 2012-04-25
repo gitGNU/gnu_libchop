@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2011, 2012  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -153,10 +153,11 @@ static chop_error_t uuid_block_fetch (chop_block_fetcher_t *,
 				      chop_block_store_t *,
 				      chop_buffer_t *,
 				      size_t *);
-static chop_error_t uuid_block_exists (chop_block_fetcher_t *,
-				       const chop_index_handle_t *,
+static chop_error_t uuid_blocks_exist (chop_block_fetcher_t *,
+				       size_t n,
+				       const chop_index_handle_t *h[n],
 				       chop_block_store_t *,
-				       int *);
+				       bool e[n]);
 
 static chop_error_t
 ubf_ctor (chop_object_t *object, const chop_class_t *class)
@@ -165,7 +166,7 @@ ubf_ctor (chop_object_t *object, const chop_class_t *class)
 
   fetcher = (chop_uuid_block_fetcher_t *)object;
   fetcher->block_fetcher.fetch_block = uuid_block_fetch;
-  fetcher->block_fetcher.block_exists = uuid_block_exists;
+  fetcher->block_fetcher.blocks_exist = uuid_blocks_exist;
   fetcher->block_fetcher.index_handle_class = &chop_uuid_index_handle_class;
 
   return chop_log_init ("uuid-block-fetcher", &fetcher->log);
@@ -178,7 +179,7 @@ ubf_dtor (chop_object_t *object)
 
   fetcher = (chop_uuid_block_fetcher_t *)object;
   fetcher->block_fetcher.fetch_block = NULL;
-  fetcher->block_fetcher.block_exists = NULL;
+  fetcher->block_fetcher.blocks_exist = NULL;
   fetcher->block_fetcher.index_handle_class = NULL;
 
   chop_object_destroy ((chop_object_t *)&fetcher->log);
@@ -225,24 +226,31 @@ chop_uuid_block_fetcher_log (chop_block_fetcher_t *fetcher)
 }
 
 static chop_error_t
-uuid_block_exists (chop_block_fetcher_t *block_fetcher,
-		   const chop_index_handle_t *index,
+uuid_blocks_exist (chop_block_fetcher_t *block_fetcher,
+		   size_t n,
+		   const chop_index_handle_t *indices[n],
 		   chop_block_store_t *store,
-		   int *exists)
+		   bool exists[n])
 {
-  chop_uuid_index_handle_t *handle;
-  char uuid[CHOP_UUID_SIZE];
-  chop_block_key_t key;
+  size_t i;
+  chop_block_key_t keys[n];
 
-  if (!chop_object_is_a ((chop_object_t *) index,
-			 &chop_uuid_index_handle_class))
-    return CHOP_INVALID_ARG;
+  for (i = 0; i < n; i++)
+    {
+      if (!chop_object_is_a ((chop_object_t *) indices[i],
+			     &chop_uuid_index_handle_class))
+	return CHOP_INVALID_ARG;
 
-  handle = (chop_uuid_index_handle_t *) index;
-  uuid_unparse (handle->uuid, uuid);
-  chop_block_key_init (&key, uuid, CHOP_UUID_SIZE, NULL, NULL);
+      chop_uuid_index_handle_t *handle;
+      handle = (chop_uuid_index_handle_t *) indices[i];
 
-  return chop_store_block_exists (store, &key, exists);
+      char uuid[CHOP_UUID_SIZE];
+      uuid_unparse (handle->uuid, uuid);
+
+      chop_block_key_init (&keys[i], uuid, sizeof uuid, NULL, NULL);
+    }
+
+  return chop_store_blocks_exist (store, n, keys, exists);
 }
 
 static chop_error_t

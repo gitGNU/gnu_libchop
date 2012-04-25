@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage
-   Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2011, 2012  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -81,10 +81,11 @@ CHOP_DECLARE_RT_CLASS (block_fetcher, object,
 						     chop_buffer_t *,
 						     size_t *);
 
-		       chop_error_t (* block_exists) (struct chop_block_fetcher *,
-						      const chop_index_handle_t *,
+		       chop_error_t (* blocks_exist) (struct chop_block_fetcher *,
+						      size_t n,
+						      const chop_index_handle_t *h[n],
 						      chop_block_store_t *,
-						      int *););
+						      bool e[n]););
 
 
 
@@ -171,20 +172,32 @@ chop_block_fetcher_fetch (chop_block_fetcher_t *__fetcher,
 				  __buffer, __size));
 }
 
-/* Using FETCHER, check whether the block pointed to by HANDLE is available.
-   On success, set *EXISTS to 1 if it's available in STORE, 0 if it's not
-   available; otherwise return an error.  */
+/* Using FETCHER, check whether each of the N blocks pointed to by HANDLES is
+   available.  On success, set EXISTS[i] to `true' if HANDLES[i] is available
+   in STORE, `false' if it's not available; otherwise return an error.  */
 static __inline__ chop_error_t
-chop_block_fetcher_exists (chop_block_fetcher_t *__fetcher,
-			   const chop_index_handle_t *__handle,
-			   chop_block_store_t *__store,
-			   int *__exists)
+chop_block_fetcher_exist (chop_block_fetcher_t *fetcher,
+			  size_t n,
+			  const chop_index_handle_t *handles[n],
+			  chop_block_store_t *store,
+			  bool exists[n])
 {
-  if (CHOP_EXPECT_FALSE (__fetcher->block_exists == NULL))
+  if (CHOP_EXPECT_FALSE (fetcher->blocks_exist == NULL))
     return CHOP_ERR_NOT_IMPL;
 
-  return __fetcher->block_exists (__fetcher, __handle, __store,
-				  __exists);
+  return fetcher->blocks_exist (fetcher, n, handles, store, exists);
+}
+
+/* Same as above for a single handle.  */
+static __inline__ chop_error_t
+chop_block_fetcher_exists (chop_block_fetcher_t *fetcher,
+			   const chop_index_handle_t *handle,
+			   chop_block_store_t *store,
+			   int *exists)
+{
+  *exists = 0;
+  return chop_block_fetcher_exist (fetcher, 1, &handle, store,
+				   (bool *) exists);
 }
 
 /* Return the index handle class that is associated with the class of block

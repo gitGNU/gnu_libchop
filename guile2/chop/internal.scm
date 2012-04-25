@@ -37,6 +37,7 @@
             dereference-size_t
             make-int-pointer
             dereference-int
+            pointer-list->foreign-array
 
             define-libchop-type
             wrap-object
@@ -272,6 +273,18 @@ integer."
                        0 (native-endianness)
                        sizeof-int))
 
+(define (pointer-list->foreign-array lst)
+  "Return a pointer to a foreign array containing the pointers listed in LST."
+  (let* ((count (length lst))
+         (array (make-bytevector (* count (sizeof '*)))))
+    (fold (lambda (ptr index)
+            (bytevector-uint-set! array index (pointer-address ptr)
+                                  (native-endianness)
+                                  (sizeof '*))
+            (+ index (sizeof '*)))
+          0
+          lst)
+    (bytevector->pointer array)))
 
 
 ;;;

@@ -1,4 +1,4 @@
-;;; Copyright (C) 2011  Ludovic Courtès <ludo@gnu.org>
+;;; Copyright (C) 2011, 2012  Ludovic Courtès <ludo@gnu.org>
 ;;;
 ;;; Libchop is free software: you can redistribute it and/or modify
 ;;; it under the terms of the GNU General Public License as published by
@@ -35,6 +35,7 @@
             block-fetcher?
 
             block-fetcher-fetch
+            block-fetcher-exist?
             block-fetcher-exists?
 
             error/block-indexer-error
@@ -155,15 +156,22 @@ contents as a bytevector."
     (values (buffer->bytevector b)
             (dereference-size_t r))))
 
+(define (block-fetcher-exist? bf indices store)
+  "Return a list of booleans indicating whether each index listed in INDICES
+is available in STORE, using block fetcher BF."
+  (let* ((m (libchop-method (unwrap-block-fetcher bf)
+                            "block_fetcher" "blocks_exist"
+                            ('* size_t '* '* '*)
+                            (includes "#include <chop/block-indexers.h>")))
+         (l (length indices))
+         (r (gc-malloc-pointerless l)))
+    (m (unwrap-block-fetcher bf) l
+       (pointer-list->foreign-array (map unwrap-index-handle indices))
+       (unwrap-object %store-class store)
+       r)
+    (map (negate zero?) (bytevector->u8-list (pointer->bytevector r l)))))
+
 (define (block-fetcher-exists? bf index store)
   "Return true if the data pointed to by INDEX exists in STORE, using block
 fetcher BF."
-  (let ((m (libchop-method (unwrap-block-fetcher bf)
-                           "block_fetcher" "block_exists"
-                           ('* '* '* '*)
-                           (includes "#include <chop/block-indexers.h>")))
-        (r (make-int-pointer)))
-    (m (unwrap-block-fetcher bf) (unwrap-index-handle index)
-       (unwrap-object %store-class store)
-       r)
-    (not (= 0 (dereference-int r)))))
+  (car (block-fetcher-exist? bf (list index) store)))

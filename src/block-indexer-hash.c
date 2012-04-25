@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2011, 2012  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -292,10 +292,11 @@ static chop_error_t hash_block_fetch (chop_block_fetcher_t *,
 				      chop_block_store_t *,
 				      chop_buffer_t *,
 				      size_t *);
-static chop_error_t hash_block_exists (chop_block_fetcher_t *,
-				       const chop_index_handle_t *,
+static chop_error_t hash_blocks_exist (chop_block_fetcher_t *,
+				       size_t n,
+				       const chop_index_handle_t *h[n],
 				       chop_block_store_t *,
-				       int *);
+				       bool e[n]);
 
 static chop_error_t
 hbf_ctor (chop_object_t *object, const chop_class_t *class)
@@ -304,7 +305,7 @@ hbf_ctor (chop_object_t *object, const chop_class_t *class)
 
   fetcher = (chop_hash_block_fetcher_t *) object;
   fetcher->block_fetcher.fetch_block = hash_block_fetch;
-  fetcher->block_fetcher.block_exists = hash_block_exists;
+  fetcher->block_fetcher.blocks_exist = hash_blocks_exist;
   fetcher->block_fetcher.index_handle_class = &chop_hash_index_handle_class;
 
   fetcher->hash_method = CHOP_HASH_NONE;
@@ -319,7 +320,7 @@ hbf_dtor (chop_object_t *object)
 
   fetcher = (chop_hash_block_fetcher_t *)object;
   fetcher->block_fetcher.fetch_block = NULL;
-  fetcher->block_fetcher.block_exists = NULL;
+  fetcher->block_fetcher.blocks_exist = NULL;
   fetcher->block_fetcher.index_handle_class = NULL;
 
   chop_object_destroy ((chop_object_t *)&fetcher->log);
@@ -433,23 +434,28 @@ chop_hash_block_fetcher_log (chop_block_fetcher_t *fetcher)
 }
 
 static chop_error_t
-hash_block_exists (chop_block_fetcher_t *block_fetcher,
-		   const chop_index_handle_t *index,
+hash_blocks_exist (chop_block_fetcher_t *block_fetcher,
+		   size_t n,
+		   const chop_index_handle_t *indices[n],
 		   chop_block_store_t *store,
-		   int *exists)
+		   bool exists[n])
 {
-  chop_hash_index_handle_t *handle;
-  chop_block_key_t key;
+  size_t i;
+  chop_block_key_t keys[n];
 
-  if (!chop_object_is_a ((chop_object_t *) index,
-			 &chop_hash_index_handle_class))
-    return CHOP_INVALID_ARG;
+  for (i = 0; i < n; i++)
+    {
+      if (!chop_object_is_a ((chop_object_t *) indices[i],
+			     &chop_hash_index_handle_class))
+	return CHOP_INVALID_ARG;
 
-  handle = (chop_hash_index_handle_t *) index;
-  chop_block_key_init (&key, handle->content, handle->key_size,
-		       NULL, NULL);
+      chop_hash_index_handle_t *handle;
+      handle = (chop_hash_index_handle_t *) indices[i];
+      chop_block_key_init (&keys[i], handle->content, handle->key_size,
+			   NULL, NULL);
+    }
 
-  return chop_store_block_exists (store, &key, exists);
+  return chop_store_blocks_exist (store, n, keys, exists);
 }
 
 static chop_error_t
