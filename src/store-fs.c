@@ -192,7 +192,7 @@ chop_fs_blocks_exist (chop_block_store_t *store,
 
   char file_name[max_size * 2 + 2];
 
-  for (i = 0; i < n && err == 0; i++)
+  for (i = 0, err = 0; i < n && err == 0; i++)
     {
       block_file_name (keys[i], file_name);
       err = fstatat (fs->dir_fd, file_name, &stat, 0);
