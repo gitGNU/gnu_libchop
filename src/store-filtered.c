@@ -48,7 +48,7 @@ CHOP_DEFINE_RT_CLASS (filtered_block_store, block_store,
 static chop_error_t
 chop_filtered_block_store_blocks_exist (chop_block_store_t *store,
 					size_t n,
-					const chop_block_key_t *keys[n],
+					const chop_block_key_t keys[n],
 					bool exists[n])
 {
   chop_filtered_block_store_t *filtered =

@@ -83,8 +83,7 @@ CHOP_DEFINE_RT_CLASS (stat_block_store, block_store,
 
 static chop_error_t
 chop_stat_block_store_blocks_exist (chop_block_store_t *store,
-				    size_t n,
-				    const chop_block_key_t *keys[n],
+				    size_t n, const chop_block_key_t keys[n],
 				    bool exists[n])
 {
   chop_error_t err = 0;

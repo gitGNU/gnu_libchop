@@ -63,8 +63,7 @@ do_free_key (char *content, void *user)
 
 static chop_error_t
 DB_BLOCKS_EXIST_METHOD (chop_block_store_t *store,
-			size_t n,
-			const chop_block_key_t *keys[n],
+			size_t n, const chop_block_key_t keys[n],
 			bool exists[n])
 {
   size_t i;
@@ -73,7 +72,7 @@ DB_BLOCKS_EXIST_METHOD (chop_block_store_t *store,
 
   for (i = 0; i < n; i++)
     {
-      CHOP_KEY_TO_DB (&db_key, keys[i]);
+      CHOP_KEY_TO_DB (&db_key, &keys[i]);
       exists[i] = DB_EXISTS (db->db, db_key);
     }
 

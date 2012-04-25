@@ -231,7 +231,7 @@ chop_bdb_it_next (chop_block_iterator_t *it)
 
 static chop_error_t chop_bdb_blocks_exist (chop_block_store_t *,
 					   size_t n,
-					   const chop_block_key_t *k[n],
+					   const chop_block_key_t k[n],
 					   bool e[n]);
 
 static chop_error_t chop_bdb_read_block (chop_block_store_t *,
@@ -326,8 +326,7 @@ chop_bdb_store_open (const char *name, int db_type,
 
 static chop_error_t
 chop_bdb_blocks_exist (chop_block_store_t *store,
-		       size_t n,
-		       const chop_block_key_t *keys[n],
+		       size_t n, const chop_block_key_t keys[n],
 		       bool exists[n])
 {
   int err;
@@ -343,8 +342,8 @@ chop_bdb_blocks_exist (chop_block_store_t *store,
 
   for (i = 0; i < n; i++)
     {
-      db_key.data = (char *) chop_block_key_buffer (keys[i]);
-      db_key.ulen = db_key.size = chop_block_key_size (keys[i]);
+      db_key.data = (char *) chop_block_key_buffer (&keys[i]);
+      db_key.ulen = db_key.size = chop_block_key_size (&keys[i]);
 
       err = bdb->db->get (bdb->db, NULL, &db_key, &thing, 0);
       switch (err)

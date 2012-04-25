@@ -83,7 +83,7 @@ CHOP_DEFINE_RT_CLASS (gdbm_block_iterator, block_iterator,
 
 static chop_error_t chop_gdbm_blocks_exist (chop_block_store_t *,
 					    size_t n,
-					    const chop_block_key_t *k[n],
+					    const chop_block_key_t k[n],
 					    bool e[n]);
 
 static chop_error_t chop_gdbm_read_block (chop_block_store_t *,

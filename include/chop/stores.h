@@ -31,6 +31,14 @@
 
 struct chop_block_iterator;
 
+struct chop_block_key
+{
+  char  *key;
+  size_t size;
+  void (* dispose) (char *, void *);
+  void *owner;
+};
+
 /* Declare `chop_block_store_t' (represented at run-time by
    CHOP_BLOCK_STORE_CLASS) as inheriting from `chop_object_t'.  */
 CHOP_DECLARE_RT_CLASS (block_store, object,
@@ -39,7 +47,8 @@ CHOP_DECLARE_RT_CLASS (block_store, object,
 		       chop_error_t (* blocks_exist) (struct
 						      chop_block_store *,
 						      size_t n,
-						      const chop_block_key_t *keys[n],
+						      const
+						      chop_block_key_t keys[n],
 						      bool exists[n]);
 
 		       chop_error_t (* read_block) (struct chop_block_store *,
@@ -63,15 +72,6 @@ CHOP_DECLARE_RT_CLASS (block_store, object,
 
 
 /* Block keys.  */
-
-struct chop_block_key
-{
-  char  *key;
-  size_t size;
-  void (* dispose) (char *, void *);
-  void *owner;
-};
-
 
 static __inline__ void chop_block_key_init (chop_block_key_t *__key,
 					    char *__key_contents,
@@ -342,8 +342,7 @@ extern chop_error_t chop_filtered_store_open (chop_filter_t *input_filter,
    available under KEY[i], non-zero otherwise.  */
 static __inline__ chop_error_t
 chop_store_blocks_exist (chop_block_store_t *store,
-			 size_t n,
-			 const chop_block_key_t *keys[n],
+			 size_t n, const chop_block_key_t keys[n],
 			 bool exists[n])
 {
   if (store->blocks_exist)
@@ -359,7 +358,7 @@ chop_store_block_exists (chop_block_store_t *store,
 			 int *exists)
 {
   *exists = 0;
-  return chop_store_blocks_exist (store, 1, &key, (bool *) exists);
+  return chop_store_blocks_exist (store, 1, key, (bool *) exists);
 }
 
 /* Store into BUFFER the data stored under key KEY in STORE.  On success,

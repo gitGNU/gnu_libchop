@@ -86,7 +86,7 @@ CHOP_DEFINE_RT_CLASS (sunrpc_block_store, block_store,
 
 static chop_error_t chop_sunrpc_blocks_exist (chop_block_store_t *,
 					      size_t n,
-					      const chop_block_key_t *k[n],
+					      const chop_block_key_t k[n],
 					      bool e[n]);
 
 static chop_error_t chop_sunrpc_read_block  (struct chop_block_store *,
@@ -499,8 +499,7 @@ chop_sunrpc_tls_block_store_open (const char *host, unsigned port,
 
 static chop_error_t
 chop_sunrpc_blocks_exist (chop_block_store_t *store,
-			  size_t n,
-			  const chop_block_key_t *keys[n],
+			  size_t n, const chop_block_key_t keys[n],
 			  bool exists[n])
 {
   size_t i;
@@ -516,8 +515,8 @@ chop_sunrpc_blocks_exist (chop_block_store_t *store,
   for (i = 0; i < n; i++)
     {
       chop_rblock_key_t *rkey = &rkeys.chop_rblock_keys_t_val[i];
-      rkey->chop_rblock_key_t_len = chop_block_key_size (keys[i]);
-      rkey->chop_rblock_key_t_val = (char *) chop_block_key_buffer (keys[i]);
+      rkey->chop_rblock_key_t_len = chop_block_key_size (&keys[i]);
+      rkey->chop_rblock_key_t_val = (char *) chop_block_key_buffer (&keys[i]);
     }
 
   ret = blocks_exist_1 (&rkeys, remote->rpc_client);

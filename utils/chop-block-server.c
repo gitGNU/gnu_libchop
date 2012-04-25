@@ -274,18 +274,16 @@ handle_blocks_exist (chop_rblock_keys_t *argp, struct svc_req *req)
     {
       int i;
       chop_block_key_t keys[argp->chop_rblock_keys_t_len];
-      const chop_block_key_t *keys_array[argp->chop_rblock_keys_t_len]; /* XXX */
 
       for (i = 0; i < argp->chop_rblock_keys_t_len; i++)
 	{
 	  chop_rblock_key_t *rkey = &argp->chop_rblock_keys_t_val[i];
 	  chop_block_key_init (&keys[i], rkey->chop_rblock_key_t_val,
 			       rkey->chop_rblock_key_t_len, NULL, NULL);
-	  keys_array[i] = &keys[i];
 	}
 
       err = chop_store_blocks_exist (local_store, argp->chop_rblock_keys_t_len,
-				     keys_array, exists);
+				     keys, exists);
     }
   else
     err = CHOP_STORE_ERROR;

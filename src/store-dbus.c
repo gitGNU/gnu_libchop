@@ -88,7 +88,7 @@ CHOP_DEFINE_RT_CLASS (dbus_block_store, block_store,
 
 static chop_error_t chop_dbus_blocks_exist (chop_block_store_t *,
 					    size_t n,
-					    const chop_block_key_t *keys[n],
+					    const chop_block_key_t keys[n],
 					    bool e[n]);
 
 static chop_error_t chop_dbus_read_block  (struct chop_block_store *,
@@ -237,7 +237,7 @@ chop_dbus_block_store_open (const char *d_address,
 static chop_error_t
 chop_dbus_blocks_exist (chop_block_store_t *store,
 			size_t n,
-			const chop_block_key_t *keys[n],
+			const chop_block_key_t keys[n],
 			bool exists[n])
 {
   size_t i;
@@ -258,8 +258,8 @@ chop_dbus_blocks_exist (chop_block_store_t *store,
 	return ENOMEM;
 
       if (!dbus_message_append_args (call, DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
-				     chop_block_key_buffer (keys[i]),
-				     chop_block_key_size (keys[i])))
+				     chop_block_key_buffer (&keys[i]),
+				     chop_block_key_size (&keys[i])))
 	{
 	  err = ENOMEM;
 	  goto finish;

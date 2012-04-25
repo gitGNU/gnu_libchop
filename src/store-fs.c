@@ -173,8 +173,7 @@ dot_or_dot_dot (const char *name)
 
 static chop_error_t
 chop_fs_blocks_exist (chop_block_store_t *store,
-		      size_t n,
-		      const chop_block_key_t *keys[n],
+		      size_t n, const chop_block_key_t keys[n],
 		      bool exists[n])
 {
   size_t i;
@@ -186,7 +185,7 @@ chop_fs_blocks_exist (chop_block_store_t *store,
 
   for (i = 0, max_size = 0; i < n; i++)
     {
-      size_t size = chop_block_key_size (keys[i]);
+      size_t size = chop_block_key_size (&keys[i]);
       max_size = max_size > size ? max_size : size;
     }
 
@@ -194,7 +193,7 @@ chop_fs_blocks_exist (chop_block_store_t *store,
 
   for (i = 0, err = 0; i < n && err == 0; i++)
     {
-      block_file_name (keys[i], file_name);
+      block_file_name (&keys[i], file_name);
       err = fstatat (fs->dir_fd, file_name, &stat, 0);
 
       if (err == 0)

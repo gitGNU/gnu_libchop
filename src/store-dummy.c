@@ -59,8 +59,7 @@ CHOP_DEFINE_RT_CLASS (dummy_block_store, block_store,
 
 static chop_error_t
 chop_dummy_block_store_blocks_exist (chop_block_store_t *store,
-				     size_t n,
-				     const chop_block_key_t *keys[n],
+				     size_t n, const chop_block_key_t keys[n],
 				     bool exists[n])
 {
   chop_error_t err;
@@ -89,7 +88,7 @@ chop_dummy_block_store_blocks_exist (chop_block_store_t *store,
 
       for (i = 0; i < n; i++)
 	{
-	  chop_block_key_to_hex_string (keys[i], hex_key);
+	  chop_block_key_to_hex_string (&keys[i], hex_key);
 	  chop_log_printf (&dummy->log,
 			   "dummy: block 0x%s does %sexist",
 			   hex_key, (exists[i] ? "" : "NOT "));
