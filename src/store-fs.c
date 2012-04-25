@@ -172,27 +172,40 @@ dot_or_dot_dot (const char *name)
 }
 
 static chop_error_t
-chop_fs_block_exists (chop_block_store_t *store,
-		      const chop_block_key_t *key,
-		      int *exists)
+chop_fs_blocks_exist (chop_block_store_t *store,
+		      size_t n,
+		      const chop_block_key_t *keys[n],
+		      bool exists[n])
 {
+  size_t i;
   chop_error_t err;
   struct stat stat;
   chop_fs_block_store_t *fs =
     (chop_fs_block_store_t *) store;
-  char file_name[chop_block_key_size (key) * 2 + 2];
+  size_t max_size;
 
-  block_file_name (key, file_name);
-  err = fstatat (fs->dir_fd, file_name, &stat, 0);
-
-  if (err == 0)
-    *exists = 1;
-  else
+  for (i = 0, max_size = 0; i < n; i++)
     {
-      if (errno == ENOENT)
-	*exists = 0, err = 0;
+      size_t size = chop_block_key_size (keys[i]);
+      max_size = max_size > size ? max_size : size;
+    }
+
+  char file_name[max_size * 2 + 2];
+
+  for (i = 0; i < n && err == 0; i++)
+    {
+      block_file_name (keys[i], file_name);
+      err = fstatat (fs->dir_fd, file_name, &stat, 0);
+
+      if (err == 0)
+	exists[i] = true;
       else
-	*exists = 0, err = errno;
+	{
+	  if (errno == ENOENT)
+	    exists[i] = false, err = 0;
+	  else
+	    exists[i] = false, err = errno;
+	}
     }
 
   return err;
@@ -588,7 +601,7 @@ chop_fs_store_open (int dir_fd, int eventually_close,
   store->name = chop_strdup (log_name,
 			     (chop_class_t *) &chop_fs_block_store_class);
   store->iterator_class = &chop_fs_block_iterator_class;
-  store->block_exists = chop_fs_block_exists;
+  store->blocks_exist = chop_fs_blocks_exist;
   store->read_block = chop_fs_read_block;
   store->write_block = chop_fs_write_block;
   store->delete_block = chop_fs_delete_block;

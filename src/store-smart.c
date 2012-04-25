@@ -74,18 +74,15 @@ CHOP_DEFINE_RT_CLASS (smart_block_store, block_store,
 
 
 static chop_error_t
-chop_smart_block_store_block_exists (chop_block_store_t *store,
-				     const chop_block_key_t *key,
-				     int *exists)
+chop_smart_block_store_blocks_exist (chop_block_store_t *store,
+				     size_t n,
+				     const chop_block_key_t *keys[n],
+				     bool exists[n])
 {
-  chop_error_t err;
   chop_smart_block_store_t *smart =
     (chop_smart_block_store_t *)store;
 
-
-  err = chop_store_block_exists (smart->backend, key, exists);
-
-  return err;
+  return chop_store_blocks_exist (smart->backend, n, keys, exists);
 }
 
 static chop_error_t
@@ -210,7 +207,7 @@ chop_smart_block_store_open (chop_block_store_t *backend,
     return err;
 
   store->iterator_class = chop_store_iterator_class (store);
-  store->block_exists = chop_smart_block_store_block_exists;
+  store->blocks_exist = chop_smart_block_store_blocks_exist;
   store->read_block = chop_smart_block_store_read_block;
   store->write_block = chop_smart_block_store_write_block;
   store->delete_block = chop_smart_block_store_delete_block;

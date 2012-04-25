@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2012  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -26,6 +26,9 @@
 #include <chop/objects.h>
 #include <chop/logs.h>
 
+#include <unistd.h>
+#include <stdbool.h>
+
 struct chop_block_iterator;
 
 /* Declare `chop_block_store_t' (represented at run-time by
@@ -33,10 +36,11 @@ struct chop_block_iterator;
 CHOP_DECLARE_RT_CLASS (block_store, object,
 		       char *name;
 
-		       chop_error_t (* block_exists) (struct
+		       chop_error_t (* blocks_exist) (struct
 						      chop_block_store *,
-						      const chop_block_key_t *,
-						      int *);
+						      size_t n,
+						      const chop_block_key_t *keys[n],
+						      bool exists[n]);
 
 		       chop_error_t (* read_block) (struct chop_block_store *,
 						    const chop_block_key_t *,
@@ -333,18 +337,29 @@ extern chop_error_t chop_filtered_store_open (chop_filter_t *input_filter,
 
 /* The block store interface.  */
 
-/* Check whether a block with key KEY is available in STORE.  On success,
-   zero is returned and *EXISTS is set to zero if nothing is available under
-   KEY, non-zero otherwise.  */
+/* Check whether the N blocks with keys KEYS are available in STORE.  On
+   success, zero is returned and EXISTS[i] is set to zero if nothing is
+   available under KEY[i], non-zero otherwise.  */
 static __inline__ chop_error_t
-chop_store_block_exists (chop_block_store_t *__store,
-			 const chop_block_key_t *__key,
-			 int *__exists)
+chop_store_blocks_exist (chop_block_store_t *store,
+			 size_t n,
+			 const chop_block_key_t *keys[n],
+			 bool exists[n])
 {
-  if (__store->block_exists)
-    return (__store->block_exists (__store, __key, __exists));
+  if (store->blocks_exist)
+    return (store->blocks_exist (store, n, keys, exists));
 
   return CHOP_ERR_NOT_IMPL;
+}
+
+/* Same as above, but with a single block.  */
+static __inline__ chop_error_t
+chop_store_block_exists (chop_block_store_t *store,
+			 const chop_block_key_t *key,
+			 int *exists)
+{
+  *exists = 0;
+  return chop_store_blocks_exist (store, 1, &key, (bool *) exists);
 }
 
 /* Store into BUFFER the data stored under key KEY in STORE.  On success,

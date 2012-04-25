@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2012  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -86,9 +86,10 @@ CHOP_DEFINE_RT_CLASS (dbus_block_store, block_store,
 
 
 
-static chop_error_t chop_dbus_block_exists (chop_block_store_t *,
-					    const chop_block_key_t *,
-					    int *);
+static chop_error_t chop_dbus_blocks_exist (chop_block_store_t *,
+					    size_t n,
+					    const chop_block_key_t *keys[n],
+					    bool e[n]);
 
 static chop_error_t chop_dbus_read_block  (struct chop_block_store *,
 					   const chop_block_key_t *,
@@ -213,7 +214,7 @@ chop_dbus_block_store_open (const char *d_address,
 
   remote->connection = connection;
 
-  store->block_exists = chop_dbus_block_exists;
+  store->blocks_exist = chop_dbus_blocks_exist;
   store->read_block = chop_dbus_read_block;
   store->write_block = chop_dbus_write_block;
   store->delete_block = chop_dbus_delete_block;
@@ -234,74 +235,79 @@ chop_dbus_block_store_open (const char *d_address,
 
 
 static chop_error_t
-chop_dbus_block_exists (chop_block_store_t *store,
-			const chop_block_key_t *key,
-			int *exists)
+chop_dbus_blocks_exist (chop_block_store_t *store,
+			size_t n,
+			const chop_block_key_t *keys[n],
+			bool exists[n])
 {
+  size_t i;
   chop_error_t err = 0;
   chop_dbus_block_store_t *remote = (chop_dbus_block_store_t *)store;
 
-  DBusError derr;
-  DBusMessage *call, *reply;
-
-  *exists = 0;
-
-  call = dbus_message_new_method_call (NULL,
-				       remote->object_path,
-				       CHOP_DBUS_BLOCK_STORE_INTERFACE,
-				       "BlockExists");
-  if (!call)
-    return ENOMEM;
-
-  if (!dbus_message_append_args (call, DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
-				 chop_block_key_buffer (key),
-				 chop_block_key_size (key)))
+  /* FIXME: Optimize by using a `BlocksExist' (plural) method.  */
+  for (i = 0; i < n && err == 0; i++)
     {
-      err = ENOMEM;
-      goto finish;
-    }
+      DBusError derr;
+      DBusMessage *call, *reply;
 
-  dbus_error_init (&derr);
-  reply = dbus_connection_send_with_reply_and_block (remote->connection, call,
-						     -1, &derr);
+      call = dbus_message_new_method_call (NULL,
+					   remote->object_path,
+					   CHOP_DBUS_BLOCK_STORE_INTERFACE,
+					   "BlockExists");
+      if (!call)
+	return ENOMEM;
 
-  if (!reply)
-    err = ENOMEM;
-  else
-    {
-      if (dbus_error_is_set (&derr))
+      if (!dbus_message_append_args (call, DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
+				     chop_block_key_buffer (keys[i]),
+				     chop_block_key_size (keys[i])))
 	{
-	  chop_log_printf (&remote->log, "DBus error: %s\n", derr.message);
-	  dbus_error_free (&derr);
-	  err = CHOP_STORE_ERROR;
+	  err = ENOMEM;
+	  goto finish;
 	}
+
+      dbus_error_init (&derr);
+      reply = dbus_connection_send_with_reply_and_block (remote->connection, call,
+							 -1, &derr);
+
+      if (!reply)
+	err = ENOMEM;
       else
 	{
-	  if (dbus_message_get_type (reply) != DBUS_MESSAGE_TYPE_METHOD_RETURN)
-	    err = CHOP_STORE_ERROR;
+	  if (dbus_error_is_set (&derr))
+	    {
+	      chop_log_printf (&remote->log, "DBus error: %s\n", derr.message);
+	      dbus_error_free (&derr);
+	      err = CHOP_STORE_ERROR;
+	    }
 	  else
 	    {
-	      static const char good_sig[] =
-		{ DBUS_TYPE_BOOLEAN, DBUS_TYPE_INVALID };
-	      if (!dbus_message_has_signature (reply, good_sig))
-		err = CHOP_INVALID_ARG;
+	      if (dbus_message_get_type (reply)
+		  != DBUS_MESSAGE_TYPE_METHOD_RETURN)
+		err = CHOP_STORE_ERROR;
 	      else
 		{
-		  DBusMessageIter it;
-		  dbus_bool_t dexists = 0;
+		  static const char good_sig[] =
+		    { DBUS_TYPE_BOOLEAN, DBUS_TYPE_INaVALID };
+		  if (!dbus_message_has_signature (reply, good_sig))
+		    err = CHOP_INVALID_ARG;
+		  else
+		    {
+		      DBusMessageIter it;
+		      dbus_bool_t dexists = 0;
 
-		  dbus_message_iter_init (reply, &it);
-		  dbus_message_iter_get_basic (&it, &exists);
-		  *exists = (int)dexists;
+		      dbus_message_iter_init (reply, &it);
+		      dbus_message_iter_get_basic (&it, &exists);
+		      exists[i] = dexists;
+		    }
 		}
 	    }
+
+	  dbus_message_unref (reply);
 	}
 
-      dbus_message_unref (reply);
+    finish:
+      dbus_message_unref (call);
     }
-
- finish:
-  dbus_message_unref (call);
 
   return err;
 }

@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2012  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -46,17 +46,15 @@ CHOP_DEFINE_RT_CLASS (filtered_block_store, block_store,
 
 
 static chop_error_t
-chop_filtered_block_store_block_exists (chop_block_store_t *store,
-					const chop_block_key_t *key,
-					int *exists)
+chop_filtered_block_store_blocks_exist (chop_block_store_t *store,
+					size_t n,
+					const chop_block_key_t *keys[n],
+					bool exists[n])
 {
-  chop_error_t err;
   chop_filtered_block_store_t *filtered =
     (chop_filtered_block_store_t *)store;
 
-  err = chop_store_block_exists (filtered->backend, key, exists);
-
-  return err;
+  return chop_store_blocks_exist (filtered->backend, n, keys, exists);
 }
 
 static chop_error_t
@@ -195,7 +193,7 @@ fbs_ctor (chop_object_t *object, const chop_class_t *class)
   store = (chop_block_store_t *)object;
 
   store->name = NULL;
-  store->block_exists = chop_filtered_block_store_block_exists;
+  store->blocks_exist = chop_filtered_block_store_blocks_exist;
   store->read_block = chop_filtered_block_store_read_block;
   store->write_block = chop_filtered_block_store_write_block;
   store->delete_block = chop_filtered_block_store_delete_block;

@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2011, 2012  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -84,9 +84,10 @@ CHOP_DEFINE_RT_CLASS (sunrpc_block_store, block_store,
 
 
 
-static chop_error_t chop_sunrpc_block_exists (chop_block_store_t *,
-					      const chop_block_key_t *,
-					      int *);
+static chop_error_t chop_sunrpc_blocks_exist (chop_block_store_t *,
+					      size_t n,
+					      const chop_block_key_t *k[n],
+					      bool e[n]);
 
 static chop_error_t chop_sunrpc_read_block  (struct chop_block_store *,
 					     const chop_block_key_t *,
@@ -415,7 +416,7 @@ sunrpc_block_store_open (const char *host, unsigned port,
 
   remote->rpc_client = rpc_client;
 
-  store->block_exists = chop_sunrpc_block_exists;
+  store->blocks_exist = chop_sunrpc_blocks_exist;
   store->read_block = chop_sunrpc_read_block;
   store->write_block = chop_sunrpc_write_block;
   store->delete_block = chop_sunrpc_delete_block;
@@ -497,28 +498,32 @@ chop_sunrpc_tls_block_store_open (const char *host, unsigned port,
 
 
 static chop_error_t
-chop_sunrpc_block_exists (chop_block_store_t *store,
-			  const chop_block_key_t *key,
-			  int *exists)
+chop_sunrpc_blocks_exist (chop_block_store_t *store,
+			  size_t n,
+			  const chop_block_key_t *keys[n],
+			  bool exists[n])
 {
+  size_t i;
   chop_error_t err = 0;
   int *ret;
   chop_rblock_key_t rkey;
   chop_sunrpc_block_store_t *remote = (chop_sunrpc_block_store_t *)store;
 
-  rkey.chop_rblock_key_t_len = chop_block_key_size (key);
-  rkey.chop_rblock_key_t_val = (char *)chop_block_key_buffer (key);
-
-  ret = block_exists_0 (&rkey, remote->rpc_client);
-  if (!ret)
+  /* FIXME: Replace with a single RPC.  */
+  for (i = 0; i < n && err == 0; i++)
     {
-      chop_log_printf (&remote->log, "exists RPC failed");
+      rkey.chop_rblock_key_t_len = chop_block_key_size (keys[i]);
+      rkey.chop_rblock_key_t_val = (char *) chop_block_key_buffer (keys[i]);
 
-      *exists = 0;
-      err = CHOP_STORE_ERROR;
+      ret = block_exists_0 (&rkey, remote->rpc_client);
+      if (!ret)
+	{
+	  chop_log_printf (&remote->log, "exists RPC failed");
+	  err = CHOP_STORE_ERROR;
+	}
+      else
+	exists[i] = *ret ? true : false;
     }
-  else
-    *exists = *ret;
 
   return err;
 }

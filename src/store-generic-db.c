@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2012  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -41,7 +41,7 @@
 #define DB_BLOCK_ITERATOR_CLASS				\
   CONCAT4 (chop_, DB_TYPE, _, block_iterator_class)
 
-#define DB_BLOCK_EXISTS_METHOD CONCAT4 (chop_, DB_TYPE, _, block_exists)
+#define DB_BLOCKS_EXIST_METHOD CONCAT4 (chop_, DB_TYPE, _, blocks_exist)
 #define DB_READ_BLOCK_METHOD   CONCAT4 (chop_, DB_TYPE, _, read_block)
 #define DB_WRITE_BLOCK_METHOD  CONCAT4 (chop_, DB_TYPE, _, write_block)
 #define DB_DELETE_BLOCK_METHOD CONCAT4 (chop_, DB_TYPE, _, delete_block)
@@ -62,15 +62,20 @@ do_free_key (char *content, void *user)
 
 
 static chop_error_t
-DB_BLOCK_EXISTS_METHOD (chop_block_store_t *store,
-			const chop_block_key_t *key,
-			int *exists)
+DB_BLOCKS_EXIST_METHOD (chop_block_store_t *store,
+			size_t n,
+			const chop_block_key_t *keys[n],
+			bool exists[n])
 {
+  size_t i;
   DB_DATA_TYPE db_key;
-  DB_STORE_TYPE *db = (DB_STORE_TYPE *)store;
+  DB_STORE_TYPE *db = (DB_STORE_TYPE *) store;
 
-  CHOP_KEY_TO_DB (&db_key, key);
-  *exists = DB_EXISTS (db->db, db_key);
+  for (i = 0; i < n; i++)
+    {
+      CHOP_KEY_TO_DB (&db_key, keys[i]);
+      exists[i] = DB_EXISTS (db->db, db_key);
+    }
 
   return 0;
 }

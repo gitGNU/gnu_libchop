@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2012  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -69,7 +69,7 @@ qdbm_dtor (chop_object_t *object)
   store->db = NULL;
   store->block_store.read_block = NULL;
   store->block_store.write_block = NULL;
-  store->block_store.block_exists = NULL;
+  store->block_store.blocks_exist = NULL;
 }
 
 
@@ -97,9 +97,10 @@ CHOP_DEFINE_RT_CLASS (qdbm_block_iterator, block_iterator,
 		      NULL, NULL);
 
 
-static chop_error_t chop_qdbm_block_exists (chop_block_store_t *,
-					    const chop_block_key_t *,
-					    int *);
+static chop_error_t chop_qdbm_blocks_exist (chop_block_store_t *,
+					    size_t n,
+					    const chop_block_key_t *k[n],
+					    bool e[n]);
 
 static chop_error_t chop_qdbm_read_block (chop_block_store_t *,
 					  const chop_block_key_t *,
@@ -159,7 +160,7 @@ chop_qdbm_store_open (const char *name, size_t block_size,
   store->db = db;
   store->block_store.iterator_class = &chop_qdbm_block_iterator_class;
 
-  store->block_store.block_exists = chop_qdbm_block_exists;
+  store->block_store.blocks_exist = chop_qdbm_blocks_exist;
   store->block_store.read_block = chop_qdbm_read_block;
   store->block_store.write_block = chop_qdbm_write_block;
   store->block_store.delete_block = chop_qdbm_delete_block;

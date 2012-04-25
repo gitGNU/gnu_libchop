@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2012  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -58,35 +58,43 @@ CHOP_DEFINE_RT_CLASS (dummy_block_store, block_store,
 
 
 static chop_error_t
-chop_dummy_block_store_block_exists (chop_block_store_t *store,
-				     const chop_block_key_t *key,
-				     int *exists)
+chop_dummy_block_store_blocks_exist (chop_block_store_t *store,
+				     size_t n,
+				     const chop_block_key_t *keys[n],
+				     bool exists[n])
 {
   chop_error_t err;
   chop_dummy_block_store_t *dummy =
     (chop_dummy_block_store_t *)store;
-  char hex_key[1024];
 
-  chop_block_key_to_hex_string (key, hex_key);
   chop_log_printf (&dummy->log,
-		   "dummy: block_exists (%s@%p, 0x%s)",
-		   store->name, store, hex_key);
-  *exists = 0;
-
+		   "dummy: blocks_exist (%s@%p, %zi keys)",
+		   store->name, store, n);
   if (!dummy->backend)
-    return 0; /* CHOP_ERR_NOT_IMPL ? */
+    {
+      memset (exists, 0, sizeof exists);
+      return 0; /* CHOP_ERR_NOT_IMPL ? */
+    }
 
-  err = chop_store_block_exists (dummy->backend, key, exists);
+  err = chop_store_blocks_exist (dummy->backend, n, keys, exists);
 
   if (err)
     chop_log_printf (&dummy->log,
-		     "dummy: block_exists: underlying store returned \"%s\"\n",
+		     "dummy: blocks_exist: underlying store returned \"%s\"\n",
 		     chop_error_message (err));
   else
-    chop_log_printf (&dummy->log,
-		     "dummy: block 0x%s does %sexist",
-		     hex_key, (*exists ? "" : "NOT "));
+    {
+      size_t i;
+      char hex_key[1024];
 
+      for (i = 0; i < n; i++)
+	{
+	  chop_block_key_to_hex_string (keys[i], hex_key);
+	  chop_log_printf (&dummy->log,
+			   "dummy: block 0x%s does %sexist",
+			   hex_key, (exists[i] ? "" : "NOT "));
+	}
+    }
 
   return err;
 }
@@ -283,7 +291,7 @@ chop_dummy_block_store_open (const char *name,
 
   store->name = chop_strdup (name, &chop_dummy_block_store_class);
   store->iterator_class = NULL; /* not supported */
-  store->block_exists = chop_dummy_block_store_block_exists;
+  store->blocks_exist = chop_dummy_block_store_blocks_exist;
   store->read_block = chop_dummy_block_store_read_block;
   store->write_block = chop_dummy_block_store_write_block;
   store->delete_block = chop_dummy_block_store_delete_block;

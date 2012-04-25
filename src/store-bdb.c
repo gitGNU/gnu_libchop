@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2012  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -229,9 +229,10 @@ chop_bdb_it_next (chop_block_iterator_t *it)
 
 
 
-static chop_error_t chop_bdb_block_exists (chop_block_store_t *,
-					   const chop_block_key_t *,
-					   int *);
+static chop_error_t chop_bdb_blocks_exist (chop_block_store_t *,
+					   size_t n,
+					   const chop_block_key_t *k[n],
+					   bool e[n]);
 
 static chop_error_t chop_bdb_read_block (chop_block_store_t *,
 					 const chop_block_key_t *,
@@ -309,7 +310,7 @@ chop_bdb_store_open (const char *name, int db_type,
   store->db = db;
 
   store->block_store.iterator_class = &chop_bdb_block_iterator_class;
-  store->block_store.block_exists = chop_bdb_block_exists;
+  store->block_store.blocks_exist = chop_bdb_blocks_exist;
   store->block_store.read_block = chop_bdb_read_block;
   store->block_store.write_block = chop_bdb_write_block;
   store->block_store.delete_block = chop_bdb_delete_block;
@@ -324,11 +325,13 @@ chop_bdb_store_open (const char *name, int db_type,
 /* Method implementations.  */
 
 static chop_error_t
-chop_bdb_block_exists (chop_block_store_t *store,
-		       const chop_block_key_t *key,
-		       int *exists)
+chop_bdb_blocks_exist (chop_block_store_t *store,
+		       size_t n,
+		       const chop_block_key_t *keys[n],
+		       bool exists[n])
 {
   int err;
+  size_t i;
   chop_bdb_block_store_t *bdb = (chop_bdb_block_store_t *)store;
   DBT thing, db_key;
 
@@ -336,25 +339,31 @@ chop_bdb_block_exists (chop_block_store_t *store,
   thing.flags = DB_DBT_USERMEM;
 
   memset (&db_key, 0, sizeof (db_key));
-  db_key.data = (char *)chop_block_key_buffer (key);
-  db_key.ulen = db_key.size = chop_block_key_size (key);
   db_key.flags = DB_DBT_USERMEM;
 
-  err = bdb->db->get (bdb->db, NULL, &db_key, &thing, 0);
-  if (err == DB_BUFFER_SMALL)
+  for (i = 0; i < n; i++)
     {
-      *exists = 1;
-      return 0;
+      db_key.data = (char *) chop_block_key_buffer (keys[i]);
+      db_key.ulen = db_key.size = chop_block_key_size (keys[i]);
+
+      err = bdb->db->get (bdb->db, NULL, &db_key, &thing, 0);
+      switch (err)
+	{
+	case 0:
+	case DB_BUFFER_SMALL:
+	  exists[i] = true;
+	  break;
+
+	case DB_NOTFOUND:
+	  exists[i] = false;
+	  break;
+
+	default:
+	  return CHOP_STORE_ERROR;
+	}
     }
 
-  if (err == DB_NOTFOUND)
-    {
-      *exists = 0;
-      return 0;
-    }
-
-  *exists  = 0;
-  return CHOP_STORE_ERROR;
+  return 0;
 }
 
 static chop_error_t

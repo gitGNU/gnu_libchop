@@ -28,7 +28,7 @@ store_ctor (chop_object_t *object, const chop_class_t *class)
   /* Initialize the block store fields so that method pointers are guaranteed
      to either be NULL or point to actual methods.  */
   store->name = NULL;
-  store->block_exists = NULL;
+  store->blocks_exist = NULL;
   store->read_block = NULL;
   store->write_block = NULL;
   store->delete_block = NULL;
@@ -53,7 +53,7 @@ store_dtor (chop_object_t *object)
     chop_free (store->name, chop_object_get_class (object));
 
   store->name = NULL;
-  store->block_exists = NULL;
+  store->blocks_exist = NULL;
   store->read_block = NULL;
   store->write_block = NULL;
   store->delete_block = NULL;
