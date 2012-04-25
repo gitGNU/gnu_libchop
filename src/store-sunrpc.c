@@ -397,7 +397,7 @@ sunrpc_block_store_open (const char *host, unsigned port,
     }
 
   hello_arg = (char *)generic_hello_arg;
-  granted = say_hello_0 (&hello_arg, rpc_client);
+  granted = say_hello_1 (&hello_arg, rpc_client);
   if ((!granted) || (!*granted))
     {
       if (!granted)
@@ -505,25 +505,29 @@ chop_sunrpc_blocks_exist (chop_block_store_t *store,
 {
   size_t i;
   chop_error_t err = 0;
-  int *ret;
-  chop_rblock_key_t rkey;
+  chop_rbooleans_t *ret;
+  chop_rblock_keys_t rkeys;
+  chop_rblock_key_t rkey_array[n];
   chop_sunrpc_block_store_t *remote = (chop_sunrpc_block_store_t *)store;
 
-  /* FIXME: Replace with a single RPC.  */
-  for (i = 0; i < n && err == 0; i++)
-    {
-      rkey.chop_rblock_key_t_len = chop_block_key_size (keys[i]);
-      rkey.chop_rblock_key_t_val = (char *) chop_block_key_buffer (keys[i]);
+  rkeys.chop_rblock_keys_t_len = n;
+  rkeys.chop_rblock_keys_t_val = rkey_array;
 
-      ret = block_exists_0 (&rkey, remote->rpc_client);
-      if (!ret)
-	{
-	  chop_log_printf (&remote->log, "exists RPC failed");
-	  err = CHOP_STORE_ERROR;
-	}
-      else
-	exists[i] = *ret ? true : false;
+  for (i = 0; i < n; i++)
+    {
+      chop_rblock_key_t *rkey = &rkeys.chop_rblock_keys_t_val[i];
+      rkey->chop_rblock_key_t_len = chop_block_key_size (keys[i]);
+      rkey->chop_rblock_key_t_val = (char *) chop_block_key_buffer (keys[i]);
     }
+
+  ret = blocks_exist_1 (&rkeys, remote->rpc_client);
+  if (!ret || ret->chop_rbooleans_t_len != n)
+    {
+      chop_log_printf (&remote->log, "exists RPC failed");
+      err = CHOP_STORE_ERROR;
+    }
+  else
+    memcpy (exists, ret->chop_rbooleans_t_val, n);
 
   return err;
 }
@@ -541,7 +545,7 @@ chop_sunrpc_read_block (chop_block_store_t *store,
   rkey.chop_rblock_key_t_len = chop_block_key_size (key);
   rkey.chop_rblock_key_t_val = (char *)chop_block_key_buffer (key);
 
-  ret = read_block_0 (&rkey, remote->rpc_client);
+  ret = read_block_1 (&rkey, remote->rpc_client);
   if ((!ret) || (ret->status))
     {
       if (ret)
@@ -579,7 +583,7 @@ chop_sunrpc_write_block (chop_block_store_t *store,
   args.block.chop_rblock_content_t_len = size;
   args.block.chop_rblock_content_t_val = (char *)buffer;
 
-  ret = write_block_0 (&args, remote->rpc_client);
+  ret = write_block_1 (&args, remote->rpc_client);
   if ((!ret) || (*ret))
     {
       if (ret)
@@ -625,7 +629,7 @@ chop_sunrpc_close (chop_block_store_t *store)
 
       /* We're assuming that the server-side implementation of `close' does
 	 also perform the operation performed by `sync'.  */
-      ret = close_0 (NULL, remote->rpc_client);
+      ret = close_1 (NULL, remote->rpc_client);
       if ((!ret) || (*ret))
 	{
 	  if (ret)
@@ -652,7 +656,7 @@ chop_sunrpc_sync (chop_block_store_t *store)
   int *ret;
   chop_sunrpc_block_store_t *remote = (chop_sunrpc_block_store_t *)store;
 
-  ret = sync_0 (NULL, remote->rpc_client);
+  ret = sync_1 (NULL, remote->rpc_client);
   if ((!ret) || (*ret))
     {
       if (ret)

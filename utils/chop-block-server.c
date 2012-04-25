@@ -260,23 +260,42 @@ handle_say_hello (char **argp, struct svc_req *req)
   return &result;
 }
 
-static int *
-handle_block_exists (chop_rblock_key_t *argp, struct svc_req *req)
+static chop_rbooleans_t *
+handle_blocks_exist (chop_rblock_keys_t *argp, struct svc_req *req)
 {
-  static int result = 0;
+  static chop_rbooleans_t result;
+  static bool exists[32678];
+
   chop_error_t err;
-  int exists;
-  chop_block_key_t key;
 
-  display_request_info ("block_exists", req);
+  display_request_info ("blocks_exist", req);
 
-  chop_block_key_init (&key, argp->chop_rblock_key_t_val,
-		       argp->chop_rblock_key_t_len, NULL, NULL);
-  err = chop_store_block_exists (local_store, &key, &exists);
-  if (err)
-    result = 0;
+  if (argp->chop_rblock_keys_t_len <= sizeof exists)
+    {
+      int i;
+      chop_block_key_t keys[argp->chop_rblock_keys_t_len];
+      const chop_block_key_t *keys_array[argp->chop_rblock_keys_t_len]; /* XXX */
+
+      for (i = 0; i < argp->chop_rblock_keys_t_len; i++)
+	{
+	  chop_rblock_key_t *rkey = &argp->chop_rblock_keys_t_val[i];
+	  chop_block_key_init (&keys[i], rkey->chop_rblock_key_t_val,
+			       rkey->chop_rblock_key_t_len, NULL, NULL);
+	  keys_array[i] = &keys[i];
+	}
+
+      err = chop_store_blocks_exist (local_store, argp->chop_rblock_keys_t_len,
+				     keys_array, exists);
+    }
   else
-    result = exists;
+    err = CHOP_STORE_ERROR;
+
+  if (err)
+    memset (exists, 0, sizeof exists);
+  else
+    result.chop_rbooleans_t_len = argp->chop_rblock_keys_t_len;
+
+  result.chop_rbooleans_t_val = (char *) exists;
 
   return &result;
 }
@@ -537,7 +556,7 @@ static gnutls_certificate_credentials_t server_certcred;
 static gnutls_rsa_params_t              server_rsa_params;
 
 static int
-make_tls_session (gnutls_session *session, void *closure)
+make_tls_session (gnutls_session_t *session, void *closure)
 {
   int err;
   const char *err_pos;
@@ -765,7 +784,7 @@ register_rpc_handlers (void)
 
   /* Register the handlers themselves.  */
   chop_block_server_say_hello_handler = handle_say_hello;
-  chop_block_server_block_exists_handler = handle_block_exists;
+  chop_block_server_blocks_exist_handler = handle_blocks_exist;
   chop_block_server_write_block_handler = handle_write_block;
   chop_block_server_read_block_handler = handle_read_block;
   chop_block_server_sync_handler = handle_sync;

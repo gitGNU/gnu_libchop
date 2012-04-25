@@ -22,6 +22,13 @@
 typedef opaque chop_rblock_key_t<>;
 typedef opaque chop_rblock_content_t<>;
 
+/* Array of booleans.  */
+typedef opaque chop_rbooleans_t<>;
+
+/* Array of keys.  */
+typedef chop_rblock_key_t chop_rblock_keys_t<>;
+
+
 struct block_store_write_block_args
 {
   chop_rblock_key_t key;
@@ -45,10 +52,11 @@ program BLOCK_STORE_PROGRAM
       int
       SAY_HELLO (string) = 0;
 
-      /* Asks whether the block referred to by the given key exists.  Return
-	 zero if it doesn't, non-zero if it does.  */
-      int
-      BLOCK_EXISTS (chop_rblock_key_t) = 1;
+      /* Asks whether the blocks referred to by the given keys exist.  Return
+	 an array of the same size with zero if the corresponding key has no
+	 associated block, and non-zero otherwise.  */
+      chop_rbooleans_t
+      BLOCKS_EXIST (chop_rblock_keys_t) = 1;
 
       /* Write the block with the given key and contents.  Return zero on
 	 success.  */
@@ -69,7 +77,8 @@ program BLOCK_STORE_PROGRAM
 	 return code.  */
       int
       CLOSE (void) = 5;
-    } = 0;
+    } = 1;
+
 } = 70000;
 
 
