@@ -887,14 +887,12 @@ to notify of a new file stored."
                ((_ (? string? index) _)
                 (if (tip-exists? index)
                     (notify prev-tuple #f)
-                    (let ((index (store-directory prev-dir store)))
-                      (if (equal? index prev-tuple)
-                          index
-                          (raise (condition       ; XXX: not very appropriate
-                                  (&pipeline-storage-error
-                                   (pipeline %directory-storage-pipeline)
-                                   (libchop-error 0)
-                                   (input prev-dir)))))))))
+                    (let ((tuple (store-directory prev-dir store)))
+                      ;; TUPLE equals PREV-TUPLE, except when the directory
+                      ;; format changed, for instance.
+                      (unless (equal? tuple prev-tuple)
+                        (cache-index stat tuple (directory->sexp prev-dir)))
+                      tuple))))
                                                   ; directory changed
              (let* ((versions    (directory-previous-versions prev-dir))
                     (prev-tuples (cons prev-tuple versions)))
