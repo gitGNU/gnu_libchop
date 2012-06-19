@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2012  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -61,11 +61,6 @@
 
 
 _CHOP_BEGIN_DECLS
-
-/* Basic types.  */
-typedef struct chop_block_key chop_block_key_t;
-typedef enum chop_hash_method chop_hash_method_t;
-typedef enum chop_proxy_semantics chop_proxy_semantics_t;
 
 /* Memory allocators.  The `chop_class_t' argument allows allocators to know
    on behalf of which class memory is being allocated.  */
@@ -132,11 +127,11 @@ chop_calloc (size_t amount, const struct chop_class *klass)
 static __inline__ void *
 chop_strdup (const char *str, const struct chop_class *klass)
 {
-  void *ret;
+  char *ret;
 
   if (chop_internal_malloc)
     {
-      ret = chop_internal_malloc (strlen (str) + 1, klass);
+      ret = (char *) chop_internal_malloc (strlen (str) + 1, klass);
       if (ret)
 	strcpy (ret, str);
     }
@@ -185,6 +180,7 @@ enum chop_proxy_semantics
 				      standard `free ()' function.  */
   };
 
+typedef enum chop_proxy_semantics chop_proxy_semantics_t;
 
 
 /* Miscellaneous helper functions.  */

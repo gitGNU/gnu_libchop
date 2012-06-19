@@ -222,7 +222,7 @@ show_tracked_object (chop_tracked_object_t *p)
 #else
   fprintf (stderr, "%s: object @ %p, class `%s'\n",
 	   __FUNCTION__, p->object,
-	   chop_class_name (p->object->class));
+	   chop_class_name (p->object->klass));
 #endif
 }
 
@@ -306,7 +306,7 @@ _class_primitive_destroy (chop_object_t *object)
 static chop_error_t
 _object_primitive_init (chop_object_t *object, const chop_class_t *class)
 {
-  object->class = class;
+  object->klass = class;
 
 #ifdef USE_OBJECT_TRACKER
   {
@@ -324,7 +324,7 @@ _object_primitive_init (chop_object_t *object, const chop_class_t *class)
 static chop_error_t
 _object_primitive_copy (const chop_object_t *source, chop_object_t *dest)
 {
-  dest->class = source->class;
+  dest->klass = source->klass;
 
 #ifdef USE_OBJECT_TRACKER
   {
@@ -356,7 +356,7 @@ _object_primitive_destroy (chop_object_t *object)
     }
 #endif
 
-  object->class = NULL;
+  object->klass = NULL;
 }
 
 
@@ -369,7 +369,7 @@ CHOP_DEFINE_RT_CLASS (class, class,
 const chop_class_t chop_object_class =
   {
     .name = "object",
-    .object = { .class = &chop_class_class },
+    .object = { .klass = &chop_class_class },
     .parent = NULL,
     .constructor = _object_primitive_init,
     .destructor = _object_primitive_destroy,
@@ -422,7 +422,7 @@ chop_object_initialize (chop_object_t *object,
       if (class->constructor)
 	class->constructor (object, class);
 
-      object->class = (chop_class_t *)class;
+      object->klass = (chop_class_t *) class;
     }
 
   return err;
@@ -499,7 +499,7 @@ chop_object_destroy (chop_object_t *object)
     }
 #endif
 
-  for (class = object->class;
+  for (class = object->klass;
        class != NULL;
        class = class->parent)
     {

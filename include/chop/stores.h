@@ -39,6 +39,8 @@ struct chop_block_key
   void *owner;
 };
 
+typedef struct chop_block_key chop_block_key_t;
+
 /* Declare `chop_block_store_t' (represented at run-time by
    CHOP_BLOCK_STORE_CLASS) as inheriting from `chop_object_t'.  */
 CHOP_DECLARE_RT_CLASS (block_store, object,
@@ -46,10 +48,10 @@ CHOP_DECLARE_RT_CLASS (block_store, object,
 
 		       chop_error_t (* blocks_exist) (struct
 						      chop_block_store *,
-						      size_t n,
+						      size_t,
 						      const
-						      chop_block_key_t keys[n],
-						      bool exists[n]);
+						      chop_block_key_t keys[],
+						      bool exists[]);
 
 		       chop_error_t (* read_block) (struct chop_block_store *,
 						    const chop_block_key_t *,
@@ -175,9 +177,9 @@ chop_block_iterator_next (chop_block_iterator_t *__it)
    etc.).  Provides a generic method for opening such a store that is called
    by `chop_file_based_store_open ()'.  This declares
    CHOP_FILE_BASED_STORE_CLASS_CLASS and `chop_file_based_store_class_t'.  */
-CHOP_DECLARE_RT_CLASS (file_based_store_class, class,
+CHOP_DECLARE_RT_CLASS (file_based_store_class, klass,
 		       chop_error_t (* generic_open) (const
-						      chop_class_t *class,
+						      chop_class_t *klass,
 						      const char *file,
 						      int open_flags,
 						      mode_t mode,
@@ -264,7 +266,7 @@ extern chop_error_t chop_fs_store_open (int dir_fd,
    functions which it just calls.  The first argument gives the pointer to
    one of the database-based block store classes.  */
 extern chop_error_t
-chop_file_based_store_open (const chop_file_based_store_class_t *class,
+chop_file_based_store_open (const chop_file_based_store_class_t *klass,
 			    const char *file, int open_flags, mode_t mode,
 			    chop_block_store_t *store);
 
@@ -342,8 +344,8 @@ extern chop_error_t chop_filtered_store_open (chop_filter_t *input_filter,
    available under KEY[i], non-zero otherwise.  */
 static __inline__ chop_error_t
 chop_store_blocks_exist (chop_block_store_t *store,
-			 size_t n, const chop_block_key_t keys[n],
-			 bool exists[n])
+			 size_t n, const chop_block_key_t keys[],
+			 bool exists[])
 {
   if (store->blocks_exist)
     return (store->blocks_exist (store, n, keys, exists));

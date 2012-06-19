@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage
-   Copyright (C) 2008, 2010, 2011  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2011, 2012  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -40,7 +40,7 @@ CHOP_DECLARE_RT_CLASS (chopper, object,
 
 /* The `chop_chopper_class_t' metaclass which provides a generic chopper
    creation method (a "factory").  */
-CHOP_DECLARE_RT_CLASS (chopper_class, class,
+CHOP_DECLARE_RT_CLASS (chopper_class, klass,
 		       chop_error_t (* generic_open) (chop_stream_t *,
 						      size_t,
 						      chop_chopper_t *););
@@ -56,21 +56,21 @@ extern const chop_chopper_class_t chop_anchor_based_chopper_class;
 /* Note:  I should have a look at EDelta at some point,
    http://www.diku.dk/~jacobg/edelta/ .  XXX */
 
-/* Initialize CHOPPER as an instance of the CLASS chopper class with input
-   stream INPUT.  The implementation of CLASS will choose default parameters
+/* Initialize CHOPPER as an instance of the KLASS chopper class with input
+   stream INPUT.  The implementation of KLASS will choose default parameters
    for the specific chopper implementation (class-specific initialization
    methods are available below for fine-tuning of parameters).  It should,
    however, make sure that the average block size will be TYPICAL_BLOCK_SIZE
-   bytes.  If TYPICAL_BLOCK_SIZE is zero, then the implementation of CLASS is
+   bytes.  If TYPICAL_BLOCK_SIZE is zero, then the implementation of KLASS is
    free to choose any block size.  Return zero on success.  */
 static __inline__ chop_error_t
-chop_chopper_generic_open (const chop_chopper_class_t *class,
+chop_chopper_generic_open (const chop_chopper_class_t *klass,
 			   chop_stream_t *input,
 			   size_t typical_block_size,
 			   chop_chopper_t *chopper)
 {
-  if (class->generic_open)
-    return (class->generic_open (input, typical_block_size, chopper));
+  if (klass->generic_open)
+    return (klass->generic_open (input, typical_block_size, chopper));
 
   return CHOP_ERR_NOT_IMPL;
 }

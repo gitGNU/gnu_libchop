@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2012  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -201,12 +201,12 @@ extern chop_error_t chop_filter_through (chop_filter_t *filter,
 /* The `chop_{zip,unzip}_filter_class_t' metaclasses which provide a generic
    zip/unzip filter creation method (a "factory").  */
 
-CHOP_DECLARE_RT_CLASS (zip_filter_class, class,
+CHOP_DECLARE_RT_CLASS (zip_filter_class, klass,
 		       chop_error_t (* generic_open) (int, size_t,
 						      chop_filter_t *););
 
 
-CHOP_DECLARE_RT_CLASS (unzip_filter_class, class,
+CHOP_DECLARE_RT_CLASS (unzip_filter_class, klass,
 		       chop_error_t (* generic_open) (size_t, chop_filter_t *););
 
 

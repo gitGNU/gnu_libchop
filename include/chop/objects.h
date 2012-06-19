@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2012  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -36,13 +36,13 @@ _CHOP_BEGIN_DECLS
 
 /* Serializable objects.  */
 
-typedef enum chop_serial_method chop_serial_method_t;
-
 enum chop_serial_method
   {
     CHOP_SERIAL_ASCII,
     CHOP_SERIAL_BINARY
   };
+
+typedef enum chop_serial_method chop_serial_method_t;
 
 
 typedef struct chop_class chop_class_t;
@@ -70,7 +70,7 @@ typedef int (* chop_equality_predicate_t) (const chop_object_t *,
 
 struct chop_object
 {
-  const chop_class_t *class;
+  const chop_class_t *klass;
 };
 
 struct chop_class
@@ -106,6 +106,10 @@ typedef struct chop_ ## _name			\
 }						\
 chop_ ## _name ## _t;
 
+/* Hack for `_DEF_STRUCT' with `klass' as the parent, so that the field is
+   named in a C++-friendly way.  */
+#define chop_klass_t chop_class_t
+
 #define _CHOP_STRINGIFY(_x) # _x
 #define CHOP_STRINGIFY(_z)  _CHOP_STRINGIFY (_z)
 
@@ -134,7 +138,7 @@ chop_ ## _name ## _t;
      const chop_class_t chop_ ## _name ## _class =		\
        {							\
 	 .name = CHOP_STRINGIFY (_name),			\
-	 .object = { .class = &chop_class_class },		\
+	 .object = { .klass = &chop_class_class },		\
 	 .parent = &(chop_ ## _parent ## _class),		\
 	 .constructor = _cons,					\
 	 .destructor = _dest,					\
@@ -158,10 +162,10 @@ chop_ ## _name ## _t;
      const chop_ ## _metaclass ## _t					\
      chop_ ## _name ## _class =						\
        {								\
-	 .class =							\
+	 .klass =							\
 	 {								\
 	   .name = CHOP_STRINGIFY (_name),				\
-	   .object = { .class = &chop_ ## _metaclass ## _class },	\
+	   .object = { .klass = &chop_ ## _metaclass ## _class },	\
 	   .parent = &(chop_ ## _parent ## _class),			\
 	   .constructor = _cons,					\
 	   .destructor = _dest,						\
@@ -196,31 +200,31 @@ chop_ ## _name ## _t;
 */
 
 
-/* Initialize OBJECT which is to be an instance of CLASS.  This allows for
+/* Initialize OBJECT which is to be an instance of KLASS.  This allows for
    "virtual constructors" in C++ terms.  This means that it can also be
    relativey costly since it may yield several function calls.  If
    initialization fails, an error is returned.  */
 extern chop_error_t chop_object_initialize (chop_object_t *object,
-					    const chop_class_t *class);
+					    const chop_class_t *klass);
 
-/* Initialize OBJECT, which is expected to be of type CLASS, by deserializing
+/* Initialize OBJECT, which is expected to be of type KLASS, by deserializing
    BUFFER (of SIZE bytes), according to METHOD.  On success, zero is returned
    and OBJECT is initialized.  Otherwise, OBJECT is left in an undefined
    state.  On success, BYTES_READ is set to the number of bytes that were
    read from BUFFER in order to deserialize OBJECT.  */
 static __inline__ chop_error_t
 chop_object_deserialize (chop_object_t *__object,
-			 const chop_class_t *__class,
+			 const chop_class_t *__klass,
 			 chop_serial_method_t __method,
 			 const char *__buffer,
 			 size_t __size,
 			 size_t *__bytes_read)
 {
-  if (!__class->deserializer)
+  if (!__klass->deserializer)
     return CHOP_ERR_NOT_IMPL;
 
-  __object->class = __class;
-  return (__class->deserializer (__buffer, __size, __method,
+  __object->klass = __klass;
+  return (__klass->deserializer (__buffer, __size, __method,
 				 __object, __bytes_read));
 }
 
@@ -313,7 +317,7 @@ chop_class_set_destructor (chop_class_t *__class,
 static __inline__ const chop_class_t *
 chop_object_get_class (const chop_object_t *__object)
 {
-  return (__object->class);
+  return (__object->klass);
 }
 
 /* Return non-zero if class CLASS inherits from MAYBE_PARENT.  */
@@ -350,11 +354,11 @@ chop_object_equal (const chop_object_t *__o1, const chop_object_t *__o2)
   if (__o1 == __o2)
     return 1;
 
-  if ((__o1->class != __o2->class)
-      || (!__o1->class->equal))
+  if ((__o1->klass != __o2->klass)
+      || (!__o1->klass->equal))
     return 0;
 
-  return (__o1->class->equal (__o1, __o2));
+  return (__o1->klass->equal (__o1, __o2));
 }
 
 /* Make DEST a ``deep copy'' or ``clone'' of SOURCE.  If SOURCE's class does

@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2012  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -37,6 +37,8 @@ enum chop_hash_method
     CHOP_HASH_SHA384,
     CHOP_HASH_SHA512
   };
+
+typedef enum chop_hash_method chop_hash_method_t;
 
 /* Return the size (in bytes) of the digest yielded by hash method
    METHOD.  */

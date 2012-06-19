@@ -83,9 +83,9 @@ CHOP_DECLARE_RT_CLASS (block_fetcher, object,
 
 		       chop_error_t (* blocks_exist) (struct chop_block_fetcher *,
 						      size_t n,
-						      const chop_index_handle_t *h[n],
+						      const chop_index_handle_t *h[],
 						      chop_block_store_t *,
-						      bool e[n]););
+						      bool e[]););
 
 
 
@@ -178,9 +178,9 @@ chop_block_fetcher_fetch (chop_block_fetcher_t *__fetcher,
 static __inline__ chop_error_t
 chop_block_fetcher_exist (chop_block_fetcher_t *fetcher,
 			  size_t n,
-			  const chop_index_handle_t *handles[n],
+			  const chop_index_handle_t *handles[],
 			  chop_block_store_t *store,
-			  bool exists[n])
+			  bool exists[])
 {
   if (CHOP_EXPECT_FALSE (fetcher->blocks_exist == NULL))
     return CHOP_ERR_NOT_IMPL;

@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2012  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -27,17 +27,19 @@
 /* Hash method specification.  Block stores may advertise a particular block
    naming scheme based on hashes of blocks' contents.  This structure is
    meant to represent such advertisements.  */
+
+enum chop_hash_method_spec_type
+  {
+    CHOP_HASH_SPEC_NONE = 0,   /* no hash method specification */
+    CHOP_HASH_SPEC_ANY,        /* any hash method */
+    CHOP_HASH_SPEC_SPECIFIED,  /* specific hash method (see next field) */
+    CHOP_HASH_SPEC_UNKNOWN     /* unknown specification (e.g., unknown hash
+				  method) */
+  };
+
 typedef struct
 {
-  enum _spec
-    {
-      CHOP_HASH_SPEC_NONE = 0,   /* no hash method specification */
-      CHOP_HASH_SPEC_ANY,        /* any hash method */
-      CHOP_HASH_SPEC_SPECIFIED,  /* specific hash method (see next field) */
-      CHOP_HASH_SPEC_UNKNOWN     /* unknown specification (e.g., unknown hash
-				    method) */
-    } spec_type :2;
-
+  enum chop_hash_method_spec_type spec_type :2;
   chop_hash_method_t method: 6;
 } chop_hash_method_spec_t;
 
