@@ -49,6 +49,11 @@ changed, thus speeding up backups.
 What this means in practice is that file-system block stores can be
 converted with `chop-store-convert' and accessed with `chop-store-list'.
 
+
+** Bug fixes
+
+*** The library's headers are now usable from C++
+
 * Changes in 0.5.2 (since 0.5.1)
 
 ** New features
