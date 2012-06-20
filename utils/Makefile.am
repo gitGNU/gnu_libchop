@@ -62,6 +62,9 @@ EXTRA_DIST += gnutls-helper.c
 endif
 chop_block_server_LDADD = -lchop-block-server -lchop $(LDADD)
 chop_block_server_CPPFLAGS = $(AM_CPPFLAGS)
+if HAVE_AVAHI
+chop_block_server_LDADD += -lpthread
+endif
 
 if HAVE_GNUTLS
 bin_PROGRAMS += chop-openpgp-tool
