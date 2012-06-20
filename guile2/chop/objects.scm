@@ -1,4 +1,4 @@
-;;; Copyright (C) 2010, 2011  Ludovic Courtès <ludo@gnu.org>
+;;; Copyright (C) 2010, 2011, 2012  Ludovic Courtès <ludo@gnu.org>
 ;;;
 ;;; Libchop is free software: you can redistribute it and/or modify
 ;;; it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@
   (and (object? obj)
        ;; XXX: Ugly hack: assume a pointer lives at slot 0.
        (register-libchop-object!
-        (wrap-class (libchop-slot-ref "object" "class" '*
+        (wrap-class (libchop-slot-ref "object" "klass" '*
                                       (struct-ref obj 0))))))
 
 (define (class-name c)
