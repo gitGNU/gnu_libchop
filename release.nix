@@ -73,11 +73,6 @@ let
         buildInputs = buildInputsFrom pkgs;
 
         preAutoconf =
-          # Autopoint 0.18.1.1 announces itself as 0.18.1; work around it.
-          '' sed -i configure.ac \
-                 -e 's/AM_GNU_GETTEXT_VERSION(\[0\.18\.1\.1])/AM_GNU_GETTEXT_VERSION([0.18.1])/g'
-          ''
-          +
           '' mkdir -p gnulib
              cp -rv "${gnulib}/"* gnulib
              chmod -R 755 gnulib

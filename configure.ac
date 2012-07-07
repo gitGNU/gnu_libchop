@@ -38,7 +38,7 @@ AM_PROG_CC_C_O
 
 LT_INIT([disable-static])
 AM_GNU_GETTEXT([external])
-AM_GNU_GETTEXT_VERSION([0.18.1.1])
+AM_GNU_GETTEXT_VERSION([0.18.1])
 
 # Gnulib
 gl_INIT
