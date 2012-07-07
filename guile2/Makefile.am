@@ -76,7 +76,10 @@ nobase_nodist_guilemodule_DATA = $(BUILT_SOURCES) $(GOBJECTS)
 
 TESTS_ENVIRONMENT =							\
   libchop_libdir="$(abs_top_builddir)/src"				\
-  GUILE_LOAD_COMPILED_PATH="$(builddir):$$GUILE_LOAD_COMPILED_PATH"	\
+  GUILE_LOAD_COMPILED_PATH="$(builddir):$$GUILE_LOAD_COMPILED_PATH";	\
+  export libchop_libdir GUILE_LOAD_COMPILED_PATH;
+
+LOG_COMPILER =					\
   $(GUILE) --no-auto-compile -L $(srcdir)
 
 TESTS = test-suite.scm
