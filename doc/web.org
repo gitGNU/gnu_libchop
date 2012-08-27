@@ -65,6 +65,10 @@ Releases are available from [[http://download.savannah.gnu.org/releases/libchop/
 
   - A [[http://www.fdn.fr/~lcourtes/ludo-1.html#coop-bak][bibliography relative to cooperative backup and peer-to-peer storage]].
 
+  - [[http://julien.vaubourg.com/files/ldnBoxBackupsSystem_rapport.pdf][Report (in French)]] about the use of libchop for a tentative
+    peer-to-peer backup system in [[http://ldn-fai.net/projet-ldn-box/][modem-routers for LDN]], a French
+    non-profit, neutral Internet service provider (ISP).  June 2012.
+
 * Mailing List
 
 A mailing list for bug reports and general discussion is available at
