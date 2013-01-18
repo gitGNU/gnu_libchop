@@ -1,4 +1,4 @@
-;;; Copyright (C) 2010, 2011, 2012  Ludovic Courtès <ludo@gnu.org>
+;;; Copyright (C) 2010, 2011, 2012, 2013  Ludovic Courtès <ludo@gnu.org>
 ;;;
 ;;; Libchop is free software: you can redistribute it and/or modify
 ;;; it under the terms of the GNU General Public License as published by
@@ -122,17 +122,6 @@ evaluate to a simple datum."
          (let ((val exp))
            (syntax-case s ()
              (_ (datum->syntax s val)))))))))
-
-(define-syntax compile-time-value
-  (syntax-rules ()
-    "Evaluate the given expression at compile time.  The expression must
-evaluate to a simple datum."
-    ((_ exp)
-     (let-syntax ((v (lambda (s)
-                       (let ((val exp))
-                         (syntax-case s ()
-                           (_ (datum->syntax s val)))))))
-       v))))
 
 (eval-when (eval load compile)
 
