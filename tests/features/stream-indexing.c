@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2013  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -21,6 +21,8 @@
    We just very naively test every possible indexer/chopper/block-indexer
    configuration (there aren't so many of them).  The test also exercises the
    deserialization API a bit.  */
+
+#include <chop/chop-config.h>
 
 #include <alloca.h>
 

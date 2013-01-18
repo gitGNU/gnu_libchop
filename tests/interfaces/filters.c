@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2013  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -18,6 +18,8 @@
 /* This test basically ensures that filters honor the input fault mechanism.
    It does not attempt to check whether the filter's output corresponds to
    its input.  */
+
+#include <chop/chop-config.h>
 
 #include <alloca.h>
 

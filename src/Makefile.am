@@ -1,5 +1,5 @@
 # libchop -- a utility library for distributed storage and data backup
-# Copyright (C) 2008, 2010, 2011, 2012  Ludovic Courtès <ludo@gnu.org>
+# Copyright (C) 2008, 2010, 2011, 2012, 2013  Ludovic Courtès <ludo@gnu.org>
 # Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 #
 # Libchop is free software: you can redistribute it and/or modify
@@ -165,15 +165,18 @@ errors.c: $(top_srcdir)/include/chop/errors.h
 	mv "$@.tmp" "$@"
 
 block_rstore_clnt.c: block_rstore.h
-	echo "#include \"block_rstore.h\"" > $@ &&	\
+	( echo "#include <chop/chop-config.h>";		\
+	  echo "#include \"block_rstore.h\"" ) > $@ &&	\
 	$(RPCGEN) -l < $(rpc_interface) >> $@
 
 block_rstore_xdr.c:  block_rstore.h
-	echo "#include \"block_rstore.h\"" > $@ &&	\
+	( echo "#include <chop/chop-config.h>";		\
+	  echo "#include \"block_rstore.h\"" ) > $@ &&	\
 	$(RPCGEN) -c < $(rpc_interface) >> $@
 
 block_rstore_svc.c:  block_rstore.h
-	echo "#include \"block_rstore.h\"" > $@ &&	\
+	( echo "#include <chop/chop-config.h>";		\
+	  echo "#include \"block_rstore.h\"" ) > $@ &&	\
 	$(RPCGEN) -m < $(rpc_interface) >> $@
 
 $(top_builddir)/include/chop/block_rstore.h: block_rstore.h

@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2013  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -23,6 +23,8 @@
    input sequence is recorded.  Finally, the positions of the anchors for
    both input sequences are compared and those found for the reference input
    sequence are expected to be found in the modified input sequence too.  */
+
+#include <chop/chop-config.h>
 
 #include <alloca.h>
 

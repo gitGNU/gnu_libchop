@@ -66,3 +66,8 @@ xsize.m4
 /signal_h.m4
 /sys_types_h.m4
 /sys_uio_h.m4
+/exponentd.m4
+/extern-inline.m4
+/math_h.m4
+/off_t.m4
+/stdalign.m4

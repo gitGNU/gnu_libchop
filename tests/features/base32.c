@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2010, 2013  Ludovic Courtès <ludo@gnu.org>
 
    Libchop is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -15,6 +15,8 @@
    along with libchop.  If not, see <http://www.gnu.org/licenses/>.  */
 
 /* Base32 tests as found in RFC 4648.  */
+
+#include <chop/chop-config.h>
 
 #include <chop/chop.h>
 

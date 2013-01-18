@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010, 2011, 2012  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2011, 2012, 2013  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -22,6 +22,8 @@
    This block indexer, unlike the `hash' and `chk' block indexers, does not
    have the single-instance storage property since every block automatically
    gets assigned a new ID.  */
+
+#include <chop/chop-config.h>
 
 #include <alloca.h>
 

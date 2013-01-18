@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010, 2012  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2012, 2013  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -18,6 +18,8 @@
 /* A `smart' block store that only writes a block if it does not already
    exist on the proxied store.  This is typically useful as a proxy to remote
    block stores.  */
+
+#include <chop/chop-config.h>
 
 #include <chop/chop.h>
 #include <chop/stores.h>

@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2013  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -16,6 +16,8 @@
    along with libchop.  If not, see <http://www.gnu.org/licenses/>.  */
 
 /* Hash/message digest utilities.  */
+
+#include <chop/chop-config.h>
 
 #include <chop/chop.h>
 #include <chop/hash.h>

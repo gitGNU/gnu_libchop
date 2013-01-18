@@ -1,5 +1,5 @@
 /* libchop -- a utility library for distributed storage and data backup
-   Copyright (C) 2008, 2010  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2008, 2010, 2013  Ludovic Courtès <ludo@gnu.org>
    Copyright (C) 2005, 2006, 2007  Centre National de la Recherche Scientifique (LAAS-CNRS)
 
    Libchop is free software: you can redistribute it and/or modify
@@ -18,6 +18,8 @@
 /* This is a high-level test that runs several indexers and, for each of
    these, tests whether (i) it is able to index a whole stream and (ii) it is
    able to fetch the newly indexed stream and provide consistent data.  */
+
+#include <chop/chop-config.h>
 
 #include <chop/chop.h>
 #include <chop/streams.h>
