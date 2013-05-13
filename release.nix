@@ -1,5 +1,5 @@
 /* Continuous integration of libchop with Hydra/Nix.
-   Copyright (C) 2011, 2012  Ludovic Courtès <ludo@gnu.org>
+   Copyright (C) 2011, 2012, 2013  Ludovic Courtès <ludo@gnu.org>
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -49,7 +49,7 @@ let
   succeedOnFailure = true;
   keepBuildDirectory = true;
 
-  buildNativeInputsFrom = pkgs: [ guile ] ++
+  nativeBuildInputsFrom = pkgs: [ guile ] ++
     (with pkgs; [ pkgconfig gperf ]);
 
   buildInputsFrom = pkgs:
@@ -68,7 +68,7 @@ let
       pkgs.releaseTools.sourceTarball {
         name = "libchop-tarball";
         src = libchopSrc;
-        buildNativeInputs = (buildNativeInputsFrom pkgs)
+        nativeBuildInputs = (nativeBuildInputsFrom pkgs)
           ++ (with pkgs; [ git texinfo texLive gettext_0_18 cvs emacs ]);
         buildInputs = buildInputsFrom pkgs;
 
@@ -108,7 +108,7 @@ EOF
       pkgs.releaseTools.nixBuild {
         name = "libchop";
         src = tarball;
-        buildNativeInputs = buildNativeInputsFrom pkgs;
+        nativeBuildInputs = nativeBuildInputsFrom pkgs;
         buildInputs = buildInputsFrom pkgs;
         inherit meta succeedOnFailure keepBuildDirectory
           buildOutOfSourceTree;
@@ -123,7 +123,7 @@ EOF
       pkgs.releaseTools.coverageAnalysis {
         name = "libchop";
         src = tarball;
-        buildNativeInputs = buildNativeInputsFrom pkgs;
+        nativeBuildInputs = nativeBuildInputsFrom pkgs;
         buildInputs = buildInputsFrom pkgs;
         inherit meta succeedOnFailure keepBuildDirectory
           buildOutOfSourceTree;
