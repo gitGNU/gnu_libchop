@@ -265,7 +265,7 @@ PKG_CHECK_EXISTS([guile-2.0 >= 2.0.5],
   [if test "x`$PKG_CONFIG guile-2.0 --variable bindir`" = "x"; then
      AC_PATH_PROG([GUILE], [guile])
    else
-     GUILE="`$PKG_CONFIG guile-2.0 --variable bindir`"
+     GUILE="`$PKG_CONFIG guile-2.0 --variable bindir`/guile"
    fi
    AC_SUBST([GUILE])
    guile2="$GUILE"])
